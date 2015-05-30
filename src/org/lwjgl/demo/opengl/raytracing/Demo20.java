@@ -5,7 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBFramebufferObject;
 import org.lwjgl.opengl.ARBTextureFloat;
@@ -251,8 +252,8 @@ public class Demo20 {
 		String version = GL.getCapabilities().OpenGL30 ? "130" : null;
 
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/quad.vs", GL_VERTEX_SHADER, version);
-		int fshader = Demo.createShader("demo/raytracing/quad.fs", GL_FRAGMENT_SHADER, version);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, version);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, version);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -279,10 +280,10 @@ public class Demo20 {
 		String version = GL.getCapabilities().OpenGL30 ? "130" : null;
 
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/quad.vs", GL_VERTEX_SHADER, version);
-		int fshader = Demo.createShader("demo/raytracing/raytracing20.fs", GL_FRAGMENT_SHADER, version);
-		int randomCommon = Demo.createShader("demo/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, null);
-		int random = Demo.createShader("demo/raytracing/random20.glsl", GL_FRAGMENT_SHADER, null);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, version);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing20.fs", GL_FRAGMENT_SHADER, version);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, null);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random20.glsl", GL_FRAGMENT_SHADER, null);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glAttachShader(program, randomCommon);

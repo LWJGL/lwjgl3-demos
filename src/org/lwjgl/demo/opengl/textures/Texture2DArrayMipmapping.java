@@ -6,7 +6,7 @@ package org.lwjgl.demo.opengl.textures;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GLContext;

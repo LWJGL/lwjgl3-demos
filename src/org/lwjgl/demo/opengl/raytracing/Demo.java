@@ -5,8 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
@@ -19,7 +19,6 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static java.lang.Math.*;
-import static org.lwjgl.demo.util.IOUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -244,84 +243,14 @@ public class Demo {
 	}
 
 	/**
-	 * Create a shader object from the given classpath resource.
-	 *
-	 * @param resource
-	 *            the class path
-	 * @param type
-	 *            the shader type
-	 *
-	 * @return the shader object id
-	 *
-	 * @throws IOException
-	 */
-	static int createShader(String resource, int type) throws IOException {
-		return createShader(resource, type, null);
-	}
-
-	/**
-	 * Create a shader object from the given classpath resource.
-	 *
-	 * @param resource
-	 *            the class path
-	 * @param type
-	 *            the shader type
-	 * @param version
-	 *            the GLSL version to prepend to the shader source, or null
-	 *
-	 * @return the shader object id
-	 *
-	 * @throws IOException
-	 */
-	static int createShader(String resource, int type, String version) throws IOException {
-		int shader = glCreateShader(type);
-
-		ByteBuffer source = ioResourceToByteBuffer(resource, 8192);
-
-		if ( version == null ) {
-			PointerBuffer strings = BufferUtils.createPointerBuffer(1);
-			IntBuffer lengths = BufferUtils.createIntBuffer(1);
-
-			strings.put(0, source);
-			lengths.put(0, source.remaining());
-
-			glShaderSource(shader, strings, lengths);
-		} else {
-			PointerBuffer strings = BufferUtils.createPointerBuffer(2);
-			IntBuffer lengths = BufferUtils.createIntBuffer(2);
-
-			ByteBuffer preamble = memEncodeUTF8("#version " + version + "\n", false);
-
-			strings.put(0, preamble);
-			lengths.put(0, preamble.remaining());
-
-			strings.put(1, source);
-			lengths.put(1, source.remaining());
-
-			glShaderSource(shader, strings, lengths);
-		}
-
-		glCompileShader(shader);
-		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
-		String shaderLog = glGetShaderInfoLog(shader);
-		if (!shaderLog.trim().isEmpty()) {
-			System.err.println(shaderLog);
-		}
-		if (compiled == 0) {
-			throw new AssertionError("Could not compile shader");
-		}
-		return shader;
-	}
-
-	/**
 	 * Create the full-scren quad shader.
 	 *
 	 * @throws IOException
 	 */
 	private void createQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = Demo.createShader("demo/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -345,9 +274,9 @@ public class Demo {
 	 */
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = createShader("demo/raytracing/raytracing.glslcs", GL_COMPUTE_SHADER);
-		int random = createShader("demo/raytracing/random.glsl", GL_COMPUTE_SHADER);
-		int randomCommon = createShader("demo/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing.glslcs", GL_COMPUTE_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, random);
 		glAttachShader(program, randomCommon);

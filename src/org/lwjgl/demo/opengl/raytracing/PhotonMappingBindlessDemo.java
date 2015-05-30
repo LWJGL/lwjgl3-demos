@@ -5,8 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.DemoUtils;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBClearTexture;
@@ -359,9 +359,9 @@ public class PhotonMappingBindlessDemo {
 
 	private void createPhotonTraceProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = Demo.createShader("demo/raytracing/photonmapBindless.glsl", GL_COMPUTE_SHADER);
-		int random = Demo.createShader("demo/raytracing/random.glsl", GL_COMPUTE_SHADER);
-		int randomCommon = Demo.createShader("demo/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/photonmapBindless.glsl", GL_COMPUTE_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, random);
 		glAttachShader(program, randomCommon);
@@ -569,8 +569,8 @@ public class PhotonMappingBindlessDemo {
 	 */
 	private void createRasterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/rasterPhotonMap.vs", GL_VERTEX_SHADER);
-		int fshader = Demo.createShader("demo/raytracing/rasterPhotonMapBindless.fs", GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/rasterPhotonMap.vs", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/rasterPhotonMapBindless.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertexPosition");

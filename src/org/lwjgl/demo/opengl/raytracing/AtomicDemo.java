@@ -6,7 +6,7 @@ package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBShaderAtomicCounters;
 import org.lwjgl.opengl.GLContext;

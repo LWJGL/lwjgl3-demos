@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.demo.opengl;
+package org.lwjgl.demo.opengl.util;
 
 import com.joml.Matrix4f;
 import com.joml.Vector3f;

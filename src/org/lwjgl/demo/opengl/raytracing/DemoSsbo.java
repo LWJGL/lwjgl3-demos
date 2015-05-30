@@ -5,7 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
@@ -244,8 +245,8 @@ public class DemoSsbo {
 	 */
 	private void createQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = Demo.createShader("demo/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -269,7 +270,7 @@ public class DemoSsbo {
 	 */
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = Demo.createShader("demo/raytracing/raytracingSsbo.glslcs", GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracingSsbo.glslcs", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);

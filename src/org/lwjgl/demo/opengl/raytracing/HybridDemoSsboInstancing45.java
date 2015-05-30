@@ -5,8 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.DemoUtils;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
@@ -402,10 +402,8 @@ public class HybridDemoSsboInstancing45 {
 	 */
 	private void createQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = Demo.createShader("demo/raytracing/quad.vs",
-				GL_VERTEX_SHADER, "330");
-		int fshader = Demo.createShader("demo/raytracing/quad.fs",
-				GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs",	GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -429,10 +427,8 @@ public class HybridDemoSsboInstancing45 {
 	 */
 	private void createRasterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = Demo.createShader(
-				"demo/raytracing/rasterInstancedUbo.vs", GL_VERTEX_SHADER);
-		int fshader = Demo.createShader("demo/raytracing/raster.fs",
-				GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/rasterInstancedUbo.vs", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raster.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertexPosition");
@@ -460,11 +456,9 @@ public class HybridDemoSsboInstancing45 {
 	 */
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = Demo.createShader("demo/raytracing/hybridSsboUbo.glsl",
-				GL_COMPUTE_SHADER);
-		int random = Demo.createShader("demo/raytracing/random.glsl",
-				GL_COMPUTE_SHADER);
-		int randomCommon = Demo.createShader("demo/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/hybridSsboUbo.glsl", GL_COMPUTE_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, random);
 		glAttachShader(program, randomCommon);

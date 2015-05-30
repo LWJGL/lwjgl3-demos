@@ -5,8 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.DemoUtils;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.demo.util.WavefrontMeshLoader;
 import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.demo.util.WavefrontMeshLoader.MeshObject;

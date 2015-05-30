@@ -5,9 +5,9 @@
 package org.lwjgl.demo.opengl.fbo;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.DemoUtils;
 import org.lwjgl.demo.opengl.raytracing.Scene;
-import org.lwjgl.demo.util.Camera;
+import org.lwjgl.demo.opengl.util.Camera;
+import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
