@@ -53,7 +53,7 @@ public class Camera {
 	 * {@inheritDoc}
 	 */
 	public void setLookAt(Vector3f position, Vector3f lookAt, Vector3f up) {
-		viewMatrix.identity().lookAt(position, lookAt, up);
+		viewMatrix.setLookAt(position, lookAt, up);
 		this.position.set(position);
 		refreshInverseMatrix = true;
 	}
@@ -71,7 +71,7 @@ public class Camera {
 	}
 
 	public void setFrustumPerspective(float fovY, float aspect, float near, float far) {
-		projectionMatrix.identity().perspective(fovY, aspect, near, far);
+		projectionMatrix.setPerspective(fovY, aspect, near, far);
 		refreshInverseMatrix = true;
 	}
 
