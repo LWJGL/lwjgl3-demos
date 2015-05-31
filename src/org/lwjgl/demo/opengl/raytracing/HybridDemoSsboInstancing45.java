@@ -619,6 +619,7 @@ public class HybridDemoSsboInstancing45 {
 
 	private void putMatrix(Matrix4f value, FloatBuffer fb) {
 		value.get(fb);
+		fb.position(fb.position() + 16);
 	}
 
 	/**

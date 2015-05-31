@@ -587,7 +587,6 @@ public class HybridDemoSsboTriangles {
 	 */
 	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
 		value.get(matrixByteBufferFloatView);
-		matrixByteBufferFloatView.rewind();
 		glUniformMatrix4fv(location, 1, transpose, matrixByteBuffer);
 	}
 
