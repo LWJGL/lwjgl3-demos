@@ -16,7 +16,7 @@ import java.nio.IntBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 
-import com.joml.Vector3f;
+import org.joml.Vector3f;
 
 /**
  * Utility methods for most of the ray tracing demos.

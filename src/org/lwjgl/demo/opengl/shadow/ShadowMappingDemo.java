@@ -31,8 +31,8 @@ import org.lwjgl.glfw.GLFWvidmode;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
 
-import com.joml.Matrix4f;
-import com.joml.Vector3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 /**
  * Simple demo to showcase shadow mapping with a custom shader doing perspective

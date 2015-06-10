@@ -13,8 +13,8 @@ import org.lwjgl.opengl.ARBClearTexture;
 import org.lwjgl.opengl.ARBComputeVariableGroupSize;
 import org.lwjgl.opengl.GLContext;
 
-import com.joml.Matrix4f;
-import com.joml.Vector3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

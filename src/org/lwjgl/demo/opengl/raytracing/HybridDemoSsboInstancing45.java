@@ -11,8 +11,8 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
 
-import com.joml.Matrix4f;
-import com.joml.Vector3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

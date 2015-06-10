@@ -4,9 +4,9 @@
  */
 package org.lwjgl.demo.opengl.util;
 
-import com.joml.Matrix4f;
-import com.joml.Vector3f;
-import com.joml.Vector4f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 /**
  * A simple pinhole camera.

@@ -17,7 +17,7 @@ import java.util.zip.ZipInputStream;
 
 import org.lwjgl.BufferUtils;
 
-import com.joml.Vector3f;
+import org.joml.Vector3f;
 
 /**
  * A simple Wavefront obj file loader.

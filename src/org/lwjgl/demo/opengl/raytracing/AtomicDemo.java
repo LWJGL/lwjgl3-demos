@@ -12,7 +12,7 @@ import org.lwjgl.opengl.ARBShaderAtomicCounters;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.system.libffi.Closure;
 
-import com.joml.Vector3f;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

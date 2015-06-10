@@ -11,7 +11,7 @@ import org.lwjgl.system.libffi.Closure;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 
-import com.joml.Vector3f;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
