@@ -62,10 +62,7 @@ public class Multithreaded {
 		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
 			public void invoke(long window, int key, int scancode, int action, int mods) {
 				if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-					glfwSetWindowShouldClose(window, GL_TRUE); // We will detect
-																// this in our
-																// rendering
-																// loop
+					glfwSetWindowShouldClose(window, GL_TRUE);
 			}
 		});
 		glfwSetFramebufferSizeCallback(window, fsCallback = new GLFWFramebufferSizeCallback() {
@@ -86,7 +83,7 @@ public class Multithreaded {
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
 		GLContext.createFromCurrent().setupDebugMessageCallback();
-		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
 
 		long lastTime = System.nanoTime();
 
