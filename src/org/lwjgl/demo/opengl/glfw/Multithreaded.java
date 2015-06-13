@@ -126,7 +126,7 @@ public class Multithreaded {
 		}).start();
 
 		while (glfwWindowShouldClose(window) == GL_FALSE) {
-			glfwPollEvents();
+			glfwWaitEvents();
 		}
 	}
 
