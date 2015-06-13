@@ -29,6 +29,7 @@ public class Multithreaded {
 	long window;
 	int width, height;
 	Object lock = new Object();
+	boolean destroyed;
 
 	void run() {
 		try {
@@ -36,6 +37,7 @@ public class Multithreaded {
 			winProcLoop();
 
 			synchronized (lock) {
+				destroyed = true;
 				glfwDestroyWindow(window);
 			}
 			keyCallback.release();
@@ -85,13 +87,12 @@ public class Multithreaded {
 
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(2);
 		GLContext.createFromCurrent().setupDebugMessageCallback();
 		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
 
 		long lastTime = System.nanoTime();
 
-		while (glfwWindowShouldClose(window) == GL_FALSE) {
+		while (!destroyed) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			glViewport(0, 0, width, height);
 
@@ -114,7 +115,9 @@ public class Multithreaded {
 			glEnd();
 
 			synchronized (lock) {
-				glfwSwapBuffers(window);
+				if (!destroyed) {
+					glfwSwapBuffers(window);
+				}
 			}
 		}
 	}
