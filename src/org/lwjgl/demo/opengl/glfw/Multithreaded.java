@@ -110,7 +110,6 @@ public class Multithreaded {
 			glEnd();
 
 			glfwSwapBuffers(window);
-			glfwPollEvents();
 		}
 	}
 
