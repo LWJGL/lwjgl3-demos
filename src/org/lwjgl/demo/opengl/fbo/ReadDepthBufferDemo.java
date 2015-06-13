@@ -242,8 +242,8 @@ public class ReadDepthBufferDemo {
 
 	private void createFullScreenQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("demo/fbo/quadDepth.vs", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("demo/fbo/quadDepth.fs", GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.vs", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -262,8 +262,8 @@ public class ReadDepthBufferDemo {
 
 	private void createDepthOnlyProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("demo/fbo/rasterDepth.vs", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("demo/fbo/rasterDepth.fs", GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.vs", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertexPosition");
