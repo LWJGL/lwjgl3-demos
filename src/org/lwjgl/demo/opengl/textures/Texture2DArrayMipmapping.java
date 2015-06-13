@@ -231,8 +231,8 @@ public class Texture2DArrayMipmapping {
 	 */
 	private void createRasterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = createShader("demo/textures/texture2dArrayMipmap.vs", GL_VERTEX_SHADER);
-		int fshader = createShader("demo/textures/texture2dArrayMipmap.fs", GL_FRAGMENT_SHADER);
+		int vshader = createShader("org/lwjgl/demo/opengl/textures/texture2dArrayMipmap.vs", GL_VERTEX_SHADER);
+		int fshader = createShader("org/lwjgl/demo/opengl/textures/texture2dArrayMipmap.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "position");
