@@ -28,13 +28,16 @@ public class Multithreaded {
 
 	long window;
 	int width, height;
+	Object lock = new Object();
 
 	void run() {
 		try {
 			init();
 			winProcLoop();
 
-			glfwDestroyWindow(window);
+			synchronized (lock) {
+				glfwDestroyWindow(window);
+			}
 			keyCallback.release();
 			fsCallback.release();
 		} finally {
@@ -82,6 +85,7 @@ public class Multithreaded {
 
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
+		glfwSwapInterval(2);
 		GLContext.createFromCurrent().setupDebugMessageCallback();
 		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
 
@@ -109,7 +113,9 @@ public class Multithreaded {
 			glVertex2f(-0.5f, +0.5f);
 			glEnd();
 
-			glfwSwapBuffers(window);
+			synchronized (lock) {
+				glfwSwapBuffers(window);
+			}
 		}
 	}
 
