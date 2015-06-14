@@ -210,9 +210,9 @@ public class UniformArrayDemo {
 	 */
 	private void createRasterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = createShader("demo/uniformarray-vs.glsl",
+		int vshader = createShader("org/lwjgl/demo/opengl/uniformarray-vs.glsl",
 				GL_VERTEX_SHADER);
-		int fshader = createShader("demo/uniformarray-fs.glsl",
+		int fshader = createShader("org/lwjgl/demo/opengl/uniformarray-fs.glsl",
 				GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);

@@ -13,7 +13,6 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryUtil.*;
  
 public class SimpleDrawElements {
@@ -56,9 +55,6 @@ public class SimpleDrawElements {
         glfwDefaultWindowHints(); // optional, the current window hints are already the default
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE); // the window will stay hidden after creation
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE); // the window will be resizable
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
  
         int WIDTH = 300;
         int HEIGHT = 300;
@@ -115,10 +111,8 @@ public class SimpleDrawElements {
         // Set the clear color
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 
-        int vao = glGenVertexArrays();
         int vbo = glGenBuffers();
         int ibo = glGenBuffers();
-        glBindVertexArray(vao);
         float[] vertices = {-1, -1, 0, 1, -1, 0, 1, 1, 0};
         int[] indices = {0, 1, 2};
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
