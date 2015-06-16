@@ -157,14 +157,14 @@ public class MultisampledFboDemo {
 
 		long lastTime = System.nanoTime();
 		while (!destroyed) {
+			/* Update the FBO if the window changed in size */
+			update();
+			
 			/* Render to multisampled FBO */
 			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 			{
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, width, height);
-
-				/* Update the FBO if the window changed in size */
-				update();
 
 				long thisTime = System.nanoTime();
 				float elapsed = (lastTime - thisTime) / 1E9f;
