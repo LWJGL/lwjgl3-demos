@@ -179,7 +179,7 @@ public class MultisampledFbo2Demo {
 		glColor3f(0.1f, 0.1f, 0.1f);
 
 		/* Query maximum sample count */
-		samples = Math.min(8, glGetInteger(GL_MAX_SAMPLES));
+		samples = glGetInteger(GL_MAX_SAMPLES);
 		System.err.println("Using " + samples + "x multisampling");
 
 		/* Initially create the FBOs */
