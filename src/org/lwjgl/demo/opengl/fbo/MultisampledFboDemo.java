@@ -12,6 +12,7 @@ import org.lwjgl.system.libffi.Closure;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.ARBTextureMultisample.*;
@@ -28,7 +29,7 @@ public class MultisampledFboDemo {
 	long window;
 	int width = 1024;
 	int height = 768;
-	boolean resetFramebuffer = true;
+	boolean resetFramebuffer;
 	boolean destroyed;
 	Object lock = new Object();
 
@@ -37,6 +38,7 @@ public class MultisampledFboDemo {
 	int fbo;
 	int samples = 8;
 
+	GLFWErrorCallback errorCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
 	Closure debugProc;
@@ -54,11 +56,12 @@ public class MultisampledFboDemo {
 			fbCallback.release();
 		} finally {
 			glfwTerminate();
+			errorCallback.release();
 		}
 	}
 
 	void init() {
-		glfwSetErrorCallback(Callbacks.errorCallbackPrint(System.err));
+		glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
 		if (glfwInit() != GL_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 
@@ -104,7 +107,7 @@ public class MultisampledFboDemo {
 		height = framebufferSize.get(1);
 	}
 
-	private void createFramebufferObject() {
+	void createFramebufferObject() {
 		colorTexture = glGenTextures();
 		depthRenderBuffer = glGenRenderbuffers();
 		fbo = glGenFramebuffers();
@@ -125,14 +128,14 @@ public class MultisampledFboDemo {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	private void resizeFramebufferTexture() {
+	void resizeFramebufferTexture() {
 		glDeleteRenderbuffers(depthRenderBuffer);
 		glDeleteTextures(colorTexture);
 		glDeleteFramebuffers(fbo);
 		createFramebufferObject();
 	}
 
-	private void update() {
+	void update() {
 		if (resetFramebuffer) {
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
