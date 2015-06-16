@@ -46,7 +46,6 @@ public class MultisampledFbo2Demo {
 
 	/* Single-sampled FBO objects */
 	int colorTexture;
-	int depthRenderBuffer;
 	int fbo;
 
 	GLFWErrorCallback errorCallback;
@@ -139,17 +138,13 @@ public class MultisampledFbo2Demo {
 
 		/* Create single-sampled FBO */
 		colorTexture = glGenTextures();
-		depthRenderBuffer = glGenRenderbuffers();
 		fbo = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
 		glBindTexture(GL_TEXTURE_2D, colorTexture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // we also want to sample this texture later
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // we also want to sample this texture later
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
 		fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
 			throw new AssertionError("Could not create FBO: " + fboStatus);
