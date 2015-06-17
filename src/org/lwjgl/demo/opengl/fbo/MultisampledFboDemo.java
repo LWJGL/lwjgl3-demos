@@ -15,7 +15,6 @@ import java.nio.IntBuffer;
 import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.ARBTextureMultisample.*;
 import static org.lwjgl.opengl.ARBFramebufferObject.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
@@ -33,7 +32,7 @@ public class MultisampledFboDemo {
 	boolean destroyed;
 	Object lock = new Object();
 
-	int colorTexture;
+	int colorRenderBuffer;
 	int depthRenderBuffer;
 	int fbo;
 	int samples = 8;
@@ -108,18 +107,16 @@ public class MultisampledFboDemo {
 	}
 
 	void createFramebufferObject() {
-		colorTexture = glGenTextures();
+		colorRenderBuffer = glGenRenderbuffers();
 		depthRenderBuffer = glGenRenderbuffers();
 		fbo = glGenFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorTexture);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA, width, height, true);
-
+		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA8, width, height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
 		glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, width, height);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorTexture, 0);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
 		int fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -130,7 +127,7 @@ public class MultisampledFboDemo {
 
 	void resizeFramebufferTexture() {
 		glDeleteRenderbuffers(depthRenderBuffer);
-		glDeleteTextures(colorTexture);
+		glDeleteRenderbuffers(colorRenderBuffer);
 		glDeleteFramebuffers(fbo);
 		createFramebufferObject();
 	}
