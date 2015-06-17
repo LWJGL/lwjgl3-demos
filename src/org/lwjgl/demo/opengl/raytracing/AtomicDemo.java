@@ -20,7 +20,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static java.lang.Math.*;
-import static org.lwjgl.demo.util.IOUtil.*;
+import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
