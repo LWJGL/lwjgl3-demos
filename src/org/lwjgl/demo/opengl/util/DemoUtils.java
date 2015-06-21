@@ -222,7 +222,7 @@ public class DemoUtils {
 		glCompileShader(shader);
 		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
 		String shaderLog = glGetShaderInfoLog(shader);
-		if (!shaderLog.trim().isEmpty()) {
+		if (shaderLog.trim().length() > 0) {
 			System.err.println(shaderLog);
 		}
 		if (compiled == 0) {

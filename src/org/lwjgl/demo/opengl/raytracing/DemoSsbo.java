@@ -254,7 +254,7 @@ public class DemoSsbo {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (!programLog.trim().isEmpty()) {
+		if (programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
@@ -275,7 +275,7 @@ public class DemoSsbo {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (!programLog.trim().isEmpty()) {
+		if (programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {

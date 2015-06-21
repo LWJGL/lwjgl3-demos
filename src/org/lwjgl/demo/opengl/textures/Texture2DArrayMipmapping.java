@@ -215,7 +215,7 @@ public class Texture2DArrayMipmapping {
 		glCompileShader(shader);
 		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
 		String shaderLog = glGetShaderInfoLog(shader);
-		if (!shaderLog.trim().isEmpty()) {
+		if (shaderLog.trim().length() > 0) {
 			System.err.println(shaderLog);
 		}
 		if (compiled == 0) {
@@ -240,7 +240,7 @@ public class Texture2DArrayMipmapping {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (!programLog.trim().isEmpty()) {
+		if (programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
