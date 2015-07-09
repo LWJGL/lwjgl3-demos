@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#ifdef GL_core_profile
+#if !defined(GL_compatibility_profile) && defined(GL_core_profile)
   #define attribute in
   #define varying out
 #endif

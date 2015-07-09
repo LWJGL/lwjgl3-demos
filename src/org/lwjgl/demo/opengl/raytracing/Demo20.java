@@ -49,8 +49,8 @@ public class Demo20 {
 	private static Vector3f[] boxes = Scene.boxes;
 
 	private long window;
-	private int width = 1024;
-	private int height = 768;
+	private int width = 300;
+	private int height = 300;
 	private boolean resetFramebuffer = true;
 
 	private int tex;

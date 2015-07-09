@@ -71,7 +71,7 @@ public class Camera {
 	}
 
 	public void setFrustumPerspective(float fovY, float aspect, float near, float far) {
-		projectionMatrix.setPerspective(fovY, aspect, near, far);
+		projectionMatrix.setPerspective((float) Math.toRadians(fovY), aspect, near, far);
 		refreshInverseMatrix = true;
 	}
 
