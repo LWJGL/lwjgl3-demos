@@ -6,7 +6,6 @@ package org.lwjgl.demo.opengl.util;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 
 /**
  * A simple pinhole camera.
@@ -16,18 +15,12 @@ import org.joml.Vector4f;
 public class Camera {
 
 	private final Matrix4f projectionMatrix = new Matrix4f();
-
 	private final Matrix4f viewMatrix = new Matrix4f();
-
+	private final Matrix4f projectionViewMatrix = new Matrix4f();
 	private final Matrix4f invViewProjectionMatrix = new Matrix4f();
-
 	private final Vector3f position = new Vector3f();
-
 	private boolean refreshInverseMatrix;
-
-	/* Cached objects reused for computations */
-	private Vector3f tmp0 = new Vector3f();
-	private Vector4f tmp3 = new Vector4f();
+	private boolean refreshProjectionViewMatrix;
 
 	/**
 	 * Compute the world direction vector based on the given X and Y coordinates
@@ -41,12 +34,11 @@ public class Camera {
 	 *            will contain the result
 	 */
 	public void getEyeRay(float x, float y, Vector3f res) {
-		tmp3.set(x, y, 0.0f, 1.0f);
-		getInverseProjectionViewMatrix().transform(tmp3);
-		tmp3.mul(1.0f / tmp3.w);
-		tmp0.set(tmp3.x, tmp3.y, tmp3.z);
-		res.set(tmp0);
-		res.sub(position);
+		if (refreshProjectionViewMatrix) {
+			projectionViewMatrix.set(projectionMatrix).mul(viewMatrix);
+			refreshProjectionViewMatrix = false;
+		}
+		projectionViewMatrix.frustumRayDir((x + 1) * 0.5f, (y + 1) * 0.5f, res);
 	}
 
 	/**
@@ -56,6 +48,7 @@ public class Camera {
 		viewMatrix.setLookAt(position, lookAt, up);
 		this.position.set(position);
 		refreshInverseMatrix = true;
+		refreshProjectionViewMatrix = true;
 	}
 
 	public Vector3f getPosition() {
@@ -73,6 +66,7 @@ public class Camera {
 	public void setFrustumPerspective(float fovY, float aspect, float near, float far) {
 		projectionMatrix.setPerspective((float) Math.toRadians(fovY), aspect, near, far);
 		refreshInverseMatrix = true;
+		refreshProjectionViewMatrix = true;
 	}
 
 	public Matrix4f getInverseProjectionViewMatrix() {
