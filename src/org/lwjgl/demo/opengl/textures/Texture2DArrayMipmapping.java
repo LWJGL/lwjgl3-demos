@@ -9,8 +9,10 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
-import org.lwjgl.opengl.GLContext;
-
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.libffi.Closure;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -50,10 +52,11 @@ public class Texture2DArrayMipmapping {
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 
-	GLContext ctx;
+	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
+	Closure debugProc;
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -119,7 +122,8 @@ public class Texture2DArrayMipmapping {
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(0);
 		glfwShowWindow(window);
-		ctx = GLContext.createFromCurrent();
+		caps = GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createTexture();
@@ -266,7 +270,7 @@ public class Texture2DArrayMipmapping {
 		this.sampler = glGenSamplers();
 		glSamplerParameteri(this.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		/* Add maximum anisotropic filtering, if available */
-		if (ctx.getCapabilities().GL_EXT_texture_filter_anisotropic) {
+		if (caps.GL_EXT_texture_filter_anisotropic) {
 			glSamplerParameteri(this.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			float maxAnisotropy = glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
 			glSamplerParameterf(this.sampler, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
@@ -336,6 +340,10 @@ public class Texture2DArrayMipmapping {
 		try {
 			init();
 			loop();
+
+			if (debugProc != null) {
+				debugProc.release();
+			}
 
 			errCallback.release();
 			keyCallback.release();

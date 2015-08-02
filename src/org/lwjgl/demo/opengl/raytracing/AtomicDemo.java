@@ -9,7 +9,8 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBShaderAtomicCounters;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import org.joml.Vector3f;
@@ -98,7 +99,6 @@ public class AtomicDemo {
 	GLFWFramebufferSizeCallback fbCallback;
 	GLFWCursorPosCallback cpCallback;
 	GLFWMouseButtonCallback mbCallback;
-
 	Closure debugProc;
 
 	private void init() throws IOException {
@@ -210,7 +210,8 @@ public class AtomicDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		debugProc = GLContext.createFromCurrent().setupDebugMessageCallback(System.err);
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createFramebufferTexture();
@@ -333,8 +334,8 @@ public class AtomicDemo {
 	 */
 	private void createQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = AtomicDemo.createShader("demo/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = AtomicDemo.createShader("demo/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -358,9 +359,9 @@ public class AtomicDemo {
 	 */
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = createShader("demo/raytracing/raytracingAtomic.glslcs", GL_COMPUTE_SHADER);
-		int randomCommon = createShader("demo/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
-		int random = createShader("demo/raytracing/randomAtomic.glsl", GL_COMPUTE_SHADER);
+		int cshader = createShader("org/lwjgl/demo/opengl/raytracing/raytracingAtomic.glslcs", GL_COMPUTE_SHADER);
+		int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int random = createShader("org/lwjgl/demo/opengl/raytracing/randomAtomic.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, randomCommon);
 		glAttachShader(program, random);

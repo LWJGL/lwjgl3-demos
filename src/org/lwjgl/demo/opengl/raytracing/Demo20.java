@@ -11,7 +11,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBFramebufferObject;
 import org.lwjgl.opengl.ARBTextureFloat;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import org.joml.Vector3f;
@@ -205,7 +205,8 @@ public class Demo20 {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		debugProc = GLContext.createFromCurrent().setupDebugMessageCallback(System.err);
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createFramebufferTexture();

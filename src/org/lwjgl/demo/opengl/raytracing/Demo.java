@@ -8,7 +8,8 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import org.joml.Vector3f;
@@ -82,7 +83,6 @@ public class Demo {
 	GLFWFramebufferSizeCallback fbCallback;
 	GLFWCursorPosCallback cpCallback;
 	GLFWMouseButtonCallback mbCallback;
-
 	Closure debugProc;
 
 	static {
@@ -202,7 +202,8 @@ public class Demo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		debugProc = GLContext.createFromCurrent().setupDebugMessageCallback(System.err);
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createFramebufferTexture();

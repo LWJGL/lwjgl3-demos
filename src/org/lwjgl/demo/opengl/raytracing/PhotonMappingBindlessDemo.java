@@ -11,8 +11,8 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBClearTexture;
 import org.lwjgl.opengl.ARBComputeVariableGroupSize;
-import org.lwjgl.opengl.GLContext;
-
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -78,7 +78,7 @@ public class PhotonMappingBindlessDemo {
 	private static int INITIAL_PHOTONS_PER_FRAME = 16;
 	private static int MAX_PHOTONS_PER_FRAME = 2048;
 
-	private GLContext ctx;
+	private GLCapabilities caps;
 
 	private long window;
 	private int width = 1024;
@@ -260,9 +260,9 @@ public class PhotonMappingBindlessDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		ctx = GLContext.createFromCurrent();
+		caps = GL.createCapabilities();
 
-		if ( !ctx.getCapabilities().GL_ARB_bindless_texture )
+		if ( !caps.GL_ARB_bindless_texture )
 			throw new RuntimeException("This demo requires the ARB_bindless_texture extension.");
 
 		/* Create all needed GL resources */
@@ -384,7 +384,7 @@ public class PhotonMappingBindlessDemo {
 		glGetProgramiv(photonTraceProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
 		int staticWorkGroupSizeX = workGroupSize.get(0);
 		int staticWorkGroupSizeY = workGroupSize.get(1);
-		if (ctx.getCapabilities().GL_ARB_compute_variable_group_size) {
+		if (caps.GL_ARB_compute_variable_group_size) {
 			/* We can dynamically set the work group size! */
 			variableGroupSize = true;
 		}
@@ -501,7 +501,7 @@ public class PhotonMappingBindlessDemo {
 		 * Clear the first level of the texture with black without allocating
 		 * host memory.
 		 */
-		if (ctx.getCapabilities().GL_ARB_clear_texture) {
+		if (caps.GL_ARB_clear_texture) {
 			/*
 			 * If ARB_clear_texture is available, we can directly clear the
 			 * image of the texture. A version where you can clear the images of

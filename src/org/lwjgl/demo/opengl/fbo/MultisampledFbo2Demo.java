@@ -6,7 +6,8 @@ package org.lwjgl.demo.opengl.fbo;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import java.nio.ByteBuffer;
@@ -62,6 +63,8 @@ public class MultisampledFbo2Demo {
 				destroyed = true;
 				glfwDestroyWindow(window);
 			}
+			if (debugProc != null)
+				debugProc.release();
 			keyCallback.release();
 			fbCallback.release();
 		} finally {
@@ -174,7 +177,8 @@ public class MultisampledFbo2Demo {
 
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
-		GLContext.createFromCurrent().setupDebugMessageCallback();
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 		glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 		glColor3f(0.1f, 0.1f, 0.1f);
 

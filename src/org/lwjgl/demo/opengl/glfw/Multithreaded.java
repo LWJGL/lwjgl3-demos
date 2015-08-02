@@ -6,6 +6,7 @@ package org.lwjgl.demo.opengl.glfw;
 
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
+import org.lwjgl.system.libffi.Closure;
 
 import java.nio.ByteBuffer;
 
@@ -25,6 +26,7 @@ public class Multithreaded {
 	GLFWErrorCallback errorCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fsCallback;
+	Closure debugProc;
 
 	long window;
 	int width, height;
@@ -40,6 +42,8 @@ public class Multithreaded {
 				destroyed = true;
 				glfwDestroyWindow(window);
 			}
+			if (debugProc != null)
+				debugProc.release();
 			keyCallback.release();
 			fsCallback.release();
 		} finally {
@@ -87,7 +91,8 @@ public class Multithreaded {
 
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
-		GLContext.createFromCurrent().setupDebugMessageCallback();
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
 
 		long lastTime = System.nanoTime();

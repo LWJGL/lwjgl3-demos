@@ -7,8 +7,10 @@ package org.lwjgl.demo.opengl;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.*;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.libffi.Closure;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -50,10 +52,10 @@ public class UniformArrayDemo {
 		colors.flip();
 	}
 
-	GLContext ctx;
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
+	Closure debugProc;
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -135,7 +137,8 @@ public class UniformArrayDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		ctx = GLContext.createFromCurrent();
+		GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createVao();
@@ -274,6 +277,8 @@ public class UniformArrayDemo {
 			errCallback.release();
 			keyCallback.release();
 			fbCallback.release();
+			if (debugProc != null)
+				debugProc.release();
 			glfwDestroyWindow(window);
 		} catch (Throwable t) {
 			t.printStackTrace();

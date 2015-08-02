@@ -11,8 +11,9 @@ import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.MeshObject;
 import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.ContextCapabilities;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.libffi.Closure;
 
@@ -112,7 +113,7 @@ public class HybridDemoSsboTriangles {
 	GLFWCursorPosCallback cpCallback;
 	GLFWMouseButtonCallback mbCallback;
 
-	ContextCapabilities caps;
+	GLCapabilities caps;
 	Closure debugProc;
 
 	private void init() throws IOException {
@@ -209,11 +210,8 @@ public class HybridDemoSsboTriangles {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		GLContext ctx = GLContext.createFromCurrent();
-		debugProc = ctx.setupDebugMessageCallback(System.err);
-
-		/* Check optional extensions */
-		caps = ctx.getCapabilities();
+		caps = GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Load OBJ model */
 		WavefrontMeshLoader loader = new WavefrontMeshLoader();

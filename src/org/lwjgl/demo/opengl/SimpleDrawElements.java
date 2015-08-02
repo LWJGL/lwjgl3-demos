@@ -3,6 +3,7 @@ package org.lwjgl.demo.opengl;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
+import org.lwjgl.system.libffi.Closure;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -21,6 +22,7 @@ public class SimpleDrawElements {
     private GLFWErrorCallback errorCallback;
     private GLFWKeyCallback   keyCallback;
     private GLFWWindowSizeCallback wsCallback;
+    private Closure debugProc;
  
     // The window handle
     private long window;
@@ -35,6 +37,8 @@ public class SimpleDrawElements {
             glfwDestroyWindow(window);
             keyCallback.release();
             wsCallback.release();
+			if (debugProc != null)
+				debugProc.release();
         } finally {
             // Terminate GLFW and release the GLFWerrorfun
             glfwTerminate();
@@ -106,8 +110,9 @@ public class SimpleDrawElements {
         // LWJGL detects the context that is current in the current thread,
         // creates the ContextCapabilities instance and makes the OpenGL
         // bindings available for use.
-        GLContext.createFromCurrent().setupDebugMessageCallback();
- 
+        GL.createCapabilities();
+        debugProc = GLUtil.setupDebugMessageCallback();
+
         // Set the clear color
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 

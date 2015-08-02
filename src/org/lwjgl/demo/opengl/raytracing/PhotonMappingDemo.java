@@ -9,8 +9,10 @@ import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBClearTexture;
-import org.lwjgl.opengl.GLContext;
-
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.libffi.Closure;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -72,7 +74,7 @@ public class PhotonMappingDemo {
 	 */
 	private static int INITIAL_PHOTONS_PER_FRAME = 32;
 
-	private GLContext ctx;
+	private GLCapabilities caps;
 
 	private long window;
 	private int width = 1024;
@@ -128,6 +130,7 @@ public class PhotonMappingDemo {
 	GLFWFramebufferSizeCallback fbCallback;
 	GLFWCursorPosCallback cpCallback;
 	GLFWMouseButtonCallback mbCallback;
+	Closure debugProc;
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -247,7 +250,8 @@ public class PhotonMappingDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		ctx = GLContext.createFromCurrent();
+		caps = GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createPhotonMapTexture();
@@ -412,7 +416,7 @@ public class PhotonMappingDemo {
 		 * Clear the first level of the texture with black without allocating
 		 * host memory.
 		 */
-		if (ctx.getCapabilities().GL_ARB_clear_texture) {
+		if (caps.GL_ARB_clear_texture) {
 			/*
 			 * If ARB_clear_texture is available, we can directly clear the
 			 * image of the texture.
@@ -619,6 +623,10 @@ public class PhotonMappingDemo {
 		try {
 			init();
 			loop();
+
+			if (debugProc != null) {
+				debugProc.release();
+			}
 
 			errCallback.release();
 			keyCallback.release();

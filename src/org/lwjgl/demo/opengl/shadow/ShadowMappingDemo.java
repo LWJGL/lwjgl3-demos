@@ -28,7 +28,9 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWvidmode;
-import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import org.joml.Matrix4f;
@@ -85,7 +87,7 @@ public class ShadowMappingDemo {
 			).transpose();
 	Matrix4f cameraMatrix = new Matrix4f();
 
-	GLContext ctx;
+	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
@@ -153,8 +155,8 @@ public class ShadowMappingDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		ctx = GLContext.createFromCurrent();
-		debugProc = ctx.setupDebugMessageCallback(System.err);
+		caps = GL.createCapabilities();
+		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Set some GL states */
 		glEnable(GL_CULL_FACE);
