@@ -167,6 +167,7 @@ public class PhotonMappingDemo {
 			throw new AssertionError("Failed to create the GLFW window");
 		}
 
+		System.out.println("Press 'r' to clear the photon map.");
 		System.out.println("Press arrow 'up' to increase photon map resolution.");
 		System.out.println("Press arrow 'down' to decrease the photon map resolution.");
 		System.out.println("Press arrow 'right' to increase number of photons per frame.");
