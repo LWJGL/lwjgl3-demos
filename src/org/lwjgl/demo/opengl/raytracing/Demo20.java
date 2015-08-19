@@ -283,7 +283,7 @@ public class Demo20 {
 		int program = glCreateProgram();
 		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, version);
 		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing20.fs", GL_FRAGMENT_SHADER, version);
-		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, null);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, version);
 		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random20.glsl", GL_FRAGMENT_SHADER, null);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);

@@ -459,7 +459,7 @@ public class HybridDemoSsboInstancing45 {
 		int program = glCreateProgram();
 		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/hybridSsboUbo.glsl", GL_COMPUTE_SHADER);
 		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
-		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
 		glAttachShader(program, cshader);
 		glAttachShader(program, random);
 		glAttachShader(program, randomCommon);

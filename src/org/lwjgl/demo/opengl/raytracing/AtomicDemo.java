@@ -360,7 +360,7 @@ public class AtomicDemo {
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
 		int cshader = createShader("org/lwjgl/demo/opengl/raytracing/raytracingAtomic.glslcs", GL_COMPUTE_SHADER);
-		int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
 		int random = createShader("org/lwjgl/demo/opengl/raytracing/randomAtomic.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, randomCommon);

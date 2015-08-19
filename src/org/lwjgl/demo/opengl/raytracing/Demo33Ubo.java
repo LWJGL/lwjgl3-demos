@@ -287,7 +287,7 @@ public class Demo33Ubo {
 		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
 		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracingUbo.fs", GL_FRAGMENT_SHADER);
 		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_FRAGMENT_SHADER);
-		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER);
+		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glAttachShader(program, random);
