@@ -11,7 +11,6 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
-
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -100,7 +99,7 @@ public class Demo33Ubo {
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
-			private GLFWErrorCallback delegate = Callbacks.errorCallbackPrint(System.err);
+			private GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
 
 			@Override
 			public void invoke(int error, long description) {

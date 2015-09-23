@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -49,7 +48,7 @@ public class SimpleDrawElements {
     private void init() {
         // Setup an error callback. The default implementation
         // will print the error message in System.err.
-        glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
+    	glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
  
         // Initialize GLFW. Most GLFW functions will not work before doing this.
         if ( glfwInit() != GL11.GL_TRUE )

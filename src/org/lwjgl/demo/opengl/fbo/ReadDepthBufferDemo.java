@@ -12,7 +12,6 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
-
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -84,7 +83,7 @@ public class ReadDepthBufferDemo {
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
-			private GLFWErrorCallback delegate = Callbacks.errorCallbackPrint(System.err);
+			private GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
 
 			@Override
 			public void invoke(int error, long description) {

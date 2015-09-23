@@ -13,7 +13,6 @@ import org.lwjgl.system.libffi.Closure;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.ARBFramebufferObject.*;
@@ -63,7 +62,7 @@ public class MultisampledFboDemo {
 	}
 
 	void init() {
-		glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
+		glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
 		if (glfwInit() != GL_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 

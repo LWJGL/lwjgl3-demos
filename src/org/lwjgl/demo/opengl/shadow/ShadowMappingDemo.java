@@ -23,7 +23,6 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.opengl.raytracing.Scene;
 import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
-import org.lwjgl.glfw.Callbacks;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -32,7 +31,6 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
-
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -95,7 +93,7 @@ public class ShadowMappingDemo {
 
 	void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
-			GLFWErrorCallback delegate = Callbacks.errorCallbackPrint(System.err);
+			GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
 
 			public void invoke(int error, long description) {
 				if (error == GLFW_VERSION_UNAVAILABLE)

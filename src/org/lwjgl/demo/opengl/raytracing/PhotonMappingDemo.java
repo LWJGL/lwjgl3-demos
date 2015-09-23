@@ -134,7 +134,7 @@ public class PhotonMappingDemo {
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
-			private GLFWErrorCallback delegate = Callbacks.errorCallbackPrint(System.err);
+			private GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
 
 			@Override
 			public void invoke(int error, long description) {
