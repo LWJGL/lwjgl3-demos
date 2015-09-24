@@ -34,7 +34,7 @@ public class SwtDemo {
 		canvas.addListener(SWT.Resize, new Listener() {
 			public void handleEvent(Event event) {
 				Rectangle bounds = canvas.getBounds();
-				GL11.glViewport(0, 0, bounds.width, bounds.height);
+				glViewport(0, 0, bounds.width, bounds.height);
 			}
 		});
 
@@ -65,15 +65,19 @@ public class SwtDemo {
 		glUseProgram(program);
 		final int rotLocation = glGetUniformLocation(program, "rot");
 
-		// Create a simple triangle
+		// Create a simple quad
 		int vbo = glGenBuffers();
 		int ibo = glGenBuffers();
 		float[] vertices = { 
-				-1, -1, 0,
-				 1, -1, 0, 
-				 1,  1, 0
+			-1, -1, 0,
+			 1, -1, 0,
+			 1,  1, 0,
+			-1,  1, 0
 		};
-		int[] indices = { 0, 1, 2 };
+		int[] indices = {
+			0, 1, 2,
+			2, 3, 0
+		};
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils
 				.createFloatBuffer(vertices.length).put(vertices).flip(),
@@ -97,7 +101,7 @@ public class SwtDemo {
 					glClear(GL_COLOR_BUFFER_BIT);
 
 					glUniform1f(rotLocation, rot);
-					glDrawArrays(GL11.GL_TRIANGLES, 0, 3 * 3);
+					glDrawElements(GL11.GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 					canvas.swapBuffers();
 					display.asyncExec(this);
