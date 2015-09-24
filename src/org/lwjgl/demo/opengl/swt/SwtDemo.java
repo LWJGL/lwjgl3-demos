@@ -52,7 +52,7 @@ public class SwtDemo {
 				"uniform float rot;" +
 				"void main(void) {" + 
 				"  vec4 v = gl_Vertex * 0.5;" +
-				"  vec4 v_;" +
+				"  vec4 v_ = vec4(0.0, 0.0, 0.0, 1.0);" +
 				"  v_.x = v.x * cos(rot) - v.y * sin(rot);" +
 				"  v_.y = v.y * cos(rot) + v.x * sin(rot);" +
 				"  gl_Position = v_;" +
