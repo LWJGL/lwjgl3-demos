@@ -46,11 +46,11 @@ public class SwtDemo {
 		glShaderSource(vs,
 				"uniform float rot;" +
 				"void main(void) {" + 
-				"  vec4 v = gl_Vertex * 0.2;" +
+				"  vec4 v = gl_Vertex * 0.5;" +
 				"  vec4 v_;" +
 				"  v_.x = v.x * cos(rot) - v.y * sin(rot);" +
 				"  v_.y = v.y * cos(rot) + v.x * sin(rot);" +
-		        "  gl_Position = v_;" +
+				"  gl_Position = v_;" +
 				"}");
 		glCompileShader(vs);
 		glAttachShader(program, vs);
