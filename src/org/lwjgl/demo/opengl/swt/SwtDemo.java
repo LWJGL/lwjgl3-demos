@@ -19,8 +19,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
 
 public class SwtDemo {
 	public static void main(String[] args) {
@@ -32,9 +30,6 @@ public class SwtDemo {
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
 		canvas.setCurrent();
 		GL.createCapabilities();
-
-		Closure debugProc;
-		debugProc = GLUtil.setupDebugMessageCallback();
 
 		canvas.addListener(SWT.Resize, new Listener() {
 			public void handleEvent(Event event) {
@@ -114,6 +109,9 @@ public class SwtDemo {
 					long thisTime = System.nanoTime();
 					float delta = (thisTime - lastTime) / 1E9f;
 					rot += delta;
+					if (rot > 2.0 * Math.PI) {
+						rot -= 2.0f * (float) Math.PI;
+					}
 					lastTime = thisTime;
 				}
 			}
