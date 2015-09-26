@@ -31,9 +31,12 @@ public class SwtDemo {
 		canvas.setCurrent();
 		GL.createCapabilities();
 
+		final Rectangle rect = new Rectangle(0, 0, 0, 0);
 		canvas.addListener(SWT.Resize, new Listener() {
 			public void handleEvent(Event event) {
 				Rectangle bounds = canvas.getBounds();
+				rect.width = bounds.width;
+				rect.height = bounds.height;
 				glViewport(0, 0, bounds.width, bounds.height);
 			}
 		});
@@ -45,11 +48,13 @@ public class SwtDemo {
 		int vs = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vs,
 				"uniform float rot;" +
+				"uniform float aspect;" +
 				"void main(void) {" + 
 				"  vec4 v = gl_Vertex * 0.5;" +
 				"  vec4 v_ = vec4(0.0, 0.0, 0.0, 1.0);" +
 				"  v_.x = v.x * cos(rot) - v.y * sin(rot);" +
 				"  v_.y = v.y * cos(rot) + v.x * sin(rot);" +
+				"  v_.x /= aspect;" +
 				"  gl_Position = v_;" +
 				"}");
 		glCompileShader(vs);
@@ -64,6 +69,7 @@ public class SwtDemo {
 		glLinkProgram(program);
 		glUseProgram(program);
 		final int rotLocation = glGetUniformLocation(program, "rot");
+		final int aspectLocation = glGetUniformLocation(program, "aspect");
 
 		// Create a simple quad
 		int vbo = glGenBuffers();
@@ -100,6 +106,8 @@ public class SwtDemo {
 					canvas.setCurrent();
 					glClear(GL_COLOR_BUFFER_BIT);
 
+					float aspect = (float) rect.width / rect.height;
+					glUniform1f(aspectLocation, aspect);
 					glUniform1f(rotLocation, rot);
 					glDrawElements(GL11.GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
