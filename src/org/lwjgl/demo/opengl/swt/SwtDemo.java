@@ -23,7 +23,7 @@ import org.lwjgl.opengl.GL11;
 public class SwtDemo {
 	public static void main(String[] args) {
 		final Display display = new Display();
-		Shell shell = new Shell(display);
+		final Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
 		GLData data = new GLData();
 		data.doubleBuffer = true;
@@ -38,6 +38,17 @@ public class SwtDemo {
 				rect.width = bounds.width;
 				rect.height = bounds.height;
 				glViewport(0, 0, bounds.width, bounds.height);
+			}
+		});
+		shell.addListener(SWT.Traverse, new Listener() {
+			public void handleEvent(Event event) {
+				switch (event.detail) {
+				case SWT.TRAVERSE_ESCAPE:
+					shell.close();
+					event.detail = SWT.TRAVERSE_NONE;
+					event.doit = false;
+					break;
+				}
 			}
 		});
 
