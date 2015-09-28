@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.opengl.util;
 
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryUtil.memEncodeUTF8;
 
@@ -196,28 +197,26 @@ public class DemoUtils {
 
 		ByteBuffer source = ioResourceToByteBuffer(resource, 8192);
 
-		if ( version == null ) {
-			PointerBuffer strings = BufferUtils.createPointerBuffer(1);
-			IntBuffer lengths = BufferUtils.createIntBuffer(1);
+		String preambleVersionString = "";
+		String preambleOldVersionDefine = "";
+		if (version != null)
+			preambleVersionString = "#version " + version + "\n";
+		String glVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
+		if (glVersion.compareTo("3.3") < 0) 
+			preambleOldVersionDefine = "#define OLD_VERSION\n";
 
-			strings.put(0, source);
-			lengths.put(0, source.remaining());
+		ByteBuffer preamble = memEncodeUTF8(preambleVersionString + preambleOldVersionDefine, false);
 
-			glShaderSource(shader, strings, lengths);
-		} else {
-			PointerBuffer strings = BufferUtils.createPointerBuffer(2);
-			IntBuffer lengths = BufferUtils.createIntBuffer(2);
+		PointerBuffer strings = BufferUtils.createPointerBuffer(2);
+		IntBuffer lengths = BufferUtils.createIntBuffer(2);
 
-			ByteBuffer preamble = memEncodeUTF8("#version " + version + "\n", false);
+		strings.put(0, preamble);
+		lengths.put(0, preamble.remaining());
 
-			strings.put(0, preamble);
-			lengths.put(0, preamble.remaining());
+		strings.put(1, source);
+		lengths.put(1, source.remaining());
 
-			strings.put(1, source);
-			lengths.put(1, source.remaining());
-
-			glShaderSource(shader, strings, lengths);
-		}
+		glShaderSource(shader, strings, lengths);
 
 		glCompileShader(shader);
 		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
