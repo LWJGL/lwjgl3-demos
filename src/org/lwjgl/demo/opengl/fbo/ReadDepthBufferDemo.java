@@ -10,6 +10,7 @@ import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 import org.joml.Matrix4f;
@@ -25,7 +26,7 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.EXTFramebufferObject.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -50,11 +51,11 @@ public class ReadDepthBufferDemo {
 	private boolean resetFramebuffer = true;
 
 	private int depthTexture;
-	private int fullScreenQuadVao;
+	private int fullScreenQuadVbo;
 	private int fullScreenQuadProgram;
 	private int depthOnlyProgram;
 	private int fbo;
-	private int vaoScene;
+	private int vboScene;
 
 	private int viewMatrixUniform;
 	private int projectionMatrixUniform;
@@ -103,10 +104,8 @@ public class ReadDepthBufferDemo {
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -169,14 +168,17 @@ public class ReadDepthBufferDemo {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		GL.createCapabilities();
+		GLCapabilities caps = GL.createCapabilities();
+		if (!caps.GL_EXT_framebuffer_object) {
+			throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
+		}
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
 		createDepthTexture();
 		createFramebufferObject();
-		createFullScreenVao();
-		createSceneVao();
+		createFullScreenVbo();
+		createSceneVbo();
 		createDepthOnlyProgram();
 		initDepthOnlyProgram();
 		createFullScreenQuadProgram();
@@ -189,10 +191,8 @@ public class ReadDepthBufferDemo {
 		camera = new Camera();
 	}
 
-	private void createFullScreenVao() {
-		this.fullScreenQuadVao = glGenVertexArrays();
+	private void createFullScreenVbo() {
 		int vbo = glGenBuffers();
-		glBindVertexArray(fullScreenQuadVao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
 		FloatBuffer fv = bb.asFloatBuffer();
@@ -203,16 +203,14 @@ public class ReadDepthBufferDemo {
 		fv.put(-1.0f).put(1.0f);
 		fv.put(-1.0f).put(-1.0f);
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
+		//glEnableVertexAttribArray(0);
+		//glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		fullScreenQuadVbo = vbo;
 	}
 
-	private void createSceneVao() {
-		int vao = glGenVertexArrays();
+	private void createSceneVbo() {
 		int vbo = glGenBuffers();
-		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		ByteBuffer bb = BufferUtils.createByteBuffer(boxes.length / 2 * 4 * (3 + 3) * 6 * 6);
 		FloatBuffer fv = bb.asFloatBuffer();
@@ -220,24 +218,23 @@ public class ReadDepthBufferDemo {
 			DemoUtils.triangulateBox(boxes[i], boxes[i + 1], fv);
 		}
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
+		//glEnableVertexAttribArray(0);
+		//glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-		this.vaoScene = vao;
+		this.vboScene = vbo;
 	}
 
 	private void createFramebufferObject() {
-		this.fbo = glGenFramebuffers();
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		this.fbo = glGenFramebuffersEXT();
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glDrawBuffer(GL_NONE); // we are not rendering to color buffers!
 		glReadBuffer(GL_NONE); // we are also not reading from color buffers!
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-		int fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthTexture, 0);
+		int fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+		if (fboStatus != GL_FRAMEBUFFER_COMPLETE_EXT) {
 			throw new AssertionError("Could not create FBO: " + fboStatus);
 		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	}
 
 	private void createFullScreenQuadProgram() throws IOException {
@@ -247,7 +244,7 @@ public class ReadDepthBufferDemo {
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
-		glBindFragDataLocation(program, 0, "color");
+		//glBindFragDataLocation(program, 0, "color");
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
@@ -305,7 +302,7 @@ public class ReadDepthBufferDemo {
 
 	private void resizeFramebufferTexture() {
 		glDeleteTextures(depthTexture);
-		glDeleteFramebuffers(fbo);
+		glDeleteFramebuffersEXT(fbo);
 
 		createDepthTexture();
 		createFramebufferObject();
@@ -349,12 +346,13 @@ public class ReadDepthBufferDemo {
 		matrixUniform(projectionMatrixUniform, projMatrix, false);
 
 		/* Rasterize the boxes into the FBO */
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glBindVertexArray(vaoScene);
+		glBindBuffer(GL_ARRAY_BUFFER, vboScene);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
 		glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length / 2);
-		glBindVertexArray(0);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 		glUseProgram(0);
 	}
 
@@ -366,11 +364,12 @@ public class ReadDepthBufferDemo {
 		Matrix4f inverseProjectionViewMatrix = camera.getInverseProjectionViewMatrix();
 		matrixUniform(inverseProjectionViewMatrixUniform, inverseProjectionViewMatrix, false);
 
-		glBindVertexArray(fullScreenQuadVao);
+		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glBindVertexArray(0);
 		glUseProgram(0);
 	}
 
