@@ -25,8 +25,10 @@ import static java.lang.Math.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.EXTFramebufferObject.*;
+import static org.lwjgl.opengl.ARBShaderObjects.*;
+import static org.lwjgl.opengl.ARBVertexShader.*;
+import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -38,7 +40,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * 
  * @author Kai Burjack
  */
-public class ReadDepthBufferDemo {
+public class ReadDepthBuffer15Demo {
 
 	/**
 	 * The scene as (min, max) axis-aligned boxes.
@@ -89,7 +91,7 @@ public class ReadDepthBufferDemo {
 			@Override
 			public void invoke(int error, long description) {
 				if (error == GLFW_VERSION_UNAVAILABLE)
-					System.err.println("This demo requires OpenGL 2.0 or higher.");
+					System.err.println("This demo requires OpenGL 1.5 or higher.");
 				delegate.invoke(error, description);
 			}
 
@@ -104,8 +106,8 @@ public class ReadDepthBufferDemo {
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -129,17 +131,17 @@ public class ReadDepthBufferDemo {
 		glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
 			@Override
 			public void invoke(long window, double x, double y) {
-				ReadDepthBufferDemo.this.mouseX = (float) x;
+				ReadDepthBuffer15Demo.this.mouseX = (float) x;
 			}
 		});
 
 		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
 			@Override
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (ReadDepthBufferDemo.this.width != width || ReadDepthBufferDemo.this.height != height)) {
-					ReadDepthBufferDemo.this.width = width;
-					ReadDepthBufferDemo.this.height = height;
-					ReadDepthBufferDemo.this.resetFramebuffer = true;
+				if (width > 0 && height > 0 && (ReadDepthBuffer15Demo.this.width != width || ReadDepthBuffer15Demo.this.height != height)) {
+					ReadDepthBuffer15Demo.this.width = width;
+					ReadDepthBuffer15Demo.this.height = height;
+					ReadDepthBuffer15Demo.this.resetFramebuffer = true;
 				}
 			}
 		});
@@ -148,11 +150,11 @@ public class ReadDepthBufferDemo {
 			@Override
 			public void invoke(long window, int button, int action, int mods) {
 				if (action == GLFW_PRESS) {
-					ReadDepthBufferDemo.this.mouseDownX = ReadDepthBufferDemo.this.mouseX;
-					ReadDepthBufferDemo.this.mouseDown = true;
+					ReadDepthBuffer15Demo.this.mouseDownX = ReadDepthBuffer15Demo.this.mouseX;
+					ReadDepthBuffer15Demo.this.mouseDown = true;
 				} else if (action == GLFW_RELEASE) {
-					ReadDepthBufferDemo.this.mouseDown = false;
-					ReadDepthBufferDemo.this.rotationAboutY = ReadDepthBufferDemo.this.currRotationAboutY;
+					ReadDepthBuffer15Demo.this.mouseDown = false;
+					ReadDepthBuffer15Demo.this.rotationAboutY = ReadDepthBuffer15Demo.this.currRotationAboutY;
 				}
 			}
 		});
@@ -171,6 +173,15 @@ public class ReadDepthBufferDemo {
 		GLCapabilities caps = GL.createCapabilities();
 		if (!caps.GL_EXT_framebuffer_object) {
 			throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
+		}
+		if (!caps.GL_ARB_shader_objects) {
+			throw new AssertionError("This demo requires the ARB_shader_objects extension");
+		}
+		if (!caps.GL_ARB_vertex_shader) {
+			throw new AssertionError("This demo requires the ARB_vertex_shader extension");
+		}
+		if (!caps.GL_ARB_fragment_shader) {
+			throw new AssertionError("This demo requires the ARB_fragment_shader extension");
 		}
 		debugProc = GLUtil.setupDebugMessageCallback();
 
@@ -238,16 +249,16 @@ public class ReadDepthBufferDemo {
 	}
 
 	private void createFullScreenQuadProgram() throws IOException {
-		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.vs", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.fs", GL_FRAGMENT_SHADER);
-		glAttachShader(program, vshader);
-		glAttachShader(program, fshader);
-		glBindAttribLocation(program, 0, "vertex");
+		int program = glCreateProgramObjectARB();
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.vs", GL_VERTEX_SHADER_ARB);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/quadDepth.fs", GL_FRAGMENT_SHADER_ARB);
+		glAttachObjectARB(program, vshader);
+		glAttachObjectARB(program, fshader);
+		glBindAttribLocationARB(program, 0, "vertex");
 		//glBindFragDataLocation(program, 0, "color");
-		glLinkProgram(program);
-		int linked = glGetProgrami(program, GL_LINK_STATUS);
-		String programLog = glGetProgramInfoLog(program);
+		glLinkProgramARB(program);
+		int linked = glGetObjectParameteriARB(program, GL_OBJECT_LINK_STATUS_ARB);
+		String programLog = glGetInfoLogARB(program);
 		if (programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
@@ -258,15 +269,15 @@ public class ReadDepthBufferDemo {
 	}
 
 	private void createDepthOnlyProgram() throws IOException {
-		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.vs", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.fs", GL_FRAGMENT_SHADER);
-		glAttachShader(program, vshader);
-		glAttachShader(program, fshader);
-		glBindAttribLocation(program, 0, "vertexPosition");
-		glLinkProgram(program);
-		int linked = glGetProgrami(program, GL_LINK_STATUS);
-		String programLog = glGetProgramInfoLog(program);
+		int program = glCreateProgramObjectARB();
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.vs", GL_VERTEX_SHADER_ARB);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/fbo/rasterDepth.fs", GL_FRAGMENT_SHADER_ARB);
+		glAttachObjectARB(program, vshader);
+		glAttachObjectARB(program, fshader);
+		glBindAttribLocationARB(program, 0, "vertexPosition");
+		glLinkProgramARB(program);
+		int linked = glGetObjectParameteriARB(program, GL_OBJECT_LINK_STATUS_ARB);
+		String programLog = glGetInfoLogARB(program);
 		if (programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
@@ -277,18 +288,18 @@ public class ReadDepthBufferDemo {
 	}
 
 	private void initDepthOnlyProgram() {
-		glUseProgram(depthOnlyProgram);
-		viewMatrixUniform = glGetUniformLocation(depthOnlyProgram, "viewMatrix");
-		projectionMatrixUniform = glGetUniformLocation(depthOnlyProgram, "projectionMatrix");
-		glUseProgram(0);
+		glUseProgramObjectARB(depthOnlyProgram);
+		viewMatrixUniform = glGetUniformLocationARB(depthOnlyProgram, "viewMatrix");
+		projectionMatrixUniform = glGetUniformLocationARB(depthOnlyProgram, "projectionMatrix");
+		glUseProgramObjectARB(0);
 	}
 
 	private void initFullScreenQuadProgram() {
-		glUseProgram(fullScreenQuadProgram);
-		int texUniform = glGetUniformLocation(fullScreenQuadProgram, "tex");
-		inverseProjectionViewMatrixUniform = glGetUniformLocation(fullScreenQuadProgram, "inverseProjectionViewMatrix");
-		glUniform1i(texUniform, 0);
-		glUseProgram(0);
+		glUseProgramObjectARB(fullScreenQuadProgram);
+		int texUniform = glGetUniformLocationARB(fullScreenQuadProgram, "tex");
+		inverseProjectionViewMatrixUniform = glGetUniformLocationARB(fullScreenQuadProgram, "inverseProjectionViewMatrix");
+		glUniform1iARB(texUniform, 0);
+		glUseProgramObjectARB(0);
 	}
 
 	private void createDepthTexture() {
@@ -332,12 +343,12 @@ public class ReadDepthBufferDemo {
 
 	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
 		value.get(matrixByteBufferFloatView);
-		glUniformMatrix4fv(location, 1, transpose, matrixByteBuffer);
+		glUniformMatrix4fvARB(location, 1, transpose, matrixByteBuffer);
 	}
 
 	private void renderDepthOnly() {
 		glEnable(GL_DEPTH_TEST);
-		glUseProgram(depthOnlyProgram);
+		glUseProgramObjectARB(depthOnlyProgram);
 
 		/* Update matrices in shader */
 		Matrix4f viewMatrix = camera.getViewMatrix();
@@ -349,28 +360,28 @@ public class ReadDepthBufferDemo {
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glBindBuffer(GL_ARRAY_BUFFER, vboScene);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
+		glEnableVertexAttribArrayARB(0);
+		glVertexAttribPointerARB(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
 		glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length / 2);
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-		glUseProgram(0);
+		glUseProgramObjectARB(0);
 	}
 
 	private void present() {
 		glDisable(GL_DEPTH_TEST);
-		glUseProgram(fullScreenQuadProgram);
+		glUseProgramObjectARB(fullScreenQuadProgram);
 
 		/* Set the inverse(proj * view) matrix in the shader */
 		Matrix4f inverseProjectionViewMatrix = camera.getInverseProjectionViewMatrix();
 		matrixUniform(inverseProjectionViewMatrixUniform, inverseProjectionViewMatrix, false);
 
 		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
+		glEnableVertexAttribArrayARB(0);
+		glVertexAttribPointerARB(0, 2, GL_FLOAT, false, 0, 0L);
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
+		glUseProgramObjectARB(0);
 	}
 
 	private void loop() {
@@ -408,7 +419,7 @@ public class ReadDepthBufferDemo {
 	}
 
 	public static void main(String[] args) {
-		new ReadDepthBufferDemo().run();
+		new ReadDepthBuffer15Demo().run();
 	}
 
 }
