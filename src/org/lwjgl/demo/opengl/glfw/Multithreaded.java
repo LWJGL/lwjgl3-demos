@@ -24,7 +24,6 @@ public class Multithreaded {
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fsCallback;
 	Closure debugProc;
-	GLCapabilities caps;
 
 	long window;
 	int width = 300;
@@ -87,7 +86,7 @@ public class Multithreaded {
 
 	void renderLoop() {
 		glfwMakeContextCurrent(window);
-		GL.setCapabilities(caps);
+		GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();
 		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
 
@@ -123,11 +122,6 @@ public class Multithreaded {
 	}
 
 	void winProcLoop() {
-		glfwMakeContextCurrent(window);
-		caps = GL.createCapabilities();
-		debugProc = GLUtil.setupDebugMessageCallback();
-		glClearColor(0.3f, 0.5f, 0.7f, 0.0f);
-
 		/*
 		 * Start new thread to have the OpenGL context current in and which does
 		 * the rendering.
