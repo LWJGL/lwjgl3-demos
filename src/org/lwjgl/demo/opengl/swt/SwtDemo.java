@@ -22,9 +22,14 @@ import org.lwjgl.opengl.GL11;
 
 public class SwtDemo {
 	public static void main(String[] args) {
+		int minClientWidth = 640;
+		int minClientHeight = 480;
 		final Display display = new Display();
 		final Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
+		int dw = shell.getSize().x - shell.getClientArea().width;
+		int dh = shell.getSize().y - shell.getClientArea().height;
+		shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
 		GLData data = new GLData();
 		data.doubleBuffer = true;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
@@ -106,7 +111,7 @@ public class SwtDemo {
 				GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
 
-		shell.setSize(640, 480);
+		shell.setSize(800, 600);
 		shell.open();
 
 		display.asyncExec(new Runnable() {
