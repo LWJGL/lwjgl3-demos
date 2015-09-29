@@ -8,8 +8,6 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.libffi.Closure;
 
-import java.nio.ByteBuffer;
-
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -28,7 +26,8 @@ public class Multithreaded {
 	Closure debugProc;
 
 	long window;
-	int width, height;
+	int width = 300;
+	int height = 300;
 	Object lock = new Object();
 	boolean destroyed;
 
@@ -60,10 +59,7 @@ public class Multithreaded {
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-		int WIDTH = 300;
-		int HEIGHT = 300;
-
-		window = glfwCreateWindow(WIDTH, HEIGHT, "Hello World!", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Hello World!", NULL, NULL);
 		if (window == NULL)
 			throw new RuntimeException("Failed to create the GLFW window");
 
@@ -82,8 +78,8 @@ public class Multithreaded {
 			}
 		});
 
-		ByteBuffer vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowPos(window, (GLFWvidmode.width(vidmode) - WIDTH) / 2, (GLFWvidmode.height(vidmode) - HEIGHT) / 2);
+		GLFWvidmode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		glfwSetWindowPos(window, (vidmode.getWidth() - width) / 2, (vidmode.getHeight() - height) / 2);
 
 		glfwShowWindow(window);
 	}

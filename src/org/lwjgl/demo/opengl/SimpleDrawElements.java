@@ -5,7 +5,6 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.libffi.Closure;
 
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -86,14 +85,8 @@ public class SimpleDrawElements {
 			}
 		});
  
-        // Get the resolution of the primary monitor
-        ByteBuffer vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-        // Center our window
-        glfwSetWindowPos(
-            window,
-            (GLFWvidmode.width(vidmode) - WIDTH) / 2,
-            (GLFWvidmode.height(vidmode) - HEIGHT) / 2
-        );
+		GLFWvidmode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		glfwSetWindowPos(window, (vidmode.getWidth() - width) / 2, (vidmode.getHeight() - height) / 2);
  
         // Make the OpenGL context current
         glfwMakeContextCurrent(window);
