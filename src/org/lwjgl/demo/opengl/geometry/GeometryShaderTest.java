@@ -41,7 +41,6 @@ public class GeometryShaderTest {
 
 	Matrix4f viewMatrix = new Matrix4f();
 	Matrix4f projMatrix = new Matrix4f();
-
 	ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 
 	GLCapabilities caps;
@@ -79,7 +78,7 @@ public class GeometryShaderTest {
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-		window = glfwCreateWindow(width, height, "Mipmapping with 2D array textures", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Antialiased wireframe rendering with geometry shader", NULL, NULL);
 		if (window == NULL) {
 			throw new AssertionError("Failed to create the GLFW window");
 		}
@@ -209,7 +208,6 @@ public class GeometryShaderTest {
 
 	float angle = 0.0f;
 	long lastTime = System.nanoTime();
-
 	void update() {
 		projMatrix.setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f);
 		long thisTime = System.nanoTime();
