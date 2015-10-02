@@ -202,7 +202,7 @@ public class DemoUtils {
 		if (version != null)
 			preambleVersionString = "#version " + version + "\n";
 		String glVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
-		if (glVersion.compareTo("3.3") < 0) 
+		if (glVersion.compareTo("1.5") < 0) 
 			preambleOldVersionDefine = "#define OLD_VERSION\n";
 
 		ByteBuffer preamble = memEncodeUTF8(preambleVersionString + preambleOldVersionDefine, false);
