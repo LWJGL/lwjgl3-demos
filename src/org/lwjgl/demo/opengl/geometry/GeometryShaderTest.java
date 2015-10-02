@@ -126,50 +126,75 @@ public class GeometryShaderTest {
 		initProgram();
 	}
 
+	void quadPattern(IntBuffer vb) {
+		vb.put(1).put(0).put(1).put(1).put(0).put(1);
+	}
+
+	void quadWithDiagonalPattern(IntBuffer vb) {
+		vb.put(1).put(1).put(1).put(1).put(1).put(1);
+	}
+
 	void createVao() {
 		this.vao = glGenVertexArrays();
 		glBindVertexArray(vao);
-		FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 4 * 6);
+		IntBuffer vb = BufferUtils.createIntBuffer(6 * 6);
+		FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 6 * 6);
+		quadPattern(vb);
 		pb.put(0.5f).put(-0.5f).put(-0.5f);
 		pb.put(-0.5f).put(-0.5f).put(-0.5f);
 		pb.put(-0.5f).put(0.5f).put(-0.5f);
+		pb.put(-0.5f).put(0.5f).put(-0.5f);
 		pb.put(0.5f).put(0.5f).put(-0.5f);
+		pb.put(0.5f).put(-0.5f).put(-0.5f);
+		quadWithDiagonalPattern(vb);
 		pb.put(0.5f).put(-0.5f).put(0.5f);
 		pb.put(0.5f).put(0.5f).put(0.5f);
 		pb.put(-0.5f).put(0.5f).put(0.5f);
+		pb.put(-0.5f).put(0.5f).put(0.5f);
 		pb.put(-0.5f).put(-0.5f).put(0.5f);
+		pb.put(0.5f).put(-0.5f).put(0.5f);
+		quadPattern(vb);
 		pb.put(0.5f).put(-0.5f).put(-0.5f);
 		pb.put(0.5f).put(0.5f).put(-0.5f);
 		pb.put(0.5f).put(0.5f).put(0.5f);
+		pb.put(0.5f).put(0.5f).put(0.5f);
 		pb.put(0.5f).put(-0.5f).put(0.5f);
+		pb.put(0.5f).put(-0.5f).put(-0.5f);
+		quadWithDiagonalPattern(vb);
 		pb.put(-0.5f).put(-0.5f).put(0.5f);
 		pb.put(-0.5f).put(0.5f).put(0.5f);
 		pb.put(-0.5f).put(0.5f).put(-0.5f);
+		pb.put(-0.5f).put(0.5f).put(-0.5f);
 		pb.put(-0.5f).put(-0.5f).put(-0.5f);
+		pb.put(-0.5f).put(-0.5f).put(0.5f);
+		quadPattern(vb);
 		pb.put(0.5f).put(0.5f).put(0.5f);
 		pb.put(0.5f).put(0.5f).put(-0.5f);
 		pb.put(-0.5f).put(0.5f).put(-0.5f);
+		pb.put(-0.5f).put(0.5f).put(-0.5f);
 		pb.put(-0.5f).put(0.5f).put(0.5f);
+		pb.put(0.5f).put(0.5f).put(0.5f);
+		quadWithDiagonalPattern(vb);
 		pb.put(0.5f).put(-0.5f).put(-0.5f);
 		pb.put(0.5f).put(-0.5f).put(0.5f);
 		pb.put(-0.5f).put(-0.5f).put(0.5f);
+		pb.put(-0.5f).put(-0.5f).put(0.5f);
 		pb.put(-0.5f).put(-0.5f).put(-0.5f);
+		pb.put(0.5f).put(-0.5f).put(-0.5f);
 		pb.flip();
-		// build element buffer
-		IntBuffer eb = BufferUtils.createIntBuffer(6 * 6);
-		for (int i = 0; i < 4 * 6; i += 4)
-			eb.put(i).put(i + 1).put(i + 2).put(i + 2).put(i + 3).put(i + 0);
-		eb.flip();
+		vb.flip();
 		// setup vertex positions buffer
-		int cubeVbo = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, cubeVbo);
+		int posVbo = glGenBuffers();
+		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
 		glBufferData(GL_ARRAY_BUFFER, pb, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
-		// setup element buffer
-		int cubeEbo = glGenBuffers();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, eb, GL_STATIC_DRAW);
+		// setup vertex visibility buffer
+		int visVbo = glGenBuffers();
+		glBindBuffer(GL_ARRAY_BUFFER, visVbo);
+		glBufferData(GL_ARRAY_BUFFER, vb, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(1);
+		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 0, 0L);
 		glBindVertexArray(0);
 	}
 
@@ -182,6 +207,7 @@ public class GeometryShaderTest {
 		glAttachShader(program, fshader);
 		glAttachShader(program, gshader);
 		glBindAttribLocation(program, 0, "position");
+		glBindAttribLocation(program, 1, "visible");
 		glBindFragDataLocation(program, 0, "color");
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -208,6 +234,7 @@ public class GeometryShaderTest {
 
 	float angle = 0.0f;
 	long lastTime = System.nanoTime();
+
 	void update() {
 		projMatrix.setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f);
 		long thisTime = System.nanoTime();
@@ -225,7 +252,7 @@ public class GeometryShaderTest {
 		glUniform2f(viewportSizeUniform, width, height);
 
 		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLES, 3 * 2 * 6, GL_UNSIGNED_INT, 0L);
+		glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * 6);
 		glBindVertexArray(0);
 
 		glUseProgram(0);
