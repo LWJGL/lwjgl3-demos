@@ -117,8 +117,6 @@ public class GeometryShaderTest {
 		glClearColor(0.55f, 0.75f, 0.95f, 1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		/* Create all needed GL resources */
 		createVao();
@@ -140,12 +138,12 @@ public class GeometryShaderTest {
 		IntBuffer vb = BufferUtils.createIntBuffer(6 * 6);
 		FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 6 * 6);
 		quadPattern(vb);
-		pb.put(0.5f).put(-0.5f).put(-0.5f);
-		pb.put(-0.5f).put(-0.5f).put(-0.5f);
-		pb.put(-0.5f).put(0.5f).put(-0.5f);
-		pb.put(-0.5f).put(0.5f).put(-0.5f);
 		pb.put(0.5f).put(0.5f).put(-0.5f);
 		pb.put(0.5f).put(-0.5f).put(-0.5f);
+		pb.put(-0.5f).put(-0.5f).put(-0.5f);
+		pb.put(-0.5f).put(-0.5f).put(-0.5f);
+		pb.put(-0.5f).put(0.5f).put(-0.5f);
+		pb.put(0.5f).put(0.5f).put(-0.5f);
 		quadWithDiagonalPattern(vb);
 		pb.put(0.5f).put(-0.5f).put(0.5f);
 		pb.put(0.5f).put(0.5f).put(0.5f);
