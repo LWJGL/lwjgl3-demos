@@ -192,7 +192,7 @@ public class GeometryShaderTest {
 		glBindBuffer(GL_ARRAY_BUFFER, visVbo);
 		glBufferData(GL_ARRAY_BUFFER, vb, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(1);
-		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 0, 0L);
+		glVertexAttribPointer(1, 1, GL_UNSIGNED_INT, false, 0, 0L);
 		glBindVertexArray(0);
 	}
 

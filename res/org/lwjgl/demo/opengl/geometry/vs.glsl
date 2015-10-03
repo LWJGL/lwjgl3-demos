@@ -4,13 +4,13 @@ uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
 
 in vec3 position;
-in int visible;
+in float visible;
 
 out Vertex {
-  bool visible;
+  float visible;
 } vertex;
 
 void main(void) {
-  vertex.visible = visible == 1;
+  vertex.visible = visible;
   gl_Position = projMatrix * viewMatrix * vec4(position, 1.0);
 }
