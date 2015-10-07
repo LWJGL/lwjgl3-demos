@@ -282,8 +282,8 @@ public class Demo33 {
 	private void createRayTracingProgram() throws IOException {
 		int program = glCreateProgram();
 		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing.fs", GL_FRAGMENT_SHADER, "330");
-		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_FRAGMENT_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing.fs", GL_FRAGMENT_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_FRAGMENT_SHADER);
 		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
