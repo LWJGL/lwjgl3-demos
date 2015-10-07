@@ -85,7 +85,7 @@ public class SimpleDrawElements {
 			}
 		});
  
-		GLFWvidmode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		glfwSetWindowPos(window, (vidmode.getWidth() - width) / 2, (vidmode.getHeight() - height) / 2);
  
         // Make the OpenGL context current

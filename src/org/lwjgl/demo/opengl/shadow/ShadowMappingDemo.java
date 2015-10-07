@@ -26,7 +26,7 @@ import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
-import org.lwjgl.glfw.GLFWvidmode;
+import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
@@ -142,7 +142,7 @@ public class ShadowMappingDemo {
 			}
 		});
 
-		GLFWvidmode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		glfwSetWindowPos(window, (vidmode.getWidth() - width) / 2, (vidmode.getHeight() - height) / 2);
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(0);
