@@ -152,6 +152,10 @@ public class ShadowMappingDemo20 {
 		height = framebufferSize.get(1);
 
 		caps = GL.createCapabilities();
+		if (!caps.GL_EXT_framebuffer_object) {
+			throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
+		}
+
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Set some GL states */
