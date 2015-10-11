@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 130
+#version 110
 
 #define DEPTH_OFFSET 0.00002
 #define LIGHT_INTENSITY 0.9
@@ -11,11 +11,9 @@
 uniform sampler2D depthTexture;
 uniform vec3 lightPosition;
 
-in vec4 lightBiasedClipPosition;
-in vec3 worldPosition;
-in vec3 worldNormal;
-
-out vec4 color;
+varying vec4 lightBiasedClipPosition;
+varying vec3 worldPosition;
+varying vec3 worldNormal;
 
 void main(void) {
 	/* Convert the linearly interpolated clip-space position to NDC */
@@ -27,11 +25,11 @@ void main(void) {
 	/* Additionally, do standard lambertian/diffuse lighting */
 	float dot = max(0.0, dot(normalize(lightPosition - worldPosition), worldNormal));
 
-	color = vec4(AMBIENT, AMBIENT, AMBIENT, 1.0);
+	gl_FragColor = vec4(AMBIENT, AMBIENT, AMBIENT, 1.0);
 
 	/* "in shadow" test... */
 	if (depth.z >= lightNDCPosition.z - DEPTH_OFFSET) {
 		/* lit */
-		color += vec4(LIGHT_INTENSITY, LIGHT_INTENSITY, LIGHT_INTENSITY, 1.0) * dot;
+		gl_FragColor += vec4(LIGHT_INTENSITY, LIGHT_INTENSITY, LIGHT_INTENSITY, 1.0) * dot;
 	}
 }
