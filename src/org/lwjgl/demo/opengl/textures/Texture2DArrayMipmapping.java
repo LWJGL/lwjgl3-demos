@@ -5,8 +5,6 @@
 package org.lwjgl.demo.opengl.textures;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
@@ -14,12 +12,10 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -43,11 +39,9 @@ public class Texture2DArrayMipmapping {
 	private int program;
 	private int sampler;
 
-	private int viewMatrixUniform;
-	private int projectionMatrixUniform;
-	private boolean resetProjection = true;
+	private int viewProjMatrixUniform;
 
-	private Camera camera;
+	private Matrix4f camera;
 
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
@@ -100,7 +94,6 @@ public class Texture2DArrayMipmapping {
 						&& (Texture2DArrayMipmapping.this.width != width || Texture2DArrayMipmapping.this.height != height)) {
 					Texture2DArrayMipmapping.this.width = width;
 					Texture2DArrayMipmapping.this.height = height;
-					Texture2DArrayMipmapping.this.resetProjection = true;
 				}
 			}
 		});
@@ -131,10 +124,6 @@ public class Texture2DArrayMipmapping {
 		createVao();
 		createRasterProgram();
 		initProgram();
-
-		/* Setup camera */
-		camera = new Camera();
-		camera.setLookAt(new Vector3f(0.0f, 1.0f, 5.0f), new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 
 	private void createTexture() {
@@ -193,42 +182,6 @@ public class Texture2DArrayMipmapping {
 	}
 
 	/**
-	 * Create a shader object from the given classpath resource.
-	 *
-	 * @param resource
-	 *            the class path
-	 * @param type
-	 *            the shader type
-	 *
-	 * @return the shader object id
-	 *
-	 * @throws IOException
-	 */
-	private static int createShader(String resource, int type) throws IOException {
-		int shader = glCreateShader(type);
-
-		ByteBuffer source = ioResourceToByteBuffer(resource, 8192);
-
-		PointerBuffer strings = BufferUtils.createPointerBuffer(1);
-		IntBuffer lengths = BufferUtils.createIntBuffer(1);
-
-		strings.put(0, source);
-		lengths.put(0, source.remaining());
-
-		glShaderSource(shader, strings, lengths);
-		glCompileShader(shader);
-		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
-		String shaderLog = glGetShaderInfoLog(shader);
-		if (shaderLog.trim().length() > 0) {
-			System.err.println(shaderLog);
-		}
-		if (compiled == 0) {
-			throw new AssertionError("Could not compile shader");
-		}
-		return shader;
-	}
-
-	/**
 	 * Create the raster shader.
 	 *
 	 * @throws IOException
@@ -258,8 +211,7 @@ public class Texture2DArrayMipmapping {
 	 */
 	private void initProgram() {
 		glUseProgram(this.program);
-		viewMatrixUniform = glGetUniformLocation(this.program, "viewMatrix");
-		projectionMatrixUniform = glGetUniformLocation(this.program, "projMatrix");
+		viewProjMatrixUniform = glGetUniformLocation(this.program, "viewProjMatrix");
 		glUseProgram(0);
 	}
 
@@ -284,13 +236,13 @@ public class Texture2DArrayMipmapping {
 	 * shader.
 	 * 
 	 * @param location
-	 *            the uniform location of the mat4 uniform
+	 *			the uniform location of the mat4 uniform
 	 * @param value
-	 *            the {@link Matrix4f matrix} to set
+	 *			the {@link Matrix4f matrix} to set
 	 * @param transpose
-	 *            whether the matrix should be transposed (automatic row-major
-	 *            to column-major transposition is done automatically on top of
-	 *            that)
+	 *			whether the matrix should be transposed (automatic row-major
+	 *			to column-major transposition is done automatically on top of
+	 *			that)
 	 */
 	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
 		value.get(matrixByteBufferFloatView);
@@ -298,19 +250,16 @@ public class Texture2DArrayMipmapping {
 	}
 
 	private void update() {
-		if (resetProjection) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f, 100.0f);
-			resetProjection = false;
-		}
+		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
+			  .lookAt(0.0f, 1.0f, 5.0f,
+					  0.0f, 0.0f, 0.0f,
+					  0.0f, 1.0f, 0.0f);
 	}
 
 	private void render() {
 		glUseProgram(this.program);
 
-		Matrix4f viewMatrix = camera.getViewMatrix();
-		matrixUniform(viewMatrixUniform, viewMatrix, false);
-		Matrix4f projMatrix = camera.getProjectionMatrix();
-		matrixUniform(projectionMatrixUniform, projMatrix, false);
+		matrixUniform(viewProjMatrixUniform, camera, false);
 
 		glBindVertexArray(vao);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
