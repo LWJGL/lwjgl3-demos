@@ -21,7 +21,6 @@ import java.nio.IntBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.opengl.raytracing.Scene;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
@@ -74,16 +73,14 @@ public class ShadowMappingDemo {
 	ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 
-	Camera lightView = new Camera();
-	Camera cameraView = new Camera();
-	Matrix4f lightMatrix = new Matrix4f();
+	Matrix4f light = new Matrix4f();
+	Matrix4f camera = new Matrix4f();
 	Matrix4f biasMatrix = new Matrix4f(
-			0.5f, 0.0f, 0.0f, 0.5f, 
-			0.0f, 0.5f, 0.0f, 0.5f,
-			0.0f, 0.0f, 0.5f, 0.5f, 
-			0.0f, 0.0f, 0.0f, 1.0f
-			).transpose();
-	Matrix4f cameraMatrix = new Matrix4f();
+			0.5f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.5f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.5f, 0.5f, 0.5f, 1.0f
+			);
 
 	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
@@ -169,9 +166,6 @@ public class ShadowMappingDemo {
 		initNormalProgram();
 		createDepthTexture();
 		createFbo();
-
-		/* Initialize light MVP matrix */
-		lightView.setFrustumPerspective(45.0f, 1.0f, 0.1f, 60.0f);
 	}
 
 	/**
@@ -315,16 +309,13 @@ public class ShadowMappingDemo {
 		double alpha = System.currentTimeMillis() / 1000.0 * 0.5;
 		float x = (float) Math.sin(alpha);
 		float z = (float) Math.cos(alpha);
-		lightPosition.set(lightDistance * x, lightHeight, lightDistance * z);
-		lightView.setLookAt(lightPosition, lightLookAt, UP);
-		lightMatrix.set(lightView.getProjectionMatrix());
-		lightMatrix.mul(lightView.getViewMatrix());
+		lightPosition.set(lightDistance * x, 3 + (float) Math.sin(alpha), lightDistance * z);
+		light.setPerspective((float) Math.toRadians(45.0f), 1.0f, 0.1f, 60.0f)
+		     .lookAt(lightPosition, lightLookAt, UP);
 
 		/* Update camera */
-		cameraView.setFrustumPerspective(45.0f, (float) width / height, 0.1f, 30.0f);
-		cameraView.setLookAt(cameraPosition, cameraLookAt, UP);
-		cameraMatrix.set(cameraView.getProjectionMatrix());
-		cameraMatrix.mul(cameraView.getViewMatrix());
+		camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f)
+		      .lookAt(cameraPosition, cameraLookAt, UP);
 	}
 
 	/**
@@ -334,7 +325,7 @@ public class ShadowMappingDemo {
 		glUseProgram(shadowProgram);
 
 		/* Set MVP matrix of the "light camera" */
-		matrixUniform(shadowProgramVPUniform, lightMatrix, false);
+		matrixUniform(shadowProgramVPUniform, light, false);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 		glViewport(0, 0, shadowMapSize, shadowMapSize);
@@ -356,9 +347,9 @@ public class ShadowMappingDemo {
 		glUseProgram(normalProgram);
 
 		/* Set MVP matrix of camera */
-		matrixUniform(normalProgramVPUniform, cameraMatrix, false);
+		matrixUniform(normalProgramVPUniform, camera, false);
 		/* Set MVP matrix that was used when doing the light-render */
-		matrixUniform(normalProgramLVPUniform, lightMatrix, false);
+		matrixUniform(normalProgramLVPUniform, light, false);
 		/* The bias-matrix used to convert to NDC coordinates */
 		matrixUniform(normalProgramBiasUniform, biasMatrix, false);
 		/* Light position and lookat for normal lambertian computation */
