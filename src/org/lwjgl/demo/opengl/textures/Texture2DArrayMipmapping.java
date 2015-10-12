@@ -41,7 +41,7 @@ public class Texture2DArrayMipmapping {
 
 	private int viewProjMatrixUniform;
 
-	private Matrix4f camera;
+	private Matrix4f camera = new Matrix4f();
 
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();

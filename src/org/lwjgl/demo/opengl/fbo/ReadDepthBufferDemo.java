@@ -6,7 +6,6 @@ package org.lwjgl.demo.opengl.fbo;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.raytracing.Scene;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -57,11 +56,11 @@ public class ReadDepthBufferDemo {
 	private int fbo;
 	private int vboScene;
 
-	private int viewMatrixUniform;
-	private int projectionMatrixUniform;
+	private int viewProjMatrixUniform;
 	private int inverseProjectionViewMatrixUniform;
 
-	private Camera camera;
+	private Matrix4f camera = new Matrix4f();
+	private Matrix4f invCamera = new Matrix4f();
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -186,9 +185,6 @@ public class ReadDepthBufferDemo {
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-
-		/* Setup camera */
-		camera = new Camera();
 	}
 
 	private void createFullScreenVbo() {
@@ -278,8 +274,7 @@ public class ReadDepthBufferDemo {
 
 	private void initDepthOnlyProgram() {
 		glUseProgram(depthOnlyProgram);
-		viewMatrixUniform = glGetUniformLocation(depthOnlyProgram, "viewMatrix");
-		projectionMatrixUniform = glGetUniformLocation(depthOnlyProgram, "projectionMatrix");
+		viewProjMatrixUniform = glGetUniformLocation(depthOnlyProgram, "viewProjMatrix");
 		glUseProgram(0);
 	}
 
@@ -321,10 +316,10 @@ public class ReadDepthBufferDemo {
 
 		/* Rotate camera about Y axis. */
 		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
+			  .lookAt(tmpVector, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f, 100.0f);
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}
@@ -340,10 +335,7 @@ public class ReadDepthBufferDemo {
 		glUseProgram(depthOnlyProgram);
 
 		/* Update matrices in shader */
-		Matrix4f viewMatrix = camera.getViewMatrix();
-		matrixUniform(viewMatrixUniform, viewMatrix, false);
-		Matrix4f projMatrix = camera.getProjectionMatrix();
-		matrixUniform(projectionMatrixUniform, projMatrix, false);
+		matrixUniform(viewProjMatrixUniform, camera, false);
 
 		/* Rasterize the boxes into the FBO */
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
@@ -361,8 +353,7 @@ public class ReadDepthBufferDemo {
 		glUseProgram(fullScreenQuadProgram);
 
 		/* Set the inverse(proj * view) matrix in the shader */
-		Matrix4f inverseProjectionViewMatrix = camera.getInverseProjectionViewMatrix();
-		matrixUniform(inverseProjectionViewMatrixUniform, inverseProjectionViewMatrix, false);
+		matrixUniform(inverseProjectionViewMatrixUniform, camera.invert(invCamera), false);
 
 		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
 		glEnableVertexAttribArray(0);
