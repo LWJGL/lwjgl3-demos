@@ -252,8 +252,8 @@ public class Demo20 {
 		String version = GL.getCapabilities().OpenGL30 ? "130" : null;
 
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, version);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, version);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad110.vs", GL_VERTEX_SHADER, version);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad110.fs", GL_FRAGMENT_SHADER, version);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -280,8 +280,8 @@ public class Demo20 {
 		String version = GL.getCapabilities().OpenGL30 ? "130" : null;
 
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, version);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing20.fs", GL_FRAGMENT_SHADER, version);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad110.vs", GL_VERTEX_SHADER, version);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing110.fs", GL_FRAGMENT_SHADER, version);
 		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_FRAGMENT_SHADER, version);
 		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random20.glsl", GL_FRAGMENT_SHADER, null);
 		glAttachShader(program, vshader);
