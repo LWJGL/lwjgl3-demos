@@ -9,6 +9,7 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.EXTGeometryShader4.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
@@ -83,7 +84,7 @@ public class SilhouetteDemo {
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-        window = glfwCreateWindow(width, height, "Antialiased wireframe rendering with geometry shader", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Silhouette rendering with geometry shader", NULL, NULL);
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
@@ -117,6 +118,10 @@ public class SilhouetteDemo {
         glfwSwapInterval(0);
         glfwShowWindow(window);
         caps = GL.createCapabilities();
+        if (!caps.GL_EXT_geometry_shader4) {
+            throw new AssertionError("This demo requires the EXT_geometry_shader4 extension");
+        }
+
         debugProc = GLUtil.setupDebugMessageCallback();
 
         glClearColor(0.55f, 0.75f, 0.95f, 1.0f);
@@ -132,13 +137,13 @@ public class SilhouetteDemo {
     void createBoxVao() {
         FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 8);
         pb.put(-1).put(-1).put(-1); // 0
-        pb.put(1).put(-1).put(-1); // 1
-        pb.put(-1).put(1).put(-1); // 2
-        pb.put(-1).put(-1).put(1); // 3
-        pb.put(1).put(1).put(-1); // 4
-        pb.put(-1).put(1).put(1); // 5
-        pb.put(1).put(-1).put(1); // 6
-        pb.put(1).put(1).put(1); // 7
+        pb.put( 1).put(-1).put(-1); // 1
+        pb.put(-1).put( 1).put(-1); // 2
+        pb.put(-1).put(-1).put( 1); // 3
+        pb.put( 1).put( 1).put(-1); // 4
+        pb.put(-1).put( 1).put( 1); // 5
+        pb.put( 1).put(-1).put( 1); // 6
+        pb.put( 1).put( 1).put( 1); // 7
         pb.flip();
         IntBuffer ib = BufferUtils.createIntBuffer(3 * 2 * 6);
         ib.put(0).put(3).put(5).put(5).put(2).put(0); // -X
@@ -157,19 +162,24 @@ public class SilhouetteDemo {
         glBufferData(GL_ARRAY_BUFFER, pb, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
-        // setup index buffer
+        // setup index buffer with adjacency indices
         int ibo = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ib, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, adj, GL_STATIC_DRAW);
     }
 
     void createRasterProgram() throws IOException {
         int program = glCreateProgram();
         int vshader = createShader("org/lwjgl/demo/opengl/geometry/silhouette-vs.glsl", GL_VERTEX_SHADER);
         int fshader = createShader("org/lwjgl/demo/opengl/geometry/silhouette-fs.glsl", GL_FRAGMENT_SHADER);
+        int gshader = createShader("org/lwjgl/demo/opengl/geometry/silhouette-gs.glsl", GL_GEOMETRY_SHADER_EXT);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
+        glAttachShader(program, gshader);
         glBindAttribLocation(program, 0, "position");
+        glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 3);
+        glProgramParameteriEXT(program, GL_GEOMETRY_INPUT_TYPE_EXT, GL_TRIANGLES_ADJACENCY_EXT);
+        glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
@@ -200,15 +210,19 @@ public class SilhouetteDemo {
         lastTime = thisTime;
         angle += diff;
 
-        viewProjMatrix.setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f)
-                .lookAt(0.0f, 2.0f, 7.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f).rotateY(angle);
+        viewProjMatrix
+            .setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f)
+            .lookAt(0.0f, 2.0f, 7.0f,
+                    0.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f)
+            .rotateY(angle);
     }
 
     void render() {
         glUseProgram(this.program);
         glUniformMatrix4fv(viewProjMatrixUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glDrawElements(GL_TRIANGLES, 3 * 2 * 6, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLES_ADJACENCY_EXT, 6 * 2 * 6, GL_UNSIGNED_INT, 0L);
         glUseProgram(0);
     }
 
