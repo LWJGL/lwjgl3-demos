@@ -27,13 +27,16 @@ public class Adjacency {
      * information suitable for rendering via GL_TRIANGLES_ADJACENCY mode.
      * 
      * @param source
-     *            the index buffer of a normal GL_TRIANGLES mesh
+     *            the index buffer of a normal GL_TRIANGLES mesh. Neither the position nor the limit are modified by
+     *            this method
      * @param dest
      *            will hold the indices of the triangles with adjacency information. It must have at least double the
-     *            size of <code>source</code>
-     * @return the index buffer with adjacency information for rendering with GL_TRIANGLES_ADJACENCY
+     *            size of <code>source</code>. Neither the position nor the limit are modified by this method
      */
     public static void computeAdjacency(IntBuffer source, IntBuffer dest) {
+        if (source.remaining() % 3 != 0) {
+            throw new IllegalArgumentException("source must contain three indices for each triangle");
+        }
         if (dest.remaining() < source.remaining() * 2) {
             throw new IllegalArgumentException(
                     "dest must have at least " + (source.remaining() * 2) + " remaining elements");
@@ -107,18 +110,21 @@ public class Adjacency {
         }
 
         // Now that we have a half-edge structure, it's easy to create adjacency info for OpenGL
-        edgeIdx = 0;
+        int destPos = dest.position();
         if (boundaryCount > 0) {
             // Mesh is not watertight. Contains #boundaryCount boundary edges.
             for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
                 edgeIdx = faceIndex * 3;
                 int destIdx = faceIndex * 6;
                 dest.put(edges[edgeIdx + 2].vert);
-                dest.put(edges[edgeIdx].twin != null ? (edges[edgeIdx].twin.next.vert) : dest.get(destIdx));
+                HalfEdge twin = edges[edgeIdx].twin;
+                dest.put(twin != null ? twin.next.vert : dest.get(destIdx));
                 dest.put(edges[edgeIdx].vert);
-                dest.put(edges[edgeIdx + 1].twin != null ? (edges[edgeIdx + 1].twin.next.vert) : dest.get(destIdx + 1));
+                twin = edges[edgeIdx + 1].twin;
+                dest.put(twin != null ? twin.next.vert : dest.get(destIdx + 1));
                 dest.put(edges[edgeIdx + 1].vert);
-                dest.put(edges[edgeIdx + 2].twin != null ? (edges[edgeIdx + 2].twin.next.vert) : dest.get(destIdx + 2));
+                twin = edges[edgeIdx + 2].twin;
+                dest.put(twin != null ? twin.next.vert : dest.get(destIdx + 2));
             }
         } else {
             for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
@@ -131,7 +137,7 @@ public class Adjacency {
                 dest.put(edges[edgeIdx + 2].twin.next.vert);
             }
         }
-        dest.flip();
+        dest.position(destPos);
     }
 
 }
