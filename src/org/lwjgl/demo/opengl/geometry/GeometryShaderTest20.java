@@ -109,6 +109,10 @@ public class GeometryShaderTest20 {
 		glfwSwapInterval(0);
 		glfwShowWindow(window);
 		caps = GL.createCapabilities();
+		if (!caps.GL_EXT_geometry_shader4) {
+			throw new AssertionError("This demo requires the EXT_geometry_shader4 extension");
+		}
+
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		glClearColor(0.55f, 0.75f, 0.95f, 1.0f);
@@ -200,9 +204,9 @@ public class GeometryShaderTest20 {
 		glAttachShader(program, gshader);
 		glBindAttribLocation(program, 0, "position");
 		glBindAttribLocation(program, 1, "visible");
-        glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 3);
-        glProgramParameteriEXT(program, GL_GEOMETRY_INPUT_TYPE_EXT, GL_TRIANGLES);
-        glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+		glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 3);
+		glProgramParameteriEXT(program, GL_GEOMETRY_INPUT_TYPE_EXT, GL_TRIANGLES);
+		glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
