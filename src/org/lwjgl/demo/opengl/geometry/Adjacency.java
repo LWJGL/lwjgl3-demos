@@ -5,7 +5,6 @@
 package org.lwjgl.demo.opengl.geometry;
 
 import java.nio.IntBuffer;
-import java.util.BitSet;
 
 /**
  * Computes adjacency information suitable for GL_TRIANGLES_ADJACENCY rendering.
@@ -51,7 +50,6 @@ public class Adjacency {
             final static long DEAD_KEY = Long.MIN_VALUE;
             long[] keys = new long[16];
             HalfEdge[] values = new HalfEdge[16];
-            BitSet flags = new BitSet();
             int size;
             int mask = keys.length - 1;
 
@@ -67,9 +65,7 @@ public class Adjacency {
                     if (mapKey == key) {
                         return values[hash];
                     } else if (mapKey == DEAD_KEY) {
-                        if (!flags.get(hash)) {
-                            return null;
-                        }
+                        return null;
                     }
                     hash = (hash + 1) & mask;
                 }
@@ -78,13 +74,12 @@ public class Adjacency {
             void resize(int newSize) {
                 long[] newKeys = new long[newSize];
                 HalfEdge[] newValues = new HalfEdge[newSize];
-                BitSet newFlags = new BitSet();
                 for (int i = 0; i < newSize; i++) {
                     newKeys[i] = DEAD_KEY;
                 }
                 mask = newKeys.length - 1;
                 for (int i = 0; i < keys.length; i++) {
-                    if (keys[i] == DEAD_KEY || flags.get(i)) {
+                    if (keys[i] == DEAD_KEY) {
                         continue;
                     }
                     int hash = (int) keys[i] & mask;
@@ -92,7 +87,6 @@ public class Adjacency {
                         if (newKeys[hash] == DEAD_KEY) {
                             newKeys[hash] = keys[i];
                             newValues[hash] = values[i];
-                            newFlags.set(hash, flags.get(i));
                             break;
                         }
                         hash = (hash + 1) & mask;
@@ -100,7 +94,6 @@ public class Adjacency {
                 }
                 keys = newKeys;
                 values = newValues;
-                flags = newFlags;
             }
 
             HalfEdge put(long key, HalfEdge value) {
@@ -108,10 +101,9 @@ public class Adjacency {
                 int count = size;
                 while (count-- >= 0) {
                     long testKey = keys[hash];
-                    if (testKey == DEAD_KEY || flags.get(hash)) {
+                    if (testKey == DEAD_KEY) {
                         keys[hash] = key;
                         values[hash] = value;
-                        flags.clear(hash);
                         size++;
                         if (keys.length <= 2 * size) {
                             resize(2 * keys.length);
@@ -179,7 +171,7 @@ public class Adjacency {
         int boundaryCount = 0;
         long UINT_MASK = 0xFFFFFFFFL;
         for (int index = 0; index < edgeTable.keys.length; index++) {
-            if (edgeTable.keys[index] != HalfEdgeMap.DEAD_KEY && !edgeTable.flags.get(index)) {
+            if (edgeTable.keys[index] != HalfEdgeMap.DEAD_KEY) {
                 long edgeIndex = edgeTable.keys[index];
                 HalfEdge edge = (HalfEdge) edgeTable.values[index];
                 long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
