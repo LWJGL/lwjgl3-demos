@@ -220,7 +220,6 @@ public class SilhouetteDemo {
     void render() {
         glUseProgram(this.program);
         glUniformMatrix4fv(viewProjMatrixUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES_ADJACENCY_EXT, 6 * 2 * 6, GL_UNSIGNED_INT, 0L);
         glUseProgram(0);
     }
