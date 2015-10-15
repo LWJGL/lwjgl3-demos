@@ -47,16 +47,11 @@ public class Adjacency {
         }
 
         final class HalfEdgeMap {
-            final static long DEAD_KEY = Long.MIN_VALUE;
+            final static long DEAD_KEY = 0L;
             long[] keys = new long[16];
             HalfEdge[] values = new HalfEdge[16];
             int size;
             int mask = keys.length - 1;
-
-            HalfEdgeMap() {
-                for (int i = 0; i < values.length; i++)
-                    keys[i] = DEAD_KEY;
-            }
 
             HalfEdge get(long key) {
                 int hash = (int) (key & mask);
@@ -74,9 +69,6 @@ public class Adjacency {
             void resize(int newSize) {
                 long[] newKeys = new long[newSize];
                 HalfEdge[] newValues = new HalfEdge[newSize];
-                for (int i = 0; i < newSize; i++) {
-                    newKeys[i] = DEAD_KEY;
-                }
                 mask = newKeys.length - 1;
                 for (int i = 0; i < keys.length; i++) {
                     if (keys[i] == DEAD_KEY) {
