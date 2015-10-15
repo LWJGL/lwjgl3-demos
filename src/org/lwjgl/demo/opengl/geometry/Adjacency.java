@@ -57,7 +57,6 @@ public class Adjacency {
 
             HalfEdgeMap(int size) {
                 int tableSize = MathUtil.mathRoundPoT((int) (size * scaleFactor));
-                System.err.println("Size: " + tableSize);
                 entries = new HalfEdge[tableSize];
                 mask = entries.length - 1;
             }
