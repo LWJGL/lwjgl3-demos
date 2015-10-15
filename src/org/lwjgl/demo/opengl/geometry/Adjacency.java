@@ -6,6 +6,8 @@ package org.lwjgl.demo.opengl.geometry;
 
 import java.nio.IntBuffer;
 
+import org.lwjgl.system.MathUtil;
+
 /**
  * Computes adjacency information suitable for GL_TRIANGLES_ADJACENCY rendering.
  * <p>
@@ -48,9 +50,17 @@ public class Adjacency {
         }
 
         final class HalfEdgeMap {
-            HalfEdge[] entries = new HalfEdge[16];
+            static final float scaleFactor = 1.5f;
+            HalfEdge[] entries;
             int size;
-            int mask = entries.length - 1;
+            int mask;
+
+            HalfEdgeMap(int size) {
+                int tableSize = MathUtil.mathRoundPoT((int) (size * scaleFactor));
+                System.err.println("Size: " + tableSize);
+                entries = new HalfEdge[tableSize];
+                mask = entries.length - 1;
+            }
 
             HalfEdge get(long key) {
                 int hash = (int) (key & mask);
@@ -64,25 +74,6 @@ public class Adjacency {
                 }
             }
 
-            void resize(int newSize) {
-                HalfEdge[] newEntries = new HalfEdge[newSize];
-                mask = newSize - 1;
-                for (int i = 0; i < entries.length; i++) {
-                    if (entries[i] == null) {
-                        continue;
-                    }
-                    int hash = (int) entries[i].index & mask;
-                    while (true) {
-                        if (newEntries[hash] == null) {
-                            newEntries[hash] = entries[i];
-                            break;
-                        }
-                        hash = (hash + 1) & mask;
-                    }
-                }
-                entries = newEntries;
-            }
-
             HalfEdge put(HalfEdge value) {
                 long key = value.index;
                 int hash = (int) (key & mask);
@@ -91,9 +82,6 @@ public class Adjacency {
                     if (entries[hash] == null) {
                         entries[hash] = value;
                         size++;
-                        if (entries.length <= 2 * size) {
-                            resize(2 * entries.length);
-                        }
                         return null;
                     } else if (key != entries[hash].index) {
                         hash = (hash + 1) & mask;
@@ -117,7 +105,7 @@ public class Adjacency {
         // Declare a map to help build the half-edge structure:
         // - Keys are pairs of vertex indices
         // - Values are half-edges
-        HalfEdgeMap edgeTable = new HalfEdgeMap();
+        HalfEdgeMap edgeTable = new HalfEdgeMap(edges.length);
 
         // Plow through faces and fill all half-edge info except twin pointers:
         int srcIdx = 0;
