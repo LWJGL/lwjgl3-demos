@@ -126,7 +126,6 @@ public class SilhouetteDemo {
 
         glClearColor(0.55f, 0.75f, 0.95f, 1.0f);
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
 
         /* Create all needed GL resources */
         createBoxVao();
@@ -177,9 +176,9 @@ public class SilhouetteDemo {
         glAttachShader(program, fshader);
         glAttachShader(program, gshader);
         glBindAttribLocation(program, 0, "position");
-        glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 3);
+        glProgramParameteriEXT(program, GL_GEOMETRY_VERTICES_OUT_EXT, 6);
         glProgramParameteriEXT(program, GL_GEOMETRY_INPUT_TYPE_EXT, GL_TRIANGLES_ADJACENCY_EXT);
-        glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+        glProgramParameteriEXT(program, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_LINE_STRIP);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);

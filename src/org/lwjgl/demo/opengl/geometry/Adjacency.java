@@ -188,6 +188,10 @@ public class Adjacency {
             }
         }
         dest.position(destPos);
+        while (dest.hasRemaining()) {
+            System.err.println(dest.get());
+        }
+        dest.position(destPos);
     }
 
 }
