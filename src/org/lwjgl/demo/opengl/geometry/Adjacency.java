@@ -5,8 +5,7 @@
 package org.lwjgl.demo.opengl.geometry;
 
 import java.nio.IntBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.BitSet;
 
 /**
  * Computes adjacency information suitable for GL_TRIANGLES_ADJACENCY rendering.
@@ -48,6 +47,89 @@ public class Adjacency {
             HalfEdge next;
         }
 
+        final class HalfEdgeMap {
+            final static long DEAD_KEY = Long.MIN_VALUE;
+            long[] keys = new long[16];
+            HalfEdge[] values = new HalfEdge[16];
+            BitSet flags = new BitSet();
+            int size;
+            int mask = keys.length - 1;
+
+            HalfEdgeMap() {
+                for (int i = 0; i < values.length; i++)
+                    keys[i] = DEAD_KEY;
+            }
+
+            HalfEdge get(long key) {
+                int hash = (int) (key & mask);
+                while (true) {
+                    long mapKey = keys[hash];
+                    if (mapKey == key) {
+                        return values[hash];
+                    } else if (mapKey == DEAD_KEY) {
+                        if (!flags.get(hash)) {
+                            return null;
+                        }
+                    }
+                    hash = (hash + 1) & mask;
+                }
+            }
+
+            void resize(int newSize) {
+                long[] newKeys = new long[newSize];
+                HalfEdge[] newValues = new HalfEdge[newSize];
+                BitSet newFlags = new BitSet();
+                for (int i = 0; i < newSize; i++) {
+                    newKeys[i] = DEAD_KEY;
+                }
+                mask = newKeys.length - 1;
+                for (int i = 0; i < keys.length; i++) {
+                    if (keys[i] == DEAD_KEY || flags.get(i)) {
+                        continue;
+                    }
+                    int hash = (int) keys[i] & mask;
+                    while (true) {
+                        if (newKeys[hash] == DEAD_KEY) {
+                            newKeys[hash] = keys[i];
+                            newValues[hash] = values[i];
+                            newFlags.set(hash, flags.get(i));
+                            break;
+                        }
+                        hash = (hash + 1) & mask;
+                    }
+                }
+                keys = newKeys;
+                values = newValues;
+                flags = newFlags;
+            }
+
+            HalfEdge put(long key, HalfEdge value) {
+                int hash = (int) (key & mask);
+                int count = size;
+                while (count-- >= 0) {
+                    long testKey = keys[hash];
+                    if (testKey == DEAD_KEY || flags.get(hash)) {
+                        keys[hash] = key;
+                        values[hash] = value;
+                        flags.clear(hash);
+                        size++;
+                        if (keys.length <= 2 * size) {
+                            resize(2 * keys.length);
+                        }
+                        return null;
+                    } else if (key != testKey) {
+                        hash = (hash + 1) & mask;
+                        continue;
+                    } else {
+                        HalfEdge old = values[hash];
+                        values[hash] = value;
+                        return old;
+                    }
+                }
+                return null;
+            }
+        }
+
         int faceCount = source.remaining() / 3;
         // Allocate all pieces of the half-edge data structure
         HalfEdge[] edges = new HalfEdge[faceCount * 3];
@@ -57,7 +139,7 @@ public class Adjacency {
         // Declare a map to help build the half-edge structure:
         // - Keys are pairs of vertex indices
         // - Values are half-edges
-        Map<Long, HalfEdge> edgeTable = new HashMap<Long, HalfEdge>();
+        HalfEdgeMap edgeTable = new HalfEdgeMap();
 
         // Plow through faces and fill all half-edge info except twin pointers:
         int srcIdx = 0;
@@ -88,7 +170,7 @@ public class Adjacency {
         }
 
         // Verify that the mesh is clean
-        int numEntries = edgeTable.size();
+        int numEntries = edgeTable.size;
         if (numEntries != faceCount * 3) {
             throw new IllegalArgumentException("Bad mesh: duplicated edges or inconsistent winding.");
         }
@@ -96,16 +178,18 @@ public class Adjacency {
         // Populate the twin pointers by iterating over the edges
         int boundaryCount = 0;
         long UINT_MASK = 0xFFFFFFFFL;
-        for (Map.Entry<Long, HalfEdge> e : edgeTable.entrySet()) {
-            HalfEdge edge = e.getValue();
-            long edgeIndex = e.getKey();
-            long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
-            HalfEdge twinEdge = edgeTable.get(twinIndex);
-            if (twinEdge != null) {
-                twinEdge.twin = edge;
-                edge.twin = twinEdge;
-            } else {
-                boundaryCount++;
+        for (int index = 0; index < edgeTable.keys.length; index++) {
+            if (edgeTable.keys[index] != HalfEdgeMap.DEAD_KEY && !edgeTable.flags.get(index)) {
+                long edgeIndex = edgeTable.keys[index];
+                HalfEdge edge = (HalfEdge) edgeTable.values[index];
+                long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
+                HalfEdge twinEdge = edgeTable.get(twinIndex);
+                if (twinEdge != null) {
+                    twinEdge.twin = edge;
+                    edge.twin = twinEdge;
+                } else {
+                    boundaryCount++;
+                }
             }
         }
 
