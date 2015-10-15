@@ -9,12 +9,12 @@ import java.nio.IntBuffer;
 /**
  * Computes adjacency information suitable for GL_TRIANGLES_ADJACENCY rendering.
  * <p>
- * The algorithm is layed out at:
- * <a href="http://gamedev.stackexchange.com/questions/62097/building-triangle-adjacency-data">gamedev.stackexchange.com
+ * The algorithm is layed out at: <a
+ * href="http://gamedev.stackexchange.com/questions/62097/building-triangle-adjacency-data">gamedev.stackexchange.com
  * </a>.
  * <p>
- * This class is a port of the original C implementation at:
- * <a href="http://prideout.net/blog/?p=54">http://prideout.net/blog/?p=54</a>
+ * This class is a port of the original C implementation at: <a
+ * href="http://prideout.net/blog/?p=54">http://prideout.net/blog/?p=54</a>
  * 
  * @author Kai Burjack
  */
@@ -36,77 +36,71 @@ public class Adjacency {
             throw new IllegalArgumentException("source must contain three indices for each triangle");
         }
         if (dest.remaining() < source.remaining() * 2) {
-            throw new IllegalArgumentException(
-                    "dest must have at least " + (source.remaining() * 2) + " remaining elements");
+            throw new IllegalArgumentException("dest must have at least " + (source.remaining() * 2)
+                    + " remaining elements");
         }
 
         final class HalfEdge {
             int vert;
+            long index;
             HalfEdge twin;
             HalfEdge next;
         }
 
         final class HalfEdgeMap {
-            final static long DEAD_KEY = 0L;
-            long[] keys = new long[16];
-            HalfEdge[] values = new HalfEdge[16];
+            HalfEdge[] entries = new HalfEdge[16];
             int size;
-            int mask = keys.length - 1;
+            int mask = entries.length - 1;
 
             HalfEdge get(long key) {
                 int hash = (int) (key & mask);
                 while (true) {
-                    long mapKey = keys[hash];
-                    if (mapKey == key) {
-                        return values[hash];
-                    } else if (mapKey == DEAD_KEY) {
+                    if (entries[hash] == null) {
                         return null;
+                    } else if (entries[hash].index == key) {
+                        return entries[hash];
                     }
                     hash = (hash + 1) & mask;
                 }
             }
 
             void resize(int newSize) {
-                long[] newKeys = new long[newSize];
-                HalfEdge[] newValues = new HalfEdge[newSize];
-                mask = newKeys.length - 1;
-                for (int i = 0; i < keys.length; i++) {
-                    if (keys[i] == DEAD_KEY) {
+                HalfEdge[] newEntries = new HalfEdge[newSize];
+                mask = newSize - 1;
+                for (int i = 0; i < entries.length; i++) {
+                    if (entries[i] == null) {
                         continue;
                     }
-                    int hash = (int) keys[i] & mask;
+                    int hash = (int) entries[i].index & mask;
                     while (true) {
-                        if (newKeys[hash] == DEAD_KEY) {
-                            newKeys[hash] = keys[i];
-                            newValues[hash] = values[i];
+                        if (newEntries[hash] == null) {
+                            newEntries[hash] = entries[i];
                             break;
                         }
                         hash = (hash + 1) & mask;
                     }
                 }
-                keys = newKeys;
-                values = newValues;
+                entries = newEntries;
             }
 
-            HalfEdge put(long key, HalfEdge value) {
+            HalfEdge put(HalfEdge value) {
+                long key = value.index;
                 int hash = (int) (key & mask);
                 int count = size;
                 while (count-- >= 0) {
-                    long testKey = keys[hash];
-                    if (testKey == DEAD_KEY) {
-                        keys[hash] = key;
-                        values[hash] = value;
+                    if (entries[hash] == null) {
+                        entries[hash] = value;
                         size++;
-                        if (keys.length <= 2 * size) {
-                            resize(2 * keys.length);
+                        if (entries.length <= 2 * size) {
+                            resize(2 * entries.length);
                         }
                         return null;
-                    } else if (key != testKey) {
+                    } else if (key != entries[hash].index) {
                         hash = (hash + 1) & mask;
                         continue;
                     } else {
-                        HalfEdge old = values[hash];
-                        values[hash] = value;
+                        HalfEdge old = entries[hash];
+                        entries[hash] = value;
                         return old;
                     }
                 }
@@ -135,19 +129,22 @@ public class Adjacency {
             HalfEdge edge = edges[edgeIdx];
 
             // Create the half-edge that goes from C to A:
-            edgeTable.put((long) C | ((long) A << 32L), edge);
+            edge.index = (long) C | ((long) A << 32L);
+            edgeTable.put(edge);
             edge.vert = A;
             edge.next = edges[1 + edgeIdx];
             edge = edges[++edgeIdx];
 
             // Create the half-edge that goes from A to B:
-            edgeTable.put((long) A | ((long) B << 32L), edge);
+            edge.index = (long) A | ((long) B << 32L);
+            edgeTable.put(edge);
             edge.vert = B;
             edge.next = edges[1 + edgeIdx];
             edge = edges[++edgeIdx];
 
             // Create the half-edge that goes from B to C:
-            edgeTable.put((long) B | ((long) C << 32L), edge);
+            edge.index = (long) B | ((long) C << 32L);
+            edgeTable.put(edge);
             edge.vert = C;
             edge.next = edges[edgeIdx - 2];
             ++edgeIdx;
@@ -162,18 +159,16 @@ public class Adjacency {
         // Populate the twin pointers by iterating over the edges
         int boundaryCount = 0;
         long UINT_MASK = 0xFFFFFFFFL;
-        for (int index = 0; index < edgeTable.keys.length; index++) {
-            if (edgeTable.keys[index] != HalfEdgeMap.DEAD_KEY) {
-                long edgeIndex = edgeTable.keys[index];
-                HalfEdge edge = (HalfEdge) edgeTable.values[index];
-                long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
-                HalfEdge twinEdge = edgeTable.get(twinIndex);
-                if (twinEdge != null) {
-                    twinEdge.twin = edge;
-                    edge.twin = twinEdge;
-                } else {
-                    boundaryCount++;
-                }
+        for (int i = 0; i < edges.length; i++) {
+            HalfEdge edge = (HalfEdge) edges[i];
+            long edgeIndex = edge.index;
+            long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
+            HalfEdge twinEdge = edgeTable.get(twinIndex);
+            if (twinEdge != null) {
+                twinEdge.twin = edge;
+                edge.twin = twinEdge;
+            } else {
+                boundaryCount++;
             }
         }
 
