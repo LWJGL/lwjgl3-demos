@@ -50,7 +50,6 @@ public class EdgeShaderMultisampleDemo20 {
     int rbo;
     int rbo2;
     int fbo2;
-    int rbo3;
     int tex;
 
     int cubeVbo;
@@ -182,7 +181,6 @@ public class EdgeShaderMultisampleDemo20 {
             glDeleteFramebuffersEXT(fbo2);
             glDeleteRenderbuffersEXT(rbo);
             glDeleteRenderbuffersEXT(rbo2);
-            glDeleteRenderbuffersEXT(rbo3);
         }
         fbo = glGenFramebuffersEXT();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
