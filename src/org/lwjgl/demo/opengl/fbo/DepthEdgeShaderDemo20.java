@@ -148,7 +148,7 @@ public class DepthEdgeShaderDemo20 {
 
         debugProc = GLUtil.setupDebugMessageCallback();
 
-        glClearColor(1.0f, 1.0f, 1.0f, 0.0f); // using alpha = 0.0 is important here for the outline to work!
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
@@ -201,10 +201,10 @@ public class DepthEdgeShaderDemo20 {
     void createQuad() {
         FloatBuffer pb = BufferUtils.createFloatBuffer(2 * 6);
         pb.put(-1).put(-1);
-        pb.put(1).put(-1);
-        pb.put(1).put(1);
-        pb.put(1).put(1);
-        pb.put(-1).put(1);
+        pb.put( 1).put(-1);
+        pb.put( 1).put( 1);
+        pb.put( 1).put( 1);
+        pb.put(-1).put( 1);
         pb.put(-1).put(-1);
         pb.flip();
         this.quadVbo = glGenBuffers();
@@ -290,6 +290,7 @@ public class DepthEdgeShaderDemo20 {
         lastTime = thisTime;
 
         projMatrix.setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f);
+        // compute inverse of projection matrix to reconstruct view-space position
         projMatrix.invert(invMatrix);
         viewMatrix.setLookAt(
                 0.0f, 2.0f, 7.0f,
@@ -297,6 +298,7 @@ public class DepthEdgeShaderDemo20 {
                 0.0f, 1.0f, 0.0f)
                   .rotateY(angle / 2.0f)
                   .rotateX(angle / 8.0f);
+        // compute normal matrix to transform mesh normals
         viewMatrix.normal(normalMatrix);
 
         if (resize) {
