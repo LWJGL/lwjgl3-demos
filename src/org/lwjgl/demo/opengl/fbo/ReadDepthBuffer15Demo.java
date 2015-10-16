@@ -31,11 +31,18 @@ import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * Showcases simple reconstruction of the world position from the depth buffer.
+ * Showcases simple reconstruction of the view-space or world position from
+ * the depth buffer.
  * <p>
  * It uses a depth attachment texture to render depth-only to the FBO.
- * Afterwards, the world-space coordinates are reconstructed via the depth
- * values from the depth texture.
+ * Afterwards, the view-space or world-space coordinates are reconstructed
+ * via the depth values from the depth texture.
+ * <p>
+ * In order to do this, first the inverse of either the view-projection matrix
+ * is computed (for world-space reconstruction) or the inverse of the projection
+ * matrix (for view-space reconstruction). This matrix is uploaded to a shader.
+ * The fragment shader reads the depth values from the depth buffer and 
+ * transforms those values by the computed matrix.
  * 
  * @author Kai Burjack
  */
@@ -66,6 +73,7 @@ public class ReadDepthBuffer15Demo {
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
+	private boolean reconstructViewSpace;
 
 	private float currRotationAboutY = 0.0f;
 	private float rotationAboutY = 0.0f;
@@ -115,6 +123,8 @@ public class ReadDepthBuffer15Demo {
 			throw new AssertionError("Failed to create the GLFW window");
 		}
 
+		System.out.println("Press key 'V' to toggle between view-space and world-space reconstruction.");
+
 		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
 			@Override
 			public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -123,6 +133,8 @@ public class ReadDepthBuffer15Demo {
 
 				if (key == GLFW_KEY_ESCAPE) {
 					glfwSetWindowShouldClose(window, GL_TRUE);
+				} else if (key == GLFW_KEY_V) {
+					reconstructViewSpace = !reconstructViewSpace;
 				}
 			}
 		});
@@ -327,8 +339,14 @@ public class ReadDepthBuffer15Demo {
 
 		/* Rotate camera about Y axis. */
 		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
-			  .lookAt(tmpVector, cameraLookAt, cameraUp);
+		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
+		if (reconstructViewSpace) {
+			camera.invert(invCamera);
+		}
+		camera.lookAt(tmpVector, cameraLookAt, cameraUp);
+		if (!reconstructViewSpace) {
+			camera.invert(invCamera);
+		}
 
 		if (resetFramebuffer) {
 			resizeFramebufferTexture();
@@ -364,7 +382,7 @@ public class ReadDepthBuffer15Demo {
 		glUseProgramObjectARB(fullScreenQuadProgram);
 
 		/* Set the inverse(proj * view) matrix in the shader */
-		matrixUniform(inverseProjectionViewMatrixUniform, camera.invert(invCamera), false);
+		matrixUniform(inverseProjectionViewMatrixUniform, invCamera, false);
 
 		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
 		glEnableVertexAttribArrayARB(0);
