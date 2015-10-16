@@ -3,5 +3,5 @@
 varying vec3 viewNormal;
 
 void main(void) {
-  gl_FragColor = vec4(viewNormal, 1.0);
+  gl_FragColor = vec4(normalize(viewNormal), 1.0);
 }
