@@ -2,11 +2,11 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 130
+#version 110
 
-in vec2 vertex;
-out vec2 texcoord;
-out vec2 vertexNDC;
+attribute vec2 vertex;
+varying vec2 texcoord;
+varying vec2 vertexNDC;
 
 void main(void) {
   vertexNDC = vertex;
