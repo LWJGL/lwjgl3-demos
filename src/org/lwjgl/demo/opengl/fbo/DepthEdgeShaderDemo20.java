@@ -11,6 +11,7 @@ import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.EXTFramebufferObject.*;
+import static org.lwjgl.opengl.ARBTextureFloat.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
@@ -34,9 +35,8 @@ import org.lwjgl.system.libffi.Closure;
 /**
  * Uses a Sobel edge detection filter to render the edges of a mesh.
  * <p>
- * The edges are detected based on the view-space position of the mesh reconstructed
- * from the depth buffer. Additionally the view-space normals are being used to
- * reconstruct the expected depth variations along the Sobel kernel.
+ * The edges are detected based on the reconstructed view-space position of the
+ * mesh using the depth buffer.
  * 
  * @author Kai Burjack
  */
@@ -145,10 +145,13 @@ public class DepthEdgeShaderDemo20 {
         if (!caps.GL_EXT_framebuffer_object) {
             throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
         }
+        if (!caps.GL_ARB_texture_float) {
+            throw new AssertionError("This demo requires the ARB_texture_float extension");
+        }
 
         debugProc = GLUtil.setupDebugMessageCallback();
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
@@ -168,14 +171,14 @@ public class DepthEdgeShaderDemo20 {
         }
         normalTexture = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, normalTexture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT, 0L);
         glBindTexture(GL_TEXTURE_2D, 0);
         depthTexture = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, depthTexture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0L);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
