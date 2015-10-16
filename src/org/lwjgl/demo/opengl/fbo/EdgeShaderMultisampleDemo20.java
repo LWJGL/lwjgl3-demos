@@ -45,6 +45,7 @@ public class EdgeShaderMultisampleDemo20 {
     int width = 1024;
     int height = 768;
     boolean resize;
+    int samples;
 
     int fbo;
     int rbo;
@@ -153,6 +154,7 @@ public class EdgeShaderMultisampleDemo20 {
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
+        samples = Math.min(4, glGetInteger(GL_MAX_SAMPLES_EXT));
 
         /* Create all needed GL resources */
         createCube();
@@ -186,11 +188,11 @@ public class EdgeShaderMultisampleDemo20 {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
         rbo = glGenRenderbuffersEXT();
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, rbo);
-        glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, 4, GL_DEPTH_COMPONENT, width, height);
+        glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, samples, GL_DEPTH_COMPONENT, width, height);
         glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, rbo);
         rbo2 = glGenRenderbuffersEXT();
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, rbo2);
-        glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, 4, GL_RGBA8, width, height);
+        glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, samples, GL_RGBA8, width, height);
         glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, rbo2);
         int status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
         if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
@@ -208,7 +210,6 @@ public class EdgeShaderMultisampleDemo20 {
             throw new AssertionError("Incomplete framebuffer: " + status);
         }
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
     }
 
     void createQuad() {
