@@ -30,7 +30,7 @@ vec4 edge() {
   sx = sx - g00 - g01 * 2.0 - g02 + g20 + g21 * 2.0 + g22;
   sy = sy - g00 - g10 * 2.0 - g20 + g02 + g12 * 2.0 + g22;
 
-  float dist = length(sx) + length(sy);
+  float dist = (length(sx) + length(sy)) / 4.0;
   return vec4(1.0 - dist);
 }
 
