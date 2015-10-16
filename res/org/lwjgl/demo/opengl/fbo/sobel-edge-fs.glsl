@@ -34,7 +34,13 @@ vec4 edge() {
   return vec4(1.0 - dist);
 }
 
+vec3 rgb2hsv(vec3 c);
+vec3 hsv2rgb(vec3 c);
+
 void main(void) {
   vec4 col = texture2D(normalTex, coord);
+  vec3 hsv = rgb2hsv(col.rgb);
+  hsv.g *= 0.5;
+  col = vec4(hsv2rgb(hsv), 1.0);
   gl_FragColor = edge() * col;
 }

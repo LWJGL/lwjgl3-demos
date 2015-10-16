@@ -256,8 +256,10 @@ public class EdgeShaderDemo20 {
         int program = glCreateProgram();
         int vshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-edge-vs.glsl", GL_VERTEX_SHADER);
         int fshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-edge-fs.glsl", GL_FRAGMENT_SHADER);
+        int fshader2 = createShader("org/lwjgl/demo/opengl/fbo/color.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
+        glAttachShader(program, fshader2);
         glBindAttribLocation(program, 0, "position");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -280,8 +282,10 @@ public class EdgeShaderDemo20 {
         int program = glCreateProgram();
         int vshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-vs.glsl", GL_VERTEX_SHADER);
         int fshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-fs.glsl", GL_FRAGMENT_SHADER);
+        int fshader2 = createShader("org/lwjgl/demo/opengl/fbo/color.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
+        glAttachShader(program, fshader2);
         glBindAttribLocation(program, 0, "position");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
