@@ -21,6 +21,8 @@ import java.nio.FloatBuffer;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
+import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -54,6 +56,8 @@ public class EdgeShaderMultisampleDemo20 {
     int tex;
 
     int cubeVbo;
+    long normalsOffset;
+    int numVertices;
     int quadVbo;
 
     int normalProgram;
@@ -227,54 +231,17 @@ public class EdgeShaderMultisampleDemo20 {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    void createCube() {
-        FloatBuffer pb = BufferUtils.createFloatBuffer((3 + 3) * 6 * 6);
-        // -X
-        pb.put(-1).put(-1).put(-1).put(-1).put( 0).put( 0);
-        pb.put(-1).put(-1).put( 1).put(-1).put( 0).put( 0);
-        pb.put(-1).put( 1).put( 1).put(-1).put( 0).put( 0);
-        pb.put(-1).put( 1).put( 1).put(-1).put( 0).put( 0);
-        pb.put(-1).put( 1).put(-1).put(-1).put( 0).put( 0);
-        pb.put(-1).put(-1).put(-1).put(-1).put( 0).put( 0);
-        // +X
-        pb.put( 1).put(-1).put( 1).put( 1).put( 0).put( 0);
-        pb.put( 1).put(-1).put(-1).put( 1).put( 0).put( 0);
-        pb.put( 1).put( 1).put(-1).put( 1).put( 0).put( 0);
-        pb.put( 1).put( 1).put(-1).put( 1).put( 0).put( 0);
-        pb.put( 1).put( 1).put( 1).put( 1).put( 0).put( 0);
-        pb.put( 1).put(-1).put( 1).put( 1).put( 0).put( 0);
-        // -Y
-        pb.put(-1).put(-1).put( 1).put( 0).put(-1).put( 0);
-        pb.put(-1).put(-1).put(-1).put( 0).put(-1).put( 0);
-        pb.put( 1).put(-1).put(-1).put( 0).put(-1).put( 0);
-        pb.put( 1).put(-1).put(-1).put( 0).put(-1).put( 0);
-        pb.put( 1).put(-1).put( 1).put( 0).put(-1).put( 0);
-        pb.put(-1).put(-1).put( 1).put( 0).put(-1).put( 0);
-        // +Y
-        pb.put(-1).put( 1).put( 1).put( 0).put( 1).put( 0);
-        pb.put( 1).put( 1).put( 1).put( 0).put( 1).put( 0);
-        pb.put( 1).put( 1).put(-1).put( 0).put( 1).put( 0);
-        pb.put( 1).put( 1).put(-1).put( 0).put( 1).put( 0);
-        pb.put(-1).put( 1).put(-1).put( 0).put( 1).put( 0);
-        pb.put(-1).put( 1).put( 1).put( 0).put( 1).put( 0);
-        // -Z
-        pb.put( 1).put(-1).put(-1).put( 0).put( 0).put(-1);
-        pb.put(-1).put(-1).put(-1).put( 0).put( 0).put(-1);
-        pb.put(-1).put( 1).put(-1).put( 0).put( 0).put(-1);
-        pb.put(-1).put( 1).put(-1).put( 0).put( 0).put(-1);
-        pb.put( 1).put( 1).put(-1).put( 0).put( 0).put(-1);
-        pb.put( 1).put(-1).put(-1).put( 0).put( 0).put(-1);
-        // +Z
-        pb.put(-1).put(-1).put( 1).put( 0).put( 0).put( 1);
-        pb.put( 1).put(-1).put( 1).put( 0).put( 0).put( 1);
-        pb.put( 1).put( 1).put( 1).put( 0).put( 0).put( 1);
-        pb.put( 1).put( 1).put( 1).put( 0).put( 0).put( 1);
-        pb.put(-1).put( 1).put( 1).put( 0).put( 0).put( 1);
-        pb.put(-1).put(-1).put( 1).put( 0).put( 0).put( 1);
-        pb.flip();
+    void createCube() throws IOException {
+        WavefrontMeshLoader loader = new WavefrontMeshLoader();
+        Mesh mesh = loader.loadMesh("org/lwjgl/demo/opengl/models/cube.obj.zip");
+        this.numVertices = mesh.numVertices;
+        long bufferSize = 4 * (3 + 3) * mesh.numVertices;
+        this.normalsOffset = 4L * 3 * mesh.numVertices;
         this.cubeVbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, this.cubeVbo);
-        glBufferData(GL_ARRAY_BUFFER, pb, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, GL_STATIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0L, mesh.positions);
+        glBufferSubData(GL_ARRAY_BUFFER, normalsOffset, mesh.normals);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -368,10 +335,10 @@ public class EdgeShaderMultisampleDemo20 {
 
         glBindBuffer(GL_ARRAY_BUFFER, this.cubeVbo);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 4 * (3 + 3), 4 * 3L);
-        glDrawArrays(GL_TRIANGLES, 0, 6 * 6);
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, this.normalsOffset);
+        glDrawArrays(GL_TRIANGLES, 0, this.numVertices);
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
