@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.demo.opengl.geometry;
+package org.lwjgl.demo.opengl.fbo;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.createShader;
 import static org.lwjgl.glfw.GLFW.*;
