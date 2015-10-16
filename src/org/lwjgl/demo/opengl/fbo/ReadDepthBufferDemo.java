@@ -63,7 +63,7 @@ public class ReadDepthBufferDemo {
 	private int vboScene;
 
 	private int viewProjMatrixUniform;
-	private int inverseProjectionViewMatrixUniform;
+	private int inverseMatrixUniform;
 
 	private Matrix4f camera = new Matrix4f();
 	private Matrix4f invCamera = new Matrix4f();
@@ -190,9 +190,7 @@ public class ReadDepthBufferDemo {
 		createFullScreenVbo();
 		createSceneVbo();
 		createDepthOnlyProgram();
-		initDepthOnlyProgram();
 		createFullScreenQuadProgram();
-		initFullScreenQuadProgram();
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
@@ -261,6 +259,11 @@ public class ReadDepthBufferDemo {
 			throw new AssertionError("Could not link program");
 		}
 		this.fullScreenQuadProgram = program;
+		glUseProgram(fullScreenQuadProgram);
+		int texUniform = glGetUniformLocation(fullScreenQuadProgram, "tex");
+		inverseMatrixUniform = glGetUniformLocation(fullScreenQuadProgram, "inverseMatrix");
+		glUniform1i(texUniform, 0);
+		glUseProgram(0);
 	}
 
 	private void createDepthOnlyProgram() throws IOException {
@@ -280,19 +283,8 @@ public class ReadDepthBufferDemo {
 			throw new AssertionError("Could not link program");
 		}
 		this.depthOnlyProgram = program;
-	}
-
-	private void initDepthOnlyProgram() {
 		glUseProgram(depthOnlyProgram);
 		viewProjMatrixUniform = glGetUniformLocation(depthOnlyProgram, "viewProjMatrix");
-		glUseProgram(0);
-	}
-
-	private void initFullScreenQuadProgram() {
-		glUseProgram(fullScreenQuadProgram);
-		int texUniform = glGetUniformLocation(fullScreenQuadProgram, "tex");
-		inverseProjectionViewMatrixUniform = glGetUniformLocation(fullScreenQuadProgram, "inverseProjectionViewMatrix");
-		glUniform1i(texUniform, 0);
 		glUseProgram(0);
 	}
 
@@ -369,7 +361,7 @@ public class ReadDepthBufferDemo {
 		glUseProgram(fullScreenQuadProgram);
 
 		/* Set the inverse(proj * view) matrix in the shader */
-		matrixUniform(inverseProjectionViewMatrixUniform, invCamera, false);
+		matrixUniform(inverseMatrixUniform, invCamera, false);
 
 		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
 		glEnableVertexAttribArray(0);
