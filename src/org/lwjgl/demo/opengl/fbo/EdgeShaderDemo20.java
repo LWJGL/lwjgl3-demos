@@ -31,9 +31,10 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 /**
- * Uses a Sobel edge detection filter to render the edges of a mesh.
+ * Uses a Sobel edge detection filter to render the edges/outline of a mesh.
  * <p>
  * The edges are detected based on the view-space normals of the mesh.
+ * The outlines are detected based on a simple mask written to the color alpha channel.
  * 
  * @author Kai Burjack
  */
@@ -59,9 +60,12 @@ public class EdgeShaderDemo20 {
     int normalMatrixUniform;
 
     int edgeProgram;
+    int outlineProgram;
     int normalTexUniform;
     int invWidthUniform;
     int invHeightUniform;
+
+    boolean outlineOnly;
 
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
@@ -106,6 +110,8 @@ public class EdgeShaderDemo20 {
             throw new AssertionError("Failed to create the GLFW window");
         }
 
+        System.out.println("Press letter 'O' to toggle between outline/edges.");
+
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
@@ -126,6 +132,8 @@ public class EdgeShaderDemo20 {
 
                 if (key == GLFW_KEY_ESCAPE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
+                } else if (key == GLFW_KEY_O) {
+                    outlineOnly = !outlineOnly;
                 }
             }
         });
@@ -142,7 +150,7 @@ public class EdgeShaderDemo20 {
 
         debugProc = GLUtil.setupDebugMessageCallback();
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f); // using alpha = 0.0 is important here for the outline to work!
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
@@ -150,9 +158,8 @@ public class EdgeShaderDemo20 {
         createCube();
         createQuad();
         createNormalProgram();
-        initNormalProgram();
         createEdgeProgram();
-        initEdgeProgram();
+        createOutlineProgram();
         createTex();
         createFbo();
     }
@@ -238,6 +245,11 @@ public class EdgeShaderDemo20 {
             throw new AssertionError("Could not link program");
         }
         this.normalProgram = program;
+        glUseProgram(this.normalProgram);
+        viewMatrixUniform = glGetUniformLocation(this.normalProgram, "viewMatrix");
+        projMatrixUniform = glGetUniformLocation(this.normalProgram, "projMatrix");
+        normalMatrixUniform = glGetUniformLocation(this.normalProgram, "normalMatrix");
+        glUseProgram(0);
     }
 
     void createEdgeProgram() throws IOException {
@@ -257,21 +269,34 @@ public class EdgeShaderDemo20 {
             throw new AssertionError("Could not link program");
         }
         this.edgeProgram = program;
-    }
-
-    void initNormalProgram() {
-        glUseProgram(this.normalProgram);
-        viewMatrixUniform = glGetUniformLocation(this.normalProgram, "viewMatrix");
-        projMatrixUniform = glGetUniformLocation(this.normalProgram, "projMatrix");
-        normalMatrixUniform = glGetUniformLocation(this.normalProgram, "normalMatrix");
-        glUseProgram(0);
-    }
-
-    void initEdgeProgram() {
         glUseProgram(this.edgeProgram);
         normalTexUniform = glGetUniformLocation(this.edgeProgram, "normalTex");
         invWidthUniform = glGetUniformLocation(this.edgeProgram, "invWidth");
         invHeightUniform = glGetUniformLocation(this.edgeProgram, "invHeight");
+        glUseProgram(0);
+    }
+
+    void createOutlineProgram() throws IOException {
+        int program = glCreateProgram();
+        int vshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-fs.glsl", GL_FRAGMENT_SHADER);
+        glAttachShader(program, vshader);
+        glAttachShader(program, fshader);
+        glBindAttribLocation(program, 0, "position");
+        glLinkProgram(program);
+        int linked = glGetProgrami(program, GL_LINK_STATUS);
+        String programLog = glGetProgramInfoLog(program);
+        if (programLog.trim().length() > 0) {
+            System.err.println(programLog);
+        }
+        if (linked == 0) {
+            throw new AssertionError("Could not link program");
+        }
+        this.outlineProgram = program;
+        glUseProgram(this.outlineProgram);
+        normalTexUniform = glGetUniformLocation(this.outlineProgram, "normalTex");
+        invWidthUniform = glGetUniformLocation(this.outlineProgram, "invWidth");
+        invHeightUniform = glGetUniformLocation(this.outlineProgram, "invHeight");
         glUseProgram(0);
     }
 
@@ -334,7 +359,11 @@ public class EdgeShaderDemo20 {
      */
     void renderEdge() {
         glDisable(GL_DEPTH_TEST);
-        glUseProgram(this.edgeProgram);
+        if (outlineOnly) {
+            glUseProgram(this.outlineProgram);
+        } else {
+            glUseProgram(this.edgeProgram);
+        }
 
         glClear(GL_COLOR_BUFFER_BIT);
 

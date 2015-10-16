@@ -66,9 +66,12 @@ public class EdgeShaderMultisampleDemo20 {
     int normalMatrixUniform;
 
     int edgeProgram;
+    int outlineProgram;
     int normalTexUniform;
     int invWidthUniform;
     int invHeightUniform;
+
+    boolean outlineOnly;
 
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
@@ -113,6 +116,8 @@ public class EdgeShaderMultisampleDemo20 {
             throw new AssertionError("Failed to create the GLFW window");
         }
 
+        System.out.println("Press letter 'O' to toggle between outline/edges.");
+
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
@@ -133,6 +138,8 @@ public class EdgeShaderMultisampleDemo20 {
 
                 if (key == GLFW_KEY_ESCAPE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
+                } else if (key == GLFW_KEY_O) {
+                    outlineOnly = !outlineOnly;
                 }
             }
         });
@@ -155,7 +162,7 @@ public class EdgeShaderMultisampleDemo20 {
 
         debugProc = GLUtil.setupDebugMessageCallback();
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f); // using alpha = 0.0 is important here for the outline to work!
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         samples = Math.min(4, glGetInteger(GL_MAX_SAMPLES_EXT));
@@ -165,6 +172,7 @@ public class EdgeShaderMultisampleDemo20 {
         createQuad();
         createNormalProgram();
         createEdgeProgram();
+        createOutlineProgram();
         createTex();
         createFbos();
     }
@@ -294,6 +302,30 @@ public class EdgeShaderMultisampleDemo20 {
         glUseProgram(0);
     }
 
+    void createOutlineProgram() throws IOException {
+        int program = glCreateProgram();
+        int vshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/fbo/sobel-outline-fs.glsl", GL_FRAGMENT_SHADER);
+        glAttachShader(program, vshader);
+        glAttachShader(program, fshader);
+        glBindAttribLocation(program, 0, "position");
+        glLinkProgram(program);
+        int linked = glGetProgrami(program, GL_LINK_STATUS);
+        String programLog = glGetProgramInfoLog(program);
+        if (programLog.trim().length() > 0) {
+            System.err.println(programLog);
+        }
+        if (linked == 0) {
+            throw new AssertionError("Could not link program");
+        }
+        this.outlineProgram = program;
+        glUseProgram(this.outlineProgram);
+        normalTexUniform = glGetUniformLocation(this.outlineProgram, "normalTex");
+        invWidthUniform = glGetUniformLocation(this.outlineProgram, "invWidth");
+        invHeightUniform = glGetUniformLocation(this.outlineProgram, "invHeight");
+        glUseProgram(0);
+    }
+
     float angle = 0.0f;
     long lastTime = System.nanoTime();
 
@@ -353,7 +385,11 @@ public class EdgeShaderMultisampleDemo20 {
      */
     void renderEdge() {
         glDisable(GL_DEPTH_TEST);
-        glUseProgram(this.edgeProgram);
+        if (outlineOnly) {
+            glUseProgram(this.outlineProgram);
+        } else {
+            glUseProgram(this.edgeProgram);
+        }
 
         // Resolve the multisampled normals color renderbuffer
         // onto the single-sampled FBO 'fbo2' to which the 
