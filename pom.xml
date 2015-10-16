@@ -26,7 +26,7 @@
 		<dependency>
 			<groupId>org.joml</groupId>
 			<artifactId>joml-mini</artifactId>
-			<version>1.6.5</version>
+			<version>1.6.6-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
