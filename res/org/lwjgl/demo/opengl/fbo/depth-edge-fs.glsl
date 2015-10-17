@@ -32,7 +32,8 @@ float edge() {
   // reconstruct the expected normal from the dX/dY view-space positions
   vec3 recN = normalize(cross(pcZ - pxZ, pcZ - pyZ));
   // and compare it with the actual view-space normal
-  return 1.0 - length(recN - pcN);
+  float d = length(recN - pcN);
+  return 1.0 - d*d;
 }
 
 vec3 rgb2hsv(vec3 c);
