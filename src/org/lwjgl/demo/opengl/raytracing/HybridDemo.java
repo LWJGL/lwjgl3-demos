@@ -5,7 +5,6 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -74,11 +73,6 @@ public class HybridDemo {
 	private int normalTexture;
 	private int sampler;
 
-	private int eyeUniform;
-	private int ray00Uniform;
-	private int ray10Uniform;
-	private int ray01Uniform;
-	private int ray11Uniform;
 	private int timeUniform;
 	private int blendFactorUniform;
 	private int bounceCountUniform;
@@ -92,7 +86,6 @@ public class HybridDemo {
 	private int workGroupSizeX;
 	private int workGroupSizeY;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -104,7 +97,9 @@ public class HybridDemo {
 	private int frameNumber;
 	private int bounceCount = 1;
 
-	private Vector3f tmpVector = new Vector3f();
+	private Matrix4f projMatrix = new Matrix4f();
+	private Matrix4f viewMatrix = new Matrix4f();
+	private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
@@ -252,9 +247,6 @@ public class HybridDemo {
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-
-		/* Setup camera */
-		camera = new Camera();
 
 		firstTime = System.nanoTime();
 	}
@@ -435,11 +427,6 @@ public class HybridDemo {
 		glGetProgramiv(computeProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
 		workGroupSizeX = workGroupSize.get(0);
 		workGroupSizeY = workGroupSize.get(1);
-		eyeUniform = glGetUniformLocation(computeProgram, "eye");
-		ray00Uniform = glGetUniformLocation(computeProgram, "ray00");
-		ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
-		ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
-		ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
 		timeUniform = glGetUniformLocation(computeProgram, "time");
 		blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
 		bounceCountUniform = glGetUniformLocation(computeProgram, "bounceCount");
@@ -520,11 +507,11 @@ public class HybridDemo {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+		cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f, 100.0f);
+			projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}
@@ -557,9 +544,7 @@ public class HybridDemo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		Matrix4f viewMatrix = camera.getViewMatrix();
 		matrixUniform(viewMatrixUniform, viewMatrix, false);
-		Matrix4f projMatrix = camera.getProjectionMatrix();
 		matrixUniform(projectionMatrixUniform, projMatrix, false);
 
 		/* Rasterize the boxes into the FBO */
@@ -591,17 +576,6 @@ public class HybridDemo {
 		float blendFactor = (float) frameNumber / ((float) frameNumber + 1.0f);
 		glUniform1f(blendFactorUniform, blendFactor);
 		glUniform1i(bounceCountUniform, bounceCount);
-
-		/* Set viewing frustum corner rays in shader */
-		glUniform3f(eyeUniform, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		camera.getEyeRay(-1, -1, tmpVector);
-		glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(-1, 1, tmpVector);
-		glUniform3f(ray01Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, -1, tmpVector);
-		glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, 1, tmpVector);
-		glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
 
 		/* Bind level 0 of framebuffer texture as writable image in the shader. */
 		glBindImageTexture(framebufferImageBinding, raytraceTexture, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);

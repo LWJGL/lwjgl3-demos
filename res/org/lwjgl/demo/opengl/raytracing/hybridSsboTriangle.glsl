@@ -8,12 +8,6 @@ layout(binding = 0, rgba32f) uniform image2D framebufferImage;
 layout(binding = 1, rgba32f) uniform readonly image2D worldPositionImage;
 layout(binding = 2, rgba16f) uniform readonly image2D worldNormalImage;
 
-uniform vec3 eye;
-uniform vec3 ray00;
-uniform vec3 ray01;
-uniform vec3 ray10;
-uniform vec3 ray11;
-
 uniform float blendFactor;
 uniform float time;
 
@@ -45,7 +39,7 @@ layout(std430, binding=1) readonly buffer Triangles {
 #define LIGHT_RADIUS 1.1
 #define LIGHT_BASE_INTENSITY 30.0
 
-const vec3 lightCenterPosition = vec3(3.5, 4.9, 4);
+const vec3 lightCenterPosition = vec3(3.0, 5.0, 3.0);
 const vec4 lightColor = vec4(1);
 
 float random(vec2 f, float time);
@@ -126,7 +120,7 @@ bool intersect(vec3 origin, vec3 dir, out hitinfo info) {
   return hit;
 }
 
-vec4 trace(vec3 origin, vec3 dir, vec3 hitPoint, vec3 normal) {
+vec4 trace(vec3 hitPoint, vec3 normal) {
   hitinfo i;
   vec4 accumulated = vec4(0.0);
   vec4 attenuation = vec4(1.0);
@@ -166,7 +160,7 @@ void main(void) {
   vec3 worldNormal = imageLoad(worldNormalImage, pix).xyz;
 
   vec2 pos = (vec2(pix) + vec2(0.5, 0.5)) / vec2(size.x, size.y);
-  cameraUp = normalize(ray01 - ray00);
+  cameraUp = vec3(0.0, 1.0, 0.0);
 
   float rand1 = random(pix, time);
   float rand2 = random(pix + vec2(641.51224, 423.178), time);
@@ -174,9 +168,8 @@ void main(void) {
   /* Set global 'rand' variable */
   rand = vec3(rand1, rand2, rand3);
 
-  vec3 dir = normalize(mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x));
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  color += trace(eye, dir, worldPosition.xyz, worldNormal);
+  color += trace(worldPosition.xyz, worldNormal);
 
   vec4 oldColor = vec4(0.0);
   if (blendFactor > 0.0) {

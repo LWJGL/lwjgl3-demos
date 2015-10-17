@@ -9,12 +9,6 @@ layout(binding = 1, rgba32f) uniform readonly image2D worldPositionImage;
 layout(binding = 2, rgba16f) uniform readonly image2D worldNormalImage;
 
 layout (binding = 3, std140) uniform Uniforms {
-  vec3 eye;
-  vec3 ray00;
-  vec3 ray01;
-  vec3 ray10;
-  vec3 ray11;
-
   float blendFactor;
   float time;
   int bounceCount;
@@ -99,12 +93,13 @@ vec3 normalForBox(vec3 hit, const box b) {
     return vec3(0.0, 0.0, 1.0);
 }
 
-vec4 trace(vec3 origin, vec3 dir, vec3 hitPoint, vec3 normal) {
+vec4 trace(vec3 hitPoint, vec3 normal) {
   hitinfo i;
   vec4 accumulated = vec4(0.0);
   vec4 attenuation = vec4(1.0);
   int bounce = 0;
   bool intersected = false;
+  vec3 origin, dir;
   do {
     bounce++;
     vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
@@ -148,7 +143,7 @@ void main(void) {
   vec3 worldNormal = imageLoad(worldNormalImage, pix).xyz;
 
   vec2 pos = (vec2(pix) + vec2(0.5, 0.5)) / vec2(size.x, size.y);
-  cameraUp = normalize(ray01 - ray00);
+  cameraUp = vec3(0.0, 1.0, 0.0);
 
   float rand1 = random(pix, time);
   float rand2 = random(pix + vec2(641.51224, 423.178), time);
@@ -156,9 +151,8 @@ void main(void) {
   /* Set global 'rand' variable */
   rand = vec3(rand1, rand2, rand3);
 
-  vec3 dir = normalize(mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x));
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  color += trace(eye, dir, worldPosition - dir/1E3, worldNormal);
+  color += trace(worldPosition + worldNormal/1E3, worldNormal);
 
   vec4 oldColor = vec4(0.0);
   if (blendFactor > 0.0) {

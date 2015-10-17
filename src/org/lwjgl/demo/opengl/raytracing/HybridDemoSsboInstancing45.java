@@ -5,7 +5,6 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -68,13 +67,11 @@ public class HybridDemoSsboInstancing45 {
 	private int ssbo;
 	private int sampler;
 
-	private static final int COMPUTE_UBO_BUFFER_SIZE = 4 * (4 + 4 + 4 + 4 + 4
-			+ 1 + 1);
+	private static final int COMPUTE_UBO_BUFFER_SIZE = 4 * (1 + 1 + 1);
 	private static final int RASTER_UBO_BUFFER_SIZE = 4 * (16 + 16);
 	private static final int ALL_UBO_BUFFER_SIZES = Math.max(
 			COMPUTE_UBO_BUFFER_SIZE, RASTER_UBO_BUFFER_SIZE);
-	private ByteBuffer uboBuffer = BufferUtils
-			.createByteBuffer(ALL_UBO_BUFFER_SIZES);
+	private ByteBuffer uboBuffer = BufferUtils.createByteBuffer(ALL_UBO_BUFFER_SIZES);
 	private FloatBuffer uboBufferFv = uboBuffer.asFloatBuffer();
 	private IntBuffer uboBufferIv = uboBuffer.asIntBuffer();
 	private int ubo;
@@ -88,7 +85,6 @@ public class HybridDemoSsboInstancing45 {
 	private int workGroupSizeX;
 	private int workGroupSizeY;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -100,7 +96,9 @@ public class HybridDemoSsboInstancing45 {
 	private int frameNumber;
 	private int bounceCount = 1;
 
-	private Vector3f tmpVector = new Vector3f();
+	private Matrix4f projMatrix = new Matrix4f();
+	private Matrix4f viewMatrix = new Matrix4f();
+	private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 
@@ -268,9 +266,6 @@ public class HybridDemoSsboInstancing45 {
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-
-		/* Setup camera */
-		camera = new Camera();
 
 		firstTime = System.nanoTime();
 	}
@@ -603,13 +598,11 @@ public class HybridDemoSsboInstancing45 {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f,
-				(float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+		cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f,
-					100.0f);
+			projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}
@@ -697,8 +690,6 @@ public class HybridDemoSsboInstancing45 {
 
 	private void updateRasterUbo() {
 		/* Update the UBO */
-		Matrix4f viewMatrix = camera.getViewMatrix();
-		Matrix4f projMatrix = camera.getProjectionMatrix();
 		putMatrix(viewMatrix, uboBufferFv);
 		putMatrix(projMatrix, uboBufferFv);
 		uboBufferFv.rewind();
@@ -711,25 +702,11 @@ public class HybridDemoSsboInstancing45 {
 
 		/*
 		 * We are going to average multiple successive frames, so here we
-		 * compute the blend factor between old frame and new frame. 0.0 - use
-		 * only the new frame > 0.0 - blend between old frame and new frame
+		 * compute the blend factor between old frame and new frame.
+		 *   0.0 - use only the new frame
+		 * > 0.0 - blend between old frame and new frame
 		 */
 		float blendFactor = (float) frameNumber / ((float) frameNumber + 1.0f);
-
-		/* Update the UBO */
-		uboBufferFv.put(camera.getPosition().x).put(camera.getPosition().y)
-				.put(camera.getPosition().z).put(0.0f);
-		camera.getEyeRay(-1, -1, tmpVector);
-		uboBufferFv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z)
-				.put(0.0f);
-		camera.getEyeRay(-1, 1, tmpVector);
-		uboBufferFv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z)
-				.put(0.0f);
-		camera.getEyeRay(1, -1, tmpVector);
-		uboBufferFv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z)
-				.put(0.0f);
-		camera.getEyeRay(1, 1, tmpVector);
-		uboBufferFv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z);
 		uboBufferFv.put(blendFactor);
 		uboBufferFv.put(elapsedSeconds);
 		uboBufferIv.put(uboBufferFv.position(), bounceCount);
