@@ -21,7 +21,7 @@ vec3 viewNormal(vec2 texcoord) {
   return texture2D(normalTex, texcoord).xyz;
 }
 
-vec3 edge() {
+float edge() {
   float scale = 2.0;
   vec3 pcZ = viewPos(coord);
   vec3 pcN = viewNormal(coord);
@@ -32,12 +32,20 @@ vec3 edge() {
   // reconstruct the expected normal from the dX/dY view-space positions
   vec3 recN = normalize(cross(pcZ - pxZ, pcZ - pyZ));
   // and compare it with the actual view-space normal
-  return vec3(1.0) - vec3(length(recN - pcN));
+  return 1.0 - length(recN - pcN);
 }
 
 vec3 rgb2hsv(vec3 c);
 vec3 hsv2rgb(vec3 c);
 
 void main(void) {
-  gl_FragColor = vec4(edge(), 1.0);
+  vec4 col = texture2D(normalTex, coord);
+  vec3 hsv = rgb2hsv(col.rgb);
+  hsv.g *= 0.5;
+  vec4 c = vec4(hsv2rgb(hsv), 1.0);
+  vec4 e = vec4(edge());
+  if (col.a == 0.0) // mask background
+    gl_FragColor = e;
+  else
+    gl_FragColor = e * c;
 }
