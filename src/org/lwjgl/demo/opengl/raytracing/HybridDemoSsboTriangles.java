@@ -101,7 +101,7 @@ public class HybridDemoSsboTriangles {
 	private int frameNumber;
 
 	private Vector3f tmpVector = new Vector3f();
-	private Vector3f cameraLookAt = new Vector3f(0.0f, 1.0f, 0.0f);
+	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
@@ -214,7 +214,7 @@ public class HybridDemoSsboTriangles {
 
 		/* Load OBJ model */
 		WavefrontMeshLoader loader = new WavefrontMeshLoader();
-		mesh = loader.loadMesh("org/lwjgl/demo/opengl/raytracing/scene.obj.zip");
+		mesh = loader.loadMesh("org/lwjgl/demo/opengl/models/cube.obj.zip");
 
 		/* Create all needed GL resources */
 		createRaytracingTexture();
@@ -302,10 +302,10 @@ public class HybridDemoSsboTriangles {
 		ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
 		FloatBuffer fv = bb.asFloatBuffer();
 		fv.put(-1.0f).put(-1.0f);
-		fv.put(1.0f).put(-1.0f);
-		fv.put(1.0f).put(1.0f);
-		fv.put(1.0f).put(1.0f);
-		fv.put(-1.0f).put(1.0f);
+		fv.put( 1.0f).put(-1.0f);
+		fv.put( 1.0f).put( 1.0f);
+		fv.put( 1.0f).put( 1.0f);
+		fv.put(-1.0f).put( 1.0f);
 		fv.put(-1.0f).put(-1.0f);
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
@@ -559,7 +559,7 @@ public class HybridDemoSsboTriangles {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 3.0f, (float) cos(-currRotationAboutY) * 3.0f);
+		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
 		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {

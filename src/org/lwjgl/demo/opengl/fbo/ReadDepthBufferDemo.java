@@ -208,8 +208,6 @@ public class ReadDepthBufferDemo {
 		fv.put(-1.0f).put(1.0f);
 		fv.put(-1.0f).put(-1.0f);
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-		//glEnableVertexAttribArray(0);
-		//glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		fullScreenQuadVbo = vbo;
 	}
@@ -223,8 +221,6 @@ public class ReadDepthBufferDemo {
 			DemoUtils.triangulateBox(boxes[i], boxes[i + 1], fv);
 		}
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-		//glEnableVertexAttribArray(0);
-		//glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		this.vboScene = vbo;
 	}
@@ -352,6 +348,7 @@ public class ReadDepthBufferDemo {
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
 		glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length / 2);
+		glDisableVertexAttribArray(0);
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 		glUseProgram(0);
 	}
@@ -369,6 +366,7 @@ public class ReadDepthBufferDemo {
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisableVertexAttribArray(0);
 		glUseProgram(0);
 	}
 
