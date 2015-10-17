@@ -101,6 +101,8 @@ public class HybridDemoSsboTriangles {
 	private int frameNumber;
 
 	private Vector3f tmpVector = new Vector3f();
+	private float cameraRadius = 7.0f;
+	private float cameraHeight = 2.0f;
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
@@ -559,11 +561,11 @@ public class HybridDemoSsboTriangles {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+		tmpVector.set((float) sin(-currRotationAboutY) * cameraRadius, cameraHeight, (float) cos(-currRotationAboutY) * cameraRadius);
 		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f, 100.0f);
+			camera.setFrustumPerspective(30.0f, (float) width / height, 0.01f, 100.0f);
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}

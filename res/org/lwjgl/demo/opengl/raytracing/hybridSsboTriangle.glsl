@@ -17,6 +17,8 @@ uniform vec3 ray11;
 uniform float blendFactor;
 uniform float time;
 
+const vec4 background = vec4(0.1, 0.3, 0.5, 1.0);
+
 struct triangle {
   vec3 v0;
   vec3 v1;
@@ -157,8 +159,8 @@ void main(void) {
   if (worldPosition.a == 0.0) {
     // alpha channel encodes whether the worldPositionImage actually
     // contains rastered geometry at this texel.
-    // If not, we just write black and abort.
-    imageStore(framebufferImage, pix, vec4(0.0));
+    // If not, we just write the background color and abort.
+    imageStore(framebufferImage, pix, background);
     return;
   }
   vec3 worldNormal = imageLoad(worldNormalImage, pix).xyz;
