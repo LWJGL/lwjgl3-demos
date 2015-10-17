@@ -603,6 +603,9 @@ public class HybridDemoSsboTriangles {
 
 		/* Rasterize the boxes into the FBO */
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		// clear alpha=0.0 to indicate later to the compute shader
+		// that there was no rasterized geometry.
+		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindVertexArray(vaoScene);
 		glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);

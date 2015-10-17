@@ -153,7 +153,14 @@ void main(void) {
     return;
   }
 
-  vec3 worldPosition = imageLoad(worldPositionImage, pix).xyz;
+  vec4 worldPosition = imageLoad(worldPositionImage, pix);
+  if (worldPosition.a == 0.0) {
+    // alpha channel encodes whether the worldPositionImage actually
+    // contains rastered geometry at this texel.
+    // If not, we just write black and abort.
+    imageStore(framebufferImage, pix, vec4(0.0));
+    return;
+  }
   vec3 worldNormal = imageLoad(worldNormalImage, pix).xyz;
 
   vec2 pos = (vec2(pix) + vec2(0.5, 0.5)) / vec2(size.x, size.y);
@@ -167,7 +174,7 @@ void main(void) {
 
   vec3 dir = normalize(mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x));
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  color += trace(eye, dir, worldPosition, worldNormal);
+  color += trace(eye, dir, worldPosition.xyz, worldNormal);
 
   vec4 oldColor = vec4(0.0);
   if (blendFactor > 0.0) {
