@@ -33,7 +33,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 /**
- * Uses a Sobel edge detection filter to render the edges of a mesh.
+ * Uses an edge detection filter to render the edges of a mesh.
  * <p>
  * The edges are detected based on the reconstructed view-space position of the
  * mesh using the depth buffer.
@@ -107,7 +107,7 @@ public class DepthEdgeShaderDemo20 {
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-        window = glfwCreateWindow(width, height, "Silhouette rendering with Sobel edge detection shader", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Silhouette rendering with edge detection shader", NULL, NULL);
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
@@ -341,7 +341,7 @@ public class DepthEdgeShaderDemo20 {
     }
 
     /**
-     * Render the edges using the Sobel edge filter and blend that with the normals.
+     * Render the edges using the edge detection filter and blend that with the normals.
      */
     void renderEdge() {
         glDisable(GL_DEPTH_TEST);
