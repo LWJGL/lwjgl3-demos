@@ -3,6 +3,7 @@
 uniform sampler2D normalTex;
 uniform float invWidth;
 uniform float invHeight;
+uniform int showEdge;
 
 varying vec2 coord;
 
@@ -40,7 +41,10 @@ vec3 hsv2rgb(vec3 c);
 void main(void) {
   vec4 col = texture2D(normalTex, coord);
   vec3 hsv = rgb2hsv(col.rgb);
-  hsv.g *= 0.5;
+  hsv.g *= 0.4;
   col = vec4(hsv2rgb(hsv), 1.0);
-  gl_FragColor = edge() * col;
+  vec4 final = col;
+  if (showEdge == 1)
+    final *= edge();
+  gl_FragColor = final;
 }

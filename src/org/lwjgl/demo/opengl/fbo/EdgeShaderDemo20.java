@@ -64,8 +64,11 @@ public class EdgeShaderDemo20 {
     int normalTexUniform;
     int invWidthUniform;
     int invHeightUniform;
+    int edgeShowEdgeUniform;
+    int outlineShowEdgeUniform;
 
     boolean outlineOnly;
+    boolean showEdge = true;
 
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
@@ -111,6 +114,7 @@ public class EdgeShaderDemo20 {
         }
 
         System.out.println("Press letter 'O' to toggle between outline/edges.");
+        System.out.println("Press spacebar to show/hide edges.");
 
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
@@ -134,6 +138,8 @@ public class EdgeShaderDemo20 {
                     glfwSetWindowShouldClose(window, GL_TRUE);
                 } else if (key == GLFW_KEY_O) {
                     outlineOnly = !outlineOnly;
+                } else if (key == GLFW_KEY_SPACE) {
+                    showEdge = !showEdge;
                 }
             }
         });
@@ -275,6 +281,7 @@ public class EdgeShaderDemo20 {
         normalTexUniform = glGetUniformLocation(this.edgeProgram, "normalTex");
         invWidthUniform = glGetUniformLocation(this.edgeProgram, "invWidth");
         invHeightUniform = glGetUniformLocation(this.edgeProgram, "invHeight");
+        edgeShowEdgeUniform = glGetUniformLocation(this.edgeProgram, "showEdge");
         glUseProgram(0);
     }
 
@@ -301,6 +308,7 @@ public class EdgeShaderDemo20 {
         normalTexUniform = glGetUniformLocation(this.outlineProgram, "normalTex");
         invWidthUniform = glGetUniformLocation(this.outlineProgram, "invWidth");
         invHeightUniform = glGetUniformLocation(this.outlineProgram, "invHeight");
+        outlineShowEdgeUniform = glGetUniformLocation(this.edgeProgram, "showEdge");
         glUseProgram(0);
     }
 
@@ -365,8 +373,10 @@ public class EdgeShaderDemo20 {
         glDisable(GL_DEPTH_TEST);
         if (outlineOnly) {
             glUseProgram(this.outlineProgram);
+            glUniform1i(outlineShowEdgeUniform, showEdge ? 1 : 0);
         } else {
             glUseProgram(this.edgeProgram);
+            glUniform1i(edgeShowEdgeUniform, showEdge ? 1 : 0);
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
@@ -375,13 +385,13 @@ public class EdgeShaderDemo20 {
         glUniform1f(invHeightUniform, 1.0f / height);
         glUniform1i(normalTexUniform, 0);
         glBindTexture(GL_TEXTURE_2D, tex);
-
         glBindBuffer(GL_ARRAY_BUFFER, this.quadVbo);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glDisableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         glUseProgram(0);
     }

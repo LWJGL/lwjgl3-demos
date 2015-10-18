@@ -130,7 +130,6 @@ vec4 trace(vec3 hitPoint, vec3 normal) {
   vec3 shadowRayDir = lightPosition - hitPoint;
   vec3 shadowRayStart = hitPoint + normal * EPSILON;
   hitinfo shadowRayInfo;
-  
   bool lightObstructed = intersect(shadowRayStart, shadowRayDir, shadowRayInfo);
   if (!lightObstructed || shadowRayInfo.t >= 1.0) {
     float cosineFallOff = max(0.0, dot(normal, normalize(shadowRayDir)));

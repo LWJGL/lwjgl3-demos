@@ -5,6 +5,7 @@ uniform sampler2D depthTex;
 uniform mat4 inverseMatrix;
 uniform float invWidth;
 uniform float invHeight;
+uniform int showEdge;
 
 varying vec2 coord;
 
@@ -42,11 +43,13 @@ vec3 hsv2rgb(vec3 c);
 void main(void) {
   vec4 col = texture2D(normalTex, coord);
   vec3 hsv = rgb2hsv(col.rgb);
-  hsv.g *= 0.5;
+  hsv.g *= 0.4;
   vec4 c = vec4(hsv2rgb(hsv), 1.0);
-  vec4 e = vec4(edge());
-  if (col.a == 0.0) // mask background
-    gl_FragColor = e;
-  else
-    gl_FragColor = e * c;
+  vec4 final = vec4(1.0);
+  if (col.a > 0.0)
+    final *= c;
+  if (showEdge == 1) {
+	final *= vec4(edge());
+  }
+  gl_FragColor = final;
 }

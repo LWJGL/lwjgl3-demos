@@ -67,12 +67,14 @@ public class DepthEdgeShaderDemo20 {
     int inverseMatrixUniform;
     int invWidthUniform;
     int invHeightUniform;
+    int showEdgeUniform;
 
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f invMatrix = new Matrix4f();
     Matrix3f normalMatrix = new Matrix3f();
     ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    boolean showEdge = true;
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -112,6 +114,8 @@ public class DepthEdgeShaderDemo20 {
             throw new AssertionError("Failed to create the GLFW window");
         }
 
+        System.out.println("Press spacebar to show/hide edges.");
+
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
@@ -132,6 +136,8 @@ public class DepthEdgeShaderDemo20 {
 
                 if (key == GLFW_KEY_ESCAPE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
+                } else if (key == GLFW_KEY_SPACE) {
+                    showEdge = !showEdge;
                 }
             }
         });
@@ -280,6 +286,7 @@ public class DepthEdgeShaderDemo20 {
         inverseMatrixUniform = glGetUniformLocation(this.edgeProgram, "inverseMatrix");
         invWidthUniform = glGetUniformLocation(this.edgeProgram, "invWidth");
         invHeightUniform = glGetUniformLocation(this.edgeProgram, "invHeight");
+        showEdgeUniform = glGetUniformLocation(this.edgeProgram, "showEdge");
         glUseProgram(0);
     }
 
@@ -353,16 +360,19 @@ public class DepthEdgeShaderDemo20 {
         glUniform1f(invWidthUniform, 1.0f / width);
         glUniform1f(invHeightUniform, 1.0f / height);
         glUniform1i(normalTexUniform, 0);
+        glUniform1i(showEdgeUniform, showEdge ? 1 : 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, normalTexture);
         glUniform1i(depthTexUniform, 1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthTexture);
-
         glBindBuffer(GL_ARRAY_BUFFER, this.quadVbo);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glDisableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
