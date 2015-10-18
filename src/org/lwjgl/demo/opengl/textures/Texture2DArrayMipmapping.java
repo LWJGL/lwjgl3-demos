@@ -24,7 +24,6 @@ import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Texture2DArrayMipmapping {
@@ -37,12 +36,9 @@ public class Texture2DArrayMipmapping {
 	private int tex;
 	private int vao;
 	private int program;
-	private int sampler;
-
 	private int viewProjMatrixUniform;
 
-	private Matrix4f camera = new Matrix4f();
-
+	private Matrix4f viewProjMatrix = new Matrix4f();
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 
@@ -59,7 +55,7 @@ public class Texture2DArrayMipmapping {
 			@Override
 			public void invoke(int error, long description) {
 				if (error == GLFW_VERSION_UNAVAILABLE)
-					System.err.println("This demo requires OpenGL 3.3 or higher.");
+					System.err.println("This demo requires OpenGL 3.0 or higher.");
 				delegate.invoke(error, description);
 			}
 
@@ -74,10 +70,8 @@ public class Texture2DArrayMipmapping {
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -120,7 +114,6 @@ public class Texture2DArrayMipmapping {
 
 		/* Create all needed GL resources */
 		createTexture();
-		createSampler();
 		createVao();
 		createRasterProgram();
 		initProgram();
@@ -129,6 +122,15 @@ public class Texture2DArrayMipmapping {
 	private void createTexture() {
 		this.tex = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D_ARRAY, this.tex);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		/* Add maximum anisotropic filtering, if available */
+		if (caps.GL_EXT_texture_filter_anisotropic) {
+			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			float maxAnisotropy = glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+			glTexParameterf(GL_TEXTURE_2D_ARRAY, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+		} else {
+			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		}
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, texSize, texSize, 2, 0, GL_RGB,
 				GL_UNSIGNED_BYTE, (ByteBuffer) null);
 		ByteBuffer bb = BufferUtils.createByteBuffer(3 * texSize * texSize);
@@ -216,22 +218,6 @@ public class Texture2DArrayMipmapping {
 	}
 
 	/**
-	 * Create the sampler to sample the texture within the shader.
-	 */
-	private void createSampler() {
-		this.sampler = glGenSamplers();
-		glSamplerParameteri(this.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		/* Add maximum anisotropic filtering, if available */
-		if (caps.GL_EXT_texture_filter_anisotropic) {
-			glSamplerParameteri(this.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			float maxAnisotropy = glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-			glSamplerParameterf(this.sampler, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-		} else {
-			glSamplerParameteri(this.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		}
-	}
-
-	/**
 	 * Set the given {@link Matrix4f matrix} as a 4x4 uniform in the active
 	 * shader.
 	 * 
@@ -250,7 +236,7 @@ public class Texture2DArrayMipmapping {
 	}
 
 	private void update() {
-		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
+		viewProjMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
 			  .lookAt(0.0f, 1.0f, 5.0f,
 					  0.0f, 0.0f, 0.0f,
 					  0.0f, 1.0f, 0.0f);
@@ -259,13 +245,11 @@ public class Texture2DArrayMipmapping {
 	private void render() {
 		glUseProgram(this.program);
 
-		matrixUniform(viewProjMatrixUniform, camera, false);
+		matrixUniform(viewProjMatrixUniform, viewProjMatrix, false);
 
 		glBindVertexArray(vao);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
-		glBindSampler(0, this.sampler);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindSampler(0, 0);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 		glBindVertexArray(0);
 
