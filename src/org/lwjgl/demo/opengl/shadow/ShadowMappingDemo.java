@@ -7,6 +7,7 @@ package org.lwjgl.demo.opengl.shadow;
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -44,7 +45,7 @@ public class ShadowMappingDemo {
 	private static Vector3f[] boxes = Scene.boxes2;
 	private static Vector3f UP = new Vector3f(0.0f, 1.0f, 0.0f);
 
-	static int shadowMapSize = 1024;
+	static int shadowMapSize = 512;
 	static Vector3f lightPosition = new Vector3f(6.0f, 3.0f, 6.0f);
 	static Vector3f lightLookAt = new Vector3f(0.0f, 1.0f, 0.0f);
 	static Vector3f cameraPosition = new Vector3f(-3.0f, 6.0f, 6.0f);
@@ -174,10 +175,10 @@ public class ShadowMappingDemo {
 	void createDepthTexture() {
 		depthTexture = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE,
 				(ByteBuffer) null);
 		glBindTexture(GL_TEXTURE_2D, 0);
