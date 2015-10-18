@@ -69,6 +69,7 @@ public class HybridDemoSsboTriangles {
 
 	private int timeUniform;
 	private int blendFactorUniform;
+	private int lightRadiusUniform;
 	private int trianglesSsboBinding;
 	private int objectsSsboBinding;
 	private int framebufferImageBinding;
@@ -91,6 +92,7 @@ public class HybridDemoSsboTriangles {
 
 	private long firstTime;
 	private int frameNumber;
+	private int lightRadius = 10;
 
 	private float cameraRadius = 7.0f;
 	private float cameraHeight = 2.0f;
@@ -146,15 +148,30 @@ public class HybridDemoSsboTriangles {
 		}
 
 		System.out.println("Hold down any mouse button and drag to rotate.");
+		System.out.println("Press arrow down/up to decrease/increase the light's radius.");
 		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
 			@Override
 			public void invoke(long window, int key, int scancode, int action, int mods) {
-				if (action != GLFW_RELEASE)
+				if (action == GLFW_PRESS)
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
 					glfwSetWindowShouldClose(window, GL_TRUE);
-				}
+				} else if (key == GLFW_KEY_DOWN) {
+				    int newRadius = lightRadius - 1;
+				    if (newRadius >= 0) {
+				        lightRadius = newRadius;
+				        frameNumber = 0;
+				        System.out.println("Light radius: " + lightRadius * 0.1f);
+				    }
+				} else if (key == GLFW_KEY_UP) {
+				    int newRadius = lightRadius + 1;
+                    if (newRadius <= 30) {
+                        lightRadius = newRadius;
+                        frameNumber = 0;
+                        System.out.println("Light radius: " + lightRadius * 0.1f);
+                    }
+                }
 			}
 		});
 
@@ -461,6 +478,7 @@ public class HybridDemoSsboTriangles {
 		workGroupSizeY = workGroupSize.get(1);
 		timeUniform = glGetUniformLocation(computeProgram, "time");
 		blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
+		lightRadiusUniform = glGetUniformLocation(computeProgram, "lightRadius");
 
 		IntBuffer props = BufferUtils.createIntBuffer(1);
 		IntBuffer params = BufferUtils.createIntBuffer(1);
@@ -618,6 +636,8 @@ public class HybridDemoSsboTriangles {
 		 */
 		float blendFactor = (float) frameNumber / ((float) frameNumber + 1.0f);
 		glUniform1f(blendFactorUniform, blendFactor);
+
+		glUniform1f(lightRadiusUniform, lightRadius * 0.1f);
 
 		/* Bind level 0 of framebuffer texture as writable image in the shader. */
 		glBindImageTexture(framebufferImageBinding, raytraceTexture, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);

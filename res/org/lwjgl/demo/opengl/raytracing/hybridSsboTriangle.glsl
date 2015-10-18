@@ -10,6 +10,7 @@ layout(binding = 2, rgba16f) uniform readonly image2D worldNormalImage;
 
 uniform float blendFactor;
 uniform float time;
+uniform float lightRadius;
 
 const vec4 background = vec4(0.1, 0.3, 0.5, 1.0);
 
@@ -36,7 +37,6 @@ layout(std430, binding=1) readonly buffer Triangles {
 
 #define MAX_SCENE_BOUNDS 100.0
 #define EPSILON 0.0001
-#define LIGHT_RADIUS 1.1
 #define LIGHT_BASE_INTENSITY 30.0
 
 const vec3 lightCenterPosition = vec3(3.0, 5.0, 3.0);
@@ -126,7 +126,7 @@ vec4 trace(vec3 hitPoint, vec3 normal) {
   vec4 attenuation = vec4(1.0);
   bool intersected = false;
   vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
-  vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal, cameraUp) * LIGHT_RADIUS;
+  vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal, cameraUp) * lightRadius;
   vec3 shadowRayDir = lightPosition - hitPoint;
   vec3 shadowRayStart = hitPoint + normal * EPSILON;
   hitinfo shadowRayInfo;
