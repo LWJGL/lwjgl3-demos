@@ -9,8 +9,8 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -66,7 +66,6 @@ public class Demo33Ubo {
 	private int heightUniform;
 	private int bounceCountUniform;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -78,9 +77,13 @@ public class Demo33Ubo {
 	private int frameNumber;
 	private int bounceCount = 1;
 
-	private Vector3f tmpVector = new Vector3f();
-	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
-	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
+    private Matrix4f projMatrix = new Matrix4f();
+    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4f invViewProjMatrix = new Matrix4f();
+    private Vector3f tmpVector = new Vector3f();
+    private Vector3f cameraPosition = new Vector3f();
+    private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
+    private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
@@ -219,9 +222,6 @@ public class Demo33Ubo {
 		initRayTracingProgram();
 		createQuadProgram();
 		initQuadProgram();
-
-		/* Setup camera */
-		camera = new Camera();
 
 		firstTime = System.nanoTime();
 	}
@@ -385,15 +385,14 @@ public class Demo33Ubo {
 	private void updateCameraSettingsUbo() {
 		FloatBuffer fv = cameraSettingsUboDataFb;
 		/* Set viewing frustum corner rays in shader */
-		Vector3f pos = camera.getPosition();
-		fv.put(pos.x).put(pos.y).put(pos.z).put(0.0f);
-		camera.getEyeRay(-1, -1, tmpVector);
+		fv.put(cameraPosition.x).put(cameraPosition.y).put(cameraPosition.z).put(0.0f);
+		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
 		fv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z).put(0.0f);
-		camera.getEyeRay(-1, 1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set(-1,  1, 0)).sub(cameraPosition);
 		fv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z).put(0.0f);
-		camera.getEyeRay(1, -1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set( 1, -1, 0)).sub(cameraPosition);
 		fv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z).put(0.0f);
-		camera.getEyeRay(1, 1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set( 1,  1, 0)).sub(cameraPosition);
 		fv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z).put(0.0f);
 		fv.rewind();
 		glBindBuffer(GL_UNIFORM_BUFFER, this.cameraSettingsUbo);
@@ -419,14 +418,15 @@ public class Demo33Ubo {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+        cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+        viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
-		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 1f, 2f);
-			resizeFramebufferTexture();
-			resetFramebuffer = false;
-		}
+        if (resetFramebuffer) {
+            projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 1f, 2f);
+            resizeFramebufferTexture();
+            resetFramebuffer = false;
+        }
+        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
 
 		/* Update cameraSettings UBO */
 		updateCameraSettingsUbo();

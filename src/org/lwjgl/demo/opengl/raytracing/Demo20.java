@@ -4,29 +4,36 @@
  */
 package org.lwjgl.demo.opengl.raytracing;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.Camera;
-import org.lwjgl.demo.opengl.util.DemoUtils;
-import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.ARBFramebufferObject;
-import org.lwjgl.opengl.ARBTextureFloat;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
-import org.joml.Vector3f;
+import static java.lang.Math.cos;
+import static java.lang.Math.sin;
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.ARBTextureFloat.*;
+import static org.lwjgl.opengl.EXTFramebufferObject.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.system.MemoryUtil.memAddress;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-import static java.lang.Math.*;
-import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL13.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.system.MemoryUtil.*;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.demo.opengl.util.DemoUtils;
+import org.lwjgl.glfw.GLFWCursorPosCallback;
+import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
+import org.lwjgl.glfw.GLFWKeyCallback;
+import org.lwjgl.glfw.GLFWMouseButtonCallback;
+import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.libffi.Closure;
 
 /**
  * Raytracing demo.
@@ -73,7 +80,6 @@ public class Demo20 {
 	private int heightUniform;
 	private int bounceCountUniform;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -85,7 +91,11 @@ public class Demo20 {
 	private int frameNumber;
 	private int bounceCount = 1;
 
+	private Matrix4f projMatrix = new Matrix4f();
+	private Matrix4f viewMatrix = new Matrix4f();
+	private Matrix4f invViewProjMatrix = new Matrix4f();
 	private Vector3f tmpVector = new Vector3f();
+	private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 
@@ -204,7 +214,14 @@ public class Demo20 {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		GL.createCapabilities();
+		GLCapabilities caps = GL.createCapabilities();
+		if (!caps.GL_EXT_framebuffer_object) {
+			throw new AssertionError("This demo requires the EXT_framebuffer_object extensions");
+		}
+		if (!caps.GL_ARB_texture_multisample) {
+			throw new AssertionError("This demo requires the ARB_texture_multisample extensions");
+		}
+
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
@@ -216,9 +233,6 @@ public class Demo20 {
 		initRayTracingProgram();
 		createQuadProgram();
 		initQuadProgram();
-
-		/* Setup camera */
-		camera = new Camera();
 
 		firstTime = System.nanoTime();
 	}
@@ -347,7 +361,7 @@ public class Demo20 {
 			fb.put(min.x).put(min.y).put(min.z).put(0.0f);
 			fb.put(max.x).put(max.y).put(max.z).put(0.0f);
 		}
-		glTexImage2D(GL_TEXTURE_2D, 0, ARBTextureFloat.GL_RGBA32F_ARB, Demo20.boxes.length, 1, 0, GL_RGBA, GL_FLOAT, bb);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, Demo20.boxes.length, 1, 0, GL_RGBA, GL_FLOAT, bb);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -359,7 +373,7 @@ public class Demo20 {
 	private void createFramebufferTexture() {
 		this.tex = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, tex);
-		glTexImage2D(GL_TEXTURE_2D, 0, ARBTextureFloat.GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT,
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, GL_RGBA, GL_FLOAT,
 				(ByteBuffer) null);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -368,7 +382,7 @@ public class Demo20 {
 
 	private void resizeFramebufferTexture() {
 		glDeleteTextures(tex);
-		ARBFramebufferObject.glDeleteFramebuffers(fbo);
+		glDeleteFramebuffersEXT(fbo);
 
 		createFramebufferTexture();
 		createFrameBufferObject();
@@ -379,15 +393,14 @@ public class Demo20 {
 	 * into the framebuffer texture.
 	 */
 	private int createFrameBufferObject() {
-		this.fbo = ARBFramebufferObject.glGenFramebuffers();
-		ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, fbo);
-		ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER,
-				ARBFramebufferObject.GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this.tex, 0);
-		int fboStatus = ARBFramebufferObject.glCheckFramebufferStatus(ARBFramebufferObject.GL_FRAMEBUFFER);
-		if (fboStatus != ARBFramebufferObject.GL_FRAMEBUFFER_COMPLETE) {
+		this.fbo = glGenFramebuffersEXT();
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, this.tex, 0);
+		int fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+		if (fboStatus != GL_FRAMEBUFFER_COMPLETE_EXT) {
 			throw new AssertionError("Could not create FBO: " + fboStatus);
 		}
-		ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, 0);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 		return fbo;
 	}
 
@@ -409,14 +422,15 @@ public class Demo20 {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+		cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
 		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 1f, 2f);
+			projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 1f, 2f);
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}
+		invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
 
 		long thisTime = System.nanoTime();
 		float elapsedSeconds = (thisTime - firstTime) / 1E9f;
@@ -432,14 +446,14 @@ public class Demo20 {
 		glUniform1i(bounceCountUniform, bounceCount);
 
 		/* Set viewing frustum corner rays in shader */
-		glUniform3f(eyeUniform, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		camera.getEyeRay(-1, -1, tmpVector);
+		glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
 		glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(-1, 1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set(-1,  1, 0)).sub(cameraPosition);
 		glUniform3f(ray01Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, -1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set( 1, -1, 0)).sub(cameraPosition);
 		glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, 1, tmpVector);
+		invViewProjMatrix.transformProject(tmpVector.set( 1,  1, 0)).sub(cameraPosition);
 		glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
 
 		glUniform1f(widthUniform, width);
@@ -449,19 +463,18 @@ public class Demo20 {
 		 * Draw full-screen quad to generate frame with our tracing shader
 		 * program.
 		 */
-		ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, fbo);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, boxesTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, 0);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 		glUseProgram(0);
 
 		frameNumber++;

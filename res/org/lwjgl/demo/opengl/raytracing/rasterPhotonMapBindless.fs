@@ -2,8 +2,9 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 400
+#version 130
 #extension GL_ARB_bindless_texture : require
+#extension GL_ARB_uniform_buffer_object : require
 
 #define MAX_BOXES 128
 

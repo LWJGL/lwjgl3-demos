@@ -5,12 +5,12 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -79,7 +79,6 @@ public class DemoSsbo {
 	private int workGroupSizeX;
 	private int workGroupSizeY;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -89,9 +88,13 @@ public class DemoSsbo {
 
 	private long firstTime;
 
-	private Vector3f tmpVector = new Vector3f();
-	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
-	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
+    private Matrix4f projMatrix = new Matrix4f();
+    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4f invViewProjMatrix = new Matrix4f();
+    private Vector3f tmpVector = new Vector3f();
+    private Vector3f cameraPosition = new Vector3f();
+    private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
+    private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
@@ -211,9 +214,6 @@ public class DemoSsbo {
 		initQuadProgram();
 		createSceneSSBO();
 		createFramebufferBuffer();
-
-		/* Setup camera */
-		camera = new Camera();
 	}
 
 	/**
@@ -413,29 +413,30 @@ public class DemoSsbo {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+        cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+        viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
-		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 1f, 2f);
-			resizeFramebufferTexture();
-			resetFramebuffer = false;
-		}
+        if (resetFramebuffer) {
+            projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 1f, 2f);
+            resizeFramebufferTexture();
+            resetFramebuffer = false;
+        }
+        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
 
 		long thisTime = System.nanoTime();
 		float elapsedSeconds = (thisTime - firstTime) / 1E9f;
 		glUniform1f(timeUniform, elapsedSeconds);
 
 		/* Set viewing frustum corner rays in shader */
-		glUniform3f(eyeUniform, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		camera.getEyeRay(-1, -1, tmpVector);
-		glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(-1, 1, tmpVector);
-		glUniform3f(ray01Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, -1, tmpVector);
-		glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
-		camera.getEyeRay(1, 1, tmpVector);
-		glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+        glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
+        glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+        invViewProjMatrix.transformProject(tmpVector.set(-1,  1, 0)).sub(cameraPosition);
+        glUniform3f(ray01Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+        invViewProjMatrix.transformProject(tmpVector.set( 1, -1, 0)).sub(cameraPosition);
+        glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+        invViewProjMatrix.transformProject(tmpVector.set( 1,  1, 0)).sub(cameraPosition);
+        glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
 		glUniform2i(sizeUniform, width, height);
 
 		/* Bind the SSBO containing our boxes */

@@ -2,7 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 140
+#version 130
+#extension GL_EXT_draw_instanced : require
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;

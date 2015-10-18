@@ -5,7 +5,6 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.Camera;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBClearTexture;
@@ -106,7 +105,6 @@ public class PhotonMappingDemo {
 	private int workGroupSizeX;
 	private int workGroupSizeY;
 
-	private Camera camera;
 	private float mouseDownX;
 	private float mouseX;
 	private boolean mouseDown;
@@ -117,7 +115,9 @@ public class PhotonMappingDemo {
 	private long firstTime;
 	private float lightRadius = 0.4f;
 
-	private Vector3f tmpVector = new Vector3f();
+    private Matrix4f projMatrix = new Matrix4f();
+    private Matrix4f viewMatrix = new Matrix4f();
+    private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
@@ -267,9 +267,6 @@ public class PhotonMappingDemo {
 		/* Set some state */
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-
-		/* Setup camera */
-		camera = new Camera();
 
 		firstTime = System.nanoTime();
 	}
@@ -511,13 +508,14 @@ public class PhotonMappingDemo {
 		}
 
 		/* Rotate camera about Y axis. */
-		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
-		camera.setLookAt(tmpVector, cameraLookAt, cameraUp);
+        cameraPosition.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
+        viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
-		if (resetFramebuffer) {
-			camera.setFrustumPerspective(60.0f, (float) width / height, 0.01f, 100.0f);
-			resetFramebuffer = false;
-		}
+        if (resetFramebuffer) {
+            projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100f);
+            resetFramebuffer = false;
+        }
+
 		if (recreatePhotonMapTexture) {
 			recreatePhotonMapTexture();
 			recreatePhotonMapTexture = false;
@@ -591,9 +589,7 @@ public class PhotonMappingDemo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		Matrix4f viewMatrix = camera.getViewMatrix();
 		matrixUniform(viewMatrixUniform, viewMatrix, false);
-		Matrix4f projMatrix = camera.getProjectionMatrix();
 		matrixUniform(projectionMatrixUniform, projMatrix, false);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

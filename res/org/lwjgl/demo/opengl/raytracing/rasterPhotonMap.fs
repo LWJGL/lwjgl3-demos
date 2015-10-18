@@ -2,7 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 400
+#version 130
+#extension GL_ARB_texture_cube_map_array : require
 
 uniform samplerCubeArray cubeMaps;
 
