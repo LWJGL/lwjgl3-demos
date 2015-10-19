@@ -218,8 +218,8 @@ public class Demo20 {
 		if (!caps.GL_EXT_framebuffer_object) {
 			throw new AssertionError("This demo requires the EXT_framebuffer_object extensions");
 		}
-		if (!caps.GL_ARB_texture_multisample) {
-			throw new AssertionError("This demo requires the ARB_texture_multisample extensions");
+		if (!caps.GL_ARB_texture_float) {
+			throw new AssertionError("This demo requires the ARB_texture_float extensions");
 		}
 
 		debugProc = GLUtil.setupDebugMessageCallback();
