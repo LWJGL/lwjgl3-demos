@@ -5,7 +5,6 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.MeshObject;
@@ -24,6 +23,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static java.lang.Math.*;
+import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -88,18 +88,18 @@ public class HybridDemoSsboTriangles {
 	private boolean mouseDown;
 
 	private float currRotationAboutY = 0.0f;
-	private float rotationAboutY = 0.8f;
+	private float rotationAboutY = (float) Math.toRadians(-45);
 
 	private long firstTime;
 	private int frameNumber;
-	private int lightRadius = 10;
+	private int lightRadius = 4;
 
-	private float cameraRadius = 7.0f;
+	private float cameraRadius = 4.0f;
 	private float cameraHeight = 2.0f;
 	private Matrix4f viewMatrix = new Matrix4f();
     private Matrix4f projMatrix = new Matrix4f();
 	private Vector3f cameraPosition = new Vector3f(0.0f, 0.0f, 0.0f);
-	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
+	private Vector3f cameraLookAt = new Vector3f(-0.2f, 0.25f, -0.2f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
 	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
@@ -227,7 +227,7 @@ public class HybridDemoSsboTriangles {
 
 		/* Load OBJ model */
 		WavefrontMeshLoader loader = new WavefrontMeshLoader();
-		mesh = loader.loadMesh("org/lwjgl/demo/opengl/models/cube.obj.zip");
+		mesh = loader.loadMesh("org/lwjgl/demo/opengl/models/lwjgl3.obj.zip");
 
 		/* Create all needed GL resources */
 		createRaytracingTexture();
@@ -377,8 +377,8 @@ public class HybridDemoSsboTriangles {
 	 */
 	private void createQuadProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -402,8 +402,8 @@ public class HybridDemoSsboTriangles {
 	 */
 	private void createRasterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raster.vs", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raster.fs", GL_FRAGMENT_SHADER);
+		int vshader = createShader("org/lwjgl/demo/opengl/raytracing/raster.vs", GL_VERTEX_SHADER);
+		int fshader = createShader("org/lwjgl/demo/opengl/raytracing/raster.fs", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertexPosition");
@@ -429,9 +429,9 @@ public class HybridDemoSsboTriangles {
 	 */
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/hybridSsboTriangle.glsl", GL_COMPUTE_SHADER);
-		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
-		int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
+		int cshader = createShader("org/lwjgl/demo/opengl/raytracing/hybridSsboTriangle.glsl", GL_COMPUTE_SHADER);
+		int random = createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
+		int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
 		glAttachShader(program, cshader);
 		glAttachShader(program, random);
 		glAttachShader(program, randomCommon);

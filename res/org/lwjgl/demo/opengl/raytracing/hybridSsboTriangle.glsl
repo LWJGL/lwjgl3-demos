@@ -37,9 +37,9 @@ layout(std430, binding=1) readonly buffer Triangles {
 
 #define MAX_SCENE_BOUNDS 100.0
 #define EPSILON 0.0001
-#define LIGHT_BASE_INTENSITY 30.0
+#define LIGHT_BASE_INTENSITY 5.0
 
-const vec3 lightCenterPosition = vec3(3.0, 5.0, 3.0);
+const vec3 lightCenterPosition = vec3(1.5, 1.5, 1.5);
 const vec4 lightColor = vec4(1);
 
 float random(vec2 f, float time);
