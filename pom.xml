@@ -8,7 +8,6 @@
 		<profile>
 			<activation>
 				<os>
-					<name>windows</name>
 					<family>Windows</family>
 				</os>
 			</activation>
@@ -24,7 +23,6 @@
 		<profile>
 			<activation>
 				<os>
-					<name>linux</name>
 					<family>Linux</family>
 				</os>
 			</activation>
