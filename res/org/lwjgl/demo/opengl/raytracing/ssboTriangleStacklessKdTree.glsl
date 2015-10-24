@@ -13,6 +13,8 @@
 #define MAX_DESCEND 70.0
 #define MAX_ROPES 50.0
 #define EPSILON 0.0001
+#define NO_NEIGHBOR -1
+#define NO_CHILD -1
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 
@@ -132,7 +134,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
   vec2 statistics = vec2(0.0);
   while (info.bounds.x < info.bounds.y) {
     vec3 pEntry = origin + dir * info.bounds.x;
-    while (n.left != -1) {
+    while (n.left != NO_CHILD) {
       int nearIndex;
       if (n.split >= pEntry[n.splitAxis]) {
         nearIndex = n.left;
@@ -152,7 +154,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
     vec2 isect = intersectCube(origin, dir, n.min, n.max);
     info.bounds.x = isect.y;
     int ropeId = exitRope(n, origin, dir, isect.y);
-    if (ropeId == -1) {
+    if (ropeId == NO_NEIGHBOR) {
       break;
     } else {
       n = nodes[ropeId];

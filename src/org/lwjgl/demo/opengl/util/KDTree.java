@@ -14,13 +14,13 @@ import org.joml.Vector3f;
 /**
  * A very nice and actually working KD-tree implementation taken from the <a href=
  * "https://graphics.cg.uni-saarland.de/fileadmin/cguds/courses/ws0809/cg/rc/web_sites/Andreas_Zins/java/KDTree.java"
- * >KDTree.java sources of UNI Saarland</a>.
+ * >KDTree.java sources of University of Saarland, Germany</a>.
  * 
  * Additionally I augmented it with the ropes for <a href=
  * "https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2007/popov_07_GPURT/Popov_et_al._-_Stackless_KD-Tree_Traversal_for_High_Performance_GPU_Ray_Tracing.pdf"
  * >Stackless KD-Tree Traversal</a> and optimized it here and there.
  * 
- * @author UNI Saarbrücken
+ * @author University of Saarland, Germany
  * @author Kai Burjack (added ropes)
  */
 public class KDTree {
