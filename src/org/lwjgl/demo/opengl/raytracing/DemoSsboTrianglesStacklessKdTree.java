@@ -27,8 +27,10 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import static java.lang.Math.*;
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
@@ -277,18 +279,18 @@ public class DemoSsboTrianglesStacklessKdTree {
         }
     }
 
-    static int allocate(Node node, Map<Node, Integer> indexes) {
-        if (node == null) {
-            return -1;
+    static void allocate(Node node, Map<Node, Integer> indexes) {
+        Queue<Node> nodes = new LinkedList<Node>();
+        nodes.add(node);
+        while (!nodes.isEmpty()) {
+            Node n = nodes.poll();
+            if (n == null)
+                continue;
+            int index = indexes.size();
+            indexes.put(n, index);
+            nodes.add(n.left);
+            nodes.add(n.right);
         }
-        if (indexes.containsKey(node)) {
-            return indexes.get(node);
-        }
-        int index = indexes.size();
-        indexes.put(node, index);
-        allocate(node.left, indexes);
-        allocate(node.right, indexes);
-        return index;
     }
 
     /**
