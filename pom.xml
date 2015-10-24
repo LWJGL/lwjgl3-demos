@@ -76,11 +76,5 @@
 			<artifactId>lwjgl</artifactId>
 			<version>3.0.0b-SNAPSHOT</version>
 		</dependency>
-		<dependency>
-			<groupId>org.lwjgl</groupId>
-			<artifactId>lwjgl-platform</artifactId>
-			<version>3.0.0b-SNAPSHOT</version>
-			<classifier>natives-windows</classifier>
-		</dependency>
 	</dependencies>
 </project>
