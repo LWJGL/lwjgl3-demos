@@ -236,6 +236,15 @@ public class KDTree {
             triangles = new ArrayList<Triangle>();
         }
 
+        int isParallelTo(int side) {
+            if (splitAxis == Axis.X_AXIS) {
+                return side == SIDE_X_NEG ? -1 : side == SIDE_X_POS ? +1 : 0;
+            } else if (splitAxis == Axis.Y_AXIS) {
+                return side == SIDE_Y_NEG ? -1 : side == SIDE_Y_POS ? +1 : 0;
+            }
+            return side == SIDE_Z_NEG ? -1 : side == SIDE_Z_POS ? +1 : 0;
+        }
+
         // check whenever the node is a leaf node
         public final boolean isLeafNode() {
             return splitAxis.equals(Axis.NO_AXIS);
@@ -269,6 +278,52 @@ public class KDTree {
                 this.right.processNode(this.right.ropes);
             }
         }
+
+        protected void optimizeRopes() {
+            /* Optimize ropes */
+            for (int i = 0; i < 6; i++) {
+                ropes[i] = optimizeRope(ropes[i], i);
+            }
+            if (left != null)
+                left.optimizeRopes();
+            if (right != null)
+                right.optimizeRopes();
+        }
+
+        protected Node optimizeRope(Node rope, int side) {
+            if (rope == null) {
+                return rope;
+            }
+            while (!rope.isLeafNode()) {
+                int parallelSide = rope.isParallelTo(side);
+                if (parallelSide == +1) {
+                    /*
+                     * The split plane is on the right/positive side of the rope, so connect to its left child!
+                     */
+                    rope = rope.left;
+                } else if (parallelSide == -1) {
+                    /*
+                     * The split plane is on the left/negative side of the rope, so connect to its right child!
+                     */
+                    rope = rope.right;
+                } else {
+                    if (rope.splitPlane < Vector3f_get(boundingBox.min, rope.splitAxis.dim)) {
+                        /*
+                         * The split plane is below our AABB min point. So, choose the right/positive child.
+                         */
+                        rope = rope.right;
+                    } else if (rope.splitPlane > Vector3f_get(boundingBox.max, rope.splitAxis.dim)) {
+                        /*
+                         * The split plane is above our AABB max point. So, choose the left/negative child.
+                         */
+                        rope = rope.left;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            return rope;
+        }
     }
 
     /**
@@ -297,6 +352,8 @@ public class KDTree {
         buildTree(mRootNode, Axis.X_AXIS, 0);
         // Build ropes
         mRootNode.processNode(mRootNode.ropes = new Node[6]);
+        // Optimize ropes
+        mRootNode.optimizeRopes();
 
         statistics(time);
     }
