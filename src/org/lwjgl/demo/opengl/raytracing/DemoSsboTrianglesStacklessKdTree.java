@@ -287,10 +287,10 @@ public class DemoSsboTrianglesStacklessKdTree {
     }
 
     /**
-     * Create two SSBOs:
+     * Build the kd-tree of the scene and create two SSBOs:
      * <ul>
-     * <li>one to hold all our triangles of the mesh
-     * <li>another to hold the objects of the mesh with their AABBs and triangle indexes
+     * <li>one for the nodes of the kd-tree
+     * <li>and another one to hold all the triangles stored in the leaf nodes of the kd-tree
      * </ul>
      */
     void createSceneSSBO() {
