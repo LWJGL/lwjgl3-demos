@@ -26,6 +26,7 @@ uniform vec3 ray00;
 uniform vec3 ray01;
 uniform vec3 ray10;
 uniform vec3 ray11;
+uniform bool debug;
 
 struct node {
   vec3 min;
@@ -170,6 +171,8 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
   }
   if (info.t == LARGE_FLOAT)
     return background;
+  if (debug)
+    return vec4(statistics.xyxy * 0.02);
   return vec4(info.t * 0.1);
 }
 

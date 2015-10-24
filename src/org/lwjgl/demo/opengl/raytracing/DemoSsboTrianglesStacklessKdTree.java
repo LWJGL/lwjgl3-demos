@@ -76,6 +76,7 @@ public class DemoSsboTrianglesStacklessKdTree {
     int ray10Uniform;
     int ray01Uniform;
     int ray11Uniform;
+    int debugUniform;
     int sceneMinUniform;
     int sceneMaxUniform;
     int nodesSsboBinding;
@@ -89,6 +90,7 @@ public class DemoSsboTrianglesStacklessKdTree {
     float mouseDownX;
     float mouseX;
     boolean mouseDown;
+    boolean debug;
 
     float currRotationAboutY = 0.0f;
     float rotationAboutY = (float) Math.toRadians(-45);
@@ -148,6 +150,7 @@ public class DemoSsboTrianglesStacklessKdTree {
         }
 
         System.out.println("Hold down any mouse button and drag to rotate.");
+        System.out.println("Press 'D' to toggle debug view.");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -156,6 +159,8 @@ public class DemoSsboTrianglesStacklessKdTree {
 
                 if (key == GLFW_KEY_ESCAPE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
+                } else if (key == GLFW_KEY_D) {
+                    debug = !debug;
                 }
             }
         });
@@ -424,6 +429,7 @@ public class DemoSsboTrianglesStacklessKdTree {
         ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
         ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
         ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
+        debugUniform = glGetUniformLocation(computeProgram, "debug");
         sceneMinUniform = glGetUniformLocation(computeProgram, "sceneMin");
         sceneMaxUniform = glGetUniformLocation(computeProgram, "sceneMax");
 
@@ -513,6 +519,7 @@ public class DemoSsboTrianglesStacklessKdTree {
         glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
         glUniform3f(sceneMinUniform, sceneBounds.min.x, sceneBounds.min.y, sceneBounds.min.z);
         glUniform3f(sceneMaxUniform, sceneBounds.max.x, sceneBounds.max.y, sceneBounds.max.z);
+        glUniform1i(debugUniform, debug ? 1 : 0);
 
         /* Bind level 0 of framebuffer texture as writable image in the shader. */
         glBindImageTexture(framebufferImageBinding, raytraceTexture, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8);
