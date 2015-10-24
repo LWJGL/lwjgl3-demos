@@ -15,6 +15,9 @@
 #define EPSILON 0.0001
 #define NO_NEIGHBOR -1
 #define NO_CHILD -1
+#define LARGE_FLOAT 1.E9
+
+const vec4 background = vec4(0.1, 0.3, 0.5, 1.0);
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 
@@ -77,7 +80,7 @@ bool intersectTriangles(vec3 origin, vec3 dir, const node o, inout hitinfo info)
   for (int i = o.firstTri; i < o.firstTri + o.numTris; i++) {
     const triangle tri = triangles[i];
     float t = intersectTriangle(origin, dir, tri.v0, tri.v1, tri.v2);
-    if (t >= info.bounds.x - EPSILON && t <= info.bounds.y + EPSILON) {
+    if (t < info.t && t >= info.bounds.x - EPSILON) {
       info.t = t;
       found = true;
     }
@@ -129,7 +132,7 @@ int exitRope(node n, vec3 origin, vec3 dir, float lambdaY) {
 
 vec4 depth(node n, vec3 origin, vec3 dir) {
   hitinfo info;
-  info.t = 0.0;
+  info.t = LARGE_FLOAT;
   info.bounds = intersectCube(origin, dir, n.min, n.max);
   vec2 statistics = vec2(0.0);
   while (info.bounds.x < info.bounds.y) {
@@ -165,6 +168,8 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
       return vec4(0.0, 0.0, 1.0, 1.0);
     }
   }
+  if (info.t == LARGE_FLOAT)
+    return background;
   return vec4(info.t * 0.1);
 }
 
