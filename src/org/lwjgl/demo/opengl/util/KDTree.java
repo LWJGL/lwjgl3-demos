@@ -527,7 +527,7 @@ public class KDTree {
                 for (int i = 0; i < nPrims; i++) {
                     Box bounds = node.triangles.get(i).getBounds();
                     triangleLeftEdge = Math.min(Vector3f_get(bb.max, ax),
-                            Math.max(Vector3f_get(bb.min, ax), (Vector3f_get(bounds.min, ax) + Vector3f_get(bounds.max, i)) * 0.5f))
+                            Math.max(Vector3f_get(bb.min, ax), (Vector3f_get(bounds.min, ax) + Vector3f_get(bounds.max, ax)) * 0.5f))
                             - Vector3f_get(bb.min, ax);
                     if (!bb.intersectsWithBox(bounds)) {
                         throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes!");
