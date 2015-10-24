@@ -12,6 +12,7 @@
 #define SIDE_Z_NEG 5
 #define MAX_DESCEND 70.0
 #define MAX_ROPES 50.0
+#define EPSILON 0.0001
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 
@@ -45,14 +46,6 @@ struct triangle {
 };
 layout(std430, binding=1) readonly buffer Triangles {
   triangle[] triangles;
-};
-
-#define EPSILON 0.0001
-
-struct objecthitinfo {
-  float near;
-  float far;
-  int index;
 };
 
 float intersectTriangle(vec3 origin, vec3 ray, vec3 v0, vec3 v1, vec3 v2) {
@@ -100,15 +93,10 @@ vec2 intersectCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
   return vec2(tNear, tFar);
 }
 
-float distanceToSplitPlane(const node n, vec3 origin, vec3 dir) {
-  return (n.split - origin[n.splitAxis]) / dir[n.splitAxis];
-}
-
 /**
  * Reference: http://xboxforums.create.msdn.com/forums/t/98616.aspx
  */
 int exitRope(node n, vec3 origin, vec3 dir, float lambdaY) {
-  /* Determine ray exit hit position with current node */
   vec3 pos = origin + dir * lambdaY;
   vec3 distMin = abs(pos - n.min);
   vec3 distMax = abs(pos - n.max);
@@ -144,7 +132,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
   vec2 statistics = vec2(0.0);
   while (info.bounds.x < info.bounds.y) {
     vec3 pEntry = origin + dir * info.bounds.x;
-    while (n.left > 0 && n.right > 0) {
+    while (n.left != -1) {
       int nearIndex;
       if (n.split >= pEntry[n.splitAxis]) {
         nearIndex = n.left;
@@ -164,7 +152,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
     vec2 isect = intersectCube(origin, dir, n.min, n.max);
     info.bounds.x = isect.y;
     int ropeId = exitRope(n, origin, dir, isect.y);
-    if (ropeId <= 0) {
+    if (ropeId == -1) {
       break;
     } else {
       n = nodes[ropeId];
