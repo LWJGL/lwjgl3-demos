@@ -28,6 +28,9 @@ uniform vec3 ray10;
 uniform vec3 ray11;
 uniform bool debug;
 
+/*
+ * Total size: 80 bytes
+ */
 struct node {
   vec3 min;
   vec3 max;
@@ -44,11 +47,13 @@ layout(std430, binding=2) readonly buffer Nodes {
   node[] nodes;
 };
 
+/*
+ * Total size: 12 bytes
+ */
 struct triangle {
   vec3 v0;
   vec3 v1;
   vec3 v2;
-  // vec3 padding; <- std430 padding!
 };
 layout(std430, binding=1) readonly buffer Triangles {
   triangle[] triangles;
@@ -99,6 +104,14 @@ vec2 intersectCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
   return vec2(tNear, tFar);
 }
 
+float exitCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
+  vec3 tMin = (boxMin - origin) / dir;
+  vec3 tMax = (boxMax - origin) / dir;
+  vec3 t2 = max(tMin, tMax);
+  float tFar = min(min(t2.x, t2.y), t2.z);
+  return tFar;
+}
+
 /**
  * Reference: http://xboxforums.create.msdn.com/forums/t/98616.aspx
  */
@@ -108,23 +121,23 @@ int exitRope(node n, vec3 origin, vec3 dir, float lambdaY) {
   vec3 distMax = abs(pos - n.max);
   int face = SIDE_X_NEG;
   float minDist = distMin.x;
-  if (distMax.x < minDist && dir.x > 0.0) {
+  if (distMax.x < minDist) {
     face = SIDE_X_POS;
     minDist = distMax.x;
   }
-  if (distMin.y < minDist && dir.y < 0.0) {
+  if (distMin.y < minDist) {
     face = SIDE_Y_NEG;
     minDist = distMin.y;
   }
-  if (distMax.y < minDist && dir.y > 0.0) {
+  if (distMax.y < minDist) {
     face = SIDE_Y_POS;
     minDist = distMax.y;
   }
-  if (distMin.z < minDist && dir.z < 0.0) {
+  if (distMin.z < minDist) {
     face = SIDE_Z_NEG;
     minDist = distMin.z;
   }
-  if (distMax.z < minDist && dir.z > 0.0) {
+  if (distMax.z < minDist) {
     face = SIDE_Z_POS;
     minDist = distMin.z;
   }
@@ -155,9 +168,9 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
     if (intersectTriangles(origin, dir, n, info)) {
       info.bounds.y = info.t;
     }
-    vec2 isect = intersectCube(origin, dir, n.min, n.max);
-    info.bounds.x = isect.y;
-    int ropeId = exitRope(n, origin, dir, isect.y);
+    float exit = exitCube(origin, dir, n.min, n.max);
+    info.bounds.x = exit;
+    int ropeId = exitRope(n, origin, dir, exit);
     if (ropeId == NO_NEIGHBOR) {
       break;
     } else {
@@ -176,7 +189,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
   return vec4(info.t * 0.1);
 }
 
-layout (local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 16, local_size_y = 8) in;
 
 void main(void) {
   ivec2 pix = ivec2(gl_GlobalInvocationID.xy);

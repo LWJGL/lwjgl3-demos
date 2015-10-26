@@ -397,7 +397,7 @@ public class KDTree {
     private void buildTree(Node node, Axis axis, int depth) {
         // just for debug
         if (node == null || node.left != null || node.right != null) {
-            System.err.println("!!! KDTree.buildTree: broken tree");
+            throw new IllegalStateException("!!! KDTree.buildTree: broken tree");
         }
 
         // setup node's split axis and plane
@@ -478,7 +478,7 @@ public class KDTree {
                 Box bounds = node.triangles.get(i).getBounds();
                 avg += (Vector3f_get(bounds.min, node.splitAxis.dim) + Vector3f_get(bounds.max, node.splitAxis.dim)) * 0.5f;
             }
-            avg /= new Float(node.triangles.size());
+            avg /= node.triangles.size();
             return avg;
         }
 
@@ -502,8 +502,7 @@ public class KDTree {
             // do a complete scan
             if (nPrims > mSahThreshold) {
                 // sampleing
-                Vector3f costvector;
-                costvector = new Vector3f(bb.max).sub(bb.min);
+                Vector3f costvector = new Vector3f(bb.max).sub(bb.min);
                 int ax = Vector3f_maxDimension(costvector);
                 float box_width = Vector3f_get(bb.max, ax) - Vector3f_get(bb.min, ax);
                 if (box_width <= EPSILON) {
@@ -536,8 +535,8 @@ public class KDTree {
                         throw new IllegalStateException("!!! KDTree.findSplitPlane: triangleLeftEdge invalid : "
                                 + triangleLeftEdge + ", " + (inv_box_width * triangleLeftEdge));
                     }
-                    Float hf = new Float(inv_box_width * (triangleLeftEdge - EPSILON) * (mSahRes - 1.0f));
-                    h[hf.intValue()] += 1;
+                    float hf = inv_box_width * (triangleLeftEdge - EPSILON) * (mSahRes - 1.0f);
+                    h[(int) hf] += 1;
                 }
 
                 // copy p for right-to-left lookup
@@ -562,8 +561,8 @@ public class KDTree {
 
                 // determine costs
                 for (int i = 0; i < mSahRes - 1; i++) {
-                    costs[i] = mSahTrvCosts + mSahIntCosts * new Float((i + 1) * p[i] + (mSahRes - i - 1) * p_rtl[i])
-                            / new Float(mSahRes);
+                    costs[i] = mSahTrvCosts + mSahIntCosts * ((i + 1) * p[i] + (mSahRes - i - 1) * p_rtl[i])
+                            / (float) mSahRes;
                 }
 
                 int minid = 0;
@@ -577,14 +576,13 @@ public class KDTree {
                     }
                 }
 
-                float splitPosition = new Float((minid + 1) / new Float(mSahRes)) * box_width + Vector3f_get(bb.min, ax);
+                float splitPosition = (((float) minid + 1.0f) / mSahRes) * box_width + Vector3f_get(bb.min, ax);
 
                 node.splitAxis = Axis.values()[ax];
                 return splitPosition;
             } else {
                 // complete scan
-                Vector3f costvector;
-                costvector = new Vector3f(bb.max).sub(bb.min);
+                Vector3f costvector = new Vector3f(bb.max).sub(bb.min);
                 int ax = Vector3f_maxDimension(costvector);
                 float box_width = Vector3f_get(costvector, ax);
 
@@ -630,21 +628,17 @@ public class KDTree {
                         open_intervals--;
                         done_intervals++;
                     }
-
                     alpha = (intervals.get(i).pos - Vector3f_get(bb.min, ax)) * inv_box_width;
-
                     float cost = mSahTrvCosts + mSahIntCosts
                             * ((done_intervals + open_intervals) * alpha + (nPrims - done_intervals) * (1.0f - alpha));
                     if (cost < mincost) {
                         minid = i;
                         mincost = cost;
                     }
-
                     if (intervals.get(i).type.equals(BoundaryType.LOWER_BOUND)) {
                         open_intervals++;
                     }
                 }
-
                 float splitPlane = intervals.get(minid).pos;
 
                 // no cuts at the boundaries

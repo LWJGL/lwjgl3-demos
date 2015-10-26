@@ -228,8 +228,6 @@ public class DemoSsboTrianglesStacklessKdTree {
             createFullScreenVao();
             createQuadProgram();
         }
-
-        glEnable(GL_CULL_FACE);
     }
 
     static void kdTreeToBuffers(KDTree tree, DynamicByteBuffer nodesBuffer, DynamicByteBuffer trianglesBuffer) {
@@ -554,13 +552,11 @@ public class DemoSsboTrianglesStacklessKdTree {
      * Present the final image on the screen/viewport.
      */
     void present() {
-        glDisable(GL_DEPTH_TEST);
         if (caps.GL_NV_draw_texture) {
             /*
              * Use some fancy NV extension to draw a screen-aligned textured quad without needing a VAO/VBO or a shader.
              */
-            NVDrawTexture.glDrawTextureNV(raytraceTexture, sampler, 0.0f, 0.0f, width, height, 0.0f, 0.0f, 0.0f, 1.0f,
-                    1.0f);
+            NVDrawTexture.glDrawTextureNV(raytraceTexture, sampler, 0.0f, 0.0f, width, height, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
         } else {
             /*
              * Draw a full-screen quad using the VAO and shader.
