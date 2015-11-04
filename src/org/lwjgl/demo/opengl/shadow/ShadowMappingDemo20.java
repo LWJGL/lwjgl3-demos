@@ -194,6 +194,8 @@ public class ShadowMappingDemo20 {
 		fbo = glGenFramebuffersEXT();
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glBindTexture(GL_TEXTURE_2D, depthTexture);
+		glDrawBuffers(GL_NONE);
+		glReadBuffer(GL_NONE);
 		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthTexture, 0);
 		int fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
 		if (fboStatus != GL_FRAMEBUFFER_COMPLETE_EXT) {
