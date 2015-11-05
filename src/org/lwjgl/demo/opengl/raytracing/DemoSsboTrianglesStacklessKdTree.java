@@ -232,6 +232,9 @@ public class DemoSsboTrianglesStacklessKdTree {
         }
     }
 
+    /**
+     * Java-pendant of the GLSL struct 'node' in the compute shader 'ssboTriangleStacklessKdTree.glsl'.
+     */
     public static class GPUNode {
         public Vector3f min;
         public Vector3f max;

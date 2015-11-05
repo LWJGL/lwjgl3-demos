@@ -5,6 +5,8 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
+import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
+import org.lwjgl.demo.opengl.util.Std430Writer;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.MeshObject;
@@ -21,6 +23,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.Math.*;
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
@@ -252,6 +256,16 @@ public class HybridDemoSsboTriangles {
 	}
 
 	/**
+	 * Java-pendant of the GLSL struct 'object' in the compute shader 'hybridSsboTriangle.glsl'.
+	 */
+	public static class GPUObject {
+	    public Vector3f min;
+	    public Vector3f max;
+	    public int first;
+	    public int count;
+	}
+
+	/**
 	 * Create two SSBOs:
 	 * <ul>
 	 * <li>one to hold all our triangles of the mesh
@@ -280,24 +294,19 @@ public class HybridDemoSsboTriangles {
 
 		this.objectsSsbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, objectsSsbo);
-		ssboData = BufferUtils.createByteBuffer(4 * (4 * 3) * mesh.objects.size());
-		fv = ssboData.asFloatBuffer();
-		IntBuffer iv = ssboData.asIntBuffer();
+		DynamicByteBuffer objectsBuffer = new DynamicByteBuffer();
+		List<GPUObject> objects = new ArrayList<GPUObject>();
 		for (MeshObject o : mesh.objects) {
-			/*
-			 * std430 SSBO data layout:
-			 * 
-			 * vec4: min.xyz, 0.0
-			 * vec4: max.xyz, <int>first
-			 * vec4: <int>count, 0, 0, 0
-			 */
-			fv.put(o.min.x).put(o.min.y).put(o.min.z).put(0.0f);
-			fv.put(o.max.x).put(o.max.y).put(o.max.z);
-			iv.position(fv.position());
-			iv.put(o.first).put(o.count);
-			fv.position(iv.position() + 3);
+		    GPUObject obj = new GPUObject();
+		    obj.min = o.min;
+		    obj.max = o.max;
+		    obj.first = o.first;
+		    obj.count = o.count;
+		    objects.add(obj);
 		}
-		glBufferData(GL_ARRAY_BUFFER, ssboData, GL_STATIC_DRAW);
+		Std430Writer.write(objects, GPUObject.class, objectsBuffer);
+		objectsBuffer.flip();
+		glBufferData(GL_ARRAY_BUFFER, objectsBuffer.bb, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
