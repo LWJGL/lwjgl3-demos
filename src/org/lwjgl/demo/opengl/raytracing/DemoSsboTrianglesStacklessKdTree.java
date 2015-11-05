@@ -11,6 +11,8 @@ import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
 import org.lwjgl.demo.opengl.util.KDTree.Box;
 import org.lwjgl.demo.opengl.util.KDTree.Node;
 import org.lwjgl.demo.opengl.util.KDTree.Triangle;
+import org.lwjgl.demo.opengl.util.Member;
+import org.lwjgl.demo.opengl.util.Std430Writer;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -230,35 +232,47 @@ public class DemoSsboTrianglesStacklessKdTree {
         }
     }
 
+    public static class GPUNode {
+        public Vector3f min;
+        public Vector3f max;
+        public int dim;
+        public float plane;
+        public @Member(length = 6) int[] ropes;
+        public int left;
+        public int right;
+        public int firstTri;
+        public int numTris;
+    }
+
     static void kdTreeToBuffers(KDTree tree, DynamicByteBuffer nodesBuffer, DynamicByteBuffer trianglesBuffer) {
         Map<Node, Integer> indexes = new LinkedHashMap<Node, Integer>();
         // Allocate indexes for each of the nodes
         allocate(tree.mRootNode, indexes);
         int triangleIndex = 0;
+        List<GPUNode> gpuNodes = new ArrayList<GPUNode>();
         // Iterate over each node in insertion order and write to the buffers
         for (Map.Entry<Node, Integer> e : indexes.entrySet()) {
             Node n = e.getKey();
-            /* Write bounding box */
-            nodesBuffer.putFloat(n.boundingBox.min.x).putFloat(n.boundingBox.min.y).putFloat(n.boundingBox.min.z)
-                    .putFloat(1.0f);
-            nodesBuffer.putFloat(n.boundingBox.max.x).putFloat(n.boundingBox.max.y).putFloat(n.boundingBox.max.z);
-            /* Write split dimension and split coordinate */
-            nodesBuffer.putInt(n.splitAxis.dim);
-            nodesBuffer.putFloat(n.splitPlane);
+            GPUNode gn = new GPUNode();
+            gn.min = n.boundingBox.min;
+            gn.max = n.boundingBox.max;
+            gn.dim = n.splitAxis.dim;
+            gn.plane = n.splitPlane;
+            gn.ropes = new int[6];
             /* Write ropes */
             for (int i = 0; i < 6; i++) {
                 Node r = n.ropes[i];
                 if (r != null) {
-                    nodesBuffer.putInt(indexes.get(r));
+                    gn.ropes[i] = indexes.get(r);
                 } else {
-                    nodesBuffer.putInt(-1); // no neighbor
+                    gn.ropes[i] = -1; // no neighbor
                 }
             }
             if (n.isLeafNode()) {
-                nodesBuffer.putInt(-1); // no left child
-                nodesBuffer.putInt(-1); // no right child
-                nodesBuffer.putInt(triangleIndex);
-                nodesBuffer.putInt(n.triangles.size());
+                gn.left = -1; // no left child
+                gn.right = -1; // no right child
+                gn.firstTri = triangleIndex;
+                gn.numTris = n.triangles.size();
                 triangleIndex += n.triangles.size();
                 /* Write triangles to buffer */
                 for (int i = 0; i < n.triangles.size(); i++) {
@@ -268,13 +282,15 @@ public class DemoSsboTrianglesStacklessKdTree {
                     trianglesBuffer.putFloat(t.v2.x).putFloat(t.v2.y).putFloat(t.v2.z).putFloat(1.0f);
                 }
             } else {
-                nodesBuffer.putInt(indexes.get(n.left));
-                nodesBuffer.putInt(indexes.get(n.right));
-                nodesBuffer.putInt(0); // no triangles
-                nodesBuffer.putInt(0); // no triangles
+                gn.left = indexes.get(n.left);
+                gn.right = indexes.get(n.right);
+                gn.firstTri = 0; // no triangles
+                gn.numTris = 0; // no triangles
             }
-            nodesBuffer.putInt(0); // padding to reach vec4 alignment
+            gpuNodes.add(gn);
         }
+        // Write GPUNode list to ByteBuffer in std430 layout
+        Std430Writer.write(gpuNodes, GPUNode.class, nodesBuffer);
     }
 
     static void allocate(Node node, Map<Node, Integer> indexes) {
