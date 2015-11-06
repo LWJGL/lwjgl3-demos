@@ -70,7 +70,6 @@ public class ShadowMappingDemo20 {
 	int samplerLocation;
 
 	ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
-	FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 
 	Matrix4f light = new Matrix4f();
 	Matrix4f camera = new Matrix4f();
@@ -303,7 +302,7 @@ public class ShadowMappingDemo20 {
 		glUseProgram(shadowProgram);
 
 		/* Set MVP matrix of the "light camera" */
-		matrixUniform(shadowProgramVPUniform, light, false);
+		glUniformMatrix4fv(shadowProgramVPUniform, 1, false, light.get(matrixByteBuffer));
 
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		glViewport(0, 0, shadowMapSize, shadowMapSize);
@@ -323,11 +322,11 @@ public class ShadowMappingDemo20 {
 		glUseProgram(normalProgram);
 
 		/* Set MVP matrix of camera */
-		matrixUniform(normalProgramVPUniform, camera, false);
+		glUniformMatrix4fv(normalProgramVPUniform, 1, false, camera.get(matrixByteBuffer));
 		/* Set MVP matrix that was used when doing the light-render */
-		matrixUniform(normalProgramLVPUniform, light, false);
+		glUniformMatrix4fv(normalProgramLVPUniform, 1, false, light.get(matrixByteBuffer));
 		/* The bias-matrix used to convert to NDC coordinates */
-		matrixUniform(normalProgramBiasUniform, biasMatrix, false);
+		glUniformMatrix4fv(normalProgramBiasUniform, 1, false, biasMatrix.get(matrixByteBuffer));
 		/* Light position and lookat for normal lambertian computation */
 		glUniform3f(normalProgramLightPosition, lightPosition.x, lightPosition.y, lightPosition.z);
 		glUniform3f(normalProgramLightLookAt, lightLookAt.x, lightLookAt.y, lightLookAt.z);
@@ -340,11 +339,6 @@ public class ShadowMappingDemo20 {
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glUseProgram(0);
-	}
-
-	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
-		value.get(matrixByteBufferFloatView);
-		glUniformMatrix4fv(location, 1, transpose, matrixByteBuffer);
 	}
 
 	void loop() {

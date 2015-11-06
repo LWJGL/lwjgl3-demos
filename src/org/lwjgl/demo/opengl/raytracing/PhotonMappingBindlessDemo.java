@@ -127,7 +127,6 @@ public class PhotonMappingBindlessDemo {
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
-	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 	private Vector3f lightCenterPosition = new Vector3f(2.5f, 1.4f, 3);
 	private ByteBuffer clearTexBuffer = BufferUtils.createByteBuffer(4);
 
@@ -631,24 +630,6 @@ public class PhotonMappingBindlessDemo {
 	}
 
 	/**
-	 * Set the given {@link Matrix4f matrix} as a 4x4 uniform in the active
-	 * shader.
-	 * 
-	 * @param location
-	 *            the uniform location of the mat4 uniform
-	 * @param value
-	 *            the {@link Matrix4f matrix} to set
-	 * @param transpose
-	 *            whether the matrix should be transposed (automatic row-major
-	 *            to column-major transposition is done automatically on top of
-	 *            that)
-	 */
-	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
-		value.get(matrixByteBufferFloatView);
-		glUniformMatrix4fv(location, 1, transpose, matrixByteBuffer);
-	}
-
-	/**
 	 * Trace some rays from the light.
 	 */
 	private void trace() {
@@ -697,8 +678,8 @@ public class PhotonMappingBindlessDemo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		matrixUniform(viewMatrixUniform, viewMatrix, false);
-		matrixUniform(projectionMatrixUniform, projMatrix, false);
+		glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
 
 		glBindVertexArray(vaoScene);
 		glBindBufferBase(GL_UNIFORM_BUFFER, samplersUboBinding, samplersUbo);

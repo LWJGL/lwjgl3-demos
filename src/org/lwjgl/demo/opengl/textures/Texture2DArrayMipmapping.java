@@ -40,7 +40,6 @@ public class Texture2DArrayMipmapping {
 
 	private Matrix4f viewProjMatrix = new Matrix4f();
 	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
-	private FloatBuffer matrixByteBufferFloatView = matrixByteBuffer.asFloatBuffer();
 
 	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
@@ -217,24 +216,6 @@ public class Texture2DArrayMipmapping {
 		glUseProgram(0);
 	}
 
-	/**
-	 * Set the given {@link Matrix4f matrix} as a 4x4 uniform in the active
-	 * shader.
-	 * 
-	 * @param location
-	 *			the uniform location of the mat4 uniform
-	 * @param value
-	 *			the {@link Matrix4f matrix} to set
-	 * @param transpose
-	 *			whether the matrix should be transposed (automatic row-major
-	 *			to column-major transposition is done automatically on top of
-	 *			that)
-	 */
-	private void matrixUniform(int location, Matrix4f value, boolean transpose) {
-		value.get(matrixByteBufferFloatView);
-		glUniformMatrix4fv(location, 1, transpose, matrixByteBuffer);
-	}
-
 	private void update() {
 		viewProjMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f)
 			  .lookAt(0.0f, 1.0f, 5.0f,
@@ -245,7 +226,7 @@ public class Texture2DArrayMipmapping {
 	private void render() {
 		glUseProgram(this.program);
 
-		matrixUniform(viewProjMatrixUniform, viewProjMatrix, false);
+		glUniformMatrix4fv(viewProjMatrixUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
 
 		glBindVertexArray(vao);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
