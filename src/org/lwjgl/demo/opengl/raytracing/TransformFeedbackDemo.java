@@ -36,20 +36,21 @@ import static org.lwjgl.system.MathUtil.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * This demo uses transform feedback to first store the view-space positions and normals of the vertices in a buffer object.
+ * This demo uses transform feedback to first store the view-space positions and normals of the vertices in a buffer
+ * object.
  * <p>
  * Afterwards, the triangles in this buffer are intersected with eye rays in a simple compute shader.
  * <p>
- * This demo differs from all other raytracing demos in that the scene SSBO for the compute shader is generated "dynamically"
- * via transform feedback. This allows for dynamic scenes with possible model transformations.
+ * This demo differs from all other raytracing demos in that the scene SSBO for the compute shader is generated
+ * "dynamically" via transform feedback. This allows for dynamic scenes with possible model transformations.
  * 
  * @author Kai Burjack
  */
 public class TransformFeedbackDemo {
 
     long window;
-    int width = 1024;
-    int height = 768;
+    int width = 800;
+    int height = 600;
     boolean resetFramebuffer = true;
 
     int raytraceTexture;
@@ -85,7 +86,7 @@ public class TransformFeedbackDemo {
     float elapsedTime = 0.0f;
     long lastTime;
 
-    float cameraRadius = 5.0f;
+    float cameraRadius = 9.0f;
     Matrix4f modelMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f viewMatrix = new Matrix4f();
@@ -233,7 +234,7 @@ public class TransformFeedbackDemo {
     void createSceneSSBO() {
         this.ssbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, ssbo);
-        glBufferData(GL_ARRAY_BUFFER, 4 * (4 + 4) * mesh.numVertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, 4 * (4 + 4) * mesh.numVertices * 2, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -283,7 +284,7 @@ public class TransformFeedbackDemo {
     }
 
     /**
-     * Create the full-scren quad shader.
+     * Create the full-screen quad shader.
      *
      * @throws IOException
      */
@@ -313,7 +314,7 @@ public class TransformFeedbackDemo {
     }
 
     /**
-     * Create the raster shader.
+     * Create the program used for transform feedback.
      *
      * @throws IOException
      */
@@ -441,19 +442,14 @@ public class TransformFeedbackDemo {
         }
 
         /* Rotate camera about Y axis. */
-        cameraPosition.set((float) sin(-currRotationAboutY) * cameraRadius, 0.0f,
-                (float) cos(-currRotationAboutY) * cameraRadius);
+        cameraPosition.set((float) sin(-currRotationAboutY) * cameraRadius, 0.0f, (float) cos(-currRotationAboutY)
+                * cameraRadius);
         projMatrix.setPerspective((float) Math.toRadians(30.0f), (float) width / height, 0.01f, 100.0f);
         projMatrix.invert(invProjMatrix);
         viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
-        /* Perform model transformation */
         long thisTime = System.nanoTime();
-        float delta = (thisTime - lastTime) / 1E9f;
-        modelMatrix.setRotationXYZ(delta * 0.2f, delta, delta * 0.3f);
-
-        /* Compute normal matrix */
-        viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
+        elapsedTime = (thisTime - lastTime) / 1E9f;
 
         if (resetFramebuffer) {
             projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
@@ -464,21 +460,49 @@ public class TransformFeedbackDemo {
 
     /**
      * Transform the vertices and store them in a buffer object via transform feedback.
+     * <p>
+     * This method renders the sphere twice.
+     * Once a rotating sphere at the center.
+     * And another sphere orbiting the first sphere.
+     * <p>
+     * Actually, rendering two spheres with the same geometry should instead be
+     * accomplished by "instancing" in the compute shader and not by duplicating
+     * the geometry.
      */
     void transform() {
         glUseProgram(feedbackProgram);
 
-        /* Update matrices in shader */
-        glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+        /* Upload model-independent matrices */
         glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
         glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
-        glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
 
-        /* Transform the vertices and store them in a buffer object */
+        /* Bind buffer into which to transform the vertices */
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, this.ssbo);
         glBeginTransformFeedback(GL_TRIANGLES);
         glBindVertexArray(vaoScene);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
+        /* Draw first sphere in the center */
+        {
+            modelMatrix.identity().rotateY(elapsedTime);
+            /* Compute normal matrix */
+            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            /* Update matrices in shader */
+            glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+            glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+            glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
+        }
+        /* Draw second sphere orbiting the first. The second sphere also periodically scales along the Y axis */
+        {
+            modelMatrix.rotationY(elapsedTime)
+                       .translate(2.0f, 0.0f, 0.0f)
+                       .scale(0.2f)
+                       .scale(1.0f, (float) Math.abs(Math.sin(elapsedTime)), 1.0f);
+            /* Compute normal matrix */
+            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            /* Update matrices in shader */
+            glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+            glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+            glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
+        }
         glBindVertexArray(0);
         glEndTransformFeedback();
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
