@@ -320,10 +320,8 @@ public class TransformFeedbackDemo {
      */
     void createFeedbackProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/rasterFeedback.vs", GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/rasterFeedback.fs", GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/transformFeedback.vs", GL_VERTEX_SHADER);
         glAttachShader(program, vshader);
-        glAttachShader(program, fshader);
         glBindAttribLocation(program, 0, "vertexPosition");
         glBindAttribLocation(program, 1, "vertexNormal");
         glTransformFeedbackVaryings(program, new String[] { "viewPosition", "viewNormal" }, GL_INTERLEAVED_ATTRIBS);
@@ -442,7 +440,7 @@ public class TransformFeedbackDemo {
         }
 
         /* Rotate camera about Y axis. */
-        cameraPosition.set((float) sin(-currRotationAboutY) * cameraRadius, 0.0f, (float) cos(-currRotationAboutY)
+        cameraPosition.set((float) sin(-currRotationAboutY) * cameraRadius, 5.0f, (float) cos(-currRotationAboutY)
                 * cameraRadius);
         projMatrix.setPerspective((float) Math.toRadians(30.0f), (float) width / height, 0.01f, 100.0f);
         projMatrix.invert(invProjMatrix);
@@ -470,6 +468,7 @@ public class TransformFeedbackDemo {
      * the geometry.
      */
     void transform() {
+        glEnable(GL_RASTERIZER_DISCARD);
         glUseProgram(feedbackProgram);
 
         /* Upload model-independent matrices */
@@ -507,6 +506,7 @@ public class TransformFeedbackDemo {
         glEndTransformFeedback();
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
         glUseProgram(0);
+        glDisable(GL_RASTERIZER_DISCARD);
     }
 
     /**
