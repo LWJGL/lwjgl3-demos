@@ -87,6 +87,5 @@ void main(void) {
   vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
   dir = normalize(dir);
   vec4 color = trace(dir);
-  float len = float(triangles.length());
   imageStore(framebufferImage, pix, color);
 }

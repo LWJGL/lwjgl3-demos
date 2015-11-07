@@ -56,7 +56,7 @@ public class TransformFeedbackDemo {
     int fullScreenVao;
     int computeProgram;
     int quadProgram;
-    int rasterProgram;
+    int feedbackProgram;
     int vaoScene;
     int ssbo;
     int sampler;
@@ -216,13 +216,11 @@ public class TransformFeedbackDemo {
         createSceneSSBO();
         createSceneVao();
         createFeedbackProgram();
-        initFeedbackProgram();
         createComputeProgram();
         initComputeProgram();
         if (!caps.GL_NV_draw_texture) {
             createFullScreenVao();
             createQuadProgram();
-            initQuadProgram();
         }
 
         lastTime = System.nanoTime();
@@ -307,6 +305,11 @@ public class TransformFeedbackDemo {
             throw new AssertionError("Could not link program");
         }
         this.quadProgram = program;
+
+        glUseProgram(quadProgram);
+        int texUniform = glGetUniformLocation(quadProgram, "tex");
+        glUniform1i(texUniform, 0);
+        glUseProgram(0);
     }
 
     /**
@@ -332,7 +335,14 @@ public class TransformFeedbackDemo {
         if (linked == 0) {
             throw new AssertionError("Could not link program");
         }
-        this.rasterProgram = program;
+        this.feedbackProgram = program;
+
+        glUseProgram(feedbackProgram);
+        modelMatrixUniform = glGetUniformLocation(feedbackProgram, "modelMatrix");
+        viewMatrixUniform = glGetUniformLocation(feedbackProgram, "viewMatrix");
+        projectionMatrixUniform = glGetUniformLocation(feedbackProgram, "projectionMatrix");
+        normalMatrixUniform = glGetUniformLocation(feedbackProgram, "normalMatrix");
+        glUseProgram(0);
     }
 
     /**
@@ -360,28 +370,6 @@ public class TransformFeedbackDemo {
             throw new AssertionError("Could not link program");
         }
         this.computeProgram = program;
-    }
-
-    /**
-     * Initialize the full-screen-quad program.
-     */
-    void initQuadProgram() {
-        glUseProgram(quadProgram);
-        int texUniform = glGetUniformLocation(quadProgram, "tex");
-        glUniform1i(texUniform, 0);
-        glUseProgram(0);
-    }
-
-    /**
-     * Initialize the raster program.
-     */
-    void initFeedbackProgram() {
-        glUseProgram(rasterProgram);
-        modelMatrixUniform = glGetUniformLocation(rasterProgram, "modelMatrix");
-        viewMatrixUniform = glGetUniformLocation(rasterProgram, "viewMatrix");
-        projectionMatrixUniform = glGetUniformLocation(rasterProgram, "projectionMatrix");
-        normalMatrixUniform = glGetUniformLocation(rasterProgram, "normalMatrix");
-        glUseProgram(0);
     }
 
     /**
@@ -458,12 +446,14 @@ public class TransformFeedbackDemo {
         projMatrix.setPerspective((float) Math.toRadians(30.0f), (float) width / height, 0.01f, 100.0f);
         projMatrix.invert(invProjMatrix);
         viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
-        viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
 
         /* Perform model transformation */
         long thisTime = System.nanoTime();
         float delta = (thisTime - lastTime) / 1E9f;
         modelMatrix.setRotationXYZ(delta * 0.2f, delta, delta * 0.3f);
+
+        /* Compute normal matrix */
+        viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
 
         if (resetFramebuffer) {
             projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
@@ -475,8 +465,8 @@ public class TransformFeedbackDemo {
     /**
      * Transform the vertices and store them in a buffer object via transform feedback.
      */
-    void raster() {
-        glUseProgram(rasterProgram);
+    void transform() {
+        glUseProgram(feedbackProgram);
 
         /* Update matrices in shader */
         glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
@@ -484,7 +474,7 @@ public class TransformFeedbackDemo {
         glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
         glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
 
-        /* Rasterize the boxes into the FBO */
+        /* Transform the vertices and store them in a buffer object */
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, this.ssbo);
         glBeginTransformFeedback(GL_TRIANGLES);
         glBindVertexArray(vaoScene);
@@ -567,7 +557,7 @@ public class TransformFeedbackDemo {
             glViewport(0, 0, width, height);
 
             update();
-            raster();
+            transform();
             trace();
             present();
 
