@@ -59,7 +59,7 @@ bool intersectTriangles(vec3 dir, inout hitinfo info) {
     if (t >= 0.0 && t < info.t) {
       info.t = t;
       // Interpolate using barycentric coordinates
-      info.n = (1.0 - tinfo.u - tinfo.v) * tri.n0 + tinfo.u * tri.n1 + tinfo.v * tri.n2;
+      info.n = normalize((1.0 - tinfo.u - tinfo.v) * tri.n0 + tinfo.u * tri.n1 + tinfo.v * tri.n2);
       found = true;
     }
   }

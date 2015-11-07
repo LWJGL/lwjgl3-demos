@@ -225,15 +225,12 @@ public class TransformFeedbackDemo {
             initQuadProgram();
         }
 
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        
         lastTime = System.nanoTime();
     }
 
     /**
      * Create a Shader Storage Buffer Object into which Transform Feedback will write the view-space position and
-     * normals of the rasterized scene.
+     * normals of the scene.
      */
     void createSceneSSBO() {
         this.ssbo = glGenBuffers();
@@ -413,7 +410,7 @@ public class TransformFeedbackDemo {
         glGetProgramResourceiv(computeProgram, GL_SHADER_STORAGE_BLOCK, boxesResourceIndex, props, null, params);
         trianglesSsboBinding = params.get(0);
 
-        /* Query the "image binding point" of the image uniforms */
+        /* Query the "image binding point" of the framebuffer image */
         int loc = glGetUniformLocation(computeProgram, "framebufferImage");
         glGetUniformiv(computeProgram, loc, params);
         framebufferImageBinding = params.get(0);
@@ -476,10 +473,9 @@ public class TransformFeedbackDemo {
     }
 
     /**
-     * Rasterize the scene and write depth and position data into framebuffer textures.
+     * Transform the vertices and store them in a buffer object via transform feedback.
      */
     void raster() {
-        glEnable(GL_DEPTH_TEST);
         glUseProgram(rasterProgram);
 
         /* Update matrices in shader */
@@ -543,7 +539,6 @@ public class TransformFeedbackDemo {
      * Present the final image on the screen/viewport.
      */
     void present() {
-        glDisable(GL_DEPTH_TEST);
         if (caps.GL_NV_draw_texture) {
             /*
              * Use some fancy NV extension to draw a screen-aligned textured quad without needing a VAO/VBO or a shader.
