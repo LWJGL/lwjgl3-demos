@@ -43,6 +43,17 @@ import static org.lwjgl.system.MemoryUtil.*;
  * <p>
  * This demo differs from all other raytracing demos in that the scene SSBO for the compute shader is generated
  * "dynamically" via transform feedback. This allows for dynamic scenes with possible model transformations.
+ * <p>
+ * Using transform feedback to generate the scene information for ray tracing also allows for a geometry shader
+ * to introduce or discard primitives and furthermore allows for tessellation control and evaluation shaders
+ * to additionally alter the geometry. This fits a hybrid rendering approach where these additional shader
+ * stages are being used for rasterization.
+ * <p>
+ * This demo does not use any acceleration structure such as a binary space partitioning or
+ * bounding volume hierarchy but the compute shader instead tests each ray against all triangles.
+ * There are algorithms for building such acceleration structures on the GPU at runtime achieving 
+ * interactive frame rates, such as
+ * <a href="http://research.microsoft.com/pubs/70568/tr-2008-52.pdf">Real-Time KD-Tree Construction on Graphics Hardware</a>.
  * 
  * @author Kai Burjack
  */
