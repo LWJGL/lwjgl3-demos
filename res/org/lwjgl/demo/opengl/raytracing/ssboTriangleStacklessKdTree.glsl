@@ -166,7 +166,10 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
       }
     }
     if (intersectTriangles(origin, dir, n, info)) {
+      vec3 hit = origin + dir * info.t;
       info.bounds.y = info.t;
+      if (all(lessThanEqual(n.min, hit)) && all(lessThanEqual(hit, n.max)))
+        break;
     }
     float exit = exitCube(origin, dir, n.min, n.max);
     info.bounds.x = exit;
