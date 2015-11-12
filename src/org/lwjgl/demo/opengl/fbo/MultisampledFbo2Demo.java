@@ -110,7 +110,7 @@ public class MultisampledFbo2Demo {
 		});
 
 		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowPos(window, (vidmode.getWidth() - width) / 2, (vidmode.getHeight() - height) / 2);
+		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
 		glfwShowWindow(window);
 
 		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
