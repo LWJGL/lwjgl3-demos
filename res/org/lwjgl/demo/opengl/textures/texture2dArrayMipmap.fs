@@ -1,5 +1,5 @@
-#version 330 core
-#extension GL_EXT_texture_array : enable
+#version 130 core
+#extension GL_EXT_texture_array : require
 
 in vec2 texcoord;
 

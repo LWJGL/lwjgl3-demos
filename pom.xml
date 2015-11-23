@@ -6,9 +6,11 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<lwjgl.version>3.0.0b-SNAPSHOT</lwjgl.version>
+		<swt.version>4.4</swt.version>
 	</properties>
 	<profiles>
 		<profile>
+			<id>windows</id>
 			<activation>
 				<os>
 					<family>Windows</family>
@@ -24,6 +26,39 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>windows-x86</id>
+			<activation>
+				<os>
+					<family>Windows</family>
+					<arch>x86</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.eclipse.swt</groupId>
+					<artifactId>org.eclipse.swt.win32.win32.x86</artifactId>
+					<version>${swt.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>windows-amd64</id>
+			<activation>
+				<os>
+					<family>Windows</family>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.eclipse.swt</groupId>
+					<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
+					<version>${swt.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>linux</id>
 			<activation>
 				<os>
 					<family>Linux</family>
@@ -39,6 +74,7 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>mac</id>
 			<activation>
 				<os>
 					<family>Mac</family>
@@ -79,6 +115,10 @@
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
+		</repository>
+		<repository>
+			<id>swt-repo</id>
+			<url>https://swt-repo.googlecode.com/svn/repo/</url>
 		</repository>
 	</repositories>
 	<dependencies>
