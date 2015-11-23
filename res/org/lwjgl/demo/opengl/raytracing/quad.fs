@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#if defined(GL_core_profile) && !defined(OLD_VERSION)
+#if __VERSION__ >= 130
   #define varying in
   #define texture2D texture
 
