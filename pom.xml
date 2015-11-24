@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<lwjgl.version>3.0.0b-SNAPSHOT</lwjgl.version>
-		<swt.version>4.4</swt.version>
+		<swt.version>4.5.1</swt.version>
 	</properties>
 	<profiles>
 		<profile>
@@ -118,7 +118,7 @@
 		</repository>
 		<repository>
 			<id>swt-repo</id>
-			<url>https://swt-repo.googlecode.com/svn/repo/</url>
+			<url>http://maven-eclipse.github.io/maven</url>
 		</repository>
 	</repositories>
 	<dependencies>
