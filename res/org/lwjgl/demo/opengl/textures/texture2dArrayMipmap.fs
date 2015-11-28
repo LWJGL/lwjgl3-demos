@@ -1,4 +1,4 @@
-#version 130 core
+#version 130
 #extension GL_EXT_texture_array : require
 
 in vec2 texcoord;
