@@ -5,7 +5,7 @@
 	<artifactId>lwjgl3-demos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
-		<lwjgl.version>3.0.0b-SNAPSHOT</lwjgl.version>
+		<lwjgl.version>3.0.0b</lwjgl.version>
 		<swt.version>4.5.1</swt.version>
 	</properties>
 	<profiles>
@@ -74,6 +74,38 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>linux-x86</id>
+			<activation>
+				<os>
+					<family>Linux</family>
+					<arch>x86</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.eclipse.swt</groupId>
+					<artifactId>org.eclipse.swt.gtk.linux.x86</artifactId>
+					<version>${swt.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>linux-amd64</id>
+			<activation>
+				<os>
+					<family>Linux</family>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.eclipse.swt</groupId>
+					<artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+					<version>${swt.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
 			<id>mac</id>
 			<activation>
 				<os>
@@ -86,6 +118,11 @@
 					<artifactId>lwjgl-platform</artifactId>
 					<version>${lwjgl.version}</version>
 					<classifier>natives-osx</classifier>
+				</dependency>
+				<dependency>
+					<groupId>org.eclipse.swt</groupId>
+					<artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
+					<version>${swt.version}</version>
 				</dependency>
 			</dependencies>
 		</profile>
