@@ -23,7 +23,6 @@ public class SimpleProceduralTextureDemo {
     long window;
     int width = 1024;
     int height = 768;
-    int tex;
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -81,12 +80,8 @@ public class SimpleProceduralTextureDemo {
 
         /* Set state and create all needed GL resources */
         glEnable(GL_TEXTURE_2D);
-        createTexture();
-    }
-
-    private void createTexture() {
-        this.tex = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, this.tex);
+        int tex = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 4, 4, 0, GL_RGB, GL_UNSIGNED_BYTE, (IntBuffer) null);
@@ -101,24 +96,22 @@ public class SimpleProceduralTextureDemo {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 4, GL_RGBA, GL_UNSIGNED_BYTE, bb);
     }
 
-    private void render() {
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex2f(-1.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex2f(1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex2f(1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex2f(-1.0f, 1.0f);
-        glEnd();
-    }
-
     private void loop() {
         while (glfwWindowShouldClose(window) == GL_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
-            render();
+
+            glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex2f(-1.0f, -1.0f);
+            glTexCoord2f(1.0f, 0.0f);
+            glVertex2f(1.0f, -1.0f);
+            glTexCoord2f(1.0f, 1.0f);
+            glVertex2f(1.0f, 1.0f);
+            glTexCoord2f(0.0f, 1.0f);
+            glVertex2f(-1.0f, 1.0f);
+            glEnd();
+
             glfwSwapBuffers(window);
         }
     }
