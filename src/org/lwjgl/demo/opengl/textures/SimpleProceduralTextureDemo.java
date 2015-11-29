@@ -12,13 +12,10 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.ARBVertexBufferObject.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class SimpleProceduralTextureDemo {
@@ -72,7 +69,6 @@ public class SimpleProceduralTextureDemo {
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(0);
         glfwShowWindow(window);
 
         IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
@@ -86,7 +82,6 @@ public class SimpleProceduralTextureDemo {
         /* Set state and create all needed GL resources */
         glEnable(GL_TEXTURE_2D);
         createTexture();
-        createVbo();
     }
 
     private void createTexture() {
@@ -96,7 +91,7 @@ public class SimpleProceduralTextureDemo {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 4, 4, 0, GL_RGB, GL_UNSIGNED_BYTE, (IntBuffer) null);
         glBindTexture(GL_TEXTURE_2D, tex);
-        IntBuffer bb = BufferUtils.createIntBuffer(16);
+        IntBuffer bb = BufferUtils.createIntBuffer(4 * 4);
         bb.put(new int[] {
                 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
                 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -106,26 +101,17 @@ public class SimpleProceduralTextureDemo {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 4, GL_RGBA, GL_UNSIGNED_BYTE, bb);
     }
 
-    private void createVbo() {
-        int vbo = glGenBuffersARB();
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * (2 + 2) * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f).put(0.0f).put(0.0f);
-        fv.put( 1.0f).put(-1.0f).put(1.0f).put(0.0f);
-        fv.put( 1.0f).put( 1.0f).put(1.0f).put(1.0f);
-        fv.put( 1.0f).put( 1.0f).put(1.0f).put(1.0f);
-        fv.put(-1.0f).put( 1.0f).put(0.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f).put(0.0f).put(0.0f);
-        glBufferDataARB(GL_ARRAY_BUFFER_ARB, bb, GL_STATIC_DRAW_ARB);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(2, GL_FLOAT, 4 * 4, 0L);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glTexCoordPointer(2, GL_FLOAT, 4 * 4, 2 * 4);
-    }
-
     private void render() {
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex2f(-1.0f, -1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex2f(1.0f, -1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex2f(1.0f, 1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex2f(-1.0f, 1.0f);
+        glEnd();
     }
 
     private void loop() {
