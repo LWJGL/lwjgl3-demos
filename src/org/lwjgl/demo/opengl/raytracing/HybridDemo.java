@@ -40,7 +40,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * <p>
  * The benefit of doing it this way is to use the rasterizer to rasterize the
  * depth/view position and normal information of a potentially complex model
- * first, storing it in a A-buffer. This essentially saves us one bounce of path
+ * first, storing it in a G-buffer. This essentially saves us one bounce of path
  * tracing for the first hit of the eye ray into the scene.
  * <p>
  * From there on we can use the ray tracer again and compute shadow rays and
