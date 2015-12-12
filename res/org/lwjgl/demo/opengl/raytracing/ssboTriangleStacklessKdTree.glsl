@@ -182,7 +182,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
     if (statistics.y++ > MAX_ROPES) {
       // Abort! Followed too many ropes!
       // Might be a bug in the implementation.
-      return vec4(0.0, 0.0, 1.0, 1.0);
+      return vec4(0.0, 1.0, 1.0, 1.0);
     }
   }
   if (info.t == LARGE_FLOAT)

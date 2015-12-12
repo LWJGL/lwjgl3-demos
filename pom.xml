@@ -7,6 +7,7 @@
 	<properties>
 		<lwjgl.version>3.0.0-SNAPSHOT</lwjgl.version>
 		<swt.version>4.5.1</swt.version>
+		<joml.version>1.6.7-SNAPSHOT</joml.version>
 	</properties>
 	<profiles>
 		<profile>
@@ -162,7 +163,7 @@
 		<dependency>
 			<groupId>org.joml</groupId>
 			<artifactId>joml-mini</artifactId>
-			<version>1.6.7-SNAPSHOT</version>
+			<version>${joml.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>

@@ -119,7 +119,7 @@ public class KDTree {
     }
 
     private static int Vector3f_maxDimension(Vector3f v) {
-        if (Math.abs(v.x) >= Math.abs(v.y) && Math.abs(v.y) >= Math.abs(v.z)) {
+        if (Math.abs(v.x) >= Math.abs(v.y) && Math.abs(v.x) >= Math.abs(v.z)) {
             return 0;
         } else if (Math.abs(v.y) >= Math.abs(v.z)) {
             return 1;
