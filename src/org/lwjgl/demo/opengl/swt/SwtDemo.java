@@ -31,7 +31,7 @@ public class SwtDemo {
 		shell.setLayout(new FillLayout());
 		shell.addKeyListener(new KeyAdapter() {
 			public void keyPressed(KeyEvent e) {
-				if (e.stateMask == SWT.ALT && e.keyCode == 13) {
+				if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
 					shell.setFullScreen(!shell.getFullScreen());
 				}
 			}
@@ -51,7 +51,6 @@ public class SwtDemo {
 				Rectangle bounds = canvas.getBounds();
 				rect.width = bounds.width;
 				rect.height = bounds.height;
-				glViewport(0, 0, bounds.width, bounds.height);
 			}
 		});
 		shell.addListener(SWT.Traverse, new Listener() {
@@ -130,6 +129,7 @@ public class SwtDemo {
 				if (!canvas.isDisposed()) {
 					canvas.setCurrent();
 					glClear(GL_COLOR_BUFFER_BIT);
+					glViewport(0, 0, rect.width, rect.height);
 
 					float aspect = (float) rect.width / rect.height;
 					glUniform1f(aspectLocation, aspect);
