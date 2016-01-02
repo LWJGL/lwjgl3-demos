@@ -7,7 +7,7 @@
 	<properties>
 		<lwjgl.version>3.0.0-SNAPSHOT</lwjgl.version>
 		<swt.version>4.5.1</swt.version>
-		<joml.version>1.6.7-SNAPSHOT</joml.version>
+		<joml.version>1.6.8-SNAPSHOT</joml.version>
 	</properties>
 	<profiles>
 		<profile>
