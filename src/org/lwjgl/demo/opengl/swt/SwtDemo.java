@@ -21,6 +21,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.swt.SwtHelperWin32;
+import org.lwjgl.system.Platform;
 
 public class SwtDemo {
 	public static void main(String[] args) {
@@ -29,13 +31,18 @@ public class SwtDemo {
 		final Display display = new Display();
 		final Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
-		shell.addKeyListener(new KeyAdapter() {
-			public void keyPressed(KeyEvent e) {
-				if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
-					shell.setFullScreen(!shell.getFullScreen());
-				}
-			}
-		});
+        shell.addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent e) {
+                if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
+                    if (Platform.get() == Platform.WINDOWS) {
+                        // Fix SWT not removing the window borders on Windows
+                        SwtHelperWin32.properFullscreen(shell);
+                    } else {
+                        shell.setFullScreen(!shell.getFullScreen());
+                    }
+                }
+            }
+        });
 		int dw = shell.getSize().x - shell.getClientArea().width;
 		int dh = shell.getSize().y - shell.getClientArea().height;
 		shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
