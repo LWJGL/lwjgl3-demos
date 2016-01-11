@@ -21,7 +21,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.swt.SwtHelperWin32;
 import org.lwjgl.system.Platform;
 
 public class SwtDemo {
