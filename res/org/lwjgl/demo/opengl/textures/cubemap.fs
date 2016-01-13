@@ -9,7 +9,16 @@ varying vec3 dir;
 #define blackholePosition vec3(0.0, 0.0, 0.0)
 #define blackholeSize 4.0
 #define blackholeStrength 4.0
-#define blackholeHorizonSharpness 6.0
+#define blackholeHorizonSharpness 4
+
+float interpolate(float edge0, float edge1, float x) {
+  int i;
+  float c = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  for (i = 0; i < blackholeHorizonSharpness; i++) {
+    c = c * c * (3.0 - 2.0 * c); // <- smoothstep
+  }
+  return c;
+}
 
 vec4 distortion(void) {
   vec3 ndir = normalize(dir);
@@ -20,8 +29,7 @@ vec4 distortion(void) {
   // Compute a mix/blend factor for how much the light will be visible.
   // It will not be visible when it is too close to the black hole.
   // We do this using a simple smoothstep falloff, which we then harden with pow().
-  float val = smoothstep(0.0, blackholeSize, distance);
-  val = pow(val, blackholeHorizonSharpness); // <- harder edge than smoothstep
+  float val = interpolate(0.0, blackholeSize, distance);
 
   // Compute direction of shortest vector between ray(cam, dir) and blackhole.
   // This will be our distortion vector.
