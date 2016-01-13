@@ -11,7 +11,7 @@ const float blackholeSize = 2.0;
 
 vec4 distortion(void) {
   vec3 ndir = normalize(dir);
-  vec3 perp = cross(ndir, blackhole - cameraPosition);
+  vec3 perp = cross(ndir, cameraPosition - blackhole);
   float distance = length(perp);
   float val = smoothstep(0.0, blackholeSize, distance);
   val = pow(val, 4.0); // <- harder edge than smoothstep
