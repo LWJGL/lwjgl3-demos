@@ -24,7 +24,7 @@ vec4 distortion(void) {
   // Compute direction of shortest vector between ray(cam, dir) and blackhole.
   // This will be our distortion vector.
   // This vector always point from the blackhole to the direction to the 'dir' ray.
-  vec3 perp = normalize(cameraPosition + dot(blackhole - cameraPosition, ndir) * ndir);
+  vec3 perp = normalize(cameraPosition + dot(blackhole - cameraPosition, ndir) * ndir - blackhole);
   // Since we want the distortion to increase towards the black hole center, we need to 
   // multiply with 'val', but invert val's interval because it is bigger when the distance
   // increases.
