@@ -68,7 +68,7 @@ public class FullscreenCubemapDemo {
             @Override
             public void invoke(int error, long description) {
                 if (error == GLFW_VERSION_UNAVAILABLE)
-                    System.err.println("This demo requires OpenGL 3.0 or higher.");
+                    System.err.println("This demo requires OpenGL 2.0 or higher.");
                 delegate.invoke(error, description);
             }
 
@@ -88,7 +88,7 @@ public class FullscreenCubemapDemo {
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-        window = glfwCreateWindow(width, height, "Mipmapping with 2D array textures", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Cubemap texture sampling", NULL, NULL);
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
