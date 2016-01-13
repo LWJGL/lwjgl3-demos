@@ -8,6 +8,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.ARBSeamlessCubeMap;
+import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
@@ -179,6 +180,10 @@ public class FullscreenCubemapDemo {
         IntBuffer comp = BufferUtils.createIntBuffer(1);
         String[] names = { "right", "left", "top", "bottom", "front", "back" };
         ByteBuffer image;
+        if (caps.GL_EXT_texture_filter_anisotropic) {
+            float maxAnisotropy = glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            glTexParameterf(GL_TEXTURE_CUBE_MAP, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+        }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_GENERATE_MIPMAP, GL_TRUE);
         for (int i = 0; i < 6; i++) {
             imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/opengl/textures/space_" + names[i] + (i+1) + ".jpg", 8 * 1024);
