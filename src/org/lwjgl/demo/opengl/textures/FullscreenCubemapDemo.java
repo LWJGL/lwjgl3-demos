@@ -31,7 +31,7 @@ import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * Loads and displays a simple starfield cubemap.
+ * Loads and displays a simple starfield cubemap as well as a "black hole."
  * <p>
  * The starfield was generated with <a href="http://alexcpeterson.com/spacescape/">Spacescape</a>.
  * 
@@ -124,11 +124,11 @@ public class FullscreenCubemapDemo {
 
         /* Create all needed GL resources */
         createTexture();
-        quadFullScreenVbo();
-        createQuadProgram();
+        createFullScreenVbo();
+        createProgram();
     }
 
-    void quadFullScreenVbo() {
+    void createFullScreenVbo() {
         this.vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
@@ -144,7 +144,7 @@ public class FullscreenCubemapDemo {
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
     }
 
-    void createQuadProgram() throws IOException {
+    void createProgram() throws IOException {
         int program = glCreateProgram();
         int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/textures/cubemap.vs", GL_VERTEX_SHADER);
         int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/textures/cubemap.fs", GL_FRAGMENT_SHADER);
@@ -223,7 +223,7 @@ public class FullscreenCubemapDemo {
         while (glfwWindowShouldClose(window) == GL_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT);
 
             update();
             render();
