@@ -28,7 +28,7 @@ vec4 distortion(void) {
 
   // Compute a mix/blend factor for how much the light will be visible.
   // It will not be visible when it is too close to the black hole.
-  // We do this using a simple smoothstep falloff, which we then harden with pow().
+  // We do this using a iterative smoothstep falloff.
   float val = interpolate(0.0, blackholeSize, distance);
 
   // Compute direction of shortest vector between ray(cam, dir) and blackhole.
