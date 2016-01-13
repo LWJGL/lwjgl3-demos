@@ -7,8 +7,8 @@ varying vec3 dir;
 
 // Could probably be uniforms
 #define blackholePosition vec3(0.0, 0.0, 0.0)
-#define blackholeSize 2.0
-#define blackholeStrength 2.0
+#define blackholeSize 4.0
+#define blackholeStrength 4.0
 #define blackholeHorizonSharpness 6.0
 
 vec4 distortion(void) {
