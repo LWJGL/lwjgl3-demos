@@ -45,7 +45,7 @@ public class FullscreenCubemapDemo {
     int width = 1024;
     int height = 768;
 
-    ByteBuffer vertices = BufferUtils.createByteBuffer(4 * 2 * 6);
+    ByteBuffer vertices;
     int invViewProjUniform;
     int cameraPositionUniform;
 
@@ -131,8 +131,8 @@ public class FullscreenCubemapDemo {
         if (!caps.GL_ARB_fragment_shader) {
             throw new AssertionError("This demo requires the ARB_fragment_shader extension.");
         }
-        if (!caps.GL_ARB_texture_cube_map) {
-            throw new AssertionError("This demo requires the ARB_texture_cube_map extension.");
+        if (!caps.GL_ARB_texture_cube_map && !caps.OpenGL13) {
+            throw new AssertionError("This demo requires the ARB_texture_cube_map extension or OpenGL 1.3.");
         }
 
         debugProc = GLUtil.setupDebugMessageCallback();
@@ -144,6 +144,7 @@ public class FullscreenCubemapDemo {
     }
 
     void createFullScreenQuad() {
+        vertices = BufferUtils.createByteBuffer(4 * 2 * 6);
         FloatBuffer fv = vertices.asFloatBuffer();
         fv.put(-1.0f).put(-1.0f);
         fv.put( 1.0f).put(-1.0f);
@@ -263,7 +264,6 @@ public class FullscreenCubemapDemo {
         while (glfwWindowShouldClose(window) == GL_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
-            glClear(GL_COLOR_BUFFER_BIT);
 
             update();
             render();
