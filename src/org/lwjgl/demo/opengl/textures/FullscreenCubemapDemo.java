@@ -231,6 +231,7 @@ public class FullscreenCubemapDemo {
             if (image == null)
                 throw new IOException("Failed to load image: " + stbi_failure_reason());
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + i, 0, GL_RGB8, w.get(0), h.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+            stbi_image_free(image);
         }
         if (caps.OpenGL32 || caps.GL_ARB_seamless_cube_map) {
             System.out.println("ARB_seamless_cube_map available: Will use seamless cubemap sampling.");
