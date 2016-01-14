@@ -22,7 +22,6 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
-import static org.lwjgl.demo.util.IOUtil.ioResourceToByteBuffer;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -45,9 +44,6 @@ public class FullscreenCubemapDemo {
     int width = 1024;
     int height = 768;
 
-    int tex;
-    int vbo;
-    int program;
     int invViewProjUniform;
     int cameraPositionUniform;
 
@@ -131,7 +127,7 @@ public class FullscreenCubemapDemo {
     }
 
     void createFullScreenVbo() {
-        this.vbo = glGenBuffers();
+        int vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
         FloatBuffer fv = bb.asFloatBuffer();
@@ -142,8 +138,8 @@ public class FullscreenCubemapDemo {
         fv.put(-1.0f).put( 1.0f);
         fv.put(-1.0f).put(-1.0f);
         glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(2, GL_FLOAT, 0, 0L);
     }
 
     void createProgram() throws IOException {
@@ -161,7 +157,6 @@ public class FullscreenCubemapDemo {
         if (linked == 0) {
             throw new AssertionError("Could not link program");
         }
-        this.program = program;
         glUseProgram(program);
         int texLocation = glGetUniformLocation(program, "tex");
         glUniform1i(texLocation, 0);
@@ -170,8 +165,8 @@ public class FullscreenCubemapDemo {
     }
 
     void createTexture() throws IOException {
-        this.tex = glGenTextures();
-        glBindTexture(GL_TEXTURE_CUBE_MAP, this.tex);
+        int tex = glGenTextures();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         ByteBuffer imageBuffer;
