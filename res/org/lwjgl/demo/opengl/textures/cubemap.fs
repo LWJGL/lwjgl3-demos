@@ -22,22 +22,21 @@ float interpolate(float edge0, float edge1, float x) {
 
 vec4 distortion(void) {
   vec3 ndir = normalize(dir);
-  // Compute the shortest distance between the ray(cam, dir) and the position of the black hole.
-  // This will determine how much we will bend the light.
-  float distance = length(cross(ndir, cameraPosition - blackholePosition));
+
+  // Compute the vector from the point on the ray(cam, dir) with the shortest
+  // distance to the blackhole and the blackhole itself.
+  vec3 perp = cameraPosition + dot(blackholePosition - cameraPosition, ndir) * ndir - blackholePosition;
+  float distance = length(perp);
+  perp /= distance; // <- normalize it
 
   // Compute a mix/blend factor for how much the light will be visible.
   // It will not be visible when it is too close to the black hole.
   // We do this using a iterative smoothstep falloff.
   float val = interpolate(0.0, blackholeSize, distance);
 
-  // Compute direction of shortest vector between ray(cam, dir) and blackhole.
-  // This will be our distortion vector.
-  // This vector always point from the blackhole to the direction to the 'dir' ray.
-  vec3 perp = normalize(cameraPosition + dot(blackholePosition - cameraPosition, ndir) * ndir - blackholePosition);
-  // Since we want the distortion to increase towards the black hole center, we need to 
-  // multiply with 'val', but invert val's interval because it is bigger when the distance
-  // increases.
+  // Since we want the distortion to increase towards the black hole center, we
+  // need to multiply with 'val', but invert val's interval because it is bigger
+  // when the distance increases.
   perp *= 1.0 - val;
 
   // Distort our direction vector using that perpendicular vector.
@@ -47,5 +46,7 @@ vec4 distortion(void) {
 
 void main(void) {
   vec4 dist = distortion();
-  gl_FragColor = textureCube(tex, dist.xyz) * dist.w;
+  vec4 col = textureCube(tex, dist.xyz) * dist.w;
+  float gamma = 1.0 / 1.5;
+  gl_FragColor = pow(col, vec4(gamma, gamma, gamma, 1.0));
 }
