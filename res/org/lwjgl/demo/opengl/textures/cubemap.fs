@@ -46,7 +46,5 @@ vec4 distortion(void) {
 
 void main(void) {
   vec4 dist = distortion();
-  vec4 col = textureCube(tex, dist.xyz) * dist.w;
-  float gamma = 1.0 / 1.5;
-  gl_FragColor = pow(col, vec4(gamma, gamma, gamma, 1.0));
+  gl_FragColor = textureCube(tex, dist.xyz) * dist.w;
 }
