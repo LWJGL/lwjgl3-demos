@@ -202,7 +202,6 @@ public class FullscreenCubemapDemo {
         int tex = glGenTextures();
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, tex);
         glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         ByteBuffer imageBuffer;
         IntBuffer w = BufferUtils.createIntBuffer(1);
         IntBuffer h = BufferUtils.createIntBuffer(1);
@@ -213,10 +212,16 @@ public class FullscreenCubemapDemo {
             float maxAnisotropy = glGetFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
             System.out.println("EXT_texture_filter_anisotropic available: Will use " + (int)maxAnisotropy + "x anisotropic filtering.");
             glTexParameterf(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+        } else {
+            System.err.println("EXT_texture_filter_anisotropic unavailable: Distorted light might look too blurry.");
         }
         if (caps.OpenGL14) {
             System.out.println("OpenGL 1.4 available: Will use automatic mipmap generation via GL_GENERATE_MIPMAP.");
+            glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL14.GL_GENERATE_MIPMAP, GL_TRUE);
+        } else {
+            System.err.println("OpenGL 1.4 unavailable: Aliasing effects might be visible (texture looks too crisp).");
+            glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
         for (int i = 0; i < 6; i++) {
             imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/opengl/textures/space_" + names[i] + (i+1) + ".jpg", 8 * 1024);
@@ -230,6 +235,8 @@ public class FullscreenCubemapDemo {
         if (caps.OpenGL32 || caps.GL_ARB_seamless_cube_map) {
             System.out.println("ARB_seamless_cube_map available: Will use seamless cubemap sampling.");
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+        } else {
+            System.err.println("ARB_seamless_cube_map unavailable: Cubemap might have seams.");
         }
     }
 
