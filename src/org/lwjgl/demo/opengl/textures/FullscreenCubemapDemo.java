@@ -7,12 +7,6 @@ package org.lwjgl.demo.opengl.textures;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.ARBFragmentShader;
-import org.lwjgl.opengl.ARBSeamlessCubeMap;
-import org.lwjgl.opengl.ARBShaderObjects;
-import org.lwjgl.opengl.ARBVertexBufferObject;
-import org.lwjgl.opengl.ARBVertexShader;
-import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GLCapabilities;
@@ -26,6 +20,12 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
+import static org.lwjgl.opengl.ARBShaderObjects.*;
+import static org.lwjgl.opengl.ARBVertexShader.*;
+import static org.lwjgl.opengl.ARBFragmentShader.*;
+import static org.lwjgl.opengl.ARBVertexBufferObject.*;
+import static org.lwjgl.opengl.ARBSeamlessCubeMap.*;
+import static org.lwjgl.opengl.EXTTextureFilterAnisotropic.*;
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -144,8 +144,8 @@ public class FullscreenCubemapDemo {
     }
 
     void createFullScreenVbo() {
-        int vbo = ARBVertexBufferObject.glGenBuffersARB();
-        ARBVertexBufferObject.glBindBufferARB(ARBVertexBufferObject.GL_ARRAY_BUFFER_ARB, vbo);
+        int vbo = glGenBuffersARB();
+        glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbo);
         ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
         FloatBuffer fv = bb.asFloatBuffer();
         fv.put(-1.0f).put(-1.0f);
@@ -154,22 +154,22 @@ public class FullscreenCubemapDemo {
         fv.put( 1.0f).put( 1.0f);
         fv.put(-1.0f).put( 1.0f);
         fv.put(-1.0f).put(-1.0f);
-        ARBVertexBufferObject.glBufferDataARB(ARBVertexBufferObject.GL_ARRAY_BUFFER_ARB, bb, ARBVertexBufferObject.GL_STATIC_DRAW_ARB);
+        glBufferDataARB(GL_ARRAY_BUFFER_ARB, bb, GL_STATIC_DRAW_ARB);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0L);
     }
 
     int createShader(String resource, int type) throws IOException {
-        int shader = ARBShaderObjects.glCreateShaderObjectARB(type);
+        int shader = glCreateShaderObjectARB(type);
         ByteBuffer source = ioResourceToByteBuffer(resource, 1024);
         PointerBuffer strings = BufferUtils.createPointerBuffer(1);
         IntBuffer lengths = BufferUtils.createIntBuffer(1);
         strings.put(0, source);
         lengths.put(0, source.remaining());
-        ARBShaderObjects.glShaderSourceARB(shader, strings, lengths);
-        ARBShaderObjects.glCompileShaderARB(shader);
-        int compiled = ARBShaderObjects.glGetObjectParameteriARB(shader, ARBShaderObjects.GL_OBJECT_COMPILE_STATUS_ARB);
-        String shaderLog = ARBShaderObjects.glGetInfoLogARB(shader);
+        glShaderSourceARB(shader, strings, lengths);
+        glCompileShaderARB(shader);
+        int compiled = glGetObjectParameteriARB(shader, GL_OBJECT_COMPILE_STATUS_ARB);
+        String shaderLog = glGetInfoLogARB(shader);
         if (shaderLog.trim().length() > 0) {
             System.err.println(shaderLog);
         }
@@ -180,25 +180,25 @@ public class FullscreenCubemapDemo {
     }
 
     void createProgram() throws IOException {
-        int program = ARBShaderObjects.glCreateProgramObjectARB();
-        int vshader = createShader("org/lwjgl/demo/opengl/textures/cubemap.vs", ARBVertexShader.GL_VERTEX_SHADER_ARB);
-        int fshader = createShader("org/lwjgl/demo/opengl/textures/cubemap.fs", ARBFragmentShader.GL_FRAGMENT_SHADER_ARB);
-        ARBShaderObjects.glAttachObjectARB(program, vshader);
-        ARBShaderObjects.glAttachObjectARB(program, fshader);
-        ARBShaderObjects.glLinkProgramARB(program);
-        int linked = ARBShaderObjects.glGetObjectParameteriARB(program, ARBShaderObjects.GL_OBJECT_LINK_STATUS_ARB);
-        String programLog = ARBShaderObjects.glGetInfoLogARB(program);
+        int program = glCreateProgramObjectARB();
+        int vshader = createShader("org/lwjgl/demo/opengl/textures/cubemap.vs", GL_VERTEX_SHADER_ARB);
+        int fshader = createShader("org/lwjgl/demo/opengl/textures/cubemap.fs", GL_FRAGMENT_SHADER_ARB);
+        glAttachObjectARB(program, vshader);
+        glAttachObjectARB(program, fshader);
+        glLinkProgramARB(program);
+        int linked = glGetObjectParameteriARB(program, GL_OBJECT_LINK_STATUS_ARB);
+        String programLog = glGetInfoLogARB(program);
         if (programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
         if (linked == 0) {
             throw new AssertionError("Could not link program");
         }
-        ARBShaderObjects.glUseProgramObjectARB(program);
-        int texLocation = ARBShaderObjects.glGetUniformLocationARB(program, "tex");
-        ARBShaderObjects.glUniform1iARB(texLocation, 0);
-        invViewProjUniform = ARBShaderObjects.glGetUniformLocationARB(program, "invViewProj");
-        cameraPositionUniform = ARBShaderObjects.glGetUniformLocationARB(program, "cameraPosition");
+        glUseProgramObjectARB(program);
+        int texLocation = glGetUniformLocationARB(program, "tex");
+        glUniform1iARB(texLocation, 0);
+        invViewProjUniform = glGetUniformLocationARB(program, "invViewProj");
+        cameraPositionUniform = glGetUniformLocationARB(program, "cameraPosition");
     }
 
     void createTexture() throws IOException {
@@ -213,9 +213,9 @@ public class FullscreenCubemapDemo {
         String[] names = { "right", "left", "top", "bottom", "front", "back" };
         ByteBuffer image;
         if (caps.GL_EXT_texture_filter_anisotropic) {
-            float maxAnisotropy = glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            float maxAnisotropy = glGetFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
             System.out.println("EXT_texture_filter_anisotropic available: Will use " + (int)maxAnisotropy + "x anisotropic filtering.");
-            glTexParameterf(GL_TEXTURE_CUBE_MAP, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+            glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
         }
         if (caps.OpenGL14) {
             System.out.println("OpenGL 1.4 available: Will use automatic mipmap generation via GL_GENERATE_MIPMAP.");
@@ -231,8 +231,8 @@ public class FullscreenCubemapDemo {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, w.get(0), h.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, image);
         }
         if (caps.GL_ARB_seamless_cube_map) {
-            System.out.println("OpenGL 1.4 available: Will use automatic mipmap generation.");
-            glEnable(ARBSeamlessCubeMap.GL_TEXTURE_CUBE_MAP_SEAMLESS);
+            System.out.println("ARB_seamless_cube_map available: Will use seamless cubemap sampling.");
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }
     }
 
@@ -250,8 +250,8 @@ public class FullscreenCubemapDemo {
                          .invert()
                          .get(matrixByteBuffer);
 
-        ARBShaderObjects.glUniformMatrix4fvARB(invViewProjUniform, 1, false, matrixByteBuffer);
-        ARBShaderObjects.glUniform3fARB(cameraPositionUniform, tmp.x, tmp.y, tmp.z);
+        glUniformMatrix4fvARB(invViewProjUniform, 1, false, matrixByteBuffer);
+        glUniform3fARB(cameraPositionUniform, tmp.x, tmp.y, tmp.z);
 
         long thisTime = System.nanoTime();
         float diff = (thisTime - lastTime) / 1E9f;
