@@ -27,9 +27,9 @@ float interpolate(float edge0, float edge1, float x) {
 }
 
 vec3 planeIntersect() {
-	vec3 planeNormal = normalize(cameraPosition - blackholePosition);
-	float t = -dot(planeNormal, cameraPosition - blackholePosition) / dot(planeNormal, dir);
-	return cameraPosition + dir * t;
+  vec3 planeNormal = cameraPosition - blackholePosition;
+  float t = -dot(planeNormal, planeNormal) / dot(planeNormal, dir);
+  return cameraPosition + dir * t;
 }
 
 vec4 distortion(void) {

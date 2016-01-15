@@ -307,7 +307,6 @@ public class BillboardQuadCubemapDemo {
         glUseProgramObjectARB(backgroundProgram);
         glUniformMatrix4fvARB(background_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
         glUniform3fARB(background_cameraPositionUniform, tmp.x, tmp.y, tmp.z);
-        glUseProgramObjectARB(0);
 
         /* Update the black hole shader */
         glUseProgramObjectARB(blackholeProgram);
@@ -316,7 +315,6 @@ public class BillboardQuadCubemapDemo {
         glUniform3fARB(blackhole_blackholePositionUniform, blackholePosition.x, blackholePosition.y, blackholePosition.z);
         glUniform1fARB(blackhole_blackholeSizeUniform, blackholeSize);
         glUniform1fARB(blackhole_debugUniform, debug ? 1.0f : 0.0f);
-        glUseProgramObjectARB(0);
 
         long thisTime = System.nanoTime();
         float diff = (thisTime - lastTime) / 1E9f;
@@ -325,14 +323,13 @@ public class BillboardQuadCubemapDemo {
     }
 
     void render() {
+        /* Draw the cubemap background */
         glUseProgramObjectARB(backgroundProgram);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glUseProgramObjectARB(0);
         
         /* Draw a single black hole */
         glUseProgramObjectARB(blackholeProgram);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glUseProgramObjectARB(0);
     }
 
     void loop() {
