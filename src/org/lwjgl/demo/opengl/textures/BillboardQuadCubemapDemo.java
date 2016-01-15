@@ -136,6 +136,12 @@ public class BillboardQuadCubemapDemo {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
         glfwShowWindow(window);
+
+        IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
+        nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+        width = framebufferSize.get(0);
+        height = framebufferSize.get(1);
+
         caps = GL.createCapabilities();
 
         if (!caps.GL_ARB_shader_objects) {
@@ -297,8 +303,7 @@ public class BillboardQuadCubemapDemo {
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot * 0.23f).rotateZ(rot * -0.562f)
                   .origin(tmp);
-        viewProjMatrix.set(projMatrix).mul(viewMatrix);
-        invViewProjMatrix.set(viewProjMatrix).invert();
+        viewProjMatrix.set(projMatrix).mul(viewMatrix).invert(invViewProjMatrix);
 
         /* Update the background shader */
         glUseProgramObjectARB(backgroundProgram);

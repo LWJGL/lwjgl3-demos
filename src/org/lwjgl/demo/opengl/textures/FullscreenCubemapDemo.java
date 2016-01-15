@@ -120,6 +120,12 @@ public class FullscreenCubemapDemo {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
         glfwShowWindow(window);
+
+        IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
+        nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+        width = framebufferSize.get(0);
+        height = framebufferSize.get(1);
+
         caps = GL.createCapabilities();
 
         if (!caps.GL_ARB_shader_objects) {
