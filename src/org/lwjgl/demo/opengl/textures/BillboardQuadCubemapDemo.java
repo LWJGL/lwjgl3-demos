@@ -58,7 +58,7 @@ public class BillboardQuadCubemapDemo {
     int blackhole_debugUniform;
 
     Vector3f blackholePosition = new Vector3f(1.0f, 2.0f, 0.0f);
-    float blackholeSize = 4.0f;
+    float blackholeSize = 5.0f;
     boolean debug;
 
     ByteBuffer vertices;

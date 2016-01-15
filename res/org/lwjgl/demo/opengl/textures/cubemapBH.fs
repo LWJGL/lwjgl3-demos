@@ -26,12 +26,18 @@ float interpolate(float edge0, float edge1, float x) {
   return c;
 }
 
+vec3 planeIntersect() {
+	vec3 planeNormal = normalize(cameraPosition - blackholePosition);
+	float t = -dot(planeNormal, cameraPosition - blackholePosition) / dot(planeNormal, dir);
+	return cameraPosition + dir * t;
+}
+
 vec4 distortion(void) {
   vec3 ndir = normalize(dir);
 
-  // Compute the vector from the point on the ray(cam, dir) with the shortest
-  // distance to the blackhole and the blackhole itself.
-  vec3 perp = cameraPosition + dot(blackholePosition - cameraPosition, ndir) * ndir - blackholePosition;
+  // Compute direction vector from the black hole to the intersection point of the 
+  // view direction with the plane of the black hole (directed towards the camera). 
+  vec3 perp = planeIntersect() - blackholePosition;
   float distance = length(perp);
   perp /= distance; // <- normalize it
 
