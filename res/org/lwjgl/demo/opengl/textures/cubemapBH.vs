@@ -30,7 +30,6 @@ mat4 billboardMatrix() {
 void main(void) {
   vec4 scaling = vec4(blackholeSize, blackholeSize, 1.0, 1.0);
   vec4 worldPos = billboardMatrix() * (gl_Vertex * scaling);
-  vec4 homClipPos = viewProj * worldPos;
   dir = worldPos.xyz - cameraPosition;
-  gl_Position = homClipPos;
+  gl_Position = viewProj * worldPos;
 }
