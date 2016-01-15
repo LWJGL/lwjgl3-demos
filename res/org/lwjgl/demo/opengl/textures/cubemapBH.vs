@@ -5,7 +5,6 @@
 #version 110
 
 uniform mat4 viewProj;
-uniform mat4 invViewProj;
 uniform vec3 cameraPosition;
 
 uniform vec3 blackholePosition;
@@ -30,9 +29,8 @@ mat4 billboardMatrix() {
 
 void main(void) {
   vec4 scaling = vec4(blackholeSize, blackholeSize, 1.0, 1.0);
-  vec4 homClipPos = viewProj * billboardMatrix() * (gl_Vertex * scaling);
-  vec4 homWorldPos = invViewProj * homClipPos;
-  vec4 worldPos = homWorldPos / homWorldPos.w;
+  vec4 worldPos = billboardMatrix() * (gl_Vertex * scaling);
+  vec4 homClipPos = viewProj * worldPos;
   dir = worldPos.xyz - cameraPosition;
   gl_Position = homClipPos;
 }

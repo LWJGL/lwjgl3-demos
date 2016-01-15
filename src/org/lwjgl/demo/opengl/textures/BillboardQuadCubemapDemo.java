@@ -50,7 +50,6 @@ public class BillboardQuadCubemapDemo {
     int background_cameraPositionUniform;
 
     int blackholeProgram;
-    int blackhole_invViewProjUniform;
     int blackhole_viewProjUniform;
     int blackhole_cameraPositionUniform;
     int blackhole_blackholePositionUniform;
@@ -241,7 +240,6 @@ public class BillboardQuadCubemapDemo {
         glUseProgramObjectARB(program);
         int texLocation = glGetUniformLocationARB(program, "tex");
         glUniform1iARB(texLocation, 0);
-        blackhole_invViewProjUniform = glGetUniformLocationARB(program, "invViewProj");
         blackhole_viewProjUniform = glGetUniformLocationARB(program, "viewProj");
         blackhole_cameraPositionUniform = glGetUniformLocationARB(program, "cameraPosition");
         blackhole_blackholePositionUniform = glGetUniformLocationARB(program, "blackholePosition");
@@ -313,7 +311,6 @@ public class BillboardQuadCubemapDemo {
 
         /* Update the black hole shader */
         glUseProgramObjectARB(blackholeProgram);
-        glUniformMatrix4fvARB(blackhole_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
         glUniformMatrix4fvARB(blackhole_viewProjUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
         glUniform3fARB(blackhole_cameraPositionUniform, tmp.x, tmp.y, tmp.z);
         glUniform3fARB(blackhole_blackholePositionUniform, blackholePosition.x, blackholePosition.y, blackholePosition.z);
