@@ -15,7 +15,7 @@ varying vec3 dir;
 
 // Could probably be uniforms
 #define blackholeStrength 4.0
-#define blackholeHorizonSharpness 2
+#define blackholeHorizonSharpness 1
 
 float interpolate(float edge0, float edge1, float x) {
   int i;
@@ -33,8 +33,6 @@ vec3 planeIntersect() {
 }
 
 vec4 distortion(void) {
-  vec3 ndir = normalize(dir);
-
   // Compute direction vector from the black hole to the intersection point of the 
   // view direction with the plane of the black hole (directed towards the camera). 
   vec3 perp = planeIntersect() - blackholePosition;
@@ -52,6 +50,7 @@ vec4 distortion(void) {
   perp *= 1.0 - val;
 
   // Distort our direction vector using that perpendicular vector.
+  vec3 ndir = normalize(dir);
   ndir -= blackholeStrength * perp;
   return vec4(ndir, val);
 }
@@ -59,7 +58,7 @@ vec4 distortion(void) {
 void main(void) {
   vec4 color = vec4(1.0);
   if (debug > 0.0) {
-    color = vec4(0.6, 1.0, 0.5, 1.0);
+    color = vec4(0.9, 1.7, 0.9, 1.0);
   }
   vec4 dist = distortion();
   gl_FragColor = color * textureCube(tex, dist.xyz) * dist.w;
