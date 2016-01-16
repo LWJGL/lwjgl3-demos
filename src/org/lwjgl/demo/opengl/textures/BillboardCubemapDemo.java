@@ -184,18 +184,18 @@ public class BillboardCubemapDemo {
     }
 
     /**
-     * This will construct a regular polygon with #circleRefinement vertices which will circumscribe the unit circle.
+     * This will construct a regular polygon with {@link #circleRefinement} vertices which will circumscribe the unit circle.
      * <p>
      * The draw mode will be {@link GL11#GL_TRIANGLE_FAN}.
      */
     void createBillboardPolygon() {
         // Compute the scale factor to make the regular polygon circumscribe the unit circle/sphere.
         float scale = 1.0f / (float) Math.cos(Math.PI / circleRefinement);
-        circleVertices = BufferUtils.createByteBuffer(4 * 2 * (circleRefinement+2));
+        circleVertices = BufferUtils.createByteBuffer(4 * 2 * (circleRefinement + 2));
         FloatBuffer fv = circleVertices.asFloatBuffer();
-        fv.put( 0.0f).put( 0.0f);
+        fv.put(0.0f).put(0.0f);
         for (int i = 0; i < circleRefinement + 1; i++) {
-            float angle = (float) (2.0 * Math.PI * i / (circleRefinement));
+            float angle = (float) (2.0 * Math.PI * i / circleRefinement);
             float x = (float) Math.cos(angle) * scale;
             float y = (float) Math.sin(angle) * scale;
             fv.put(x).put(y);
