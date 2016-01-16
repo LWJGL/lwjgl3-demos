@@ -21,7 +21,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.system.Platform;
 
 public class SwtDemo {
 	public static void main(String[] args) {
@@ -33,12 +32,7 @@ public class SwtDemo {
         shell.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
-                    if (Platform.get() == Platform.WINDOWS) {
-                        // Fix SWT not removing the window borders on Windows
-                        SwtHelperWin32.properFullscreen(shell);
-                    } else {
-                        shell.setFullScreen(!shell.getFullScreen());
-                    }
+                    shell.setFullScreen(!shell.getFullScreen());
                 }
             }
         });
