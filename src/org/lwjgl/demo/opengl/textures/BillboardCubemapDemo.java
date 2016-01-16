@@ -35,7 +35,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 /**
  * Like {@link FullscreenCubemapDemo} but renders the black hole using a
- * projected quad that encompasses only the circular area of influence of the
+ * regular polygon that encompasses only the circular area of influence of the
  * black hole.
  * 
  * @author Kai Burjack
