@@ -8,6 +8,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
@@ -39,7 +40,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * 
  * @author Kai Burjack
  */
-public class BillboardQuadCubemapDemo {
+public class BillboardCubemapDemo {
 
     long window;
     int width = 1024;
@@ -60,7 +61,9 @@ public class BillboardQuadCubemapDemo {
     float blackholeSize = 5.0f;
     boolean debug;
 
-    ByteBuffer vertices;
+    ByteBuffer quadVertices;
+    ByteBuffer circleVertices;
+    int circleRefinement = 8; // <- number of vertices of the regular polygon
 
     Vector3f tmp = new Vector3f();
     Matrix4f projMatrix = new Matrix4f();
@@ -108,9 +111,9 @@ public class BillboardQuadCubemapDemo {
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (BillboardQuadCubemapDemo.this.width != width || BillboardQuadCubemapDemo.this.height != height)) {
-                    BillboardQuadCubemapDemo.this.width = width;
-                    BillboardQuadCubemapDemo.this.height = height;
+                if (width > 0 && height > 0 && (BillboardCubemapDemo.this.width != width || BillboardCubemapDemo.this.height != height)) {
+                    BillboardCubemapDemo.this.width = width;
+                    BillboardCubemapDemo.this.height = height;
                 }
             }
         });
@@ -161,21 +164,42 @@ public class BillboardQuadCubemapDemo {
         /* Create all needed GL resources */
         createTexture();
         createFullScreenQuad();
+        createBillboardPolygon();
         createBackgroundProgram();
         createBlackholeProgram();
+
+        /* Activate vertex array */
+        glEnableClientState(GL_VERTEX_ARRAY);
     }
 
     void createFullScreenQuad() {
-        vertices = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = vertices.asFloatBuffer();
+        quadVertices = BufferUtils.createByteBuffer(4 * 2 * 6);
+        FloatBuffer fv = quadVertices.asFloatBuffer();
         fv.put(-1.0f).put(-1.0f);
         fv.put( 1.0f).put(-1.0f);
         fv.put( 1.0f).put( 1.0f);
         fv.put( 1.0f).put( 1.0f);
         fv.put(-1.0f).put( 1.0f);
         fv.put(-1.0f).put(-1.0f);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(2, GL_FLOAT, 0, vertices);
+    }
+
+    /**
+     * This will construct a regular polygon with #circleRefinement vertices which will circumscribe the unit circle.
+     * <p>
+     * The draw mode will be {@link GL11#GL_TRIANGLE_FAN}.
+     */
+    void createBillboardPolygon() {
+        // Compute the scale factor to make the regular polygon circumscribe the unit circle/sphere.
+        float scale = 1.0f / (float) Math.cos(Math.PI / circleRefinement);
+        circleVertices = BufferUtils.createByteBuffer(4 * 2 * (circleRefinement+2));
+        FloatBuffer fv = circleVertices.asFloatBuffer();
+        fv.put( 0.0f).put( 0.0f);
+        for (int i = 0; i < circleRefinement + 1; i++) {
+            float angle = (float) (2.0 * Math.PI * i / (circleRefinement));
+            float x = (float) Math.cos(angle) * scale;
+            float y = (float) Math.sin(angle) * scale;
+            fv.put(x).put(y);
+        }
     }
 
     int createShader(String resource, int type) throws IOException {
@@ -325,11 +349,13 @@ public class BillboardQuadCubemapDemo {
     void render() {
         /* Draw the cubemap background */
         glUseProgramObjectARB(backgroundProgram);
+        glVertexPointer(2, GL_FLOAT, 0, quadVertices);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         /* Draw a single black hole */
         glUseProgramObjectARB(blackholeProgram);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glVertexPointer(2, GL_FLOAT, 0, circleVertices);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, circleRefinement+2);
     }
 
     void loop() {
@@ -365,7 +391,7 @@ public class BillboardQuadCubemapDemo {
     }
 
     public static void main(String[] args) {
-        new BillboardQuadCubemapDemo().run();
+        new BillboardCubemapDemo().run();
     }
 
 }
