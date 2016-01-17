@@ -145,7 +145,7 @@ public class DemoUtils {
 		    file = new File(url.getFile());
 		else
 		    file = new File(resource);
-		if ( file.isFile() && file.exists() ) {
+		if ( file.isFile() ) {
 			FileInputStream fis = new FileInputStream(file);
 			FileChannel fc = fis.getChannel();
 			buffer = BufferUtils.createByteBuffer((int)fc.size() + 1);
