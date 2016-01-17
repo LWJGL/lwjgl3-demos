@@ -63,7 +63,7 @@ public class BillboardCubemapDemo {
 
     ByteBuffer quadVertices;
     ByteBuffer circleVertices;
-    int circleRefinement = 8; // <- number of vertices of the regular polygon
+    int circleRefinement = 5; // <- number of vertices of the regular polygon
 
     Vector3f tmp = new Vector3f();
     Matrix4f projMatrix = new Matrix4f();
@@ -119,16 +119,23 @@ public class BillboardCubemapDemo {
         });
 
         System.out.println("Press 'D' to debug the blackhole rendering.");
+        System.out.println("Press 'arrow up' to increase the polygon refinement.");
+        System.out.println("Press 'arrow down ' to decrease the polygon refinement.");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (action != GLFW_RELEASE)
-                    return;
-
-                if (key == GLFW_KEY_ESCAPE) {
+                if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
-                } else if (key == GLFW_KEY_D) {
+                } else if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
                     debug = !debug;
+                } else if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+                    circleRefinement++;
+                    createBillboardPolygon();
+                    System.out.println("Circle refinement: " + circleRefinement);
+                } else if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+                    circleRefinement = Math.max(circleRefinement - 1, 3);
+                    createBillboardPolygon();
+                    System.out.println("Circle refinement: " + circleRefinement);
                 }
             }
         });
