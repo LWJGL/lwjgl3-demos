@@ -60,6 +60,7 @@ public class FullscreenCubemapDemo {
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
     Closure debugProc;
+    boolean isCrappyIntel;
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -128,6 +129,8 @@ public class FullscreenCubemapDemo {
 
         caps = GL.createCapabilities();
 
+        String vendor = glGetString(GL_VENDOR);
+        isCrappyIntel = vendor != null && vendor.toLowerCase().contains("intel");
         if (!caps.GL_ARB_shader_objects) {
             throw new AssertionError("This demo requires the ARB_shader_objects extension.");
         }
@@ -271,6 +274,15 @@ public class FullscreenCubemapDemo {
     }
 
     void render() {
+        /*
+         * Workaround an apparent bug in Intel's drivers:
+         * Even though we don't need to clear the color buffer because every frame we render to the entire viewport,
+         * we have to clear it, because otherwise if the window is being minimized and restored there is nothing rendered
+         * anymore (just pure black).
+         */
+        if (isCrappyIntel)
+            glClear(GL_COLOR_BUFFER_BIT);
+
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 

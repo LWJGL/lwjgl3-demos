@@ -29,6 +29,7 @@ public class SimpleProceduralTextureDemo {
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
     Closure debugProc;
+    boolean isCrappyIntel;
 
     private void init() throws IOException {
         glfwSetErrorCallback(errCallback = GLFWErrorCallback.createPrint(System.err));
@@ -78,6 +79,9 @@ public class SimpleProceduralTextureDemo {
         caps = GL.createCapabilities();
         debugProc = GLUtil.setupDebugMessageCallback();
 
+        String vendor = glGetString(GL_VENDOR);
+        isCrappyIntel = vendor != null && vendor.toLowerCase().contains("intel");
+
         /* Set state and create all needed GL resources */
         glEnable(GL_TEXTURE_2D);
         int tex = glGenTextures();
@@ -100,6 +104,15 @@ public class SimpleProceduralTextureDemo {
         while (glfwWindowShouldClose(window) == GL_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
+
+            /*
+             * Workaround an apparent bug in Intel's drivers:
+             * Even though we don't need to clear the color buffer because every frame we render to the entire viewport,
+             * we have to clear it, because otherwise if the window is being minimized and restored there is nothing rendered
+             * anymore (just pure black).
+             */
+            if (isCrappyIntel)
+                glClear(GL_COLOR_BUFFER_BIT);
 
             glBegin(GL_QUADS);
             glTexCoord2f(0.0f, 0.0f);
