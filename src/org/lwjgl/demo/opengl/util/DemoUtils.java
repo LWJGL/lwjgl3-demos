@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -138,8 +139,13 @@ public class DemoUtils {
 	public static ByteBuffer ioResourceToByteBuffer(String resource, int bufferSize) throws IOException {
 		ByteBuffer buffer;
 
-		File file = new File(resource);
-		if ( file.isFile() ) {
+		URL url = Thread.currentThread().getContextClassLoader().getResource(resource);
+		File file;
+		if (url != null)
+		    file = new File(url.getFile());
+		else
+		    file = new File(resource);
+		if ( file.isFile() && file.exists() ) {
 			FileInputStream fis = new FileInputStream(file);
 			FileChannel fc = fis.getChannel();
 			buffer = BufferUtils.createByteBuffer((int)fc.size() + 1);
@@ -151,7 +157,7 @@ public class DemoUtils {
 		} else {
 			buffer = BufferUtils.createByteBuffer(bufferSize);
 
-			InputStream source = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+			InputStream source = url.openStream();
 			if ( source == null )
 				throw new FileNotFoundException(resource);
 
