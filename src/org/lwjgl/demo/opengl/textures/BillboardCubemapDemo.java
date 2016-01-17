@@ -202,7 +202,8 @@ public class BillboardCubemapDemo {
         FloatBuffer fv = circleVertices.asFloatBuffer();
         fv.put(0.0f).put(0.0f);
         for (int i = 0; i < circleRefinement + 1; i++) {
-            float angle = (float) (2.0 * Math.PI * (i % circleRefinement + 1) / circleRefinement);
+            float angle = (float) (2.0 * Math.PI * (i % circleRefinement) / circleRefinement);
+            System.err.println(angle);
             float x = (float) Math.cos(angle) * scale;
             float y = (float) Math.sin(angle) * scale;
             fv.put(x).put(y);
