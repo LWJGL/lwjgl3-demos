@@ -63,7 +63,12 @@ public class BillboardCubemapDemo {
 
     ByteBuffer quadVertices;
     ByteBuffer circleVertices;
-    int circleRefinement = 5; // <- number of vertices of the regular polygon
+
+    /**
+     * The number of vertices of the regular polygon.
+     * Must be at least 3.
+     */
+    int circleRefinement = 5;
 
     Vector3f tmp = new Vector3f();
     Matrix4f projMatrix = new Matrix4f();
@@ -200,7 +205,9 @@ public class BillboardCubemapDemo {
      */
     void createBillboardPolygon() {
         // Compute the scale factor to make the regular polygon circumscribe the unit circle/sphere.
+        // Reference: http://www.mathopenref.com/polygonradius.html
         float scale = 1.0f / (float) Math.cos(Math.PI / circleRefinement);
+
         circleVertices = BufferUtils.createByteBuffer(4 * 2 * (circleRefinement + 2));
         FloatBuffer fv = circleVertices.asFloatBuffer();
         fv.put(0.0f).put(0.0f);
