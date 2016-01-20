@@ -75,14 +75,17 @@ float intersectTriangle(vec3 origin, vec3 ray, vec3 v0, vec3 v1, vec3 v2) {
   vec3 edge2 = v2 - v0;
   vec3 pvec = cross(ray, edge2);
   float det = dot(edge1, pvec);
-  if (det <= 0) return -1.0;
-  float invDet = 1.0 / det;
+  if (det <= 0)
+    return -1.0;
   vec3 tvec = origin - v0;
-  float u = dot(tvec, pvec) * invDet;
-  if (u < 0.0 || u > 1.0) return -1.0;
+  float u = dot(tvec, pvec);
+  if (u < 0.0 || u > det)
+    return -1.0;
   vec3 qvec = cross(tvec, edge1);
-  float v = dot(ray, qvec) * invDet;
-  if (v < 0.0 || u + v > 1.0) return -1.0;
+  float v = dot(ray, qvec);
+  if (v < 0.0 || u + v > det)
+    return -1.0;
+  float invDet = 1.0 / det;
   float t = dot(edge2, qvec) * invDet;
   return t;
 }
