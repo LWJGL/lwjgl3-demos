@@ -316,7 +316,7 @@ public class BillboardCubemapDemo {
             glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
         for (int i = 0; i < 6; i++) {
-            imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/opengl/textures/space_" + names[i] + (i + 1) + ".jpg", 8 * 1024);
+            imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/space_" + names[i] + (i + 1) + ".jpg", 8 * 1024);
             if (stbi_info_from_memory(imageBuffer, w, h, comp) == 0)
                 throw new IOException("Failed to read image information: " + stbi_failure_reason());
             image = stbi_load_from_memory(imageBuffer, w, h, comp, 0);

@@ -162,7 +162,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.joml</groupId>
-			<artifactId>joml-mini</artifactId>
+			<artifactId>joml</artifactId>
 			<version>${joml.version}</version>
 		</dependency>
 		<dependency>
