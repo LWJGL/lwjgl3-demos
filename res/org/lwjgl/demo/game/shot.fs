@@ -1,4 +1,4 @@
-#version 120
+#version 110
 
 varying float power;
 varying vec2 pointCoord;
