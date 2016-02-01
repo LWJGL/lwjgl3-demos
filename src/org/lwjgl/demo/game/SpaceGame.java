@@ -51,6 +51,7 @@ public class SpaceGame {
         /** ALWAYS rotation about the local XYZ axes of the camera! */
         public Vector3f angularAcc = new Vector3f();
         public Vector3f angularVel = new Vector3f();
+        public float angularDamping = 0.5f;
 
         public Vector3d position = new Vector3d(0, 0, 10);
         public Quaternionf rotation = new Quaternionf();
@@ -62,7 +63,7 @@ public class SpaceGame {
             angularVel.fma(dt, angularAcc);
             // update the rotation based on the angular velocity
             rotation.integrate(dt, angularVel.x, angularVel.y, angularVel.z);
-            angularVel.mul(1.0f - 0.4f * dt);
+            angularVel.mul(1.0f - angularDamping * dt);
             // update position based on linear velocity
             position.x += dt * linearVel.x;
             position.y += dt * linearVel.y;
@@ -84,8 +85,8 @@ public class SpaceGame {
     private static float shotSeparation = 0.4f;
     private static int shotMilliseconds = 100;
     private static int shotOpponentMilliseconds = 200;
-    private static float straveThrusterAccFactor = 10.0f;
-    private static float mainThrusterAccFactor = 30.0f;
+    private static float straveThrusterAccFactor = 20.0f;
+    private static float mainThrusterAccFactor = 50.0f;
     private static float maxLinearVel = 200.0f;
     private static float maxShotLifetime = 30.0f;
 
@@ -105,18 +106,20 @@ public class SpaceGame {
     private int shot_projUniform;
 
     private ByteBuffer quadVertices;
-    private Mesh bogey;
-    private int bogeyCount = 256;
-    private static float bogeySpread = 1000.0f;
-    private Vector4d[] bogeys = new Vector4d[bogeyCount];
+    private Mesh ship;
+    private Mesh sphere;
+    private int shipCount = 256;
+    private static float shipSpread = 1000.0f;
+    private static float shipRadius = 4.0f;
+    private Vector4d[] ships = new Vector4d[shipCount];
     {
-        for (int i = 0; i < bogeys.length; i++) {
-            double x = (Math.random() - 0.5) * bogeySpread;
-            double y = (Math.random() - 0.5) * bogeySpread;
-            double z = (Math.random() - 0.5) * bogeySpread;
-            double radius = 1.0;
-            Vector4d rock = new Vector4d(x, y, z, radius);
-            bogeys[i] = rock;
+        for (int i = 0; i < ships.length; i++) {
+            double x = (Math.random() - 0.5) * shipSpread;
+            double y = (Math.random() - 0.5) * shipSpread;
+            double z = (Math.random() - 0.5) * shipSpread;
+            double radius = shipRadius;
+            Vector4d ship = new Vector4d(x, y, z, radius);
+            ships[i] = ship;
         }
     }
 
@@ -135,13 +138,13 @@ public class SpaceGame {
 
     private ByteBuffer charBuffer = BufferUtils.createByteBuffer(16 * 270);
 
-    private boolean windowed = false;
+    private boolean windowed = true;
     private boolean[] keyDown = new boolean[GLFW.GLFW_KEY_LAST];
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
     private long lastShotTime = 0L;
     private long lastOpponentShotTime = 0L;
-    private int shootingRock = 0;
+    private int shootingShip = 0;
     private float mouseX = 0.0f;
     private float mouseY = 0.0f;
     private long lastTime = System.nanoTime();
@@ -263,6 +266,7 @@ public class SpaceGame {
         createShipProgram();
         createShip();
         createShotProgram();
+        createSphere();
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
@@ -282,7 +286,12 @@ public class SpaceGame {
 
     private void createShip() throws IOException {
         WavefrontMeshLoader loader = new WavefrontMeshLoader();
-        bogey = loader.loadMesh("org/lwjgl/demo/game/ship.obj.zip");
+        ship = loader.loadMesh("org/lwjgl/demo/game/ship.obj.zip");
+    }
+
+    private void createSphere() throws IOException {
+        WavefrontMeshLoader loader = new WavefrontMeshLoader();
+        sphere = loader.loadMesh("org/lwjgl/demo/game/sphere.obj.zip");
     }
 
     private static int createShader(String resource, int type) throws IOException {
@@ -406,7 +415,7 @@ public class SpaceGame {
         glUseProgramObjectARB(cubemapProgram);
         glUniformMatrix4fvARB(cubemap_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
 
-        /* Update the rock shader */
+        /* Update the ship shader */
         glUseProgramObjectARB(shipProgram);
         glUniformMatrix4fvARB(ship_viewUniform, 1, false, viewMatrix.get(matrixByteBuffer));
         glUniformMatrix4fvARB(ship_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
@@ -424,7 +433,7 @@ public class SpaceGame {
         }
         /* Let the opponent shoot a bullet */
         if (thisTime - lastOpponentShotTime >= 1E6 * shotOpponentMilliseconds) {
-            shootFromRock(shootingRock);
+            shootFromShip(shootingShip);
             lastOpponentShotTime = thisTime;
         }
     }
@@ -449,7 +458,7 @@ public class SpaceGame {
         if (keyDown[GLFW_KEY_LEFT_CONTROL])
             cam.linearAcc.fma(-straveThrusterAccFactor, cam.up(tmp2));
         if (rightMouseDown)
-            cam.angularAcc.set(mouseY*mouseY*Math.signum(mouseY), mouseX*mouseX*Math.signum(mouseX), rotZ);
+            cam.angularAcc.set(2.0f*mouseY*mouseY*mouseY, 2.0f*mouseX*mouseX*mouseX, rotZ);
         else if (!rightMouseDown)
             cam.angularAcc.set(0, 0, rotZ);
         double linearVelAbs = cam.linearVel.length();
@@ -484,8 +493,8 @@ public class SpaceGame {
         }
     }
 
-    private void shootFromRock(int index) {
-        Vector4d rock = bogeys[index];
+    private void shootFromShip(int index) {
+        Vector4d rock = ships[index];
         if (rock == null)
             return;
         Vector3d shotPos = tmp.set(rock.x, rock.y, rock.z).sub(cam.position).negate().normalize().mul(1.01f * rock.w).add(rock.x, rock.y, rock.z);
@@ -536,13 +545,13 @@ public class SpaceGame {
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-    private void drawRocks() {
+    private void drawShips() {
         glUseProgramObjectARB(shipProgram);
-        glVertexPointer(3, GL_FLOAT, 0, bogey.positions);
+        glVertexPointer(3, GL_FLOAT, 0, ship.positions);
         glEnableClientState(GL_NORMAL_ARRAY);
-        glNormalPointer(GL_FLOAT, 0, bogey.normals);
-        for (int i = 0; i < bogeys.length; i++) {
-            Vector4d rock = bogeys[i];
+        glNormalPointer(GL_FLOAT, 0, ship.normals);
+        for (int i = 0; i < ships.length; i++) {
+            Vector4d rock = ships[i];
             if (rock == null)
                 continue;
             modelMatrix.translation(
@@ -551,7 +560,7 @@ public class SpaceGame {
                     (float)(rock.z - cam.position.z));
             modelMatrix.scale((float) rock.w);
             glUniformMatrix4fvARB(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
-            glDrawArrays(GL_TRIANGLES, 0, this.bogey.numVertices);
+            glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
         }
     }
 
@@ -594,9 +603,50 @@ public class SpaceGame {
         }
     }
 
+    private void drawVelocityCompass() {
+        glUseProgramObjectARB(0);
+        glEnable(GL_BLEND);
+        glVertexPointer(3, GL_FLOAT, 0, sphere.positions);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glNormalPointer(GL_FLOAT, 0, sphere.normals);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadMatrixf(projMatrix.get(matrixByteBuffer));
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        glTranslatef(0, -1, -4);
+        glMultMatrixf(viewMatrix.get(matrixByteBuffer));
+        glScalef(0.3f, 0.3f, 0.3f);
+        glColor4f(0.1f, 0.1f, 0.1f, 0.2f);
+        glDisable(GL_DEPTH_TEST);
+        glDrawArrays(GL_TRIANGLES, 0, sphere.numVertices);
+        glEnable(GL_DEPTH_TEST);
+        glBegin(GL_LINES);
+        glColor4f(1, 0, 0, 1);
+        glVertex3f(0, 0, 0);
+        glVertex3f(1, 0, 0);
+        glColor4f(0, 1, 0, 1);
+        glVertex3f(0, 0, 0);
+        glVertex3f(0, 1, 0);
+        glColor4f(0, 0, 1, 1);
+        glVertex3f(0, 0, 0);
+        glVertex3f(0, 0, 1);
+        glColor4f(1, 1, 1, 1);
+        glVertex3f(0, 0, 0);
+        glVertex3f(cam.linearVel.x/maxLinearVel, cam.linearVel.y/maxLinearVel, cam.linearVel.z/maxLinearVel);
+        glEnd();
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisable(GL_BLEND);
+    }
+
     private void drawCrosshair() {
         glUseProgramObjectARB(0);
-        Vector4d enemyRock = bogeys[shootingRock];
+        Vector4d enemyRock = ships[shootingShip];
         if (enemyRock == null)
             return;
         Vector3d targetOrigin = tmp;
@@ -621,9 +671,9 @@ public class SpaceGame {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    private void drawBogey() {
+    private void drawShipCaretHud() {
         glUseProgramObjectARB(0);
-        Vector4d enemyRock = bogeys[shootingRock];
+        Vector4d enemyRock = ships[shootingShip];
         if (enemyRock == null)
             return;
         Vector3f targetOrigin = tmp2;
@@ -672,20 +722,20 @@ public class SpaceGame {
     private void updateShots(float dt) {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
-            for (int r = 0; r < bogeyCount; r++) {
-                Vector4d rock = bogeys[r];
+            for (int r = 0; r < shipCount; r++) {
+                Vector4d rock = ships[r];
                 if (rock == null)
                     continue;
                 double dist = (rock.x - projectilePosition.x) * (rock.x - projectilePosition.x) + 
                         (rock.y - projectilePosition.y) * (rock.y - projectilePosition.y) +
                         (rock.z - projectilePosition.z) * (rock.z - projectilePosition.z);
                 if (dist < rock.w * rock.w) {
-                    bogeys[r] = null;
+                    ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
-                    if (r == shootingRock) {
-                        for (int sr = 0; sr < bogeyCount; sr++) {
-                            if (bogeys[sr] != null) {
-                                shootingRock = sr;
+                    if (r == shootingShip) {
+                        for (int sr = 0; sr < shipCount; sr++) {
+                            if (ships[sr] != null) {
+                                shootingShip = sr;
                                 break;
                             }
                         }
@@ -707,11 +757,12 @@ public class SpaceGame {
 
     private void render() {
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        drawRocks();
+        drawShips();
         drawCubemap();
         drawShots();
         drawCrosshair();
-        drawBogey();
+        drawShipCaretHud();
+        drawVelocityCompass();
     }
 
     private void loop() {
