@@ -138,7 +138,7 @@ public class SpaceGame {
 
     private ByteBuffer charBuffer = BufferUtils.createByteBuffer(16 * 270);
 
-    private boolean windowed = true;
+    private boolean windowed = false;
     private boolean[] keyDown = new boolean[GLFW.GLFW_KEY_LAST];
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
@@ -546,6 +546,7 @@ public class SpaceGame {
     }
 
     private void drawShips() {
+        System.gc();
         glUseProgramObjectARB(shipProgram);
         glVertexPointer(3, GL_FLOAT, 0, ship.positions);
         glEnableClientState(GL_NORMAL_ARRAY);
