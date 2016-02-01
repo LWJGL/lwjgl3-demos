@@ -546,7 +546,6 @@ public class SpaceGame {
     }
 
     private void drawShips() {
-        System.gc();
         glUseProgramObjectARB(shipProgram);
         glVertexPointer(3, GL_FLOAT, 0, ship.positions);
         glEnableClientState(GL_NORMAL_ARRAY);
@@ -563,6 +562,7 @@ public class SpaceGame {
             glUniformMatrix4fvARB(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
             glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
         }
+        glDisableClientState(GL_NORMAL_ARRAY);
     }
 
     private void drawShots() {
