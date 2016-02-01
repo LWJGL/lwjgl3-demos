@@ -47,6 +47,7 @@ public class SpaceGame {
     private static class SpaceCamera {
         public Vector3f linearAcc = new Vector3f();
         public Vector3f linearVel = new Vector3f();
+        public float linearDamping = 0.08f;
 
         /** ALWAYS rotation about the local XYZ axes of the camera! */
         public Vector3f angularAcc = new Vector3f();
@@ -68,6 +69,7 @@ public class SpaceGame {
             position.x += dt * linearVel.x;
             position.y += dt * linearVel.y;
             position.z += dt * linearVel.z;
+            linearVel.mul(1.0f - linearDamping * dt);
             return this;
         }
         public Vector3f right(Vector3f dest) {
@@ -466,6 +468,48 @@ public class SpaceGame {
             cam.linearVel.normalize().mul(maxLinearVel);
     }
 
+    private static Vector3f jitter(Vector3f in, float amount, Vector3f out) {
+        float rand1 = (float) (Math.random() * 2 - 1) * amount;
+        float rand2 = (float) (Math.random() * 2 - 1) * amount;
+        float cXx = 0.0f;
+        float cXy = in.z;
+        float cXz = -in.y;
+        float cYx = in.z;
+        float cYy = 0.0f;
+        float cYz = in.x;
+        float cZx = in.y;
+        float cZy = -in.x;
+        float cZz = 0.0f;
+        float magX = cXx*cXx + cXy*cXy + cXz*cXz;
+        float magY = cYx*cYx + cYy*cYy + cYz*cYz;
+        float magZ = cZx*cZx + cZy*cZy + cZz*cZz;
+        float c1x, c1y, c1z, c2x, c2y, c2z, mag;
+        if (magX > magY && magX > magZ) {
+            c1x = cXx;
+            c1y = cXy;
+            c1z = cXz;
+            mag = magX;
+        } else if (magY > magZ) {
+            c1x = cYx;
+            c1y = cYy;
+            c1z = cYz;
+            mag = magY;
+        } else {
+            c1x = cZx;
+            c1y = cZy;
+            c1z = cZz;
+            mag = magZ;
+        }
+        float lenX = 1.0f / (float) Math.sqrt(mag);
+        c1x *= lenX;
+        c1y *= lenX;
+        c1z *= lenX;
+        c2x = in.y * c1z - in.z * c1y;
+        c2y = in.z * c1x - in.x * c1z;
+        c2z = in.x * c1y - in.y * c1x;
+        return out.set(in.x + rand1*c1x + rand2*c2x, in.y + rand1*c1y + rand2*c2y, in.z + rand1*c1z + rand2*c2z).normalize();
+    }
+
     private static Vector3f intercept(Vector3d shotOrigin, float shotSpeed, Vector3d targetOrigin, Vector3f targetVel, Vector3f out) {
         float dirToTargetX = (float) (targetOrigin.x - shotOrigin.x);
         float dirToTargetY = (float) (targetOrigin.y - shotOrigin.y);
@@ -499,6 +543,7 @@ public class SpaceGame {
             return;
         Vector3d shotPos = tmp.set(rock.x, rock.y, rock.z).sub(cam.position).negate().normalize().mul(1.01f * rock.w).add(rock.x, rock.y, rock.z);
         Vector3f icept = intercept(shotPos, shotVelocity, cam.position, cam.linearVel, tmp2);
+        jitter(icept, 0.02f, icept);
         if (icept == null)
             return;
         for (int i = 0; i < projectilePositions.length; i++) {
