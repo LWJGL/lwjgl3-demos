@@ -67,9 +67,7 @@ public class SpaceGame {
             rotation.integrate(dt, angularVel.x, angularVel.y, angularVel.z);
             angularVel.mul(1.0f - angularDamping * dt);
             // update position based on linear velocity
-            position.x += dt * linearVel.x;
-            position.y += dt * linearVel.y;
-            position.z += dt * linearVel.z;
+            position.fma(dt, linearVel);
             linearVel.mul(1.0f - linearDamping * dt);
             return this;
         }
@@ -171,12 +169,12 @@ public class SpaceGame {
     private Closure debugProc;
 
     private void init() throws IOException {
-        if (glfwInit() != GL_TRUE)
+        if (glfwInit() != GLFW_TRUE)
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-        glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);
 
         long monitor = glfwGetPrimaryMonitor();
@@ -201,6 +199,7 @@ public class SpaceGame {
         });
 
         System.out.println("Press W/S to move forward/backward");
+        System.out.println("Press L.Ctrl/Spacebar to move down/up");
         System.out.println("Press A/D to strafe left/right");
         System.out.println("Press Q/E to roll left/right");
         System.out.println("Hold the left mouse button to shoot");
@@ -478,30 +477,29 @@ public class SpaceGame {
         dirToTargetX /= len;
         dirToTargetY /= len;
         dirToTargetZ /= len;
-        float targetVelOrthDot = (float) (targetVel.x * dirToTargetX + targetVel.y * dirToTargetY + targetVel.z * dirToTargetZ);
+        float targetVelOrthDot = targetVel.x * dirToTargetX + targetVel.y * dirToTargetY + targetVel.z * dirToTargetZ;
         float targetVelOrthX = dirToTargetX * targetVelOrthDot;
         float targetVelOrthY = dirToTargetY * targetVelOrthDot;
         float targetVelOrthZ = dirToTargetZ * targetVelOrthDot;
-        float targetVelTangX = (float) (targetVel.x - targetVelOrthX);
-        float targetVelTangY = (float) (targetVel.y - targetVelOrthY);
-        float targetVelTangZ = (float) (targetVel.z - targetVelOrthZ);
+        float targetVelTangX = targetVel.x - targetVelOrthX;
+        float targetVelTangY = targetVel.y - targetVelOrthY;
+        float targetVelTangZ = targetVel.z - targetVelOrthZ;
         float shotVelSpeed = (float) Math.sqrt(targetVelTangX * targetVelTangX + targetVelTangY * targetVelTangY + targetVelTangZ * targetVelTangZ);
         if (shotVelSpeed > shotSpeed) {
             return null;
-        } else {
-            float shotSpeedOrth = (float) Math.sqrt(shotSpeed * shotSpeed - shotVelSpeed * shotVelSpeed);
-            float shotVelOrthX = dirToTargetX * shotSpeedOrth;
-            float shotVelOrthY = dirToTargetY * shotSpeedOrth;
-            float shotVelOrthZ = dirToTargetZ * shotSpeedOrth;
-            return out.set(shotVelOrthX + targetVelTangX, shotVelOrthY + targetVelTangY, shotVelOrthZ + targetVelTangZ).normalize();
         }
+        float shotSpeedOrth = (float) Math.sqrt(shotSpeed * shotSpeed - shotVelSpeed * shotVelSpeed);
+        float shotVelOrthX = dirToTargetX * shotSpeedOrth;
+        float shotVelOrthY = dirToTargetY * shotSpeedOrth;
+        float shotVelOrthZ = dirToTargetZ * shotSpeedOrth;
+        return out.set(shotVelOrthX + targetVelTangX, shotVelOrthY + targetVelTangY, shotVelOrthZ + targetVelTangZ).normalize();
     }
 
     private void shootFromShip(int index) {
-        Vector4d rock = ships[index];
-        if (rock == null)
+        Vector4d ship = ships[index];
+        if (ship == null)
             return;
-        Vector3d shotPos = tmp.set(rock.x, rock.y, rock.z).sub(cam.position).negate().normalize().mul(1.01f * rock.w).add(rock.x, rock.y, rock.z);
+        Vector3d shotPos = tmp.set(ship.x, ship.y, ship.z).sub(cam.position).negate().normalize().mul(1.01f * ship.w).add(ship.x, ship.y, ship.z);
         Vector3f icept = intercept(shotPos, shotVelocity, cam.position, cam.linearVel, tmp2);
         if (icept == null)
             return;
@@ -530,20 +528,18 @@ public class SpaceGame {
             Vector3d projectilePosition = projectilePositions[i];
             Vector4d projectileVelocity = projectileVelocities[i];
             invViewProjMatrix.transformProject(tmp2.set(mouseX, -mouseY, 1.0f)).normalize();
-            if (projectileVelocity.w <= 0.0f && !firstShot) {
-                projectilePosition.set(cam.right(tmp3)).mul(shotSeparation).add(cam.position);
+            if (projectileVelocity.w <= 0.0f) {
                 projectileVelocity.x = cam.linearVel.x + tmp2.x * shotVelocity;
                 projectileVelocity.y = cam.linearVel.y + tmp2.y * shotVelocity;
                 projectileVelocity.z = cam.linearVel.z + tmp2.z * shotVelocity;
                 projectileVelocity.w = 0.01f;
-                firstShot = true;
-            } else if (projectileVelocity.w <= 0.0f && firstShot) {
-                projectilePosition.set(cam.right(tmp3)).mul(-shotSeparation).add(cam.position);
-                projectileVelocity.x = cam.linearVel.x + tmp2.x * shotVelocity;
-                projectileVelocity.y = cam.linearVel.y + tmp2.y * shotVelocity;
-                projectileVelocity.z = cam.linearVel.z + tmp2.z * shotVelocity;
-                projectileVelocity.w = 0.01f;
-                break;
+                if (!firstShot) {
+                    projectilePosition.set(cam.right(tmp3)).mul(shotSeparation).add(cam.position);
+                    firstShot = true;
+                } else {
+                    projectilePosition.set(cam.right(tmp3)).mul(-shotSeparation).add(cam.position);
+                    break;
+                }
             }
         }
     }
@@ -560,14 +556,14 @@ public class SpaceGame {
         glEnableClientState(GL_NORMAL_ARRAY);
         glNormalPointer(GL_FLOAT, 0, ship.normals);
         for (int i = 0; i < ships.length; i++) {
-            Vector4d rock = ships[i];
-            if (rock == null)
+            Vector4d ship = ships[i];
+            if (ship == null)
                 continue;
             modelMatrix.translation(
-                    (float)(rock.x - cam.position.x),
-                    (float)(rock.y - cam.position.y),
-                    (float)(rock.z - cam.position.z));
-            modelMatrix.scale((float) rock.w);
+                    (float)(ship.x - cam.position.x),
+                    (float)(ship.y - cam.position.y),
+                    (float)(ship.z - cam.position.z));
+            modelMatrix.scale((float) ship.w);
             glUniformMatrix4fvARB(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
             glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
         }
@@ -656,18 +652,18 @@ public class SpaceGame {
 
     private void drawCrosshair() {
         glUseProgramObjectARB(0);
-        Vector4d enemyRock = ships[shootingShip];
-        if (enemyRock == null)
+        Vector4d enemyShip = ships[shootingShip];
+        if (enemyShip == null)
             return;
         Vector3d targetOrigin = tmp;
-        targetOrigin.set(enemyRock.x, enemyRock.y, enemyRock.z);
+        targetOrigin.set(enemyShip.x, enemyShip.y, enemyShip.z);
         Vector3f interceptorDir = intercept(cam.position, shotVelocity, targetOrigin, tmp3.set(cam.linearVel).negate(), tmp2);
         viewMatrix.transformDirection(interceptorDir);
         if (interceptorDir.z > 0.0)
             return;
         projMatrix.transformProject(interceptorDir);
         float crosshairSize = 0.01f;
-        float xs = crosshairSize * (float)height/width;
+        float xs = crosshairSize * height / width;
         float ys = crosshairSize;
         crosshairVertices.clear();
         crosshairVertices.put(interceptorDir.x - xs).put(interceptorDir.y - ys);
@@ -683,13 +679,13 @@ public class SpaceGame {
 
     private void drawShipCaretHud() {
         glUseProgramObjectARB(0);
-        Vector4d enemyRock = ships[shootingShip];
-        if (enemyRock == null)
+        Vector4d enemyShip = ships[shootingShip];
+        if (enemyShip == null)
             return;
         Vector3f targetOrigin = tmp2;
-        targetOrigin.set((float) (enemyRock.x - cam.position.x),
-                         (float) (enemyRock.y - cam.position.y),
-                         (float) (enemyRock.z - cam.position.z));
+        targetOrigin.set((float) (enemyShip.x - cam.position.x),
+                         (float) (enemyShip.y - cam.position.y),
+                         (float) (enemyShip.z - cam.position.z));
         tmp3.set(tmp2);
         viewMatrix.transformPosition(targetOrigin);
         boolean backward = targetOrigin.z > 0.0f;
@@ -705,7 +701,7 @@ public class SpaceGame {
         if (targetOrigin.y > 1.0f)
             targetOrigin.y = 1.0f;
         float crosshairSize = 0.03f;
-        float xs = crosshairSize * (float)height/width;
+        float xs = crosshairSize * height / width;
         float ys = crosshairSize;
         crosshairVertices.clear();
         crosshairVertices.put(targetOrigin.x - xs).put(targetOrigin.y - ys);
@@ -733,13 +729,13 @@ public class SpaceGame {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
             for (int r = 0; r < shipCount; r++) {
-                Vector4d rock = ships[r];
-                if (rock == null)
+                Vector4d ship = ships[r];
+                if (ship == null)
                     continue;
-                double dist = (rock.x - projectilePosition.x) * (rock.x - projectilePosition.x) + 
-                        (rock.y - projectilePosition.y) * (rock.y - projectilePosition.y) +
-                        (rock.z - projectilePosition.z) * (rock.z - projectilePosition.z);
-                if (dist < rock.w * rock.w) {
+                double dist = (ship.x - projectilePosition.x) * (ship.x - projectilePosition.x) + 
+                        (ship.y - projectilePosition.y) * (ship.y - projectilePosition.y) +
+                        (ship.z - projectilePosition.z) * (ship.z - projectilePosition.z);
+                if (dist < ship.w * ship.w) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
