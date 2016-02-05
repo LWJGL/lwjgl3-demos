@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 import org.joml.FrustumIntersection;
 import org.joml.GeometryUtils;
+import org.joml.Intersectionf;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
@@ -82,11 +83,11 @@ public class SpaceGame {
     }
 
     private static class Ship {
-        public Vector3d position;
+        public double x, y, z;
         public long lastShotTime;
     }
 
-    private static float shotVelocity = 250.0f;
+    private static float shotVelocity = 450.0f;
     private static float shotSeparation = 0.6f;
     private static int shotMilliseconds = 100;
     private static int shotOpponentMilliseconds = 200;
@@ -122,12 +123,10 @@ public class SpaceGame {
     private Ship[] ships = new Ship[shipCount];
     {
         for (int i = 0; i < ships.length; i++) {
-            double x = (Math.random() - 0.5) * shipSpread;
-            double y = (Math.random() - 0.5) * shipSpread;
-            double z = (Math.random() - 0.5) * shipSpread;
-            Vector3d position = new Vector3d(x, y, z);
             Ship ship = new Ship();
-            ship.position = position;
+            ship.x = (Math.random() - 0.5) * shipSpread;
+            ship.y = (Math.random() - 0.5) * shipSpread;
+            ship.z = (Math.random() - 0.5) * shipSpread;
             ships[i] = ship;
         }
     }
@@ -165,6 +164,7 @@ public class SpaceGame {
     private Matrix4f viewMatrix = new Matrix4f();
     private Matrix4f modelMatrix = new Matrix4f();
     private Matrix4f viewProjMatrix = new Matrix4f();
+    private Matrix4f invViewMatrix = new Matrix4f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
     private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
     private FrustumIntersection frustumIntersection = new FrustumIntersection();
@@ -409,9 +409,8 @@ public class SpaceGame {
         cam.update(dt);
 
         projMatrix.setPerspective((float) Math.toRadians(40.0f), (float) width / height, 0.1f, 5000.0f);
-        viewMatrix.set(cam.rotation);
-        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
-        viewProjMatrix.set(projMatrix).mul(viewMatrix);
+        viewMatrix.set(cam.rotation).invert(invViewMatrix);
+        viewProjMatrix.set(projMatrix).mul(viewMatrix).invert(invViewProjMatrix);
         frustumIntersection.set(viewProjMatrix);
 
         /* Update the background shader */
@@ -425,7 +424,7 @@ public class SpaceGame {
 
         /* Update the shot shader */
         glUseProgram(shotProgram);
-        glUniformMatrix4fv(shot_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(shot_projUniform, 1, false, matrixByteBuffer);
 
         updateControls();
 
@@ -500,7 +499,7 @@ public class SpaceGame {
             return;
         }
         ship.lastShotTime = thisTime;
-        Vector3d shotPos = tmp.set(ship.position).sub(cam.position).negate().normalize().mul(1.01f * shipRadius).add(ship.position);
+        Vector3d shotPos = tmp.set(ship.x, ship.y, ship.z).sub(cam.position).negate().normalize().mul(1.01f * shipRadius).add(ship.x, ship.y, ship.z);
         Vector3f icept = intercept(shotPos, shotVelocity, cam.position, cam.linearVel, tmp2);
         if (icept == null)
             return;
@@ -563,9 +562,9 @@ public class SpaceGame {
             Ship ship = ships[i];
             if (ship == null)
                 continue;
-            float x = (float)(ship.position.x - cam.position.x);
-            float y = (float)(ship.position.y - cam.position.y);
-            float z = (float)(ship.position.z - cam.position.z);
+            float x = (float)(ship.x - cam.position.x);
+            float y = (float)(ship.y - cam.position.y);
+            float z = (float)(ship.z - cam.position.z);
             if (frustumIntersection.testSphere(x, y, z, shipRadius)) {
                 modelMatrix.translation(x, y, z);
                 modelMatrix.scale(shipRadius);
@@ -663,7 +662,7 @@ public class SpaceGame {
         if (enemyShip == null)
             return;
         Vector3d targetOrigin = tmp;
-        targetOrigin.set(enemyShip.position);
+        targetOrigin.set(enemyShip.x, enemyShip.y, enemyShip.z);
         Vector3f interceptorDir = intercept(cam.position, shotVelocity, targetOrigin, tmp3.set(cam.linearVel).negate(), tmp2);
         viewMatrix.transformDirection(interceptorDir);
         if (interceptorDir.z > 0.0)
@@ -690,9 +689,9 @@ public class SpaceGame {
         if (enemyShip == null)
             return;
         Vector3f targetOrigin = tmp2;
-        targetOrigin.set((float) (enemyShip.position.x - cam.position.x),
-                         (float) (enemyShip.position.y - cam.position.y),
-                         (float) (enemyShip.position.z - cam.position.z));
+        targetOrigin.set((float) (enemyShip.x - cam.position.x),
+                         (float) (enemyShip.y - cam.position.y),
+                         (float) (enemyShip.z - cam.position.z));
         tmp3.set(tmp2);
         viewMatrix.transformPosition(targetOrigin);
         boolean backward = targetOrigin.z > 0.0f;
@@ -732,6 +731,32 @@ public class SpaceGame {
         glPopMatrix();
     }
 
+    private boolean nearphase(Ship ship, Vector3d p) {
+        tmp2.set(tmp.set(p).sub(ship.x, ship.y, ship.z)).div(shipRadius);
+        this.ship.positions.clear();
+        int intersections = 0;
+        while (this.ship.positions.hasRemaining()) {
+            float v0X = this.ship.positions.get();
+            float v0Y = this.ship.positions.get();
+            float v0Z = this.ship.positions.get();
+            float v1X = this.ship.positions.get();
+            float v1Y = this.ship.positions.get();
+            float v1Z = this.ship.positions.get();
+            float v2X = this.ship.positions.get();
+            float v2Y = this.ship.positions.get();
+            float v2Z = this.ship.positions.get();
+            if (Intersectionf.testRayTriangle(tmp2.x, tmp2.y, tmp2.z, 1, 0, 0, v0X, v0Y, v0Z, v2X, v2Y, v2Z, v1X, v1Y, v1Z, 1E-6f)) {
+                intersections++;
+            }
+        }
+        this.ship.positions.clear();
+        return (intersections % 2) == 1;
+    }
+
+    private static boolean broadphase(Ship ship, Vector3d p) {
+        return p.distance(ship.x, ship.y, ship.z) <= shipRadius;
+    }
+
     private void updateShots(float dt) {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
@@ -739,8 +764,7 @@ public class SpaceGame {
                 Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                double dist = ship.position.distance(projectilePosition);
-                if (dist < shipRadius) {
+                if (broadphase(ship, projectilePosition) && nearphase(ship, projectilePosition)) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
