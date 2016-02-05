@@ -731,7 +731,7 @@ public class SpaceGame {
         glPopMatrix();
     }
 
-    private boolean nearphase(Ship ship, Vector3d p) {
+    private boolean narrowphase(Ship ship, Vector3d p) {
         tmp2.set(tmp.set(p).sub(ship.x, ship.y, ship.z)).div(shipRadius);
         this.ship.positions.clear();
         int intersections = 0;
@@ -764,7 +764,7 @@ public class SpaceGame {
                 Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                if (broadphase(ship, projectilePosition) && nearphase(ship, projectilePosition)) {
+                if (broadphase(ship, projectilePosition) && narrowphase(ship, projectilePosition)) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
