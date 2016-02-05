@@ -11,6 +11,6 @@ float smootStep(float x) {
 
 void main(void) {
   float len = 1.0 - length(pointCoord);
-  vec4 color = vec4(1.1, 1.1, 0.3, 1.0) * smootStep(len);
+  vec4 color = vec4(1.1, 1.1, 1.8, 1.0) * smootStep(len);
   gl_FragColor = color;
 }

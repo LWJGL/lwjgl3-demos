@@ -10,10 +10,10 @@ import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
 import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
+import org.joml.FrustumIntersection;
 import org.joml.GeometryUtils;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -26,15 +26,14 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-import static org.lwjgl.opengl.ARBShaderObjects.*;
-import static org.lwjgl.opengl.ARBVertexShader.*;
-import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.opengl.ARBSeamlessCubeMap.*;
-import static org.lwjgl.opengl.ARBTextureCubeMap.*;
-import static org.lwjgl.opengl.EXTTextureFilterAnisotropic.*;
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.stb.STBEasyFont.stb_easy_font_print;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -82,14 +81,20 @@ public class SpaceGame {
         }
     }
 
+    private static class Ship {
+        public Vector3d position;
+        public long lastShotTime;
+    }
+
     private static float shotVelocity = 250.0f;
-    private static float shotSeparation = 0.4f;
+    private static float shotSeparation = 0.6f;
     private static int shotMilliseconds = 100;
     private static int shotOpponentMilliseconds = 200;
     private static float straveThrusterAccFactor = 20.0f;
     private static float mainThrusterAccFactor = 50.0f;
     private static float maxLinearVel = 200.0f;
     private static float maxShotLifetime = 30.0f;
+    private static float shotSize = 0.5f;
 
     private long window;
     private int width = 800;
@@ -108,18 +113,21 @@ public class SpaceGame {
 
     private ByteBuffer quadVertices;
     private Mesh ship;
+    private int shipPositionVbo;
+    private int shipNormalVbo;
     private Mesh sphere;
     private int shipCount = 256;
     private static float shipSpread = 1000.0f;
     private static float shipRadius = 4.0f;
-    private Vector4d[] ships = new Vector4d[shipCount];
+    private Ship[] ships = new Ship[shipCount];
     {
         for (int i = 0; i < ships.length; i++) {
             double x = (Math.random() - 0.5) * shipSpread;
             double y = (Math.random() - 0.5) * shipSpread;
             double z = (Math.random() - 0.5) * shipSpread;
-            double radius = shipRadius;
-            Vector4d ship = new Vector4d(x, y, z, radius);
+            Vector3d position = new Vector3d(x, y, z);
+            Ship ship = new Ship();
+            ship.position = position;
             ships[i] = ship;
         }
     }
@@ -144,7 +152,6 @@ public class SpaceGame {
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
     private long lastShotTime = 0L;
-    private long lastOpponentShotTime = 0L;
     private int shootingShip = 0;
     private float mouseX = 0.0f;
     private float mouseY = 0.0f;
@@ -160,6 +167,7 @@ public class SpaceGame {
     private Matrix4f viewProjMatrix = new Matrix4f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
     private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    private FrustumIntersection frustumIntersection = new FrustumIntersection();
 
     private GLCapabilities caps;
     private GLFWKeyCallback keyCallback;
@@ -248,17 +256,8 @@ public class SpaceGame {
         width = framebufferSize.get(0);
         height = framebufferSize.get(1);
         caps = GL.createCapabilities();
-        if (!caps.GL_ARB_shader_objects) {
-            throw new AssertionError("This demo requires the ARB_shader_objects extension.");
-        }
-        if (!caps.GL_ARB_vertex_shader) {
-            throw new AssertionError("This demo requires the ARB_vertex_shader extension.");
-        }
-        if (!caps.GL_ARB_fragment_shader) {
-            throw new AssertionError("This demo requires the ARB_fragment_shader extension.");
-        }
-        if (!caps.GL_ARB_texture_cube_map && !caps.OpenGL13) {
-            throw new AssertionError("This demo requires the ARB_texture_cube_map extension or OpenGL 1.3.");
+        if (!caps.OpenGL20) {
+            throw new AssertionError("This demo requires OpenGL 2.0.");
         }
         debugProc = GLUtil.setupDebugMessageCallback();
 
@@ -290,6 +289,14 @@ public class SpaceGame {
     private void createShip() throws IOException {
         WavefrontMeshLoader loader = new WavefrontMeshLoader();
         ship = loader.loadMesh("org/lwjgl/demo/game/ship.obj.zip");
+        shipPositionVbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, shipPositionVbo);
+        glBufferData(GL_ARRAY_BUFFER, ship.positions, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        shipNormalVbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, shipNormalVbo);
+        glBufferData(GL_ARRAY_BUFFER, ship.normals, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     private void createSphere() throws IOException {
@@ -298,16 +305,16 @@ public class SpaceGame {
     }
 
     private static int createShader(String resource, int type) throws IOException {
-        int shader = glCreateShaderObjectARB(type);
+        int shader = glCreateShader(type);
         ByteBuffer source = ioResourceToByteBuffer(resource, 1024);
         PointerBuffer strings = BufferUtils.createPointerBuffer(1);
         IntBuffer lengths = BufferUtils.createIntBuffer(1);
         strings.put(0, source);
         lengths.put(0, source.remaining());
-        glShaderSourceARB(shader, strings, lengths);
-        glCompileShaderARB(shader);
-        int compiled = glGetObjectParameteriARB(shader, GL_OBJECT_COMPILE_STATUS_ARB);
-        String shaderLog = glGetInfoLogARB(shader);
+        glShaderSource(shader, strings, lengths);
+        glCompileShader(shader);
+        int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
+        String shaderLog = glGetShaderInfoLog(shader);
         if (shaderLog.trim().length() > 0) {
             System.err.println(shaderLog);
         }
@@ -318,12 +325,12 @@ public class SpaceGame {
     }
 
     private static int createProgram(int vshader, int fshader) {
-        int program = glCreateProgramObjectARB();
-        glAttachObjectARB(program, vshader);
-        glAttachObjectARB(program, fshader);
-        glLinkProgramARB(program);
-        int linked = glGetObjectParameteriARB(program, GL_OBJECT_LINK_STATUS_ARB);
-        String programLog = glGetInfoLogARB(program);
+        int program = glCreateProgram();
+        glAttachShader(program, vshader);
+        glAttachShader(program, fshader);
+        glLinkProgram(program);
+        int linked = glGetProgrami(program, GL_LINK_STATUS);
+        String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
@@ -334,59 +341,51 @@ public class SpaceGame {
     }
 
     private void createCubemapProgram() throws IOException {
-        int vshader = createShader("org/lwjgl/demo/game/cubemap.vs", GL_VERTEX_SHADER_ARB);
-        int fshader = createShader("org/lwjgl/demo/game/cubemap.fs", GL_FRAGMENT_SHADER_ARB);
+        int vshader = createShader("org/lwjgl/demo/game/cubemap.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/game/cubemap.fs", GL_FRAGMENT_SHADER);
         int program = createProgram(vshader, fshader);
-        glUseProgramObjectARB(program);
-        int texLocation = glGetUniformLocationARB(program, "tex");
-        glUniform1iARB(texLocation, 0);
-        cubemap_invViewProjUniform = glGetUniformLocationARB(program, "invViewProj");
-        glUseProgramObjectARB(0);
+        glUseProgram(program);
+        int texLocation = glGetUniformLocation(program, "tex");
+        glUniform1i(texLocation, 0);
+        cubemap_invViewProjUniform = glGetUniformLocation(program, "invViewProj");
+        glUseProgram(0);
         cubemapProgram = program;
     }
 
     private void createShipProgram() throws IOException {
-        int vshader = createShader("org/lwjgl/demo/game/ship.vs", GL_VERTEX_SHADER_ARB);
-        int fshader = createShader("org/lwjgl/demo/game/ship.fs", GL_FRAGMENT_SHADER_ARB);
+        int vshader = createShader("org/lwjgl/demo/game/ship.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/game/ship.fs", GL_FRAGMENT_SHADER);
         int program = createProgram(vshader, fshader);
-        glUseProgramObjectARB(program);
-        ship_viewUniform = glGetUniformLocationARB(program, "view");
-        ship_projUniform = glGetUniformLocationARB(program, "proj");
-        ship_modelUniform = glGetUniformLocationARB(program, "model");
-        glUseProgramObjectARB(0);
+        glUseProgram(program);
+        ship_viewUniform = glGetUniformLocation(program, "view");
+        ship_projUniform = glGetUniformLocation(program, "proj");
+        ship_modelUniform = glGetUniformLocation(program, "model");
+        glUseProgram(0);
         shipProgram = program;
     }
 
     private void createShotProgram() throws IOException {
-        int vshader = createShader("org/lwjgl/demo/game/shot.vs", GL_VERTEX_SHADER_ARB);
-        int fshader = createShader("org/lwjgl/demo/game/shot.fs", GL_FRAGMENT_SHADER_ARB);
+        int vshader = createShader("org/lwjgl/demo/game/shot.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/game/shot.fs", GL_FRAGMENT_SHADER);
         int program = createProgram(vshader, fshader);
-        glUseProgramObjectARB(program);
-        shot_projUniform = glGetUniformLocationARB(program, "proj");
-        glUseProgramObjectARB(0);
+        glUseProgram(program);
+        shot_projUniform = glGetUniformLocation(program, "proj");
+        glUseProgram(0);
         shotProgram = program;
     }
 
     private void createCubemapTexture() throws IOException {
         int tex = glGenTextures();
-        glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, tex);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         ByteBuffer imageBuffer;
         IntBuffer w = BufferUtils.createIntBuffer(1);
         IntBuffer h = BufferUtils.createIntBuffer(1);
         IntBuffer comp = BufferUtils.createIntBuffer(1);
         String[] names = { "right", "left", "top", "bottom", "front", "back" };
         ByteBuffer image;
-        if (caps.GL_EXT_texture_filter_anisotropic) {
-            float maxAnisotropy = glGetFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-            glTexParameterf(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-        }
-        if (caps.OpenGL14) {
-            glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL14.GL_GENERATE_MIPMAP, GL_TRUE);
-        } else {
-            glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        }
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_GENERATE_MIPMAP, GL_TRUE);
         for (int i = 0; i < 6; i++) {
             imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/space_" + names[i] + (i + 1) + ".jpg", 8 * 1024);
             if (stbi_info_from_memory(imageBuffer, w, h, comp) == 0)
@@ -394,7 +393,7 @@ public class SpaceGame {
             image = stbi_load_from_memory(imageBuffer, w, h, comp, 0);
             if (image == null)
                 throw new IOException("Failed to load image: " + stbi_failure_reason());
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + i, 0, GL_RGB8, w.get(0), h.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, w.get(0), h.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, image);
             stbi_image_free(image);
         }
         if (caps.OpenGL32 || caps.GL_ARB_seamless_cube_map) {
@@ -413,19 +412,20 @@ public class SpaceGame {
         viewMatrix.set(cam.rotation);
         invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
         viewProjMatrix.set(projMatrix).mul(viewMatrix);
+        frustumIntersection.set(viewProjMatrix);
 
         /* Update the background shader */
-        glUseProgramObjectARB(cubemapProgram);
-        glUniformMatrix4fvARB(cubemap_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
+        glUseProgram(cubemapProgram);
+        glUniformMatrix4fv(cubemap_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
 
         /* Update the ship shader */
-        glUseProgramObjectARB(shipProgram);
-        glUniformMatrix4fvARB(ship_viewUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-        glUniformMatrix4fvARB(ship_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
+        glUseProgram(shipProgram);
+        glUniformMatrix4fv(ship_viewUniform, 1, false, viewMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(ship_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
 
         /* Update the shot shader */
-        glUseProgramObjectARB(shotProgram);
-        glUniformMatrix4fvARB(shot_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
+        glUseProgram(shotProgram);
+        glUniformMatrix4fv(shot_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
 
         updateControls();
 
@@ -435,10 +435,7 @@ public class SpaceGame {
             lastShotTime = thisTime;
         }
         /* Let the opponent shoot a bullet */
-        if (thisTime - lastOpponentShotTime >= 1E6 * shotOpponentMilliseconds) {
-            shootFromShip(shootingShip);
-            lastOpponentShotTime = thisTime;
-        }
+        shootFromShip(thisTime, shootingShip);
     }
 
     private void updateControls() {
@@ -495,11 +492,15 @@ public class SpaceGame {
         return out.set(shotVelOrthX + targetVelTangX, shotVelOrthY + targetVelTangY, shotVelOrthZ + targetVelTangZ).normalize();
     }
 
-    private void shootFromShip(int index) {
-        Vector4d ship = ships[index];
+    private void shootFromShip(long thisTime, int index) {
+        Ship ship = ships[index];
         if (ship == null)
             return;
-        Vector3d shotPos = tmp.set(ship.x, ship.y, ship.z).sub(cam.position).negate().normalize().mul(1.01f * ship.w).add(ship.x, ship.y, ship.z);
+        if (thisTime - ship.lastShotTime < 1E6 * shotOpponentMilliseconds) {
+            return;
+        }
+        ship.lastShotTime = thisTime;
+        Vector3d shotPos = tmp.set(ship.position).sub(cam.position).negate().normalize().mul(1.01f * shipRadius).add(ship.position);
         Vector3f icept = intercept(shotPos, shotVelocity, cam.position, cam.linearVel, tmp2);
         if (icept == null)
             return;
@@ -545,34 +546,38 @@ public class SpaceGame {
     }
 
     private void drawCubemap() {
-        glUseProgramObjectARB(cubemapProgram);
+        glUseProgram(cubemapProgram);
         glVertexPointer(2, GL_FLOAT, 0, quadVertices);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     private void drawShips() {
-        glUseProgramObjectARB(shipProgram);
-        glVertexPointer(3, GL_FLOAT, 0, ship.positions);
+        glUseProgram(shipProgram);
+        glBindBuffer(GL_ARRAY_BUFFER, shipPositionVbo);
+        glVertexPointer(3, GL_FLOAT, 0, 0);
         glEnableClientState(GL_NORMAL_ARRAY);
-        glNormalPointer(GL_FLOAT, 0, ship.normals);
+        glBindBuffer(GL_ARRAY_BUFFER, shipNormalVbo);
+        glNormalPointer(GL_FLOAT, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         for (int i = 0; i < ships.length; i++) {
-            Vector4d ship = ships[i];
+            Ship ship = ships[i];
             if (ship == null)
                 continue;
-            modelMatrix.translation(
-                    (float)(ship.x - cam.position.x),
-                    (float)(ship.y - cam.position.y),
-                    (float)(ship.z - cam.position.z));
-            modelMatrix.scale((float) ship.w);
-            glUniformMatrix4fvARB(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
-            glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
+            float x = (float)(ship.position.x - cam.position.x);
+            float y = (float)(ship.position.y - cam.position.y);
+            float z = (float)(ship.position.z - cam.position.z);
+            if (frustumIntersection.testSphere(x, y, z, shipRadius)) {
+                modelMatrix.translation(x, y, z);
+                modelMatrix.scale(shipRadius);
+                glUniformMatrix4fv(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+                glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
+            }
         }
         glDisableClientState(GL_NORMAL_ARRAY);
     }
 
     private void drawShots() {
-        float shotSize = 0.1f;
-        glUseProgramObjectARB(shotProgram);
+        glUseProgram(shotProgram);
         shotsVertices.clear();
         int num = 0;
         for (int i = 0; i < projectilePositions.length; i++) {
@@ -582,15 +587,17 @@ public class SpaceGame {
                 float x = (float) (projectilePosition.x - cam.position.x);
                 float y = (float) (projectilePosition.y - cam.position.y);
                 float z = (float) (projectilePosition.z - cam.position.z);
-                float w = (float) projectileVelocity.w;
-                viewMatrix.transformPosition(tmp2.set(x, y, z));
-                shotsVertices.put(tmp2.x - shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put(-1).put(-1);
-                shotsVertices.put(tmp2.x + shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put( 1).put(-1);
-                shotsVertices.put(tmp2.x + shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put( 1).put( 1);
-                shotsVertices.put(tmp2.x + shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put( 1).put( 1);
-                shotsVertices.put(tmp2.x - shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put(-1).put( 1);
-                shotsVertices.put(tmp2.x - shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put(-1).put(-1);
-                num++;
+                if (frustumIntersection.testPoint(x, y, z)) {
+                    float w = (float) projectileVelocity.w;
+                    viewMatrix.transformPosition(tmp2.set(x, y, z));
+                    shotsVertices.put(tmp2.x - shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put(-1).put(-1);
+                    shotsVertices.put(tmp2.x + shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put( 1).put(-1);
+                    shotsVertices.put(tmp2.x + shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put( 1).put( 1);
+                    shotsVertices.put(tmp2.x + shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put( 1).put( 1);
+                    shotsVertices.put(tmp2.x - shotSize).put(tmp2.y + shotSize).put(tmp2.z).put(w).put(-1).put( 1);
+                    shotsVertices.put(tmp2.x - shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put(-1).put(-1);
+                    num++;
+                }
             }
         }
         shotsVertices.flip();
@@ -610,7 +617,7 @@ public class SpaceGame {
     }
 
     private void drawVelocityCompass() {
-        glUseProgramObjectARB(0);
+        glUseProgram(0);
         glEnable(GL_BLEND);
         glVertexPointer(3, GL_FLOAT, 0, sphere.positions);
         glEnableClientState(GL_NORMAL_ARRAY);
@@ -650,13 +657,13 @@ public class SpaceGame {
         glDisable(GL_BLEND);
     }
 
-    private void drawCrosshair() {
-        glUseProgramObjectARB(0);
-        Vector4d enemyShip = ships[shootingShip];
+    private void drawHudShotDirection() {
+        glUseProgram(0);
+        Ship enemyShip = ships[shootingShip];
         if (enemyShip == null)
             return;
         Vector3d targetOrigin = tmp;
-        targetOrigin.set(enemyShip.x, enemyShip.y, enemyShip.z);
+        targetOrigin.set(enemyShip.position);
         Vector3f interceptorDir = intercept(cam.position, shotVelocity, targetOrigin, tmp3.set(cam.linearVel).negate(), tmp2);
         viewMatrix.transformDirection(interceptorDir);
         if (interceptorDir.z > 0.0)
@@ -677,15 +684,15 @@ public class SpaceGame {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    private void drawShipCaretHud() {
-        glUseProgramObjectARB(0);
-        Vector4d enemyShip = ships[shootingShip];
+    private void drawHudShip() {
+        glUseProgram(0);
+        Ship enemyShip = ships[shootingShip];
         if (enemyShip == null)
             return;
         Vector3f targetOrigin = tmp2;
-        targetOrigin.set((float) (enemyShip.x - cam.position.x),
-                         (float) (enemyShip.y - cam.position.y),
-                         (float) (enemyShip.z - cam.position.z));
+        targetOrigin.set((float) (enemyShip.position.x - cam.position.x),
+                         (float) (enemyShip.position.y - cam.position.y),
+                         (float) (enemyShip.position.z - cam.position.z));
         tmp3.set(tmp2);
         viewMatrix.transformPosition(targetOrigin);
         boolean backward = targetOrigin.z > 0.0f;
@@ -729,13 +736,11 @@ public class SpaceGame {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
             for (int r = 0; r < shipCount; r++) {
-                Vector4d ship = ships[r];
+                Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                double dist = (ship.x - projectilePosition.x) * (ship.x - projectilePosition.x) + 
-                        (ship.y - projectilePosition.y) * (ship.y - projectilePosition.y) +
-                        (ship.z - projectilePosition.z) * (ship.z - projectilePosition.z);
-                if (dist < ship.w * ship.w) {
+                double dist = ship.position.distance(projectilePosition);
+                if (dist < shipRadius) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
@@ -766,8 +771,8 @@ public class SpaceGame {
         drawShips();
         drawCubemap();
         drawShots();
-        drawCrosshair();
-        drawShipCaretHud();
+        drawHudShotDirection();
+        drawHudShip();
         drawVelocityCompass();
     }
 
