@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 import org.joml.FrustumIntersection;
 import org.joml.GeometryUtils;
+import org.joml.Intersectiond;
 import org.joml.Intersectionf;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -755,8 +756,8 @@ public class SpaceGame {
         return intersects;
     }
 
-    private static boolean broadphase(Ship ship, Vector3d p) {
-        return p.distance(ship.x, ship.y, ship.z) <= shipRadius;
+    private static boolean broadphase(Ship ship, Vector3d pOld, Vector3d pNew) {
+        return Intersectiond.testLineSegmentSphere(pOld.x, pOld.y, pOld.z, pNew.x, pNew.y, pNew.z, ship.x, ship.y, ship.z, shipRadius*shipRadius);
     }
 
     private void updateShots(float dt) {
@@ -774,7 +775,7 @@ public class SpaceGame {
                 Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                if (broadphase(ship, projectilePosition) && narrowphase(ship, projectilePosition, newPosition)) {
+                if (broadphase(ship, projectilePosition, newPosition) && narrowphase(ship, projectilePosition, newPosition)) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
