@@ -157,6 +157,7 @@ public class SpaceGame {
     private long lastTime = System.nanoTime();
     private SpaceCamera cam = new SpaceCamera();
     private Vector3d tmp = new Vector3d();
+    private Vector3d newPosition = new Vector3d();
     private Vector3f tmp2 = new Vector3f();
     private Vector3f tmp3 = new Vector3f();
     private Vector3f tmp4 = new Vector3f();
@@ -731,11 +732,12 @@ public class SpaceGame {
         glPopMatrix();
     }
 
-    private boolean narrowphase(Ship ship, Vector3d p) {
-        tmp2.set(tmp.set(p).sub(ship.x, ship.y, ship.z)).div(shipRadius);
+    private boolean narrowphase(Ship ship, Vector3d pOld, Vector3d pNew) {
+        tmp2.set(tmp.set(pOld).sub(ship.x, ship.y, ship.z)).div(shipRadius);
+        tmp3.set(tmp.set(pNew).sub(ship.x, ship.y, ship.z)).div(shipRadius);
         this.ship.positions.clear();
-        int intersections = 0;
-        while (this.ship.positions.hasRemaining()) {
+        boolean intersects = false;
+        while (this.ship.positions.hasRemaining() && !intersects) {
             float v0X = this.ship.positions.get();
             float v0Y = this.ship.positions.get();
             float v0Z = this.ship.positions.get();
@@ -745,12 +747,12 @@ public class SpaceGame {
             float v2X = this.ship.positions.get();
             float v2Y = this.ship.positions.get();
             float v2Z = this.ship.positions.get();
-            if (Intersectionf.testRayTriangle(tmp2.x, tmp2.y, tmp2.z, 1, 0, 0, v0X, v0Y, v0Z, v2X, v2Y, v2Z, v1X, v1Y, v1Z, 1E-6f)) {
-                intersections++;
+            if (Intersectionf.testLineSegmentTriangle(tmp2.x, tmp2.y, tmp2.z, tmp3.x, tmp3.y, tmp3.z, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, 1E-6f)) {
+                intersects = true;
             }
         }
         this.ship.positions.clear();
-        return (intersections % 2) == 1;
+        return intersects;
     }
 
     private static boolean broadphase(Ship ship, Vector3d p) {
@@ -760,11 +762,19 @@ public class SpaceGame {
     private void updateShots(float dt) {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
+            Vector4d projectileVelocity = projectileVelocities[i];
+            newPosition.set(projectileVelocity.x, projectileVelocity.y, projectileVelocity.z).mul(dt).add(projectilePosition);
+            if (projectileVelocity.w > maxShotLifetime) {
+                projectileVelocity.w = 0.0f;
+                continue;
+            } else if (projectileVelocity.w > 0.0f) {
+                projectileVelocity.w += dt;
+            }
             for (int r = 0; r < shipCount; r++) {
                 Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                if (broadphase(ship, projectilePosition) && narrowphase(ship, projectilePosition)) {
+                if (broadphase(ship, projectilePosition) && narrowphase(ship, projectilePosition, newPosition)) {
                     ships[r] = null;
                     projectileVelocities[i].w = 0.0f;
                     if (r == shootingShip) {
@@ -778,15 +788,7 @@ public class SpaceGame {
                     continue projectiles;
                 }
             }
-
-            Vector4d projectileVelocity = projectileVelocities[i];
-            if (projectileVelocity.w > maxShotLifetime) {
-                projectileVelocity.w = 0.0f;
-            } else if (projectileVelocity.w > 0.0f) {
-                projectileVelocity.w += dt;
-                tmp.set(projectileVelocity.x, projectileVelocity.y, projectileVelocity.z).mul(dt).add(projectilePosition);
-                projectilePosition.set(tmp);
-            }
+            projectilePosition.set(newPosition);
         }
     }
 
