@@ -32,6 +32,7 @@ public class WavefrontMeshLoader {
         public FloatBuffer positions;
         public FloatBuffer normals;
         public int numVertices;
+        public float boundingSphereRadius;
         public List<MeshObject> objects = new ArrayList<MeshObject>();
     }
 
@@ -66,7 +67,7 @@ public class WavefrontMeshLoader {
         this.fourComponentPosition = fourComponentPosition;
     }
 
-    private WavefrontInfo getInfo(BufferedReader reader) throws IOException {
+    private static WavefrontInfo getInfo(BufferedReader reader) throws IOException {
         String line = "";
         WavefrontInfo info = new WavefrontInfo();
         while (true) {
@@ -85,7 +86,7 @@ public class WavefrontMeshLoader {
         return info;
     }
 
-    private byte[] readSingleFileZip(String zipResource) throws IOException {
+    private static byte[] readSingleFileZip(String zipResource) throws IOException {
         ZipInputStream zipStream = new ZipInputStream(WavefrontMeshLoader.class.getClassLoader().getResourceAsStream(
                 zipResource));
         zipStream.getNextEntry();
@@ -117,6 +118,9 @@ public class WavefrontMeshLoader {
 
         Mesh mesh = new Mesh();
         MeshObject object = null;
+
+        float minX = 1E38f, minY = 1E38f, minZ = 1E38f;
+        float maxX = -1E38f, maxY = -1E38f, maxZ = -1E38f;
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(arr)));
         String line;
@@ -155,6 +159,12 @@ public class WavefrontMeshLoader {
                 float ver1X = positions.get(3 * (v1 - 1) + 0);
                 float ver1Y = positions.get(3 * (v1 - 1) + 1);
                 float ver1Z = positions.get(3 * (v1 - 1) + 2);
+                minX = minX < ver1X ? minX : ver1X;
+                minY = minY < ver1Y ? minY : ver1Y;
+                minZ = minZ < ver1Z ? minZ : ver1Z;
+                maxX = maxX > ver1X ? maxX : ver1X;
+                maxY = maxY > ver1Y ? maxY : ver1Y;
+                maxZ = maxZ > ver1Z ? maxZ : ver1Z;
                 tmp.set(ver1X, ver1Y, ver1Z);
                 if (object != null) {
                     object.min.min(tmp);
@@ -163,6 +173,12 @@ public class WavefrontMeshLoader {
                 float ver2X = positions.get(3 * (v2 - 1) + 0);
                 float ver2Y = positions.get(3 * (v2 - 1) + 1);
                 float ver2Z = positions.get(3 * (v2 - 1) + 2);
+                minX = minX < ver2X ? minX : ver2X;
+                minY = minY < ver2Y ? minY : ver2Y;
+                minZ = minZ < ver2Z ? minZ : ver2Z;
+                maxX = maxX > ver2X ? maxX : ver2X;
+                maxY = maxY > ver2Y ? maxY : ver2Y;
+                maxZ = maxZ > ver2Z ? maxZ : ver2Z;
                 tmp.set(ver2X, ver2Y, ver2Z);
                 if (object != null) {
                     object.min.min(tmp);
@@ -171,6 +187,12 @@ public class WavefrontMeshLoader {
                 float ver3X = positions.get(3 * (v3 - 1) + 0);
                 float ver3Y = positions.get(3 * (v3 - 1) + 1);
                 float ver3Z = positions.get(3 * (v3 - 1) + 2);
+                minX = minX < ver3X ? minX : ver3X;
+                minY = minY < ver3Y ? minY : ver3Y;
+                minZ = minZ < ver3Z ? minZ : ver3Z;
+                maxX = maxX > ver3X ? maxX : ver3X;
+                maxY = maxY > ver3Y ? maxY : ver3Y;
+                maxZ = maxZ > ver3Z ? maxZ : ver3Z;
                 tmp.set(ver3X, ver3Y, ver3Z);
                 if (object != null) {
                     object.min.min(tmp);
@@ -213,6 +235,7 @@ public class WavefrontMeshLoader {
         }
         positionData.flip();
         normalData.flip();
+        mesh.boundingSphereRadius = Math.max(maxX - minX, Math.max(maxY - minY, maxZ - minZ)) * 0.5f;
         mesh.positions = positionData;
         mesh.normals = normalData;
         mesh.numVertices = positionData.limit() / (fourComponentPosition ? 4 : 3);

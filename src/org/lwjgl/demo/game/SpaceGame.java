@@ -22,6 +22,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector4d;
+import org.joml.Vector4f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -88,15 +89,25 @@ public class SpaceGame {
         public long lastShotTime;
     }
 
+    private static class Asteroid {
+        public double x, y, z;
+        public float scale;
+    }
+
     private static float shotVelocity = 450.0f;
-    private static float shotSeparation = 0.6f;
-    private static int shotMilliseconds = 100;
+    private static float shotSeparation = 0.8f;
+    private static int shotMilliseconds = 80;
     private static int shotOpponentMilliseconds = 200;
     private static float straveThrusterAccFactor = 20.0f;
     private static float mainThrusterAccFactor = 50.0f;
     private static float maxLinearVel = 200.0f;
     private static float maxShotLifetime = 30.0f;
+    private static float maxParticleLifetime = 1.0f;
     private static float shotSize = 0.5f;
+    private static float particleSize = 1.0f;
+    private static final int explosionParticles = 200;
+    private static final int maxParticles = 4096;
+    private static final int maxShots = 1024;
 
     private long window;
     private int width = 800;
@@ -113,12 +124,20 @@ public class SpaceGame {
     private int shotProgram;
     private int shot_projUniform;
 
+    private int particleProgram;
+    private int particle_projUniform;
+
     private ByteBuffer quadVertices;
     private Mesh ship;
     private int shipPositionVbo;
     private int shipNormalVbo;
     private Mesh sphere;
-    private int shipCount = 256;
+    private Mesh asteroid;
+    private int asteroidPositionVbo;
+    private int asteroidNormalVbo;
+    private int shipCount = 128;
+    private int asteroidCount = 512;
+    private float maxAsteroidRadius = 20.0f;
     private static float shipSpread = 1000.0f;
     private static float shipRadius = 4.0f;
     private Ship[] ships = new Ship[shipCount];
@@ -131,18 +150,41 @@ public class SpaceGame {
             ships[i] = ship;
         }
     }
+    private Asteroid[] asteroids = new Asteroid[asteroidCount];
+    {
+        for (int i = 0; i < asteroids.length; i++) {
+            Asteroid asteroid = new Asteroid();
+            float scale = (float) ((Math.random() * 0.5 + 0.5) * maxAsteroidRadius);
+            asteroid.x = (Math.random() - 0.5) * shipSpread;
+            asteroid.y = (Math.random() - 0.5) * shipSpread;
+            asteroid.z = (Math.random() - 0.5) * shipSpread;
+            asteroid.scale = scale;
+            asteroids[i] = asteroid;
+        }
+    }
 
-    private Vector3d[] projectilePositions = new Vector3d[2048];
-    private Vector4d[] projectileVelocities = new Vector4d[2048];
+    private Vector3d[] projectilePositions = new Vector3d[1024];
+    private Vector4f[] projectileVelocities = new Vector4f[1024];
     {
         for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = new Vector3d(0, 0, 0);
             projectilePositions[i] = projectilePosition;
-            Vector4d projectileVelocity = new Vector4d(0, 0, 0, 0);
+            Vector4f projectileVelocity = new Vector4f(0, 0, 0, 0);
             projectileVelocities[i] = projectileVelocity;
         }
     }
-    private FloatBuffer shotsVertices = BufferUtils.createFloatBuffer(6 * 6 * 2048);
+    private Vector3d[] particlePositions = new Vector3d[maxParticles];
+    private Vector4d[] particleVelocities = new Vector4d[maxParticles];
+    {
+        for (int i = 0; i < particlePositions.length; i++) {
+            Vector3d particlePosition = new Vector3d(0, 0, 0);
+            particlePositions[i] = particlePosition;
+            Vector4d particleVelocity = new Vector4d(0, 0, 0, 0);
+            particleVelocities[i] = particleVelocity;
+        }
+    }
+    private FloatBuffer shotsVertices = BufferUtils.createFloatBuffer(6 * 6 * maxShots);
+    private FloatBuffer particleVertices = BufferUtils.createFloatBuffer(6 * 6 * maxParticles);
     private FloatBuffer crosshairVertices = BufferUtils.createFloatBuffer(6 * 2);
 
     private ByteBuffer charBuffer = BufferUtils.createByteBuffer(16 * 270);
@@ -268,12 +310,15 @@ public class SpaceGame {
         createFullScreenQuad();
         createCubemapProgram();
         createShipProgram();
+        createParticleProgram();
         createShip();
+        createAsteroid();
         createShotProgram();
         createSphere();
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     }
 
@@ -298,6 +343,19 @@ public class SpaceGame {
         shipNormalVbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, shipNormalVbo);
         glBufferData(GL_ARRAY_BUFFER, ship.normals, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    private void createAsteroid() throws IOException {
+        WavefrontMeshLoader loader = new WavefrontMeshLoader();
+        asteroid = loader.loadMesh("org/lwjgl/demo/game/asteroid.obj.zip");
+        asteroidPositionVbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, asteroidPositionVbo);
+        glBufferData(GL_ARRAY_BUFFER, asteroid.positions, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        asteroidNormalVbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, asteroidNormalVbo);
+        glBufferData(GL_ARRAY_BUFFER, asteroid.normals, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -366,6 +424,16 @@ public class SpaceGame {
         shipProgram = program;
     }
 
+    private void createParticleProgram() throws IOException {
+        int vshader = createShader("org/lwjgl/demo/game/particle.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/game/particle.fs", GL_FRAGMENT_SHADER);
+        int program = createProgram(vshader, fshader);
+        glUseProgram(program);
+        particle_projUniform = glGetUniformLocation(program, "proj");
+        glUseProgram(0);
+        particleProgram = program;
+    }
+
     private void createShotProgram() throws IOException {
         int vshader = createShader("org/lwjgl/demo/game/shot.vs", GL_VERTEX_SHADER);
         int fshader = createShader("org/lwjgl/demo/game/shot.fs", GL_FRAGMENT_SHADER);
@@ -408,6 +476,7 @@ public class SpaceGame {
         float dt = (thisTime - lastTime) / 1E9f;
         lastTime = thisTime;
         updateShots(dt);
+        updateParticles(dt);
         cam.update(dt);
 
         projMatrix.setPerspective((float) Math.toRadians(40.0f), (float) width / height, 0.1f, 5000.0f);
@@ -427,6 +496,10 @@ public class SpaceGame {
         /* Update the shot shader */
         glUseProgram(shotProgram);
         glUniformMatrix4fv(shot_projUniform, 1, false, matrixByteBuffer);
+
+        /* Update the particle shader */
+        glUseProgram(particleProgram);
+        glUniformMatrix4fv(particle_projUniform, 1, false, matrixByteBuffer);
 
         updateControls();
 
@@ -512,7 +585,7 @@ public class SpaceGame {
         icept.normalize();
         for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
-            Vector4d projectileVelocity = projectileVelocities[i];
+            Vector4f projectileVelocity = projectileVelocities[i];
             if (projectileVelocity.w <= 0.0f) {
                 projectilePosition.set(shotPos);
                 projectileVelocity.x = tmp2.x * shotVelocity;
@@ -528,7 +601,7 @@ public class SpaceGame {
         boolean firstShot = false;
         for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
-            Vector4d projectileVelocity = projectileVelocities[i];
+            Vector4f projectileVelocity = projectileVelocities[i];
             invViewProjMatrix.transformProject(tmp2.set(mouseX, -mouseY, 1.0f)).normalize();
             if (projectileVelocity.w <= 0.0f) {
                 projectileVelocity.x = cam.linearVel.x + tmp2.x * shotVelocity;
@@ -577,19 +650,83 @@ public class SpaceGame {
         glDisableClientState(GL_NORMAL_ARRAY);
     }
 
+    private void drawAsteroids() {
+        glUseProgram(shipProgram);
+        glBindBuffer(GL_ARRAY_BUFFER, asteroidPositionVbo);
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, asteroidNormalVbo);
+        glNormalPointer(GL_FLOAT, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        for (int i = 0; i < asteroids.length; i++) {
+            Asteroid asteroid = asteroids[i];
+            if (asteroid == null)
+                continue;
+            float x = (float)(asteroid.x - cam.position.x);
+            float y = (float)(asteroid.y - cam.position.y);
+            float z = (float)(asteroid.z - cam.position.z);
+            if (frustumIntersection.testSphere(x, y, z, asteroid.scale)) {
+                modelMatrix.translation(x, y, z);
+                modelMatrix.scale(asteroid.scale);
+                glUniformMatrix4fv(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+                glDrawArrays(GL_TRIANGLES, 0, this.asteroid.numVertices);
+            }
+        }
+        glDisableClientState(GL_NORMAL_ARRAY);
+    }
+
+    private void drawParticles() {
+        particleVertices.clear();
+        int num = 0;
+        for (int i = 0; i < particlePositions.length; i++) {
+            Vector3d particlePosition = particlePositions[i];
+            Vector4d particleVelocity = particleVelocities[i];
+            if (particleVelocity.w > 0.0f) {
+                float x = (float) (particlePosition.x - cam.position.x);
+                float y = (float) (particlePosition.y - cam.position.y);
+                float z = (float) (particlePosition.z - cam.position.z);
+                if (frustumIntersection.testPoint(x, y, z)) {
+                    float w = (float) particleVelocity.w;
+                    viewMatrix.transformPosition(tmp2.set(x, y, z));
+                    particleVertices.put(tmp2.x - particleSize).put(tmp2.y - particleSize).put(tmp2.z).put(w).put(-1).put(-1);
+                    particleVertices.put(tmp2.x + particleSize).put(tmp2.y - particleSize).put(tmp2.z).put(w).put( 1).put(-1);
+                    particleVertices.put(tmp2.x + particleSize).put(tmp2.y + particleSize).put(tmp2.z).put(w).put( 1).put( 1);
+                    particleVertices.put(tmp2.x + particleSize).put(tmp2.y + particleSize).put(tmp2.z).put(w).put( 1).put( 1);
+                    particleVertices.put(tmp2.x - particleSize).put(tmp2.y + particleSize).put(tmp2.z).put(w).put(-1).put( 1);
+                    particleVertices.put(tmp2.x - particleSize).put(tmp2.y - particleSize).put(tmp2.z).put(w).put(-1).put(-1);
+                    num++;
+                }
+            }
+        }
+        particleVertices.flip();
+        if (num > 0) {
+            glUseProgram(particleProgram);
+            glDepthMask(false);
+            glEnable(GL_BLEND);
+            glVertexPointer(4, GL_FLOAT, 6*4, particleVertices);
+            particleVertices.position(4);
+            glTexCoordPointer(2, GL_FLOAT, 6*4, particleVertices);
+            particleVertices.position(0);
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            glDrawArrays(GL_TRIANGLES, 0, num * 6);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            glDisable(GL_BLEND);
+            glDepthMask(true);
+        }
+    }
+
     private void drawShots() {
-        glUseProgram(shotProgram);
         shotsVertices.clear();
         int num = 0;
         for (int i = 0; i < projectilePositions.length; i++) {
             Vector3d projectilePosition = projectilePositions[i];
-            Vector4d projectileVelocity = projectileVelocities[i];
+            Vector4f projectileVelocity = projectileVelocities[i];
             if (projectileVelocity.w > 0.0f) {
                 float x = (float) (projectilePosition.x - cam.position.x);
                 float y = (float) (projectilePosition.y - cam.position.y);
                 float z = (float) (projectilePosition.z - cam.position.z);
                 if (frustumIntersection.testPoint(x, y, z)) {
-                    float w = (float) projectileVelocity.w;
+                    float w = projectileVelocity.w;
                     viewMatrix.transformPosition(tmp2.set(x, y, z));
                     shotsVertices.put(tmp2.x - shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put(-1).put(-1);
                     shotsVertices.put(tmp2.x + shotSize).put(tmp2.y - shotSize).put(tmp2.z).put(w).put( 1).put(-1);
@@ -603,6 +740,7 @@ public class SpaceGame {
         }
         shotsVertices.flip();
         if (num > 0) {
+            glUseProgram(shotProgram);
             glDepthMask(false);
             glEnable(GL_BLEND);
             glVertexPointer(4, GL_FLOAT, 6*4, shotsVertices);
@@ -733,51 +871,75 @@ public class SpaceGame {
         glPopMatrix();
     }
 
-    private boolean narrowphase(Ship ship, Vector3d pOld, Vector3d pNew) {
-        tmp2.set(tmp.set(pOld).sub(ship.x, ship.y, ship.z)).div(shipRadius);
-        tmp3.set(tmp.set(pNew).sub(ship.x, ship.y, ship.z)).div(shipRadius);
-        this.ship.positions.clear();
+    private boolean narrowphase(FloatBuffer data, double x, double y, double z, float scale, Vector3d pOld, Vector3d pNew, Vector3d intersectionPoint, Vector3f normal) {
+        tmp2.set(tmp.set(pOld).sub(x, y, z)).div(scale);
+        tmp3.set(tmp.set(pNew).sub(x, y, z)).div(scale);
+        data.clear();
         boolean intersects = false;
-        while (this.ship.positions.hasRemaining() && !intersects) {
-            float v0X = this.ship.positions.get();
-            float v0Y = this.ship.positions.get();
-            float v0Z = this.ship.positions.get();
-            float v1X = this.ship.positions.get();
-            float v1Y = this.ship.positions.get();
-            float v1Z = this.ship.positions.get();
-            float v2X = this.ship.positions.get();
-            float v2Y = this.ship.positions.get();
-            float v2Z = this.ship.positions.get();
-            if (Intersectionf.testLineSegmentTriangle(tmp2.x, tmp2.y, tmp2.z, tmp3.x, tmp3.y, tmp3.z, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, 1E-6f)) {
+        while (data.hasRemaining() && !intersects) {
+            float v0X = data.get();
+            float v0Y = data.get();
+            float v0Z = data.get();
+            float v1X = data.get();
+            float v1Y = data.get();
+            float v1Z = data.get();
+            float v2X = data.get();
+            float v2Y = data.get();
+            float v2Z = data.get();
+            if (Intersectionf.intersectLineSegmentTriangle(tmp2.x, tmp2.y, tmp2.z, tmp3.x, tmp3.y, tmp3.z, v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, 1E-6f, tmp2)) {
+                intersectionPoint.x = tmp2.x * scale + x;
+                intersectionPoint.y = tmp2.y * scale + y;
+                intersectionPoint.z = tmp2.z * scale + z;
+                GeometryUtils.normal(v0X, v0Y, v0Z, v1X, v1Y, v1Z, v2X, v2Y, v2Z, normal);
                 intersects = true;
             }
         }
-        this.ship.positions.clear();
+        data.clear();
         return intersects;
     }
 
-    private static boolean broadphase(Ship ship, Vector3d pOld, Vector3d pNew) {
-        return Intersectiond.testLineSegmentSphere(pOld.x, pOld.y, pOld.z, pNew.x, pNew.y, pNew.z, ship.x, ship.y, ship.z, shipRadius*shipRadius);
+    private static boolean broadphase(double x, double y, double z, float boundingRadius, float scale, Vector3d pOld, Vector3d pNew) {
+        return Intersectiond.testLineSegmentSphere(pOld.x, pOld.y, pOld.z, pNew.x, pNew.y, pNew.z, x, y, z, boundingRadius * boundingRadius * scale * scale);
+    }
+
+    private void updateParticles(float dt) {
+        for (int i = 0; i < particlePositions.length; i++) {
+            Vector4d particleVelocity = particleVelocities[i];
+            if (particleVelocity.w <= 0.0f)
+                continue;
+            particleVelocity.w += dt;
+            Vector3d particlePosition = particlePositions[i];
+            newPosition.set(particleVelocity.x, particleVelocity.y, particleVelocity.z).mul(dt).add(particlePosition);
+            if (particleVelocity.w > maxParticleLifetime) {
+                particleVelocity.w = 0.0f;
+                continue;
+            }
+            particlePosition.set(newPosition);
+        }
     }
 
     private void updateShots(float dt) {
         projectiles: for (int i = 0; i < projectilePositions.length; i++) {
+            Vector4f projectileVelocity = projectileVelocities[i];
+            if (projectileVelocity.w <= 0.0f)
+                continue;
+            projectileVelocity.w += dt;
             Vector3d projectilePosition = projectilePositions[i];
-            Vector4d projectileVelocity = projectileVelocities[i];
             newPosition.set(projectileVelocity.x, projectileVelocity.y, projectileVelocity.z).mul(dt).add(projectilePosition);
             if (projectileVelocity.w > maxShotLifetime) {
                 projectileVelocity.w = 0.0f;
                 continue;
-            } else if (projectileVelocity.w > 0.0f) {
-                projectileVelocity.w += dt;
             }
+            /* Test against ships */
             for (int r = 0; r < shipCount; r++) {
                 Ship ship = ships[r];
                 if (ship == null)
                     continue;
-                if (broadphase(ship, projectilePosition, newPosition) && narrowphase(ship, projectilePosition, newPosition)) {
+                if (broadphase(ship.x, ship.y, ship.z, this.ship.boundingSphereRadius, shipRadius, projectilePosition, newPosition)
+                        && narrowphase(this.ship.positions, ship.x, ship.y, ship.z, shipRadius, projectilePosition, newPosition, tmp, tmp2)) {
+                    emitExplosion(tmp, null);
                     ships[r] = null;
-                    projectileVelocities[i].w = 0.0f;
+                    projectileVelocity.w = 0.0f;
                     if (r == shootingShip) {
                         for (int sr = 0; sr < shipCount; sr++) {
                             if (ships[sr] != null) {
@@ -789,15 +951,61 @@ public class SpaceGame {
                     continue projectiles;
                 }
             }
+            /* Test against asteroids */
+            for (int r = 0; r < asteroidCount; r++) {
+                Asteroid asteroid = asteroids[r];
+                if (asteroid == null)
+                    continue;
+                if (broadphase(asteroid.x, asteroid.y, asteroid.z, this.asteroid.boundingSphereRadius, asteroid.scale, projectilePosition, newPosition)
+                        && narrowphase(this.asteroid.positions, asteroid.x, asteroid.y, asteroid.z, asteroid.scale, projectilePosition, newPosition, tmp, tmp2)) {
+                    emitExplosion(tmp, tmp2);
+                    projectileVelocity.w = 0.0f;
+                    continue projectiles;
+                }
+            }
             projectilePosition.set(newPosition);
+        }
+    }
+
+    private void emitExplosion(Vector3d p, Vector3f normal) {
+        int c = explosionParticles;
+        if (normal != null)
+            GeometryUtils.perpendicular(normal, tmp4, tmp3);
+        for (int i = 0; i < particlePositions.length; i++) {
+            Vector3d particlePosition = particlePositions[i];
+            Vector4d particleVelocity = particleVelocities[i];
+            if (particleVelocity.w <= 0.0f) {
+                if (normal != null) {
+                    float r1 = (float) Math.random() * 2.0f - 1.0f;
+                    float r2 = (float) Math.random() * 2.0f - 1.0f;
+                    particleVelocity.x = normal.x + r1 * tmp4.x + r2 * tmp3.x;
+                    particleVelocity.y = normal.y + r1 * tmp4.y + r2 * tmp3.y;
+                    particleVelocity.z = normal.z + r1 * tmp4.z + r2 * tmp3.z;
+                } else {
+                    float x = (float) Math.random() * 2.0f - 1.0f;
+                    float y = (float) Math.random() * 2.0f - 1.0f;
+                    float z = (float) Math.random() * 2.0f - 1.0f;
+                    particleVelocity.x = x;
+                    particleVelocity.y = y;
+                    particleVelocity.z = z;
+                }
+                particleVelocity.normalize3();
+                particleVelocity.mul(140);
+                particleVelocity.w = 0.01f;
+                particlePosition.set(p);
+                if (c-- == 0)
+                    break;
+            }
         }
     }
 
     private void render() {
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         drawShips();
+        drawAsteroids();
         drawCubemap();
         drawShots();
+        drawParticles();
         drawHudShotDirection();
         drawHudShip();
         drawVelocityCompass();
