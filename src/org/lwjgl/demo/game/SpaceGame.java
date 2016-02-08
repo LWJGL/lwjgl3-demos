@@ -258,7 +258,7 @@ public class SpaceGame {
         System.out.println("Hold the right mouse button to rotate towards the mouse cursor");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (key == -1) // happened 
+                if (key == GLFW_KEY_UNKNOWN) 
                     return;
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
