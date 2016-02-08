@@ -105,7 +105,7 @@ public class SpaceGame {
     private static float maxParticleLifetime = 1.0f;
     private static float shotSize = 0.5f;
     private static float particleSize = 1.0f;
-    private static final int explosionParticles = 200;
+    private static final int explosionParticles = 60;
     private static final int maxParticles = 4096;
     private static final int maxShots = 1024;
 
@@ -258,6 +258,8 @@ public class SpaceGame {
         System.out.println("Hold the right mouse button to rotate towards the mouse cursor");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
+                if (key == -1) // happened 
+                    return;
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
                 }
