@@ -294,35 +294,36 @@ public class KDTree {
             if (rope == null) {
                 return rope;
             }
-            while (!rope.isLeafNode()) {
-                int parallelSide = rope.isParallelTo(side);
+            Node r = rope;
+            while (!r.isLeafNode()) {
+                int parallelSide = r.isParallelTo(side);
                 if (parallelSide == +1) {
                     /*
                      * The split plane is on the right/positive side of the rope, so connect to its left child!
                      */
-                    rope = rope.left;
+                    r = r.left;
                 } else if (parallelSide == -1) {
                     /*
                      * The split plane is on the left/negative side of the rope, so connect to its right child!
                      */
-                    rope = rope.right;
+                    r = r.right;
                 } else {
-                    if (rope.splitPlane < Vector3f_get(boundingBox.min, rope.splitAxis.dim)) {
+                    if (r.splitPlane < Vector3f_get(boundingBox.min, r.splitAxis.dim)) {
                         /*
                          * The split plane is below our AABB min point. So, choose the right/positive child.
                          */
-                        rope = rope.right;
-                    } else if (rope.splitPlane > Vector3f_get(boundingBox.max, rope.splitAxis.dim)) {
+                        r = r.right;
+                    } else if (r.splitPlane > Vector3f_get(boundingBox.max, r.splitAxis.dim)) {
                         /*
                          * The split plane is above our AABB max point. So, choose the left/negative child.
                          */
-                        rope = rope.left;
+                        r = r.left;
                     } else {
                         break;
                     }
                 }
             }
-            return rope;
+            return r;
         }
     }
 
@@ -330,7 +331,7 @@ public class KDTree {
      * Build the kd-tree from the given Triangle list.
      **/
     public void buildTree(List<Triangle> list, Box bbox) {
-        Long time = System.currentTimeMillis();
+        long time = System.currentTimeMillis();
 
         // first deleter root node, so that the tree is rebuild
         if (mRootNode != null) {
@@ -386,11 +387,9 @@ public class KDTree {
     }
 
     private int TriangleCount(Node node) {
-        if (!node.isLeafNode()) {
+        if (!node.isLeafNode())
             return TriangleCount(node.left) + TriangleCount(node.right);
-        } else {
-            return node.triangles.size();
-        }
+        return node.triangles.size();
     }
 
     // recursive tree building method
@@ -487,10 +486,10 @@ public class KDTree {
             List<Float> vecIntervalMeans = new ArrayList<Float>(node.triangles.size());
             for (int i = 0; i < node.triangles.size(); i++) {
                 Box bounds = node.triangles.get(i).getBounds();
-                vecIntervalMeans.add(0.5f * (Vector3f_get(bounds.min, node.splitAxis.dim) + Vector3f_get(bounds.max, node.splitAxis.dim)));
+                vecIntervalMeans.add(Float.valueOf(0.5f * (Vector3f_get(bounds.min, node.splitAxis.dim) + Vector3f_get(bounds.max, node.splitAxis.dim))));
             }
             Collections.sort(vecIntervalMeans);
-            return vecIntervalMeans.get(vecIntervalMeans.size() / 2);
+            return vecIntervalMeans.get(vecIntervalMeans.size() / 2).floatValue();
         }
 
         // use surface area heuristic
@@ -561,8 +560,7 @@ public class KDTree {
 
                 // determine costs
                 for (int i = 0; i < mSahRes - 1; i++) {
-                    costs[i] = mSahTrvCosts + mSahIntCosts * ((i + 1) * p[i] + (mSahRes - i - 1) * p_rtl[i])
-                            / (float) mSahRes;
+                    costs[i] = mSahTrvCosts + mSahIntCosts * ((i + 1) * p[i] + (mSahRes - i - 1) * p_rtl[i]) / mSahRes;
                 }
 
                 int minid = 0;
@@ -576,80 +574,78 @@ public class KDTree {
                     }
                 }
 
-                float splitPosition = (((float) minid + 1.0f) / mSahRes) * box_width + Vector3f_get(bb.min, ax);
+                float splitPosition = ((minid + 1.0f) / mSahRes) * box_width + Vector3f_get(bb.min, ax);
 
                 node.splitAxis = Axis.values()[ax];
                 return splitPosition;
-            } else {
-                // complete scan
-                Vector3f costvector = new Vector3f(bb.max).sub(bb.min);
-                int ax = Vector3f_maxDimension(costvector);
-                float box_width = Vector3f_get(costvector, ax);
+            }
+            // complete scan
+            Vector3f costvector = new Vector3f(bb.max).sub(bb.min);
+            int ax = Vector3f_maxDimension(costvector);
+            float box_width = Vector3f_get(costvector, ax);
 
-                // only split if it makes sense
-                if (box_width <= EPSILON) {
-                    node.splitAxis = Axis.NO_AXIS;
-                    return Float.POSITIVE_INFINITY;
+            // only split if it makes sense
+            if (box_width <= EPSILON) {
+                node.splitAxis = Axis.NO_AXIS;
+                return Float.POSITIVE_INFINITY;
+            }
+
+            float inv_box_width = 1.0f / box_width;
+
+            if (box_width <= EPSILON) {
+                throw new IllegalStateException("!!! KDTree.findSplitPlane: box to small");
+            }
+            List<IntervalBoundary> intervals = new ArrayList<IntervalBoundary>();
+
+            // find splitpositions
+            for (int i = 0; i < nPrims; i++) {
+                Box b = node.triangles.get(i).getBounds();
+                if (!bb.intersectsWithBox(b)) {
+                    throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
                 }
+                intervals.add(new IntervalBoundary(BoundaryType.LOWER_BOUND, Vector3f_get(b.min, ax)));
+                intervals.add(new IntervalBoundary(BoundaryType.UPPER_BOUND, Vector3f_get(b.max, ax)));
+            }
 
-                float inv_box_width = 1.0f / box_width;
-
-                if (box_width <= EPSILON) {
-                    throw new IllegalStateException("!!! KDTree.findSplitPlane: box to small");
+            Collections.sort(intervals, new Comparator<IntervalBoundary>() {
+                @Override
+                public int compare(IntervalBoundary sib1, IntervalBoundary sib2) {
+                    return sib1.compareTo(sib2);
                 }
-                List<IntervalBoundary> intervals = new ArrayList<IntervalBoundary>();
+            });
 
-                // find splitpositions
-                for (int i = 0; i < nPrims; i++) {
-                    Box b = node.triangles.get(i).getBounds();
-                    if (!bb.intersectsWithBox(b)) {
-                        throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
-                    }
-                    intervals.add(new IntervalBoundary(BoundaryType.LOWER_BOUND, Vector3f_get(b.min, ax)));
-                    intervals.add(new IntervalBoundary(BoundaryType.UPPER_BOUND, Vector3f_get(b.max, ax)));
+            int done_intervals = 0;
+            int open_intervals = 0;
+            float alpha;
+
+            // find minimum cost
+            int minid = 0;
+            float mincost = Float.MAX_VALUE;
+            for (int i = 0; i < intervals.size(); i++) {
+                if (intervals.get(i).type.equals(BoundaryType.UPPER_BOUND)) {
+                    open_intervals--;
+                    done_intervals++;
                 }
-
-                Collections.sort(intervals, new Comparator<IntervalBoundary>() {
-                    @Override
-                    public int compare(IntervalBoundary sib1, IntervalBoundary sib2) {
-                        return sib1.compareTo(sib2);
-                    }
-                });
-
-                int done_intervals = 0;
-                int open_intervals = 0;
-                float alpha;
-
-                // find minimum cost
-                int minid = 0;
-                float mincost = Float.MAX_VALUE;
-                for (int i = 0; i < intervals.size(); i++) {
-                    if (intervals.get(i).type.equals(BoundaryType.UPPER_BOUND)) {
-                        open_intervals--;
-                        done_intervals++;
-                    }
-                    alpha = (intervals.get(i).pos - Vector3f_get(bb.min, ax)) * inv_box_width;
-                    float cost = mSahTrvCosts + mSahIntCosts
-                            * ((done_intervals + open_intervals) * alpha + (nPrims - done_intervals) * (1.0f - alpha));
-                    if (cost < mincost) {
-                        minid = i;
-                        mincost = cost;
-                    }
-                    if (intervals.get(i).type.equals(BoundaryType.LOWER_BOUND)) {
-                        open_intervals++;
-                    }
+                alpha = (intervals.get(i).pos - Vector3f_get(bb.min, ax)) * inv_box_width;
+                float cost = mSahTrvCosts + mSahIntCosts
+                        * ((done_intervals + open_intervals) * alpha + (nPrims - done_intervals) * (1.0f - alpha));
+                if (cost < mincost) {
+                    minid = i;
+                    mincost = cost;
                 }
-                float splitPlane = intervals.get(minid).pos;
-
-                // no cuts at the boundaries
-                if (splitPlane == Vector3f_get(bb.min, ax) || splitPlane == Vector3f_get(bb.max, ax)) {
-                    node.splitAxis = Axis.NO_AXIS;
-                    return Float.POSITIVE_INFINITY;
-                } else {
-                    node.splitAxis = Axis.values()[ax];
-                    return intervals.get(minid).pos;
+                if (intervals.get(i).type.equals(BoundaryType.LOWER_BOUND)) {
+                    open_intervals++;
                 }
             }
+            float splitPlane = intervals.get(minid).pos;
+
+            // no cuts at the boundaries
+            if (splitPlane == Vector3f_get(bb.min, ax) || splitPlane == Vector3f_get(bb.max, ax)) {
+                node.splitAxis = Axis.NO_AXIS;
+                return Float.POSITIVE_INFINITY;
+            }
+            node.splitAxis = Axis.values()[ax];
+            return intervals.get(minid).pos;
         }
 
         throw new IllegalStateException("!!! KDTree.findSplitPlane: invalid value");

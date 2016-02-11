@@ -124,11 +124,11 @@ public class GeometryShaderTest {
 		initProgram();
 	}
 
-	void quadPattern(IntBuffer vb) {
+	static void quadPattern(IntBuffer vb) {
 		vb.put(1).put(0).put(1).put(1).put(0).put(1);
 	}
 
-	void quadWithDiagonalPattern(IntBuffer vb) {
+	static void quadWithDiagonalPattern(IntBuffer vb) {
 		vb.put(1).put(1).put(1).put(1).put(1).put(1);
 	}
 

@@ -116,21 +116,21 @@ public class Adjacency {
             HalfEdge edge = edges[edgeIdx];
 
             // Create the half-edge that goes from C to A:
-            edge.index = (long) C | ((long) A << 32L);
+            edge.index = C | ((long) A << 32L);
             edgeTable.put(edge);
             edge.vert = A;
             edge.next = edges[1 + edgeIdx];
             edge = edges[++edgeIdx];
 
             // Create the half-edge that goes from A to B:
-            edge.index = (long) A | ((long) B << 32L);
+            edge.index = A | ((long) B << 32L);
             edgeTable.put(edge);
             edge.vert = B;
             edge.next = edges[1 + edgeIdx];
             edge = edges[++edgeIdx];
 
             // Create the half-edge that goes from B to C:
-            edge.index = (long) B | ((long) C << 32L);
+            edge.index = B | ((long) C << 32L);
             edgeTable.put(edge);
             edge.vert = C;
             edge.next = edges[edgeIdx - 2];
@@ -147,7 +147,7 @@ public class Adjacency {
         int boundaryCount = 0;
         long UINT_MASK = 0xFFFFFFFFL;
         for (int i = 0; i < edges.length; i++) {
-            HalfEdge edge = (HalfEdge) edges[i];
+            HalfEdge edge = edges[i];
             long edgeIndex = edge.index;
             long twinIndex = ((edgeIndex & UINT_MASK) << 32L) | (edgeIndex >>> 32L);
             HalfEdge twinEdge = edgeTable.get(twinIndex);

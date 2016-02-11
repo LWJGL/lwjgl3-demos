@@ -61,6 +61,8 @@ public class SwtDemo {
 					event.detail = SWT.TRAVERSE_NONE;
 					event.doit = false;
 					break;
+				default:
+				    break;
 				}
 			}
 		});

@@ -125,15 +125,15 @@ public class GeometryShaderTest20 {
 		initProgram();
 	}
 
-	void quadPattern(IntBuffer vb) {
+	static void quadPattern(IntBuffer vb) {
 		vb.put(1).put(0).put(1).put(1).put(0).put(1);
 	}
 
-	void quadWithDiagonalPattern(IntBuffer vb) {
+	static void quadWithDiagonalPattern(IntBuffer vb) {
 		vb.put(1).put(1).put(1).put(1).put(1).put(1);
 	}
 
-	void createVao() {
+	static void createVao() {
 		IntBuffer vb = BufferUtils.createIntBuffer(6 * 6);
 		FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 6 * 6);
 		quadPattern(vb);

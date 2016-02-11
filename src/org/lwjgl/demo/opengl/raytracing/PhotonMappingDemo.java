@@ -221,8 +221,6 @@ public class PhotonMappingDemo {
 			@Override
 			public void invoke(long window, double x, double y) {
 				PhotonMappingDemo.this.mouseX = (float)x;
-				if ( mouseDown ) {
-				}
 			}
 		});
 

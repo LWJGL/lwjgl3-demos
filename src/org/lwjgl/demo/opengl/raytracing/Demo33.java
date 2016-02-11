@@ -412,7 +412,7 @@ public class Demo33 {
 		 * here we compute the blend factor between old frame and new frame.
 		 *   0.0 - use only the new frame
 		 * > 0.0 - blend between old frame and new frame */
-		float blendFactor = (float)frameNumber / ((float)frameNumber + 1.0f);
+		float blendFactor = frameNumber / (frameNumber + 1.0f);
 		glUniform1f(blendFactorUniform, blendFactor);
 		glUniform1i(bounceCountUniform, bounceCount);
 

@@ -207,7 +207,7 @@ public class ShadowMappingDemo20 {
 	/**
 	 * Creates a VBO for the scene with some boxes.
 	 */
-	void createVbo() {
+	static void createVbo() {
 		int vbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		ByteBuffer bb = BufferUtils.createByteBuffer(boxes.length * 4 * (3 + 3) * 6 * 6);

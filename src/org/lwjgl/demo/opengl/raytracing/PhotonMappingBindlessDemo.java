@@ -50,8 +50,8 @@ import static org.lwjgl.system.MemoryUtil.*;
 public class PhotonMappingBindlessDemo {
 
 	class TextureInfo {
-		int width;
-		int height;
+		int textureWidth;
+		int textureHeight;
 		int openGlHandle;
 		long bindlessImageHandle;
 		long bindlessTextureAndSamplerHandle;
@@ -230,8 +230,6 @@ public class PhotonMappingBindlessDemo {
 			@Override
 			public void invoke(long window, double x, double y) {
 				PhotonMappingBindlessDemo.this.mouseX = (float)x;
-				if ( mouseDown ) {
-				}
 			}
 		});
 
@@ -431,8 +429,8 @@ public class PhotonMappingBindlessDemo {
 			Vector3f max = boxes[2 * i + 1];
 			float maxExtent = Math.max(Math.max(max.x - min.x, max.y - min.y), max.z - min.z);
 			int texSize = (int) (maxExtent * texelsPerUnit);
-			info.width = texSize;
-			info.height = texSize;
+			info.textureWidth = texSize;
+			info.textureHeight = texSize;
 			glBindTexture(GL_TEXTURE_CUBE_MAP, info.openGlHandle);
 			glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RG16F, texSize, texSize);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -516,12 +514,12 @@ public class PhotonMappingBindlessDemo {
 				TextureInfo info = photonMapTextures[i];
 				int texBuffer = glGenBuffers();
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, texBuffer);
-				int size = 2 * 2 * info.width * info.height;
+				int size = 2 * 2 * info.textureWidth * info.textureHeight;
 				glBufferData(GL_PIXEL_UNPACK_BUFFER, size, (ByteBuffer) null, GL_STATIC_DRAW);
 				glClearBufferSubData(GL_PIXEL_UNPACK_BUFFER, GL_RG16F, 0, size, GL_RG, GL_HALF_FLOAT, (ByteBuffer) null);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, info.openGlHandle);
 				for (int f = 0; f < 6; f++) {
-					glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, 0, 0, info.width, info.height, GL_RG,
+					glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, 0, 0, info.textureWidth, info.textureHeight, GL_RG,
 							GL_HALF_FLOAT, 0L);
 				}
 				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);

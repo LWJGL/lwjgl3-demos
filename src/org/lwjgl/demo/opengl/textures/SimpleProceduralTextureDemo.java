@@ -11,7 +11,6 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
-import java.io.IOException;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -31,7 +30,7 @@ public class SimpleProceduralTextureDemo {
     Closure debugProc;
     boolean isCrappyIntel;
 
-    private void init() throws IOException {
+    private void init() {
         glfwSetErrorCallback(errCallback = GLFWErrorCallback.createPrint(System.err));
 
         if (glfwInit() != GL_TRUE)

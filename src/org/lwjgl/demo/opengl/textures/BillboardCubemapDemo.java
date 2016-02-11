@@ -219,7 +219,7 @@ public class BillboardCubemapDemo {
         }
     }
 
-    int createShader(String resource, int type) throws IOException {
+    static int createShader(String resource, int type) throws IOException {
         int shader = glCreateShaderObjectARB(type);
         ByteBuffer source = ioResourceToByteBuffer(resource, 1024);
         PointerBuffer strings = BufferUtils.createPointerBuffer(1);

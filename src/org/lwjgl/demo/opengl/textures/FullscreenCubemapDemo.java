@@ -165,7 +165,7 @@ public class FullscreenCubemapDemo {
         glVertexPointer(2, GL_FLOAT, 0, vertices);
     }
 
-    int createShader(String resource, int type) throws IOException {
+    static int createShader(String resource, int type) throws IOException {
         int shader = glCreateShaderObjectARB(type);
         ByteBuffer source = ioResourceToByteBuffer(resource, 1024);
         PointerBuffer strings = BufferUtils.createPointerBuffer(1);

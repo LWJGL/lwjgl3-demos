@@ -133,7 +133,7 @@ public class SilhouetteDemo {
         initProgram();
     }
 
-    void createBoxVao() {
+    static void createBoxVao() {
         FloatBuffer pb = BufferUtils.createFloatBuffer(3 * 8);
         pb.put(-1).put(-1).put(-1); // 0
         pb.put( 1).put(-1).put(-1); // 1

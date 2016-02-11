@@ -624,7 +624,7 @@ public class HybridDemoSsboTriangles {
 		 * = 0.0 - use only the new frame
 		 * > 0.0 - blend between old frame and new frame
 		 */
-		float blendFactor = (float) frameNumber / ((float) frameNumber + 1.0f);
+		float blendFactor = frameNumber / (frameNumber + 1.0f);
 		glUniform1f(blendFactorUniform, blendFactor);
 
 		glUniform1f(lightRadiusUniform, lightRadius * 0.1f);

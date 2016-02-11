@@ -172,8 +172,6 @@ public class DemoSsbo {
 			@Override
 			public void invoke(long window, double x, double y) {
 				DemoSsbo.this.mouseX = (float) x;
-				if (mouseDown) {
-				}
 			}
 		});
 

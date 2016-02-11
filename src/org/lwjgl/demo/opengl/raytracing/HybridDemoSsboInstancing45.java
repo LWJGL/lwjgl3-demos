@@ -608,7 +608,7 @@ public class HybridDemoSsboInstancing45 {
 		}
 	}
 
-	private void putMatrix(Matrix4f value, FloatBuffer fb) {
+	private static void putMatrix(Matrix4f value, FloatBuffer fb) {
 		value.get(fb);
 		fb.position(fb.position() + 16);
 	}
@@ -706,7 +706,7 @@ public class HybridDemoSsboInstancing45 {
 		 *   0.0 - use only the new frame
 		 * > 0.0 - blend between old frame and new frame
 		 */
-		float blendFactor = (float) frameNumber / ((float) frameNumber + 1.0f);
+		float blendFactor = frameNumber / (frameNumber + 1.0f);
 		uboBufferFv.put(blendFactor);
 		uboBufferFv.put(elapsedSeconds);
 		uboBufferIv.put(uboBufferFv.position(), bounceCount);

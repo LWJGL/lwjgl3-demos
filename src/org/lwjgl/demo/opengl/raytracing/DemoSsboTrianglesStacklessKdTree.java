@@ -266,7 +266,7 @@ public class DemoSsboTrianglesStacklessKdTree {
             for (int i = 0; i < 6; i++) {
                 Node r = n.ropes[i];
                 if (r != null) {
-                    gn.ropes[i] = indexes.get(r);
+                    gn.ropes[i] = indexes.get(r).intValue();
                 } else {
                     gn.ropes[i] = -1; // no neighbor
                 }
@@ -285,8 +285,8 @@ public class DemoSsboTrianglesStacklessKdTree {
                     trianglesBuffer.putFloat(t.v2.x).putFloat(t.v2.y).putFloat(t.v2.z).putFloat(1.0f);
                 }
             } else {
-                gn.left = indexes.get(n.left);
-                gn.right = indexes.get(n.right);
+                gn.left = indexes.get(n.left).intValue();
+                gn.right = indexes.get(n.right).intValue();
                 gn.firstTri = 0; // no triangles
                 gn.numTris = 0; // no triangles
             }
@@ -304,7 +304,7 @@ public class DemoSsboTrianglesStacklessKdTree {
             if (n == null)
                 continue;
             int index = indexes.size();
-            indexes.put(n, index);
+            indexes.put(n, Integer.valueOf(index));
             nodes.add(n.left);
             nodes.add(n.right);
         }

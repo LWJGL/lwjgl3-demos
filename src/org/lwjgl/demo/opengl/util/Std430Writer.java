@@ -23,17 +23,17 @@ public class Std430Writer {
 
     private static final Map<Class<?>, Integer> SIZES = new IdentityHashMap<Class<?>, Integer>();
     static {
-        SIZES.put(int.class, 1);
-        SIZES.put(float.class, 1);
-        SIZES.put(Vector3f.class, 3);
-        SIZES.put(Vector4f.class, 4);
+        SIZES.put(int.class, Integer.valueOf(1));
+        SIZES.put(float.class, Integer.valueOf(1));
+        SIZES.put(Vector3f.class, Integer.valueOf(3));
+        SIZES.put(Vector4f.class, Integer.valueOf(4));
     }
     private static final Map<Class<?>, Integer> ALIGNMENTS = new IdentityHashMap<Class<?>, Integer>();
     static {
-        ALIGNMENTS.put(int.class, 1);
-        ALIGNMENTS.put(float.class, 1);
-        ALIGNMENTS.put(Vector3f.class, 4);
-        ALIGNMENTS.put(Vector4f.class, 4);
+        ALIGNMENTS.put(int.class, Integer.valueOf(1));
+        ALIGNMENTS.put(float.class, Integer.valueOf(1));
+        ALIGNMENTS.put(Vector3f.class, Integer.valueOf(4));
+        ALIGNMENTS.put(Vector4f.class, Integer.valueOf(4));
     }
 
     /**
@@ -64,14 +64,14 @@ public class Std430Writer {
                 Member mem = f.getAnnotation(Member.class);
                 len = mem.length();
             }
-            int align = ALIGNMENTS.get(t);
+            int align = ALIGNMENTS.get(t).intValue();
             largestAlign = Math.max(largestAlign, align);
             if (i >= 1) {
                 int neededPadding = (align - ints % align) % align;
                 paddings[i - 1] = neededPadding;
                 ints += neededPadding;
             }
-            int size = SIZES.get(t) * len;
+            int size = SIZES.get(t).intValue() * len;
             ints += size;
         }
         /* Compute padding at the end of the struct */

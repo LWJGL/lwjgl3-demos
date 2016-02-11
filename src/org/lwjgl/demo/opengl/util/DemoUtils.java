@@ -140,23 +140,20 @@ public class DemoUtils {
 		ByteBuffer buffer;
 
 		URL url = Thread.currentThread().getContextClassLoader().getResource(resource);
-		File file;
-		if (url != null)
-		    file = new File(url.getFile());
-		else
-		    file = new File(resource);
+		File file = new File(url.getFile());
 		if ( file.isFile() ) {
 			FileInputStream fis = new FileInputStream(file);
 			FileChannel fc = fis.getChannel();
 			buffer = BufferUtils.createByteBuffer((int)fc.size() + 1);
 
-			while ( fc.read(buffer) != -1 ) ;
+			while ( fc.read(buffer) != -1 ) {
+			    // just let the loop condition do its thing
+			}
 
 			fc.close();
 			fis.close();
 		} else {
 			buffer = BufferUtils.createByteBuffer(bufferSize);
-
 			InputStream source = url.openStream();
 			if ( source == null )
 				throw new FileNotFoundException(resource);
