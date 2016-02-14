@@ -97,22 +97,50 @@ bool intersectTriangles(vec3 origin, vec3 dir, const node o, inout hitinfo info)
   return found;
 }
 
+/**
+ * http://people.csail.mit.edu/amy/papers/box-jgt.pdf
+ */
 vec2 intersectCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
-  vec3 tMin = (boxMin - origin) / dir;
-  vec3 tMax = (boxMax - origin) / dir;
-  vec3 t1 = min(tMin, tMax);
-  vec3 t2 = max(tMin, tMax);
-  float tNear = max(max(t1.x, t1.y), t1.z);
-  float tFar = min(min(t2.x, t2.y), t2.z);
+  vec3 invDir = vec3(1.0)/dir;
+  float tNear, tFar, tymin, tymax, tzmin, tzmax;
+  if (invDir.x >= 0.0) {
+    tNear = (boxMin.x - origin.x) * invDir.x;
+    tFar = (boxMax.x - origin.x) * invDir.x;
+  } else {
+    tNear = (boxMax.x - origin.x) * invDir.x;
+    tFar = (boxMin.x - origin.x) * invDir.x;
+  }
+  if (invDir.y >= 0.0) {
+    tymin = (boxMin.y - origin.y) * invDir.y;
+    tymax = (boxMax.y - origin.y) * invDir.y;
+  } else {
+    tymin = (boxMax.y - origin.y) * invDir.y;
+    tymax = (boxMin.y - origin.y) * invDir.y;
+  }
+  if (tNear > tymax || tymin > tFar)
+    return vec2(1.0, -1.0);
+  if (invDir.z >= 0.0) {
+    tzmin = (boxMin.z - origin.z) * invDir.z;
+    tzmax = (boxMax.z - origin.z) * invDir.z;
+  } else {
+    tzmin = (boxMax.z - origin.z) * invDir.z;
+    tzmax = (boxMin.z - origin.z) * invDir.z;
+  }
+  if (tNear > tzmax || tzmin > tFar)
+    return vec2(1.0, -1.0);
+  if (tymin > tNear || isnan(tNear))
+    tNear = tymin;
+  if (tymax < tFar || isnan(tFar))
+    tFar = tymax;
+  if (tzmin > tNear)
+    tNear = tzmin;
+  if (tzmax < tFar)
+    tFar = tzmax;
   return vec2(tNear, tFar);
 }
 
 float exitCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
-  vec3 tMin = (boxMin - origin) / dir;
-  vec3 tMax = (boxMax - origin) / dir;
-  vec3 t2 = max(tMin, tMax);
-  float tFar = min(min(t2.x, t2.y), t2.z);
-  return tFar;
+  return intersectCube(origin, dir, boxMin, boxMax).y;
 }
 
 /**

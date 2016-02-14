@@ -67,12 +67,41 @@ vec3 rand;
 vec3 cameraUp;
 
 vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
-  vec3 tMin = (b.min - origin) / dir;
-  vec3 tMax = (b.max - origin) / dir;
-  vec3 t1 = min(tMin, tMax);
-  vec3 t2 = max(tMin, tMax);
-  float tNear = max(max(t1.x, t1.y), t1.z);
-  float tFar = min(min(t2.x, t2.y), t2.z);
+  vec3 invDir = vec3(1.0)/dir;
+  float tNear, tFar, tymin, tymax, tzmin, tzmax;
+  if (invDir.x >= 0.0) {
+    tNear = (b.min.x - origin.x) * invDir.x;
+    tFar = (b.max.x - origin.x) * invDir.x;
+  } else {
+    tNear = (b.max.x - origin.x) * invDir.x;
+    tFar = (b.min.x - origin.x) * invDir.x;
+  }
+  if (invDir.y >= 0.0) {
+    tymin = (b.min.y - origin.y) * invDir.y;
+    tymax = (b.max.y - origin.y) * invDir.y;
+  } else {
+    tymin = (b.max.y - origin.y) * invDir.y;
+    tymax = (b.min.y - origin.y) * invDir.y;
+  }
+  if (tNear > tymax || tymin > tFar)
+    return vec2(1.0, -1.0);
+  if (invDir.z >= 0.0) {
+    tzmin = (b.min.z - origin.z) * invDir.z;
+    tzmax = (b.max.z - origin.z) * invDir.z;
+  } else {
+    tzmin = (b.max.z - origin.z) * invDir.z;
+    tzmax = (b.min.z - origin.z) * invDir.z;
+  }
+  if (tNear > tzmax || tzmin > tFar)
+    return vec2(1.0, -1.0);
+  if (tymin > tNear || isnan(tNear))
+    tNear = tymin;
+  if (tymax < tFar || isnan(tFar))
+    tFar = tymax;
+  if (tzmin > tNear)
+    tNear = tzmin;
+  if (tzmax < tFar)
+    tFar = tzmax;
   return vec2(tNear, tFar);
 }
 
