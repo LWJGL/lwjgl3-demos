@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.opengl.swt;
 
+import static org.lwjgl.opengl.GL.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -16,7 +17,6 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.glfw.GLFWKeyCallback;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 
 /**
@@ -31,11 +31,6 @@ public class SwtAndGlfwDemo {
         final Shell shell = new Shell(display);
         shell.setText("SWT window");
         shell.setLayout(new FillLayout());
-        GLData data = new GLData();
-        data.doubleBuffer = true;
-        GLCanvas swtCanvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
-        swtCanvas.setCurrent();
-        GLCapabilities swtCapabilities = GL.createCapabilities();
         shell.addListener(SWT.Traverse, new Listener() {
             public void handleEvent(Event event) {
                 switch (event.detail) {
@@ -49,8 +44,13 @@ public class SwtAndGlfwDemo {
                 }
             }
         });
+        GLData data = new GLData();
+        data.doubleBuffer = true;
+        GLCanvas swtCanvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         shell.setSize(800, 600);
         shell.open();
+        swtCanvas.setCurrent();
+        GLCapabilities swtCapabilities = createCapabilities();
 
         // Create GLFW window
         glfwInit();
@@ -66,7 +66,7 @@ public class SwtAndGlfwDemo {
             }
         });
         glfwMakeContextCurrent(glfwWindow);
-        GLCapabilities glfwCapabilities = GL.createCapabilities();
+        GLCapabilities glfwCapabilities = createCapabilities();
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
             // Process SWT window messages
@@ -74,7 +74,7 @@ public class SwtAndGlfwDemo {
             // Render to SWT window
             if (!swtCanvas.isDisposed()) {
                 swtCanvas.setCurrent();
-                GL.setCapabilities(swtCapabilities);
+                setCapabilities(swtCapabilities);
                 glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT);
                 swtCanvas.swapBuffers();
@@ -85,7 +85,7 @@ public class SwtAndGlfwDemo {
             // Render to GLFW window
             if (glfwGetWindowAttrib(glfwWindow, GLFW_VISIBLE) == GLFW_TRUE) {
                 glfwMakeContextCurrent(glfwWindow);
-                GL.setCapabilities(glfwCapabilities);
+                setCapabilities(glfwCapabilities);
                 glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT);
                 glfwSwapBuffers(glfwWindow);
