@@ -80,8 +80,9 @@ public class SwtAndGlfwDemo {
         glfwShowWindow(glfwWindow);
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
-            // Process SWT window messages
-            while (display.readAndDispatch()) {/**/}
+            // Process window messages (for both SWT _and_ GLFW)
+            display.readAndDispatch();
+
             // Render to SWT window
             if (!swtCanvas.isDisposed()) {
                 swtCanvas.setCurrent();
@@ -91,8 +92,6 @@ public class SwtAndGlfwDemo {
                 swtCanvas.swapBuffers();
             }
 
-            // Process GLFW window messages
-            glfwPollEvents();
             // Render to GLFW window
             if (glfwGetWindowAttrib(glfwWindow, GLFW_VISIBLE) == GLFW_TRUE) {
                 glfwMakeContextCurrent(glfwWindow);
@@ -112,8 +111,8 @@ public class SwtAndGlfwDemo {
         // Dispose of GLFW
         glfwDebugProc.release();
         keyCallback.release();
-        errorCallback.release();
         glfwDestroyWindow(glfwWindow);
         glfwTerminate();
+        errorCallback.release();
     }
 }
