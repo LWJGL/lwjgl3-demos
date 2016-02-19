@@ -48,15 +48,15 @@ public class SwtAndGlfwDemo {
         data.doubleBuffer = true;
         GLCanvas swtCanvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         shell.setSize(800, 600);
-        shell.open();
         swtCanvas.setCurrent();
         GLCapabilities swtCapabilities = createCapabilities();
+        shell.open();
 
         // Create GLFW window
         glfwInit();
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         long glfwWindow = glfwCreateWindow(600, 600, "GLFW window", 0L, 0L);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(glfwWindow, keyCallback = new GLFWKeyCallback() {
@@ -67,6 +67,7 @@ public class SwtAndGlfwDemo {
         });
         glfwMakeContextCurrent(glfwWindow);
         GLCapabilities glfwCapabilities = createCapabilities();
+        glfwShowWindow(glfwWindow);
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
             // Process SWT window messages
