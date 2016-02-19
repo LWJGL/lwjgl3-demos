@@ -71,7 +71,7 @@ public class SwtAndGlfwDemo {
         glfwSetKeyCallback(glfwWindow, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-                    glfwSetWindowShouldClose(window, GL_TRUE);
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
         });
         glfwMakeContextCurrent(glfwWindow);
@@ -81,7 +81,7 @@ public class SwtAndGlfwDemo {
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
             // Process SWT window messages
-            display.readAndDispatch();
+            while (display.readAndDispatch()) {/**/}
             // Render to SWT window
             if (!swtCanvas.isDisposed()) {
                 swtCanvas.setCurrent();
