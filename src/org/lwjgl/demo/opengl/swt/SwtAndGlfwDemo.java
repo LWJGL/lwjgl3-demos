@@ -7,6 +7,7 @@ package org.lwjgl.demo.opengl.swt;
 import static org.lwjgl.opengl.GL.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.system.MemoryUtil.*;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
@@ -16,8 +17,11 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
+import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.libffi.Closure;
 
 /**
  * Shows how to use SWT and GLFW windows side-by-side.
@@ -50,14 +54,19 @@ public class SwtAndGlfwDemo {
         shell.setSize(800, 600);
         swtCanvas.setCurrent();
         GLCapabilities swtCapabilities = createCapabilities();
+        Closure swtDebugProc = GLUtil.setupDebugMessageCallback();
         shell.open();
 
         // Create GLFW window
-        glfwInit();
+        GLFWErrorCallback errorCallback;
+        glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
+        if (glfwInit() != GLFW_TRUE)
+            throw new IllegalStateException("Unable to initialize GLFW");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        long glfwWindow = glfwCreateWindow(600, 600, "GLFW window", 0L, 0L);
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        long glfwWindow = glfwCreateWindow(600, 600, "GLFW window", NULL, NULL);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(glfwWindow, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -67,6 +76,7 @@ public class SwtAndGlfwDemo {
         });
         glfwMakeContextCurrent(glfwWindow);
         GLCapabilities glfwCapabilities = createCapabilities();
+        Closure glfwDebugProc = GLUtil.setupDebugMessageCallback();
         glfwShowWindow(glfwWindow);
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
@@ -94,12 +104,15 @@ public class SwtAndGlfwDemo {
         }
 
         // Dispose of SWT
+        swtDebugProc.release();
         if (!shell.isDisposed())
             shell.dispose();
         display.dispose();
 
         // Dispose of GLFW
+        glfwDebugProc.release();
         keyCallback.release();
+        errorCallback.release();
         glfwDestroyWindow(glfwWindow);
         glfwTerminate();
     }
