@@ -51,7 +51,9 @@ public class SwtAndGlfwDemo {
         GLData data = new GLData();
         data.doubleBuffer = true;
         GLCanvas swtCanvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
-        shell.setSize(800, 600);
+        int dw = shell.getSize().x - shell.getClientArea().width;
+        int dh = shell.getSize().y - shell.getClientArea().height;
+        shell.setSize(800 + dw, 600 + dh);
         swtCanvas.setCurrent();
         GLCapabilities swtCapabilities = createCapabilities();
         Closure swtDebugProc = GLUtil.setupDebugMessageCallback();
@@ -66,7 +68,7 @@ public class SwtAndGlfwDemo {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-        long glfwWindow = glfwCreateWindow(600, 600, "GLFW window", NULL, NULL);
+        long glfwWindow = glfwCreateWindow(800, 600, "GLFW window", NULL, NULL);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(glfwWindow, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
