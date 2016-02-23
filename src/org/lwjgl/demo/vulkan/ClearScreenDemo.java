@@ -901,7 +901,7 @@ public class ClearScreenDemo {
         int height = 600;
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         long window = glfwCreateWindow(width, height, "GLFW Vulkan Demo", NULL, NULL);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
@@ -925,39 +925,8 @@ public class ClearScreenDemo {
         final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
         final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
-
-        // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
-        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
-        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-        cmdBufInfo.pNext(NULL);
-        err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
-        cmdBufInfo.free();
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanError(err));
-        }
-        long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
-        // Create the swapchain (this will also add a memory barrier to initialize the framebuffer images)
-        swapchain = createSwapChain(device, physicalDevice, surface, oldChain, setupCommandBuffer,
-                width, height, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
-        err = vkEndCommandBuffer(setupCommandBuffer);
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to end setup command buffer: " + translateVulkanError(err));
-        }
-        submitCommandBuffer(queue, setupCommandBuffer);
-
         final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
-
-        if (framebuffers != null) {
-            for (int i = 0; i < framebuffers.length; i++)
-                vkDestroyFramebuffer(device, framebuffers[i], null);
-        }
-        framebuffers = createFramebuffers(device, swapchain, clearRenderPass, width, height);
-        // Create render command buffers
-        if (renderCommandBuffers != null) {
-            vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
-        }
-        renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, clearRenderPass, width, height);
 
         // Handle canvas resize
         GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
@@ -995,6 +964,7 @@ public class ClearScreenDemo {
             }
         };
         glfwSetWindowSizeCallback(window, windowSizeCallback);
+        glfwShowWindow(window);
 
         // Pre-allocate everything needed in the render loop
 
