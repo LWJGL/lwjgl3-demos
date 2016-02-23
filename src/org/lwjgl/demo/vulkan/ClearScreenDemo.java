@@ -64,7 +64,7 @@ import org.lwjgl.vulkan.VkViewport;
  * 
  * @author Kai Burjack
  */
-public class SWTVulkanCompleteDemo {
+public class ClearScreenDemo {
 
     private static ByteBuffer[] layers = {
             memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
@@ -518,7 +518,7 @@ public class SWTVulkanCompleteDemo {
         swapchainCI.presentMode(swapchainPresentMode);
         swapchainCI.oldSwapchain(oldSwapChain);
         swapchainCI.clipped(VK_TRUE);
-        swapchainCI.compositeAlpha(0);
+        swapchainCI.compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
 
         LongBuffer pSwapChain = memAllocLong(1);
         err = vkCreateSwapchainKHR(device, swapchainCI, null, pSwapChain);
@@ -893,7 +893,7 @@ public class SWTVulkanCompleteDemo {
         }
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
         long window = glfwCreateWindow(800, 600, "GLFW Vulkan demo", NULL, NULL);
         LongBuffer pSurface = memAllocLong(1);
         int err = glfwCreateWindowSurface(instance, window, null, pSurface);
@@ -904,12 +904,46 @@ public class SWTVulkanCompleteDemo {
 
         // Create static Vulkan resources
         final ColorFormatAndSpace colorFormatAndSpace = getColorFormatAndSpace(physicalDevice, surface);
-        final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long commandPool = createCommandPool(device, queueFamilyIndex);
-        final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
         final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
         final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
+
+        int width = 800;
+        int height = 600;
+
+        // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
+        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
+        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+        cmdBufInfo.pNext(NULL);
+        err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
+        cmdBufInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanError(err));
+        }
+        long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
+        // Create the swapchain (this will also add a memory barrier to initialize the framebuffer images)
+        swapchain = createSwapChain(device, physicalDevice, surface, oldChain, setupCommandBuffer,
+                width, height, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
+        err = vkEndCommandBuffer(setupCommandBuffer);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to end setup command buffer: " + translateVulkanError(err));
+        }
+        submitCommandBuffer(queue, setupCommandBuffer);
+
+        final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
+        final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
+
+        if (framebuffers != null) {
+            for (int i = 0; i < framebuffers.length; i++)
+                vkDestroyFramebuffer(device, framebuffers[i], null);
+        }
+        framebuffers = createFramebuffers(device, swapchain, clearRenderPass, width, height);
+        // Create render command buffers
+        if (renderCommandBuffers != null) {
+            vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
+        }
+        renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, clearRenderPass, width, height);
 
         // Handle canvas resize
         GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
@@ -946,7 +980,6 @@ public class SWTVulkanCompleteDemo {
             }
         };
         glfwSetWindowSizeCallback(window, windowSizeCallback);
-        glfwShowWindow(window);
 
         // Pre-allocate everything needed in the render loop
 
