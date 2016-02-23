@@ -967,6 +967,7 @@ public class ClearScreenDemo {
                     throw new AssertionError("Failed to end setup command buffer: " + translateVulkanError(err));
                 }
                 submitCommandBuffer(queue, setupCommandBuffer);
+                vkQueueWaitIdle(queue);
 
                 if (framebuffers != null) {
                     for (int i = 0; i < framebuffers.length; i++)
