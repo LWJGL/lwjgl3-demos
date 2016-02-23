@@ -940,6 +940,9 @@ public class ClearScreenDemo {
         // Handle canvas resize
         GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
             public void invoke(long window, int width, int height) {
+                if (width <= 0 || height <= 0)
+                    return;
+
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
                 cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
