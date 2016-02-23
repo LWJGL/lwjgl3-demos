@@ -1,3 +1,7 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: http://lwjgl.org/license.php
+ */
 package org.lwjgl.demo.vulkan;
 
 import static org.lwjgl.opengl.GL11.GL_TRUE;
@@ -58,11 +62,13 @@ import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkViewport;
 
 /**
- * Renders a simple cornflower blue image on an SWT Canvas with Vulkan.
+ * Renders a simple cornflower blue image on a GLFW window with Vulkan.
  * 
  * @author Kai Burjack
  */
 public class ClearScreenDemo {
+
+    private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
 
     private static ByteBuffer[] layers = {
             memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
@@ -84,7 +90,7 @@ public class ClearScreenDemo {
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc();
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
-        appInfo.pApplicationName("SWT Vulkan Demo");
+        appInfo.pApplicationName("GLFW Vulkan Demo");
         appInfo.pEngineName("");
         appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
@@ -93,7 +99,7 @@ public class ClearScreenDemo {
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; i < layers.length; i++)
+        for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
@@ -111,6 +117,7 @@ public class ClearScreenDemo {
         pCreateInfo.free();
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
         memFree(ppEnabledExtensionNames);
+        memFree(ppEnabledLayerNames);
         appInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
@@ -178,12 +185,12 @@ public class ClearScreenDemo {
         queueCreateInfo.queueCount(1);
         queueCreateInfo.pQueuePriorities(pQueuePriorities);
 
-        PointerBuffer extensions = memAllocPointer(2);
+        PointerBuffer extensions = memAllocPointer(1);
         ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; i < layers.length; i++)
+        for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
 
@@ -205,6 +212,7 @@ public class ClearScreenDemo {
         deviceCreateInfo.free();
         memFree(extensions);
         memFree(pQueuePriorities);
+        memFree(ppEnabledLayerNames);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create device: " + translateVulkanError(err));
         }
@@ -889,10 +897,12 @@ public class ClearScreenDemo {
         int queueFamilyIndex = deviceAndGraphicsQueueFamily.queueFamilyIndex;
 
         // Create GLFW window
+        int width = 800;
+        int height = 600;
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-        long window = glfwCreateWindow(800, 600, "GLFW Vulkan demo", NULL, NULL);
+        long window = glfwCreateWindow(width, height, "GLFW Vulkan Demo", NULL, NULL);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -915,9 +925,6 @@ public class ClearScreenDemo {
         final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
         final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
-
-        int width = 800;
-        int height = 600;
 
         // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
         VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
