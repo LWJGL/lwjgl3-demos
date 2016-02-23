@@ -74,7 +74,8 @@ public class ClearScreenDemo {
             memEncodeASCII("VK_LAYER_LUNARG_param_checker", BufferAllocator.MALLOC),
             memEncodeASCII("VK_LAYER_LUNARG_swapchain", BufferAllocator.MALLOC),
             memEncodeASCII("VK_LAYER_LUNARG_device_limits", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_image", BufferAllocator.MALLOC)
+            memEncodeASCII("VK_LAYER_LUNARG_image", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_GOOGLE_unique_objects", BufferAllocator.MALLOC)
     };
 
     /**
@@ -87,15 +88,17 @@ public class ClearScreenDemo {
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         appInfo.pApplicationName("SWT Vulkan Demo");
         appInfo.pEngineName("");
-        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 3));
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(2);
-        ByteBuffer VK_KHR_SURFACE_EXTENSION;
-        if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        else
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
+        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
+        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
+        if (Platform.get() == Platform.WINDOWS)
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        else
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
+        ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -115,6 +118,7 @@ public class ClearScreenDemo {
         long instance = pInstance.get(0);
         memFree(pInstance);
         pCreateInfo.free();
+        memFree(VK_KHR_OS_SURFACE_EXTENSION);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
         memFree(VK_KHR_SURFACE_EXTENSION);
         memFree(ppEnabledExtensionNames);
@@ -467,7 +471,6 @@ public class ClearScreenDemo {
 
         IntBuffer pPresentModes = memAllocInt(presentModeCount);
         err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
-        memFree(pPresentModeCount);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanError(err));
         }
@@ -483,7 +486,6 @@ public class ClearScreenDemo {
                 swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             }
         }
-        memFree(pPresentModes);
 
         // Determine the number of images
         int desiredNumberOfSwapchainImages = surfCaps.minImageCount() + 1;
@@ -497,7 +499,6 @@ public class ClearScreenDemo {
         } else {
             preTransform = surfCaps.currentTransform();
         }
-        surfCaps.free();
 
         VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc();
         swapchainCI.sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
