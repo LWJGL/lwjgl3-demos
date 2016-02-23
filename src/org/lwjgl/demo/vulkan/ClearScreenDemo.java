@@ -1,10 +1,9 @@
 package org.lwjgl.demo.vulkan;
 
+import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
-import static org.lwjgl.vulkan.KHRWin32Surface.*;
-import static org.lwjgl.vulkan.KHRXlibSurface.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.demo.vulkan.VkUtil.*;
@@ -17,9 +16,8 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.Version;
+import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
-import org.lwjgl.system.Platform;
 import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
@@ -83,22 +81,15 @@ public class ClearScreenDemo {
      * 
      * @return the VkInstance handle
      */
-    private static VkInstance createInstance() {
+    private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc();
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         appInfo.pApplicationName("SWT Vulkan Demo");
         appInfo.pEngineName("");
         appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
-        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
+        ppEnabledExtensionNames.put(requiredExtensions);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
-        if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        else
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
-        ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -118,9 +109,7 @@ public class ClearScreenDemo {
         long instance = pInstance.get(0);
         memFree(pInstance);
         pCreateInfo.free();
-        memFree(VK_KHR_OS_SURFACE_EXTENSION);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
-        memFree(VK_KHR_SURFACE_EXTENSION);
         memFree(ppEnabledExtensionNames);
         appInfo.free();
         if (err != VK_SUCCESS) {
@@ -872,10 +861,21 @@ public class ClearScreenDemo {
     private static VkCommandBuffer[] renderCommandBuffers;
 
     public static void main(String[] args) {
-        System.err.println(Version.getVersion());
+        if (glfwInit() != GLFW_TRUE) {
+            throw new RuntimeException("Failed to initialize GLFW");
+        }
+        if (glfwVulkanSupported() == GLFW_FALSE) {
+            throw new AssertionError("GLFW failed to find the Vulkan loader");
+        }
+
+        /* Look for instance extensions */
+        PointerBuffer requiredExtensions = glfwGetRequiredInstanceExtensions();
+        if (requiredExtensions == null) {
+            throw new AssertionError("Failed to find list of required Vulkan extensions");
+        }
 
         // Create the Vulkan instance
-        final VkInstance instance = createInstance();
+        final VkInstance instance = createInstance(requiredExtensions);
         final VkDebugReportCallbackEXT debugCallback = new VkDebugReportCallbackEXT() {
             public int invoke(int flags, int objectType, long object, long location, int messageCode, long pLayerPrefix, long pMessage, long pUserData) {
                 System.err.println("ERROR OCCURED: " + memDecodeASCII(pMessage));
@@ -889,13 +889,19 @@ public class ClearScreenDemo {
         int queueFamilyIndex = deviceAndGraphicsQueueFamily.queueFamilyIndex;
 
         // Create GLFW window
-        if (glfwInit() != GLFW_TRUE) {
-            throw new RuntimeException("Failed to initialize GLFW");
-        }
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
         long window = glfwCreateWindow(800, 600, "GLFW Vulkan demo", NULL, NULL);
+        GLFWKeyCallback keyCallback;
+        glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
+            public void invoke(long window, int key, int scancode, int action, int mods) {
+                if (action != GLFW_RELEASE)
+                    return;
+                if (key == GLFW_KEY_ESCAPE)
+                    glfwSetWindowShouldClose(window, GL_TRUE);
+            }
+        });
         LongBuffer pSurface = memAllocLong(1);
         int err = glfwCreateWindowSurface(instance, window, null, pSurface);
         final long surface = pSurface.get(0);
@@ -1084,7 +1090,10 @@ public class ClearScreenDemo {
 
         vkDestroyDebugReportCallbackEXT(instance, debugCallbackHandle, null);
 
+        windowSizeCallback.release();
+        keyCallback.release();
         glfwDestroyWindow(window);
+        glfwTerminate();
 
         // We don't bother disposing of all Vulkan resources.
         // Let the OS process manager take care of it.

@@ -3,6 +3,7 @@ package org.lwjgl.demo.vulkan;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRDisplaySwapchain.*;
+import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.VK10.*;
 
 import java.nio.IntBuffer;
@@ -76,7 +77,7 @@ public class VkUtil {
             return "The display used by a swapchain does not use the same presentable image layout";
         case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
             return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
-        case -1000011001: // VK_ERROR_VALIDATION_FAILED_EXT
+        case VK_ERROR_VALIDATION_FAILED_EXT:
             return "A validation layer found an error";
         /* Vendor-specific error codes */
         // Nvidia
