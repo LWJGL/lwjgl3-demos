@@ -213,6 +213,7 @@ public class ClearScreenDemo {
         memFree(extensions);
         memFree(pQueuePriorities);
         memFree(ppEnabledLayerNames);
+        memFree(VK_KHR_SWAPCHAIN_EXTENSION);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create device: " + translateVulkanError(err));
         }
@@ -233,6 +234,7 @@ public class ClearScreenDemo {
         int queueCount = pQueueFamilyPropertyCount.get(0);
         VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.calloc(queueCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, queueProps);
+        memFree(pQueueFamilyPropertyCount);
 
         // Iterate over each queue to learn whether it supports presenting:
         IntBuffer supportsPresent = memAllocInt(queueCount);
@@ -259,6 +261,7 @@ public class ClearScreenDemo {
                 }
             }
         }
+        queueProps.free();
         if (presentQueueNodeIndex == Integer.MAX_VALUE) {
             // If there's no queue that supports both present and graphics try to find a separate present queue
             for (int i = 0; i < queueCount; ++i) {
@@ -291,6 +294,7 @@ public class ClearScreenDemo {
 
         VkSurfaceFormatKHR.Buffer surfFormats = VkSurfaceFormatKHR.calloc(formatCount);
         err = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pFormatCount, surfFormats);
+        memFree(pFormatCount);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to query physical device surface formats: " + translateVulkanError(err));
         }
@@ -304,6 +308,7 @@ public class ClearScreenDemo {
             colorFormat = surfFormats.get(0).format();
         }
         int colorSpace = surfFormats.get(0).colorSpace();
+        surfFormats.free();
 
         ColorFormatAndSpace ret = new ColorFormatAndSpace();
         ret.colorFormat = colorFormat;
@@ -343,13 +348,13 @@ public class ClearScreenDemo {
         cmdBufAllocateInfo.commandBufferCount(1);
         PointerBuffer pCommandBuffer = memAllocPointer(1);
         int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
+        cmdBufAllocateInfo.free();
+        long commandBuffer = pCommandBuffer.get(0);
+        memFree(pCommandBuffer);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to allocate command buffer: " + translateVulkanError(err));
         }
-        VkCommandBuffer commandBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
-        cmdBufAllocateInfo.free();
-        memFree(pCommandBuffer);
-        return commandBuffer;
+        return new VkCommandBuffer(commandBuffer, device);
     }
 
     private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int newImageLayout) {
@@ -468,6 +473,7 @@ public class ClearScreenDemo {
 
         IntBuffer pPresentModes = memAllocInt(presentModeCount);
         err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+        memFree(pPresentModeCount);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanError(err));
         }
@@ -483,6 +489,7 @@ public class ClearScreenDemo {
                 swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             }
         }
+        memFree(pPresentModes);
 
         // Determine the number of images
         int desiredNumberOfSwapchainImages = surfCaps.minImageCount() + 1;
@@ -496,6 +503,7 @@ public class ClearScreenDemo {
         } else {
             preTransform = surfCaps.currentTransform();
         }
+        surfCaps.free();
 
         VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc();
         swapchainCI.sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
@@ -664,6 +672,7 @@ public class ClearScreenDemo {
             }
             framebuffers[i] = framebuffer;
         }
+        memFree(attachments);
         memFree(pFramebuffer);
         fci.free();
         return framebuffers;
