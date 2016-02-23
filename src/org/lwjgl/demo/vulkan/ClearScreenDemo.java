@@ -723,9 +723,9 @@ public class ClearScreenDemo {
         // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(1);
         VkClearColorValue clearColor = clearValues.color();
-        clearColor.float32(0, 0.1f);
-        clearColor.float32(1, 0.4f);
-        clearColor.float32(2, 0.7f);
+        clearColor.float32(0, 100/255.0f);
+        clearColor.float32(1, 149/255.0f);
+        clearColor.float32(2, 237/255.0f);
         clearColor.float32(3, 1.0f);
 
         // Specify everything to begin a render pass
