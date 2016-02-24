@@ -873,6 +873,7 @@ public class TriangleDemo {
         IntBuffer memoryTypeIndex = memAllocInt(1);
         getMemoryType(deviceMemoryProperties, memReqs.memoryTypeBits(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryTypeIndex);
         memAlloc.memoryTypeIndex(memoryTypeIndex.get(0));
+        memFree(memoryTypeIndex);
         memReqs.free();
 
         LongBuffer pMemory = memAllocLong(1);
@@ -1024,6 +1025,7 @@ public class TriangleDemo {
 
         LongBuffer pDescriptorSetLayout = memAllocLong(1);
         err = vkCreateDescriptorSetLayout(device, descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout);
+        descriptorSetLayoutCreateInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create descriptor set layout: " + translateVulkanError(err));
         }
@@ -1041,6 +1043,9 @@ public class TriangleDemo {
         LongBuffer pPipelineLayout = memAllocLong(1);
         err = vkCreatePipelineLayout(device, pPipelineLayoutCreateInfo, null, pPipelineLayout);
         long layout = pPipelineLayout.get(0);
+        memFree(pPipelineLayout);
+        pPipelineLayoutCreateInfo.free();
+        memFree(pDescriptorSetLayout);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create descriptor set layout: " + translateVulkanError(err));
         }
@@ -1065,6 +1070,16 @@ public class TriangleDemo {
         LongBuffer pPipelines = memAllocLong(1);
         err = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, pipelineCreateInfo, null, pPipelines);
         long pipeline = pPipelines.get(0);
+        shaderStages.free();
+        multisampleState.free();
+        depthStencilState.free();
+        dynamicState.free();
+        memFree(pDynamicStates);
+        viewportState.free();
+        colorBlendState.free();
+        blendAttachmentState.free();
+        rasterizationState.free();
+        inputAssemblyState.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create pipeline: " + translateVulkanError(err));
         }
