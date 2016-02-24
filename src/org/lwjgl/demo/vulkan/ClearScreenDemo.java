@@ -7,10 +7,10 @@ package org.lwjgl.demo.vulkan;
 import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHRDisplaySwapchain.VK_ERROR_INCOMPATIBLE_DISPLAY_KHR;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
-import static org.lwjgl.demo.vulkan.VkUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFWVulkan.*;
 
@@ -26,26 +26,21 @@ import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
-import org.lwjgl.vulkan.VkClearColorValue;
 import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBuffer;
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
-import org.lwjgl.vulkan.VkComponentMapping;
 import org.lwjgl.vulkan.VkDebugReportCallbackCreateInfoEXT;
 import org.lwjgl.vulkan.VkDebugReportCallbackEXT;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
-import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkImageMemoryBarrier;
-import org.lwjgl.vulkan.VkImageSubresourceRange;
 import org.lwjgl.vulkan.VkImageViewCreateInfo;
 import org.lwjgl.vulkan.VkInstance;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
-import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkPresentInfoKHR;
 import org.lwjgl.vulkan.VkQueue;
@@ -83,16 +78,92 @@ public class ClearScreenDemo {
     };
 
     /**
+     * Remove if added to spec.
+     */
+    private static final int VK_FLAGS_NONE = 0;
+
+    /**
+     * This is just -1L, but it is nicer as a symbolic constant.
+     */
+    private static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
+
+    private static int VK_MAKE_VERSION(int major, int minor, int patch) {
+        return (major << 22) | (minor << 12) | (patch << 0);
+    }
+
+    /**
+     * Taken from GLFW's sources.
+     * <p>
+     * See: <a href="https://github.com/glfw/glfw/blob/master/src/vulkan.c#L133">vulkan.c</a>
+     */
+    private static String translateVulkanError(int succ) {
+        switch (succ) {
+        case VK_SUCCESS:
+            return "Success";
+        case VK_NOT_READY:
+            return "A fence or query has not yet completed";
+        case VK_TIMEOUT:
+            return "A wait operation has not completed in the specified time";
+        case VK_EVENT_SET:
+            return "An event is signaled";
+        case VK_EVENT_RESET:
+            return "An event is unsignaled";
+        case VK_INCOMPLETE:
+            return "A return array was too small for the result";
+        case VK_ERROR_OUT_OF_HOST_MEMORY:
+            return "A host memory allocation has failed";
+        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+            return "A device memory allocation has failed";
+        case VK_ERROR_INITIALIZATION_FAILED:
+            return "Initialization of an object could not be completed for implementation-specific reasons";
+        case VK_ERROR_DEVICE_LOST:
+            return "The logical or physical device has been lost";
+        case VK_ERROR_MEMORY_MAP_FAILED:
+            return "Mapping of a memory object has failed";
+        case VK_ERROR_LAYER_NOT_PRESENT:
+            return "A requested layer is not present or could not be loaded";
+        case VK_ERROR_EXTENSION_NOT_PRESENT:
+            return "A requested extension is not supported";
+        case VK_ERROR_FEATURE_NOT_PRESENT:
+            return "A requested feature is not supported";
+        case VK_ERROR_INCOMPATIBLE_DRIVER:
+            return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
+        case VK_ERROR_TOO_MANY_OBJECTS:
+            return "Too many objects of the type have already been created";
+        case VK_ERROR_FORMAT_NOT_SUPPORTED:
+            return "A requested format is not supported on this device";
+        case VK_ERROR_SURFACE_LOST_KHR:
+            return "A surface is no longer available";
+        case VK_SUBOPTIMAL_KHR:
+            return "A swapchain no longer matches the surface properties exactly, but can still be used";
+        case VK_ERROR_OUT_OF_DATE_KHR:
+            return "A surface has changed in such a way that it is no longer compatible with the swapchain";
+        case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+            return "The display used by a swapchain does not use the same presentable image layout";
+        case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+            return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
+        case VK_ERROR_VALIDATION_FAILED_EXT:
+            return "A validation layer found an error";
+        /* Vendor-specific error codes */
+        // Nvidia
+        case -1000013000: // Some illegal arguments passed to function (happened with vkCreateSwapchainKHR when old swapchain was wrong)
+            return "Invalid/wrong arguments specified to call";
+        default:
+            return "ERROR: UNKNOWN VULKAN ERROR [" + succ + "]";
+        }
+    }
+
+    /**
      * Create a Vulkan instance using LWJGL 3.
      * 
      * @return the VkInstance handle
      */
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
-        VkApplicationInfo appInfo = VkApplicationInfo.calloc();
-        appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
-        appInfo.pApplicationName("GLFW Vulkan Demo");
-        appInfo.pEngineName("");
-        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
+        VkApplicationInfo appInfo = VkApplicationInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                .pApplicationName("GLFW Vulkan Demo")
+                .pEngineName("")
+                .apiVersion(VK_MAKE_VERSION(1, 0, 2));
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
@@ -102,14 +173,14 @@ public class ClearScreenDemo {
         for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
-        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
-        pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-        pCreateInfo.pNext(NULL);
-        pCreateInfo.pApplicationInfo(appInfo);
-        pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
-        pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
-        pCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
-        pCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
+        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                .pNext(NULL)
+                .pApplicationInfo(appInfo)
+                .enabledExtensionCount(ppEnabledExtensionNames.remaining())
+                .ppEnabledExtensionNames(ppEnabledExtensionNames)
+                .enabledLayerCount(ppEnabledLayerNames.remaining())
+                .ppEnabledLayerNames(ppEnabledLayerNames);
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
@@ -126,12 +197,12 @@ public class ClearScreenDemo {
     }
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
-        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc();
-        dbgCreateInfo.sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT);
-        dbgCreateInfo.pNext(NULL);
-        dbgCreateInfo.pfnCallback(callback);
-        dbgCreateInfo.pUserData(NULL);
-        dbgCreateInfo.flags(flags);
+        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT)
+                .pNext(NULL)
+                .pfnCallback(callback)
+                .pUserData(NULL)
+                .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
         memFree(pCallback);
@@ -179,11 +250,11 @@ public class ClearScreenDemo {
         queueProps.free();
         FloatBuffer pQueuePriorities = memAllocFloat(1).put(0.0f);
         pQueuePriorities.flip();
-        VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1);
-        queueCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-        queueCreateInfo.queueFamilyIndex(graphicsQueueFamilyIndex);
-        queueCreateInfo.queueCount(1);
-        queueCreateInfo.pQueuePriorities(pQueuePriorities);
+        VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                .queueFamilyIndex(graphicsQueueFamilyIndex)
+                .queueCount(1)
+                .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
         ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
@@ -194,15 +265,15 @@ public class ClearScreenDemo {
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
 
-        VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc();
-        deviceCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-        deviceCreateInfo.pNext(NULL);
-        deviceCreateInfo.queueCreateInfoCount(1);
-        deviceCreateInfo.pQueueCreateInfos(queueCreateInfo);
-        deviceCreateInfo.enabledExtensionCount(1);
-        deviceCreateInfo.ppEnabledExtensionNames(extensions);
-        deviceCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
-        deviceCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
+        VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                .pNext(NULL)
+                .queueCreateInfoCount(1)
+                .pQueueCreateInfos(queueCreateInfo)
+                .enabledExtensionCount(1)
+                .ppEnabledExtensionNames(extensions)
+                .enabledLayerCount(ppEnabledLayerNames.remaining())
+                .ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
@@ -317,10 +388,10 @@ public class ClearScreenDemo {
     }
 
     private static long createCommandPool(VkDevice device, int queueNodeIndex) {
-        VkCommandPoolCreateInfo cmdPoolInfo = VkCommandPoolCreateInfo.calloc();
-        cmdPoolInfo.sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
-        cmdPoolInfo.queueFamilyIndex(queueNodeIndex);
-        cmdPoolInfo.flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        VkCommandPoolCreateInfo cmdPoolInfo = VkCommandPoolCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+                .queueFamilyIndex(queueNodeIndex)
+                .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
         LongBuffer pCmdPool = memAllocLong(1);
         int err = vkCreateCommandPool(device, cmdPoolInfo, null, pCmdPool);
         long commandPool = pCmdPool.get(0);
@@ -341,11 +412,11 @@ public class ClearScreenDemo {
     }
 
     private static VkCommandBuffer createCommandBuffer(VkDevice device, long commandPool) {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc();
-        cmdBufAllocateInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
-        cmdBufAllocateInfo.commandPool(commandPool);
-        cmdBufAllocateInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        cmdBufAllocateInfo.commandBufferCount(1);
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                .commandPool(commandPool)
+                .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+                .commandBufferCount(1);
         PointerBuffer pCommandBuffer = memAllocPointer(1);
         int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
         cmdBufAllocateInfo.free();
@@ -359,19 +430,19 @@ public class ClearScreenDemo {
 
     private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int newImageLayout) {
         // Create an image barrier object
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
-        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-        imageMemoryBarrier.pNext(NULL);
-        imageMemoryBarrier.oldLayout(oldImageLayout);
-        imageMemoryBarrier.newLayout(newImageLayout);
-        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.image(image);
-        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
-        subresourceRange.aspectMask(aspectMask);
-        subresourceRange.baseMipLevel(0);
-        subresourceRange.levelCount(1);
-        subresourceRange.layerCount(1);
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+                .pNext(NULL)
+                .oldLayout(oldImageLayout)
+                .newLayout(newImageLayout)
+                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                .image(image);
+        imageMemoryBarrier.subresourceRange()
+                .aspectMask(aspectMask)
+                .baseMipLevel(0)
+                .levelCount(1)
+                .layerCount(1);
 
         // Source layouts (old)
 
@@ -505,27 +576,26 @@ public class ClearScreenDemo {
         }
         surfCaps.free();
 
-        VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc();
-        swapchainCI.sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
-        swapchainCI.pNext(NULL);
-        swapchainCI.surface(surface);
-        swapchainCI.minImageCount(desiredNumberOfSwapchainImages);
-        swapchainCI.imageFormat(colorFormat);
-        swapchainCI.imageColorSpace(colorSpace);
-        VkExtent2D swapchainExtent = swapchainCI.imageExtent();
-        swapchainExtent.width(width);
-        swapchainExtent.height(height);
-        swapchainCI.imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-        swapchainCI.preTransform(preTransform);
-        swapchainCI.imageArrayLayers(1);
-        swapchainCI.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
-        swapchainCI.queueFamilyIndexCount(0);
-        swapchainCI.pQueueFamilyIndices(null);
-        swapchainCI.presentMode(swapchainPresentMode);
-        swapchainCI.oldSwapchain(oldSwapChain);
-        swapchainCI.clipped(VK_TRUE);
-        swapchainCI.compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
-
+        VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc()
+                .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+                .pNext(NULL)
+                .surface(surface)
+                .minImageCount(desiredNumberOfSwapchainImages)
+                .imageFormat(colorFormat)
+                .imageColorSpace(colorSpace)
+                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                .preTransform(preTransform)
+                .imageArrayLayers(1)
+                .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+                .queueFamilyIndexCount(0)
+                .pQueueFamilyIndices(null)
+                .presentMode(swapchainPresentMode)
+                .oldSwapchain(oldSwapChain)
+                .clipped(VK_TRUE)
+                .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
+        swapchainCI.imageExtent()
+                .width(width)
+                .height(height);
         LongBuffer pSwapChain = memAllocLong(1);
         err = vkCreateSwapchainKHR(device, swapchainCI, null, pSwapChain);
         swapchainCI.free();
@@ -558,23 +628,23 @@ public class ClearScreenDemo {
         long[] images = new long[imageCount];
         long[] imageViews = new long[imageCount];
         LongBuffer pBufferView = memAllocLong(1);
-        VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc();
-        colorAttachmentView.sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-        colorAttachmentView.pNext(NULL);
-        colorAttachmentView.format(colorFormat);
-        VkComponentMapping components = colorAttachmentView.components();
-        components.r(VK_COMPONENT_SWIZZLE_R);
-        components.g(VK_COMPONENT_SWIZZLE_G);
-        components.b(VK_COMPONENT_SWIZZLE_B);
-        components.a(VK_COMPONENT_SWIZZLE_A);
-        VkImageSubresourceRange subresourceRange = colorAttachmentView.subresourceRange();
-        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
-        subresourceRange.baseMipLevel(0);
-        subresourceRange.levelCount(1);
-        subresourceRange.baseArrayLayer(0);
-        subresourceRange.layerCount(1);
-        colorAttachmentView.viewType(VK_IMAGE_VIEW_TYPE_2D);
-        colorAttachmentView.flags(VK_FLAGS_NONE);
+        VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                .pNext(NULL)
+                .format(colorFormat)
+                .viewType(VK_IMAGE_VIEW_TYPE_2D)
+                .flags(VK_FLAGS_NONE);
+        colorAttachmentView.components()
+                .r(VK_COMPONENT_SWIZZLE_R)
+                .g(VK_COMPONENT_SWIZZLE_G)
+                .b(VK_COMPONENT_SWIZZLE_B)
+                .a(VK_COMPONENT_SWIZZLE_A);
+        colorAttachmentView.subresourceRange()
+                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                .baseMipLevel(0)
+                .levelCount(1)
+                .baseArrayLayer(0)
+                .layerCount(1);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
             // Bring the image from an UNDEFINED state to the PRESENT_SRC state
@@ -598,41 +668,41 @@ public class ClearScreenDemo {
     }
 
     private static long createClearRenderPass(VkDevice device, int colorFormat) {
-        VkAttachmentDescription.Buffer attachments = VkAttachmentDescription.calloc(1);
-        attachments.format(colorFormat);
-        attachments.samples(VK_SAMPLE_COUNT_1_BIT);
-        attachments.loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
-        attachments.storeOp(VK_ATTACHMENT_STORE_OP_STORE);
-        attachments.stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
-        attachments.stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
-        attachments.initialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        attachments.finalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        VkAttachmentDescription.Buffer attachments = VkAttachmentDescription.calloc(1)
+                .format(colorFormat)
+                .samples(VK_SAMPLE_COUNT_1_BIT)
+                .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
+                .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+                .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+                .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+                .initialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                .finalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-        VkAttachmentReference.Buffer colorReference = VkAttachmentReference.calloc(1);
-        colorReference.attachment(0);
-        colorReference.layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        VkAttachmentReference.Buffer colorReference = VkAttachmentReference.calloc(1)
+                .attachment(0)
+                .layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-        VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1);
-        subpass.pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
-        subpass.flags(VK_FLAGS_NONE);
-        subpass.inputAttachmentCount(0);
-        subpass.pInputAttachments(null);
-        subpass.colorAttachmentCount(1);
-        subpass.pColorAttachments(colorReference);
-        subpass.pResolveAttachments(null);
-        subpass.pDepthStencilAttachment(null);
-        subpass.preserveAttachmentCount(0);
-        subpass.pPreserveAttachments(null);
+        VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1)
+                .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
+                .flags(VK_FLAGS_NONE)
+                .inputAttachmentCount(0)
+                .pInputAttachments(null)
+                .colorAttachmentCount(1)
+                .pColorAttachments(colorReference)
+                .pResolveAttachments(null)
+                .pDepthStencilAttachment(null)
+                .preserveAttachmentCount(0)
+                .pPreserveAttachments(null);
 
-        VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc();
-        renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-        renderPassInfo.pNext(NULL);
-        renderPassInfo.attachmentCount(1);
-        renderPassInfo.pAttachments(attachments);
-        renderPassInfo.subpassCount(1);
-        renderPassInfo.pSubpasses(subpass);
-        renderPassInfo.dependencyCount(0);
-        renderPassInfo.pDependencies(null);
+        VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
+                .pNext(NULL)
+                .attachmentCount(1)
+                .pAttachments(attachments)
+                .subpassCount(1)
+                .pSubpasses(subpass)
+                .dependencyCount(0)
+                .pDependencies(null);
 
         LongBuffer pRenderPass = memAllocLong(1);
         int err = vkCreateRenderPass(device, renderPassInfo, null, pRenderPass);
@@ -649,17 +719,17 @@ public class ClearScreenDemo {
     }
 
     private static long[] createFramebuffers(VkDevice device, Swapchain swapchain, long renderPass, int width, int height) {
-        VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc();
-        fci.sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-        fci.attachmentCount(1);
         LongBuffer attachments = memAllocLong(1);
-        fci.pAttachments(attachments);
-        fci.flags(VK_FLAGS_NONE);
-        fci.height(height);
-        fci.width(width);
-        fci.layers(1);
-        fci.pNext(NULL);
-        fci.renderPass(renderPass);
+        VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+                .attachmentCount(1)
+                .pAttachments(attachments)
+                .flags(VK_FLAGS_NONE)
+                .height(height)
+                .width(width)
+                .layers(1)
+                .pNext(NULL)
+                .renderPass(renderPass);
         // Create a framebuffer for each swapchain image
         long[] framebuffers = new long[swapchain.images.length];
         LongBuffer pFramebuffer = memAllocLong(1);
@@ -681,12 +751,12 @@ public class ClearScreenDemo {
     private static void submitCommandBuffer(VkQueue queue, VkCommandBuffer commandBuffer) {
         if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
-        VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
-        submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-        submitInfo.commandBufferCount(1);
-        PointerBuffer pCommandBuffers = memAllocPointer(1);
-        pCommandBuffers.put(commandBuffer);
-        pCommandBuffers.flip();
+        VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                .commandBufferCount(1);
+        PointerBuffer pCommandBuffers = memAllocPointer(1)
+                .put(commandBuffer)
+                .flip();
         submitInfo.pCommandBuffers(pCommandBuffers);
         int err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
         memFree(pCommandBuffers);
@@ -698,11 +768,11 @@ public class ClearScreenDemo {
 
     private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
         // Create the render command buffers (one command buffer per framebuffer image)
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc();
-        cmdBufAllocateInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
-        cmdBufAllocateInfo.commandPool(commandPool);
-        cmdBufAllocateInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        cmdBufAllocateInfo.commandBufferCount(framebuffers.length);
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                .commandPool(commandPool)
+                .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+                .commandBufferCount(framebuffers.length);
         PointerBuffer pCommandBuffer = memAllocPointer(framebuffers.length);
         int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
         if (err != VK_SUCCESS) {
@@ -716,32 +786,32 @@ public class ClearScreenDemo {
         cmdBufAllocateInfo.free();
 
         // Create the command buffer begin structure
-        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
-        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-        cmdBufInfo.pNext(NULL);
+        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+                .pNext(NULL);
 
         // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(1);
-        VkClearColorValue clearColor = clearValues.color();
-        clearColor.float32(0, 100/255.0f);
-        clearColor.float32(1, 149/255.0f);
-        clearColor.float32(2, 237/255.0f);
-        clearColor.float32(3, 1.0f);
+        clearValues.color()
+                .float32(0, 100/255.0f)
+                .float32(1, 149/255.0f)
+                .float32(2, 237/255.0f)
+                .float32(3, 1.0f);
 
         // Specify everything to begin a render pass
-        VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc();
-        renderPassBeginInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
-        renderPassBeginInfo.pNext(NULL);
-        renderPassBeginInfo.renderPass(renderPass);
+        VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
+                .pNext(NULL)
+                .renderPass(renderPass)
+                .clearValueCount(1)
+                .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
-        VkOffset2D offset = renderArea.offset();
-        offset.x(0);
-        offset.y(0);
-        VkExtent2D extent = renderArea.extent();
-        extent.width(width);
-        extent.height(height);
-        renderPassBeginInfo.clearValueCount(1);
-        renderPassBeginInfo.pClearValues(clearValues);
+        renderArea.offset()
+                .x(0)
+                .y(0);
+        renderArea.extent()
+                .width(width)
+                .height(height);
 
         for (int i = 0; i < renderCommandBuffers.length; ++i) {
             // Set target frame buffer
@@ -755,22 +825,22 @@ public class ClearScreenDemo {
             vkCmdBeginRenderPass(renderCommandBuffers[i], renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             // Update dynamic viewport state
-            VkViewport.Buffer viewport = VkViewport.calloc(1);
-            viewport.height(height);
-            viewport.width(width);
-            viewport.minDepth(0.0f);
-            viewport.maxDepth(1.0f);
+            VkViewport.Buffer viewport = VkViewport.calloc(1)
+                    .height(height)
+                    .width(width)
+                    .minDepth(0.0f)
+                    .maxDepth(1.0f);
             vkCmdSetViewport(renderCommandBuffers[i], 0, viewport);
             viewport.free();
 
             // Update dynamic scissor state
             VkRect2D.Buffer scissor = VkRect2D.calloc(1);
-            VkExtent2D scissorExtent = scissor.extent();
-            VkOffset2D scissorOffset = scissor.offset();
-            scissorExtent.width(width);
-            scissorExtent.height(height);
-            scissorOffset.x(0);
-            scissorOffset.y(0);
+            scissor.extent()
+                    .width(width)
+                    .height(height);
+            scissor.offset()
+                    .x(0)
+                    .y(0);
             vkCmdSetScissor(renderCommandBuffers[i], 0, scissor);
             scissor.free();
 
@@ -801,49 +871,49 @@ public class ClearScreenDemo {
     }
 
     private static VkImageMemoryBarrier.Buffer createPrePresentBarrier(long presentImage) {
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
-        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-        imageMemoryBarrier.pNext(NULL);
-        imageMemoryBarrier.srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-        imageMemoryBarrier.dstAccessMask(0);
-        imageMemoryBarrier.oldLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        imageMemoryBarrier.newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
-        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
-        subresourceRange.baseMipLevel(0);
-        subresourceRange.levelCount(1);
-        subresourceRange.baseArrayLayer(0);
-        subresourceRange.layerCount(1);
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+                .pNext(NULL)
+                .srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+                .dstAccessMask(0)
+                .oldLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                .newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        imageMemoryBarrier.subresourceRange()
+                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                .baseMipLevel(0)
+                .levelCount(1)
+                .baseArrayLayer(0)
+                .layerCount(1);
         imageMemoryBarrier.image(presentImage);
         return imageMemoryBarrier;
     }
 
     private static VkImageMemoryBarrier.Buffer createPostPresentBarrier(long presentImage) {
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
-        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
-        imageMemoryBarrier.pNext(NULL);
-        imageMemoryBarrier.srcAccessMask(0);
-        imageMemoryBarrier.dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-        imageMemoryBarrier.oldLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        imageMemoryBarrier.newLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
-        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
-        subresourceRange.baseMipLevel(0);
-        subresourceRange.levelCount(1);
-        subresourceRange.baseArrayLayer(0);
-        subresourceRange.layerCount(1);
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+                .pNext(NULL)
+                .srcAccessMask(0)
+                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+                .oldLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+                .newLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        imageMemoryBarrier.subresourceRange()
+                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                .baseMipLevel(0)
+                .levelCount(1)
+                .baseArrayLayer(0)
+                .layerCount(1);
         imageMemoryBarrier.image(presentImage);
         return imageMemoryBarrier;
     }
 
     private static void submitPostPresentBarrier(long image, VkCommandBuffer commandBuffer, VkQueue queue) {
-        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
-        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-        cmdBufInfo.pNext(NULL);
+        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+                .pNext(NULL);
         int err = vkBeginCommandBuffer(commandBuffer, cmdBufInfo);
         cmdBufInfo.free();
         if (err != VK_SUCCESS) {
@@ -944,9 +1014,9 @@ public class ClearScreenDemo {
                     return;
 
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
-                VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
-                cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-                cmdBufInfo.pNext(NULL);
+                VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
+                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+                        .pNext(NULL);
                 int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
                 cmdBufInfo.free();
                 if (err != VK_SUCCESS) {
@@ -988,35 +1058,35 @@ public class ClearScreenDemo {
         LongBuffer pRenderCompleteSemaphore = memAllocLong(1);
 
         // Info struct to create a semaphore
-        VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
-        semaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
-        semaphoreCreateInfo.pNext(NULL);
-        semaphoreCreateInfo.flags(VK_FLAGS_NONE);
+        VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO)
+                .pNext(NULL)
+                .flags(VK_FLAGS_NONE);
 
         // Info struct to submit a command buffer which will wait on the semaphore
-        VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
-        submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-        submitInfo.pNext(NULL);
-        submitInfo.waitSemaphoreCount(1);
-        submitInfo.pWaitSemaphores(pImageAcquiredSemaphore);
         IntBuffer pWaitDstStageMask = memAllocInt(1);
         pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-        submitInfo.pWaitDstStageMask(pWaitDstStageMask);
-        submitInfo.commandBufferCount(1);
-        submitInfo.pCommandBuffers(pCommandBuffers);
-        submitInfo.signalSemaphoreCount(1);
-        submitInfo.pSignalSemaphores(pRenderCompleteSemaphore);
+        VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                .pNext(NULL)
+                .waitSemaphoreCount(1)
+                .pWaitSemaphores(pImageAcquiredSemaphore)
+                .pWaitDstStageMask(pWaitDstStageMask)
+                .commandBufferCount(1)
+                .pCommandBuffers(pCommandBuffers)
+                .signalSemaphoreCount(1)
+                .pSignalSemaphores(pRenderCompleteSemaphore);
 
         // Info struct to present the current swapchain image to the display
-        VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
-        presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-        presentInfo.pNext(NULL);
-        presentInfo.waitSemaphoreCount(1);
-        presentInfo.pWaitSemaphores(pRenderCompleteSemaphore);
-        presentInfo.swapchainCount(1);
-        presentInfo.pSwapchains(pSwapchains);
-        presentInfo.pImageIndices(pImageIndex);
-        presentInfo.pResults(null);
+        VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
+                .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+                .pNext(NULL)
+                .waitSemaphoreCount(1)
+                .pWaitSemaphores(pRenderCompleteSemaphore)
+                .swapchainCount(1)
+                .pSwapchains(pSwapchains)
+                .pImageIndices(pImageIndex)
+                .pResults(null);
 
         // The render loop
         while (glfwWindowShouldClose(window) == GLFW_FALSE) {
