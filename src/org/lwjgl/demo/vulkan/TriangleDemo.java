@@ -207,14 +207,10 @@ public class TriangleDemo {
         long instance = pInstance.get(0);
         memFree(pInstance);
         pCreateInfo.free();
-        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
-        memFree(ppEnabledExtensionNames);
-        memFree(ppEnabledLayerNames);
-        appInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
         }
-        return new VkInstance(instance);
+        return new VkInstance(instance, pCreateInfo);
     }
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
@@ -301,12 +297,6 @@ public class TriangleDemo {
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
         long device = pDevice.get(0);
         memFree(pDevice);
-        queueCreateInfo.free();
-        deviceCreateInfo.free();
-        memFree(extensions);
-        memFree(pQueuePriorities);
-        memFree(ppEnabledLayerNames);
-        memFree(VK_KHR_SWAPCHAIN_EXTENSION);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create device: " + translateVulkanError(err));
         }
@@ -315,7 +305,7 @@ public class TriangleDemo {
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, memoryProperties);
 
         DeviceAndGraphicsQueueFamily ret = new DeviceAndGraphicsQueueFamily();
-        ret.device = new VkDevice(device, physicalDevice);
+        ret.device = new VkDevice(device, physicalDevice, deviceCreateInfo);
         ret.queueFamilyIndex = graphicsQueueFamilyIndex;
         ret.memoryProperties = memoryProperties;
         return ret;
