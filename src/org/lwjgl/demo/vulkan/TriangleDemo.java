@@ -50,7 +50,6 @@ import org.lwjgl.vulkan.VkMemoryAllocateInfo;
 import org.lwjgl.vulkan.VkMemoryRequirements;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
-import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineDepthStencilStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineDynamicStateCreateInfo;
@@ -713,8 +712,8 @@ public class TriangleDemo {
                 .flags(VK_FLAGS_NONE)
                 .inputAttachmentCount(0)
                 .pInputAttachments(null)
-                .colorAttachmentCount(1)
-                .pColorAttachments(colorReference)
+                .colorAttachmentCount(1)           // <- only color attachment
+                .pColorAttachments(colorReference) // <- only color attachment
                 .pResolveAttachments(null)
                 .pDepthStencilAttachment(null)
                 .preserveAttachmentCount(0)
@@ -908,7 +907,7 @@ public class TriangleDemo {
 
         // Binding description
         VkVertexInputBindingDescription.Buffer bindingDescriptor = VkVertexInputBindingDescription.calloc(1)
-                .binding(0)
+                .binding(0) // <- we bind our vertex buffer to point 0
                 .stride(2 * 4)
                 .inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
 
@@ -917,7 +916,7 @@ public class TriangleDemo {
         VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.calloc(1);
         // Location 0 : Position
         attributeDescriptions.get(0)
-                .binding(0) // <- index in the VkVertexInputBindingDescription
+                .binding(0) // <- binding point used in the VkVertexInputBindingDescription
                 .location(0) // <- location in the shader's attribute layout (inside the shader source)
                 .format(VK_FORMAT_R32G32_SFLOAT)
                 .offset(0);
@@ -955,17 +954,13 @@ public class TriangleDemo {
                 .rasterizerDiscardEnable(VK_FALSE)
                 .depthBiasEnable(VK_FALSE);
 
-        // One blend attachment state
-        // Blending is not used in this example
-        VkPipelineColorBlendAttachmentState.Buffer blendAttachmentState = VkPipelineColorBlendAttachmentState.calloc(1)
-                .colorWriteMask(0xFF) // <- THIS IS IMPORTANT and has nothing to do with blending :)
-                .blendEnable(VK_FALSE);
         // Color blend state
         // Describes blend modes and color masks
+        // We don't use any in this demo
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
-                .attachmentCount(1)
-                .pAttachments(blendAttachmentState);
+                .attachmentCount(0)
+                .pAttachments(null);
 
         // Viewport state
         VkPipelineViewportStateCreateInfo viewportState = VkPipelineViewportStateCreateInfo.calloc()
@@ -1058,7 +1053,6 @@ public class TriangleDemo {
         memFree(pDynamicStates);
         viewportState.free();
         colorBlendState.free();
-        blendAttachmentState.free();
         rasterizationState.free();
         inputAssemblyState.free();
         if (err != VK_SUCCESS) {
