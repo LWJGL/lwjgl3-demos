@@ -37,7 +37,6 @@ import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkDebugReportCallbackCreateInfoEXT;
 import org.lwjgl.vulkan.VkDebugReportCallbackEXT;
-import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
@@ -793,7 +792,7 @@ public class TriangleDemo {
         }
     }
 
-    private static long loadShader(String classPath, VkDevice device, int stage) throws IOException {
+    private static long loadShader(String classPath, VkDevice device) throws IOException {
         ByteBuffer shaderCode = ioResourceToByteBuffer(classPath, 1024);
         IntBuffer pCode = shaderCode.asIntBuffer();
         int err;
@@ -817,30 +816,36 @@ public class TriangleDemo {
         VkPipelineShaderStageCreateInfo shaderStage = VkPipelineShaderStageCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
                 .stage(stage)
-                .module(loadShader(classPath, device, stage))
+                .module(loadShader(classPath, device))
                 .pName("main");
         return shaderStage;
     }
 
     private static boolean getMemoryType(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, int typeBits, int properties, IntBuffer typeIndex) {
+        int bits = typeBits;
         for (int i = 0; i < 32; i++) {
-            if ((typeBits & 1) == 1) {
+            if ((bits & 1) == 1) {
                 if ((deviceMemoryProperties.memoryTypes(i).propertyFlags() & properties) == properties) {
                     typeIndex.put(0, i);
                     return true;
                 }
             }
-            typeBits >>= 1;
+            bits >>= 1;
         }
         return false;
     }
 
-    private static VkPipelineVertexInputStateCreateInfo createVertices(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, VkDevice device) {
-        ByteBuffer vertexBuffer = memAlloc(3 * (3 + 2) * 4);
+    private static class Vertices {
+        long verticesBuf;
+        VkPipelineVertexInputStateCreateInfo createInfo;
+    }
+
+    private static Vertices createVertices(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, VkDevice device) {
+        ByteBuffer vertexBuffer = memAlloc(3 * 2 * 4);
         FloatBuffer fb = vertexBuffer.asFloatBuffer();
-        fb.put(-1).put(-1).put(1).put(0).put(0);
-        fb.put(1).put(-1).put(1).put(1).put(0);
-        fb.put(0).put(1).put(1).put(1).put(1);
+        fb.put(-0.5f).put(-0.5f);
+        fb.put( 0.5f).put(-0.5f);
+        fb.put( 0.0f).put( 0.5f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
@@ -904,24 +909,18 @@ public class TriangleDemo {
         // Binding description
         VkVertexInputBindingDescription.Buffer bindingDescriptor = VkVertexInputBindingDescription.calloc(1)
                 .binding(0)
-                .stride((2+3) * 4)
+                .stride(2 * 4)
                 .inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
 
         // Attribute descriptions
         // Describes memory layout and shader attribute locations
-        VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.calloc(2);
+        VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.calloc(1);
         // Location 0 : Position
         attributeDescriptions.get(0)
                 .binding(0) // <- index in the VkVertexInputBindingDescription
-                .location(0) // <- location in the shader's VkVertexInputAttributeDescription
+                .location(0) // <- location in the shader's attribute layout (inside the shader source)
                 .format(VK_FORMAT_R32G32_SFLOAT)
                 .offset(0);
-        // Location 1 : Color
-        attributeDescriptions.get(1)
-                .binding(0) // <- index in the VkVertexInputBindingDescription
-                .location(1) // <- location in the shader's VkVertexInputAttributeDescription
-                .format(VK_FORMAT_R32G32B32_SFLOAT)
-                .offset(3 * 4);
 
         // Assign to vertex buffer
         VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc();
@@ -929,9 +928,13 @@ public class TriangleDemo {
         vi.pNext(NULL);
         vi.vertexBindingDescriptionCount(1);
         vi.pVertexBindingDescriptions(bindingDescriptor);
-        vi.vertexAttributeDescriptionCount(2);
+        vi.vertexAttributeDescriptionCount(1);
         vi.pVertexAttributeDescriptions(attributeDescriptions);
-        return vi;
+
+        Vertices ret = new Vertices();
+        ret.createInfo = vi;
+        ret.verticesBuf = verticesBuf;
+        return ret;
     }
 
     private static long createPipeline(VkDevice device, long renderPass, VkPipelineVertexInputStateCreateInfo vi) throws IOException {
@@ -940,15 +943,12 @@ public class TriangleDemo {
         // Describes the topoloy used with this pipeline
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VkPipelineInputAssemblyStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO)
-                // This pipeline renders vertex data as triangle lists
                 .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
         // Rasterization state
         VkPipelineRasterizationStateCreateInfo rasterizationState = VkPipelineRasterizationStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO)
-                // Solid polygon mode
                 .polygonMode(VK_POLYGON_MODE_FILL)
-                // No culling
                 .cullMode(VK_CULL_MODE_NONE)
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
                 .depthClampEnable(VK_FALSE)
@@ -958,7 +958,7 @@ public class TriangleDemo {
         // One blend attachment state
         // Blending is not used in this example
         VkPipelineColorBlendAttachmentState.Buffer blendAttachmentState = VkPipelineColorBlendAttachmentState.calloc(1)
-                .colorWriteMask(0x0F)
+                .colorWriteMask(0xFF) // <- THIS IS IMPORTANT and has nothing to do with blending :)
                 .blendEnable(VK_FALSE);
         // Color blend state
         // Describes blend modes and color masks
@@ -970,10 +970,8 @@ public class TriangleDemo {
         // Viewport state
         VkPipelineViewportStateCreateInfo viewportState = VkPipelineViewportStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO)
-                // One viewport
-                .viewportCount(1)
-                // One scissor rectangle
-                .scissorCount(1);
+                .viewportCount(1) // <- one viewport
+                .scissorCount(1); // <- one scissor rectangle
 
         // Enable dynamic states
         // Describes the dynamic states to be used with this pipeline
@@ -1005,10 +1003,10 @@ public class TriangleDemo {
         depthStencilState.front(depthStencilState.back());
 
         // Multi sampling state
+        // No multi sampling used in this example
         VkPipelineMultisampleStateCreateInfo multisampleState = VkPipelineMultisampleStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
                 .pSampleMask(null)
-                // No multi sampling used in this example
                 .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
 
         // Load shaders
@@ -1016,38 +1014,21 @@ public class TriangleDemo {
         shaderStages.get(0).set(loadShader(device, "org/lwjgl/demo/vulkan/triangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
         shaderStages.get(1).set(loadShader(device, "org/lwjgl/demo/vulkan/triangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
 
-        // Setup layout of descriptors used in this example
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VkDescriptorSetLayoutCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
-                .pNext(NULL)
-                .bindingCount(0)
-                .pBindings(null);
-
-        LongBuffer pDescriptorSetLayout = memAllocLong(1);
-        err = vkCreateDescriptorSetLayout(device, descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout);
-        descriptorSetLayoutCreateInfo.free();
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create descriptor set layout: " + translateVulkanError(err));
-        }
-
         // Create the pipeline layout that is used to generate the rendering pipelines that
         // are based on this descriptor set layout
-        // In a more complex scenario you would have different pipeline layouts for different
-        // descriptor set layouts that could be reused
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
                 .pNext(NULL)
-                .setLayoutCount(1)
-                .pSetLayouts(pDescriptorSetLayout);
+                .setLayoutCount(0)
+                .pSetLayouts(null);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
         err = vkCreatePipelineLayout(device, pPipelineLayoutCreateInfo, null, pPipelineLayout);
         long layout = pPipelineLayout.get(0);
         memFree(pPipelineLayout);
         pPipelineLayoutCreateInfo.free();
-        memFree(pDescriptorSetLayout);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create descriptor set layout: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create pipeline layout: " + translateVulkanError(err));
         }
 
         // Assign states
@@ -1085,8 +1066,9 @@ public class TriangleDemo {
         }
         return pipeline;
     }
-
-    private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
+    
+    private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height,
+            long pipeline, long verticesBuf) {
         // Create the render command buffers (one command buffer per framebuffer image)
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
@@ -1155,6 +1137,21 @@ public class TriangleDemo {
             scissor.offset().set(0, 0);
             vkCmdSetScissor(renderCommandBuffers[i], 0, scissor);
             scissor.free();
+
+            // Bind the rendering pipeline (including the shaders)
+            vkCmdBindPipeline(renderCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+            // Bind triangle vertices
+            LongBuffer offsets = memAllocLong(1);
+            offsets.put(0, 0L);
+            LongBuffer pBuffers = memAllocLong(1);
+            pBuffers.put(0, verticesBuf);
+            vkCmdBindVertexBuffers(renderCommandBuffers[i], 0, pBuffers, offsets);
+            memFree(pBuffers);
+            memFree(offsets);
+
+            // Draw triangle
+            vkCmdDraw(renderCommandBuffers[i], 3, 1, 0, 0);
 
             vkCmdEndRenderPass(renderCommandBuffers[i]);
 
@@ -1319,9 +1316,8 @@ public class TriangleDemo {
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
         final long renderPass = createRenderPass(device, colorFormatAndSpace.colorFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
-        final VkPipelineVertexInputStateCreateInfo vertexInput = createVertices(memoryProperties, device);
-        final long pipeline = createPipeline(device, renderPass, vertexInput);
-        // TODO continue here
+        final Vertices vertices = createVertices(memoryProperties, device);
+        final long pipeline = createPipeline(device, renderPass, vertices.createInfo);
 
         // Handle canvas resize
         GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
@@ -1358,7 +1354,8 @@ public class TriangleDemo {
                 if (renderCommandBuffers != null) {
                     vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
                 }
-                renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, renderPass, width, height);
+                renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, renderPass, width, height, pipeline,
+                        vertices.verticesBuf);
             }
         };
         glfwSetWindowSizeCallback(window, windowSizeCallback);
