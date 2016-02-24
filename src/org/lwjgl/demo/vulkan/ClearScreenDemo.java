@@ -966,12 +966,10 @@ public class ClearScreenDemo {
         int queueFamilyIndex = deviceAndGraphicsQueueFamily.queueFamilyIndex;
 
         // Create GLFW window
-        int width = 800;
-        int height = 600;
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        long window = glfwCreateWindow(width, height, "GLFW Vulkan Demo", NULL, NULL);
+        long window = glfwCreateWindow(800, 600, "GLFW Vulkan Demo", NULL, NULL);
         GLFWKeyCallback keyCallback;
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
@@ -997,12 +995,12 @@ public class ClearScreenDemo {
         final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
 
-        // Handle canvas resize
-        GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
-            public void invoke(long window, int width, int height) {
-                if (width <= 0 || height <= 0)
-                    return;
+        final class SwapchainRecreator {
+            boolean mustRecreate = true;
+            int width;
+            int height;
 
+            void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
                         .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
@@ -1033,6 +1031,20 @@ public class ClearScreenDemo {
                     vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
                 }
                 renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, clearRenderPass, width, height);
+
+                mustRecreate = false;
+            }
+        }
+        final SwapchainRecreator swapchainRecreator = new SwapchainRecreator();
+
+        // Handle canvas resize
+        GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
+            public void invoke(long window, int width, int height) {
+                if (width <= 0 || height <= 0)
+                    return;
+                swapchainRecreator.width = width;
+                swapchainRecreator.height = height;
+                swapchainRecreator.mustRecreate = true;
             }
         };
         glfwSetWindowSizeCallback(window, windowSizeCallback);
@@ -1083,6 +1095,8 @@ public class ClearScreenDemo {
             // Handle window messages. Resize events happen exactly here.
             // So it is safe to use the new swapchain images and framebuffers afterwards.
             glfwPollEvents();
+            if (swapchainRecreator.mustRecreate)
+                swapchainRecreator.recreate();
 
             // Create a semaphore to wait for the swapchain to acquire the next image
             err = vkCreateSemaphore(device, semaphoreCreateInfo, null, pImageAcquiredSemaphore);
