@@ -766,9 +766,9 @@ public class TriangleDemo {
     private static Vertices createVertices(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, VkDevice device) {
         ByteBuffer vertexBuffer = memAlloc(3 * 2 * 4);
         FloatBuffer fb = vertexBuffer.asFloatBuffer();
-        fb.put(-0.5f).put(-0.5f);
-        fb.put( 0.5f).put(-0.5f);
-        fb.put( 0.0f).put( 0.5f);
+        fb.put(-0.5f).put( 0.5f);
+        fb.put( 0.5f).put( 0.5f);
+        fb.put( 0.0f).put(-0.5f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
