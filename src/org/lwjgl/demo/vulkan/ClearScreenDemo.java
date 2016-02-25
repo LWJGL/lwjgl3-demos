@@ -119,11 +119,16 @@ public class ClearScreenDemo {
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
         memFree(pInstance);
-        appInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanResult(err));
         }
-        return new VkInstance(instance, pCreateInfo);
+        VkInstance ret = new VkInstance(instance, pCreateInfo);
+        pCreateInfo.free();
+        memFree(ppEnabledLayerNames);
+        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
+        memFree(ppEnabledExtensionNames);
+        appInfo.free();
+        return ret;
     }
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
@@ -212,9 +217,16 @@ public class ClearScreenDemo {
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create device: " + translateVulkanResult(err));
         }
+
         DeviceAndGraphicsQueueFamily ret = new DeviceAndGraphicsQueueFamily();
         ret.device = new VkDevice(device, physicalDevice, deviceCreateInfo);
         ret.queueFamilyIndex = graphicsQueueFamilyIndex;
+
+        deviceCreateInfo.free();
+        memFree(ppEnabledLayerNames);
+        memFree(VK_KHR_SWAPCHAIN_EXTENSION);
+        memFree(extensions);
+        memFree(pQueuePriorities);
         return ret;
     }
 
