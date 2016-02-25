@@ -852,7 +852,7 @@ public class ColoredTriangleDemo {
 
         // Attribute descriptions
         // Describes memory layout and shader attribute locations
-        VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.calloc(1);
+        VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription.calloc(2);
         // Location 0 : Position
         attributeDescriptions.get(0)
                 .binding(0) // <- binding point used in the VkVertexInputBindingDescription
@@ -860,7 +860,7 @@ public class ColoredTriangleDemo {
                 .format(VK_FORMAT_R32G32_SFLOAT)
                 .offset(0);
         // Location 1 : Color
-        attributeDescriptions.get(0)
+        attributeDescriptions.get(1)
                 .binding(0) // <- binding point used in the VkVertexInputBindingDescription
                 .location(1) // <- location in the shader's attribute layout (inside the shader source)
                 .format(VK_FORMAT_R32G32B32_SFLOAT)
