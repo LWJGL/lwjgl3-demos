@@ -88,41 +88,68 @@ public class ClearScreenDemo {
     private static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
 
     /**
-     * Create a Vulkan instance using LWJGL 3.
+     * Create a Vulkan {@link VkInstance} using LWJGL 3.
+     * <p>
+     * The {@link VkInstance} represents a handle to the Vulkan API and we need that instance for about everything we do.
      * 
      * @return the VkInstance handle
      */
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
+        // Here we say what the name of our application is and which Vulkan version we are targetting (having this is optional)
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
                 .pApplicationName("GLFW Vulkan Demo")
                 .pEngineName("")
                 .apiVersion(VK_MAKE_VERSION(1, 0, 2));
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
-        ppEnabledExtensionNames.put(requiredExtensions);
+
+        // We also need to tell Vulkan which extensions we would like to use.
+        // Those include the platform-dependent required extensions we are being told by GLFW to use.
+        // This includes stuff like the Window System Interface extensions to actually render something on a window.
+        //
+        // We also add the debug extension so that validation layers and other things can send log messages to us.
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
-        ppEnabledExtensionNames.flip();
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
+        ppEnabledExtensionNames.put(requiredExtensions) // <- platform-dependent required extensions
+                               .put(VK_EXT_DEBUG_REPORT_EXTENSION) // <- the debug extensions
+                               .flip();
+
+        // Now comes the validation layers. These layers sit between our application (the Vulkan client) and the
+        // Vulkan driver. Those layers will check whether we make any mistakes in using the Vulkan API and yell
+        // at us via the debug extension.
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
         for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
+
+        // Vulkan uses many struct/record types when creating something. This ensures that every information is available
+        // at the callsite of the creation and allows for easier validation and also for immutability of the created object.
+        // 
+        // The following struct defines everything that is needed to create a VkInstance
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
-                .pNext(NULL)
-                .pApplicationInfo(appInfo)
-                .enabledExtensionCount(ppEnabledExtensionNames.remaining())
-                .ppEnabledExtensionNames(ppEnabledExtensionNames)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
-                .ppEnabledLayerNames(ppEnabledLayerNames);
-        PointerBuffer pInstance = memAllocPointer(1);
-        int err = vkCreateInstance(pCreateInfo, null, pInstance);
-        long instance = pInstance.get(0);
-        memFree(pInstance);
+                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO) // <- identifies what kind of struct this is (this is useful for extending the struct type later)
+                .pNext(NULL) // <- must always be NULL until any next Vulkan version tells otherwise
+                .pApplicationInfo(appInfo) // <- the application info we created above
+                .enabledExtensionCount(ppEnabledExtensionNames.remaining()) // <- how many extensions do we want to use?
+                .ppEnabledExtensionNames(ppEnabledExtensionNames) // <- and the extension names themselves
+                .enabledLayerCount(ppEnabledLayerNames.remaining()) // <- how many validation layers do we want to use?
+                .ppEnabledLayerNames(ppEnabledLayerNames); // <- and the layer names themselves
+        PointerBuffer pInstance = memAllocPointer(1); // <- create a PointerBuffer which will hold the handle to the created VkInstance
+        int err = vkCreateInstance(pCreateInfo, null, pInstance); // <- actually create the VkInstance now!
+        long instance = pInstance.get(0); // <- get the VkInstance handle
+        memFree(pInstance); // <- free the PointerBuffer
+        // One word about freeing memory:
+        // Every host-allocated memory directly or indirectly referenced via a parameter to any Vulkan function can always
+        // be freed right after the invocation of the Vulkan function returned.
+
+        // Check whether we succeeded in creating the VkInstance
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanResult(err));
         }
+        // Create an object-oriented wrapper around the simple VkInstance long handle
+        // This is needed by LWJGL to later "dispatch" (i.e. direct calls to) the right Vukan functions.
         VkInstance ret = new VkInstance(instance, pCreateInfo);
+
+        // Now we can free/deallocate everything
         pCreateInfo.free();
         memFree(ppEnabledLayerNames);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
@@ -131,23 +158,33 @@ public class ClearScreenDemo {
         return ret;
     }
 
+    /**
+     * This function sets up the debug callback which the validation layers will use to yell at us when we make mistakes.
+     */
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
+        // Again, a struct to create something, in this case the debug report callback
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT)
-                .pNext(NULL)
-                .pfnCallback(callback)
-                .pUserData(NULL)
-                .flags(flags);
-        LongBuffer pCallback = memAllocLong(1);
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT) // <- the struct type
+                .pNext(NULL) // <- must be NULL
+                .pfnCallback(callback) // <- the actual function pointer (in LWJGL a Closure)
+                .pUserData(NULL) // <- any user data provided to the debug report callback function
+                .flags(flags); // <- indicates which kind of messages we want to receive
+        LongBuffer pCallback = memAllocLong(1); // <- allocate a LongBuffer (for a non-dispatchable handle)
+        // Actually create the debug report callback
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
-        memFree(pCallback);
-        dbgCreateInfo.free();
+        long callbackHandle = pCallback.get(0);
+        memFree(pCallback); // <- and free the LongBuffer
+        dbgCreateInfo.free(); // <- and also the create-info struct
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanResult(err));
         }
-        return pCallback.get(0);
+        return callbackHandle;
     }
 
+    /**
+     * This method will enumerate the physical devices (i.e. GPUs) the system has available for us, and will just return
+     * the first one. 
+     */
     private static VkPhysicalDevice getFirstPhysicalDevice(VkInstance instance) {
         IntBuffer pPhysicalDeviceCount = memAllocInt(1);
         int err = vkEnumeratePhysicalDevices(instance, pPhysicalDeviceCount, null);

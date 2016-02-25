@@ -161,12 +161,13 @@ public class TriangleDemo {
                 .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
+        long callbackHandle = pCallback.get(0);
         memFree(pCallback);
         dbgCreateInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanResult(err));
         }
-        return pCallback.get(0);
+        return callbackHandle;
     }
 
     private static VkPhysicalDevice getFirstPhysicalDevice(VkInstance instance) {
