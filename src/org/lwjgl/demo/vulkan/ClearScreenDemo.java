@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.vulkan;
 
-import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -959,7 +958,7 @@ public class ClearScreenDemo {
                 if (action != GLFW_RELEASE)
                     return;
                 if (key == GLFW_KEY_ESCAPE)
-                    glfwSetWindowShouldClose(window, GL_TRUE);
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
         });
         LongBuffer pSurface = memAllocLong(1);
