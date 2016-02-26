@@ -20,6 +20,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 
+import org.joml.Matrix4f;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
@@ -35,6 +36,12 @@ import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkDebugReportCallbackCreateInfoEXT;
 import org.lwjgl.vulkan.VkDebugReportCallbackEXT;
+import org.lwjgl.vulkan.VkDescriptorBufferInfo;
+import org.lwjgl.vulkan.VkDescriptorPoolCreateInfo;
+import org.lwjgl.vulkan.VkDescriptorPoolSize;
+import org.lwjgl.vulkan.VkDescriptorSetAllocateInfo;
+import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
+import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
@@ -74,16 +81,17 @@ import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
 import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 import org.lwjgl.vulkan.VkViewport;
+import org.lwjgl.vulkan.VkWriteDescriptorSet;
 
 /**
- * Renders a simple colored triangle on a cornflower blue background on a GLFW window with Vulkan.
+ * Renders a simple rotating colored quad on a cornflower blue background on a GLFW window with Vulkan.
  * <p>
- * This is like the {@link TriangleDemo}, but adds an additional "color" vertex attribute.
+ * This is like the {@link ColoredTriangleDemo}, but adds an additional rotation.
  * Do a diff between those two classes to see what's new.
  * 
  * @author Kai Burjack
  */
-public class ColoredTriangleDemo {
+public class ColoredRotatingQuadDemo {
 
     private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
 
@@ -760,11 +768,14 @@ public class ColoredTriangleDemo {
     }
 
     private static Vertices createVertices(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, VkDevice device) {
-        ByteBuffer vertexBuffer = memAlloc(3 * (2 + 3) * 4);
+        ByteBuffer vertexBuffer = memAlloc(6 * (2 + 3) * 4);
         FloatBuffer fb = vertexBuffer.asFloatBuffer();
         fb.put(-0.5f).put( 0.5f).put(1.0f).put(0.0f).put(0.0f);
         fb.put( 0.5f).put( 0.5f).put(0.0f).put(1.0f).put(0.0f);
-        fb.put( 0.0f).put(-0.5f).put(0.0f).put(0.0f).put(1.0f);
+        fb.put( 0.5f).put(-0.5f).put(0.0f).put(0.0f).put(1.0f);
+        fb.put( 0.5f).put(-0.5f).put(0.0f).put(0.0f).put(1.0f);
+        fb.put(-0.5f).put(-0.5f).put(0.0f).put(1.0f).put(1.0f);
+        fb.put(-0.5f).put( 0.5f).put(1.0f).put(0.0f).put(0.0f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
@@ -860,7 +871,178 @@ public class ColoredTriangleDemo {
         return ret;
     }
 
-    private static long createPipeline(VkDevice device, long renderPass, VkPipelineVertexInputStateCreateInfo vi) throws IOException {
+    private static long createDescriptorPool(VkDevice device) {
+        // We need to tell the API the number of max. requested descriptors per type
+        VkDescriptorPoolSize.Buffer typeCounts = VkDescriptorPoolSize.calloc(1)
+                // This example only uses one descriptor type (uniform buffer) and only
+                // requests one descriptor of this type
+                .type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                .descriptorCount(1);
+        // For additional types you need to add new entries in the type count list
+        // E.g. for two combined image samplers :
+        // typeCounts[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        // typeCounts[1].descriptorCount = 2;
+
+        // Create the global descriptor pool
+        // All descriptors used in this example are allocated from this pool
+        VkDescriptorPoolCreateInfo descriptorPoolInfo = VkDescriptorPoolCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
+                .pNext(NULL)
+                .pPoolSizes(typeCounts)
+                // Set the max. number of sets that can be requested
+                // Requesting descriptors beyond maxSets will result in an error
+                .maxSets(1);
+
+        LongBuffer pDescriptorPool = memAllocLong(1);
+        int err = vkCreateDescriptorPool(device, descriptorPoolInfo, null, pDescriptorPool);
+        long descriptorPool = pDescriptorPool.get(0);
+        memFree(pDescriptorPool);
+        descriptorPoolInfo.free();
+        typeCounts.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create descriptor pool: " + translateVulkanResult(err));
+        }
+        return descriptorPool;
+    }
+
+    private static class UboDescriptor {
+        long memory;
+        long allocationSize;
+        long buffer;
+        long offset;
+        long range;
+    }
+
+    private static UboDescriptor createUniformBuffer(VkPhysicalDeviceMemoryProperties deviceMemoryProperties, VkDevice device) {
+        int err;
+        // Create a new buffer
+        VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                .size(16 * 4)
+                .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        LongBuffer pUniformDataVSBuffer = memAllocLong(1);
+        err = vkCreateBuffer(device, bufferInfo, null, pUniformDataVSBuffer);
+        long uniformDataVSBuffer = pUniformDataVSBuffer.get(0);
+        memFree(pUniformDataVSBuffer);
+        bufferInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create UBO buffer: " + translateVulkanResult(err));
+        }
+
+        // Get memory requirements including size, alignment and memory type
+        VkMemoryRequirements memReqs = VkMemoryRequirements.calloc();
+        vkGetBufferMemoryRequirements(device, uniformDataVSBuffer, memReqs);
+        long memSize = memReqs.size();
+        int memoryTypeBits = memReqs.memoryTypeBits();
+        memReqs.free();
+        // Gets the appropriate memory type for this type of buffer allocation
+        // Only memory types that are visible to the host
+        IntBuffer pMemoryTypeIndex = memAllocInt(1);
+        getMemoryType(deviceMemoryProperties, memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pMemoryTypeIndex);
+        int memoryTypeIndex = pMemoryTypeIndex.get(0);
+        memFree(pMemoryTypeIndex);
+        // Allocate memory for the uniform buffer
+        LongBuffer pUniformDataVSMemory = memAllocLong(1);
+        VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
+                .pNext(NULL)
+                .allocationSize(memSize)
+                .memoryTypeIndex(memoryTypeIndex);
+        err = vkAllocateMemory(device, allocInfo, null, pUniformDataVSMemory);
+        long uniformDataVSMemory = pUniformDataVSMemory.get(0);
+        memFree(pUniformDataVSMemory);
+        allocInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to allocate UBO memory: " + translateVulkanResult(err));
+        }
+        // Bind memory to buffer
+        err = vkBindBufferMemory(device, uniformDataVSBuffer, uniformDataVSMemory, 0);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to bind UBO memory: " + translateVulkanResult(err));
+        }
+
+        UboDescriptor ret = new UboDescriptor();
+        ret.memory = uniformDataVSMemory;
+        ret.allocationSize = memSize;
+        ret.buffer = uniformDataVSBuffer;
+        ret.offset = 0L;
+        ret.range = 16 * 4;
+
+        return ret;
+    }
+
+    private static long createDescriptorSet(VkDevice device, long descriptorPool, long descriptorSetLayout, UboDescriptor uniformDataVSDescriptor) {
+        LongBuffer pDescriptorSetLayout = memAllocLong(1);
+        pDescriptorSetLayout.put(0, descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo = VkDescriptorSetAllocateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
+                .descriptorPool(descriptorPool)
+                .pSetLayouts(pDescriptorSetLayout);
+
+        LongBuffer pDescriptorSet = memAllocLong(1);
+        int err = vkAllocateDescriptorSets(device, allocInfo, pDescriptorSet);
+        long descriptorSet = pDescriptorSet.get(0);
+        memFree(pDescriptorSet);
+        allocInfo.free();
+        memFree(pDescriptorSetLayout);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create descriptor set: " + translateVulkanResult(err));
+        }
+
+        // Update descriptor sets determining the shader binding points
+        // For every binding point used in a shader there needs to be one
+        // descriptor set matching that binding point
+        VkDescriptorBufferInfo.Buffer descriptor = VkDescriptorBufferInfo.calloc(1)
+                .buffer(uniformDataVSDescriptor.buffer)
+                .range(uniformDataVSDescriptor.range)
+                .offset(uniformDataVSDescriptor.offset);
+        // Binding 0 : Uniform buffer
+        VkWriteDescriptorSet.Buffer writeDescriptorSet = VkWriteDescriptorSet.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                .dstSet(descriptorSet)
+                .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                .pBufferInfo(descriptor)
+                .dstBinding(0); // <- Binds this uniform buffer to binding point 0
+        vkUpdateDescriptorSets(device, writeDescriptorSet, null);
+        writeDescriptorSet.free();
+        descriptor.free();
+
+        return descriptorSet;
+    }
+
+    private static long createDescriptorSetLayout(VkDevice device) {
+        int err;
+        // One binding for a UBO used in a vertex shader
+        VkDescriptorSetLayoutBinding.Buffer layoutBinding = VkDescriptorSetLayoutBinding.calloc(1)
+                .binding(0) // <- Binding 0 : Uniform buffer (Vertex shader)
+                .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                .descriptorCount(1)
+                .stageFlags(VK_SHADER_STAGE_VERTEX_BIT)
+                .pImmutableSamplers(null);
+        // Build a create-info struct to create the descriptor set layout
+        VkDescriptorSetLayoutCreateInfo descriptorLayout = VkDescriptorSetLayoutCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
+                .pNext(NULL)
+                .pBindings(layoutBinding);
+
+        LongBuffer pDescriptorSetLayout = memAllocLong(1);
+        err = vkCreateDescriptorSetLayout(device, descriptorLayout, null, pDescriptorSetLayout);
+        long descriptorSetLayout = pDescriptorSetLayout.get(0);
+        memFree(pDescriptorSetLayout);
+        descriptorLayout.free();
+        layoutBinding.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create descriptor set layout: " + translateVulkanResult(err));
+        }
+        return descriptorSetLayout;
+    }
+
+    private static class Pipeline {
+        long pipeline;
+        long layout;
+    }
+
+    private static Pipeline createPipeline(VkDevice device, long renderPass, VkPipelineVertexInputStateCreateInfo vi, long descriptorSetLayout) throws IOException {
         int err;
         // Vertex input state
         // Describes the topoloy used with this pipeline
@@ -928,21 +1110,23 @@ public class ColoredTriangleDemo {
 
         // Load shaders
         VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.calloc(2);
-        shaderStages.get(0).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredTriangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
-        shaderStages.get(1).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredTriangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
+        shaderStages.get(0).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
+        shaderStages.get(1).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
 
         // Create the pipeline layout that is used to generate the rendering pipelines that
         // are based on this descriptor set layout
+        LongBuffer pDescriptorSetLayout = memAllocLong(1).put(0, descriptorSetLayout);
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
                 .pNext(NULL)
-                .pSetLayouts(null);
+                .pSetLayouts(pDescriptorSetLayout);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
         err = vkCreatePipelineLayout(device, pPipelineLayoutCreateInfo, null, pPipelineLayout);
         long layout = pPipelineLayout.get(0);
         memFree(pPipelineLayout);
         pPipelineLayoutCreateInfo.free();
+        memFree(pDescriptorSetLayout);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create pipeline layout: " + translateVulkanResult(err));
         }
@@ -978,11 +1162,15 @@ public class ColoredTriangleDemo {
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create pipeline: " + translateVulkanResult(err));
         }
-        return pipeline;
+
+        Pipeline ret = new Pipeline();
+        ret.layout = layout;
+        ret.pipeline = pipeline;
+        return ret;
     }
-    
+
     private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height,
-            long pipeline, long verticesBuf) {
+            Pipeline pipeline, long descriptorSet, long verticesBuf) {
         // Create the render command buffers (one command buffer per framebuffer image)
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
@@ -1051,8 +1239,13 @@ public class ColoredTriangleDemo {
             vkCmdSetScissor(renderCommandBuffers[i], 0, scissor);
             scissor.free();
 
+            // Bind descriptor sets describing shader binding points
+            LongBuffer descriptorSets = memAllocLong(1).put(0, descriptorSet);
+            vkCmdBindDescriptorSets(renderCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, descriptorSets, null);
+            memFree(descriptorSets);
+
             // Bind the rendering pipeline (including the shaders)
-            vkCmdBindPipeline(renderCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            vkCmdBindPipeline(renderCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
 
             // Bind triangle vertices
             LongBuffer offsets = memAllocLong(1);
@@ -1064,7 +1257,7 @@ public class ColoredTriangleDemo {
             memFree(offsets);
 
             // Draw triangle
-            vkCmdDraw(renderCommandBuffers[i], 3, 1, 0, 0);
+            vkCmdDraw(renderCommandBuffers[i], 6, 1, 0, 0);
 
             vkCmdEndRenderPass(renderCommandBuffers[i]);
 
@@ -1090,6 +1283,20 @@ public class ColoredTriangleDemo {
         clearValues.free();
         cmdBufInfo.free();
         return renderCommandBuffers;
+    }
+
+    private static void updateUbo(VkDevice device, UboDescriptor ubo, float angle) {
+        Matrix4f m = new Matrix4f().rotateZ(angle);
+        PointerBuffer pData = memAllocPointer(1);
+        int err = vkMapMemory(device, ubo.memory, 0, ubo.allocationSize, 0, pData);
+        long data = pData.get(0);
+        memFree(pData);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to map UBO memory: " + translateVulkanResult(err));
+        }
+        ByteBuffer matrixBuffer = memByteBuffer(data, 16 * 4);
+        m.get(matrixBuffer);
+        vkUnmapMemory(device, ubo.memory);
     }
 
     private static VkImageMemoryBarrier.Buffer createPrePresentBarrier(long presentImage) {
@@ -1228,7 +1435,11 @@ public class ColoredTriangleDemo {
         final long renderPass = createRenderPass(device, colorFormatAndSpace.colorFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
         final Vertices vertices = createVertices(memoryProperties, device);
-        final long pipeline = createPipeline(device, renderPass, vertices.createInfo);
+        UboDescriptor uboDescriptor = createUniformBuffer(memoryProperties, device);
+        final long descriptorPool = createDescriptorPool(device);
+        final long descriptorSetLayout = createDescriptorSetLayout(device);
+        final long descriptorSet = createDescriptorSet(device, descriptorPool, descriptorSetLayout, uboDescriptor);
+        final Pipeline pipeline = createPipeline(device, renderPass, vertices.createInfo, descriptorSetLayout);
 
         final class SwapchainRecreator {
             boolean mustRecreate = true;
@@ -1265,7 +1476,7 @@ public class ColoredTriangleDemo {
                 if (renderCommandBuffers != null) {
                     vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
                 }
-                renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, renderPass, width, height, pipeline,
+                renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, renderPass, width, height, pipeline, descriptorSet,
                         vertices.verticesBuf);
 
                 mustRecreate = false;
@@ -1322,6 +1533,8 @@ public class ColoredTriangleDemo {
                 .pResults(null);
 
         // The render loop
+        long lastTime = System.nanoTime();
+        float time = 0.0f;
         while (glfwWindowShouldClose(window) == GLFW_FALSE) {
             // Handle window messages. Resize events happen exactly here.
             // So it is safe to use the new swapchain images and framebuffers afterwards.
@@ -1351,6 +1564,12 @@ public class ColoredTriangleDemo {
 
             // Select the command buffer for the current framebuffer image/attachment
             pCommandBuffers.put(0, renderCommandBuffers[currentBuffer]);
+
+            // Update UBO
+            long thisTime = System.nanoTime();
+            time += (thisTime - lastTime) / 1E9f;
+            lastTime = thisTime;
+            updateUbo(device, uboDescriptor, time);
 
             // Submit to the graphics queue
             err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
