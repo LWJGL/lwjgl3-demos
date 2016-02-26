@@ -128,9 +128,7 @@ public class ClearScreenDemo {
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO) // <- identifies what kind of struct this is (this is useful for extending the struct type later)
                 .pNext(NULL) // <- must always be NULL until any next Vulkan version tells otherwise
                 .pApplicationInfo(appInfo) // <- the application info we created above
-                .enabledExtensionCount(ppEnabledExtensionNames.remaining()) // <- how many extensions do we want to use?
                 .ppEnabledExtensionNames(ppEnabledExtensionNames) // <- and the extension names themselves
-                .enabledLayerCount(ppEnabledLayerNames.remaining()) // <- how many validation layers do we want to use?
                 .ppEnabledLayerNames(ppEnabledLayerNames); // <- and the layer names themselves
         PointerBuffer pInstance = memAllocPointer(1); // <- create a PointerBuffer which will hold the handle to the created VkInstance
         int err = vkCreateInstance(pCreateInfo, null, pInstance); // <- actually create the VkInstance now!
@@ -163,7 +161,7 @@ public class ClearScreenDemo {
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         // Again, a struct to create something, in this case the debug report callback
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT) // <- the struct type
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT) // <- the struct type
                 .pNext(NULL) // <- must be NULL
                 .pfnCallback(callback) // <- the actual function pointer (in LWJGL a Closure)
                 .pUserData(NULL) // <- any user data provided to the debug report callback function
@@ -224,7 +222,6 @@ public class ClearScreenDemo {
         VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
                 .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
                 .queueFamilyIndex(graphicsQueueFamilyIndex)
-                .queueCount(1)
                 .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
@@ -239,11 +236,8 @@ public class ClearScreenDemo {
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
                 .pNext(NULL)
-                .queueCreateInfoCount(1)
                 .pQueueCreateInfos(queueCreateInfo)
-                .enabledExtensionCount(1)
                 .ppEnabledExtensionNames(extensions)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
                 .ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
@@ -559,7 +553,6 @@ public class ClearScreenDemo {
                 .preTransform(preTransform)
                 .imageArrayLayers(1)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                .queueFamilyIndexCount(0)
                 .pQueueFamilyIndices(null)
                 .presentMode(swapchainPresentMode)
                 .oldSwapchain(oldSwapChain)
@@ -657,23 +650,17 @@ public class ClearScreenDemo {
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1)
                 .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
                 .flags(VK_FLAGS_NONE)
-                .inputAttachmentCount(0)
                 .pInputAttachments(null)
-                .colorAttachmentCount(1)
                 .pColorAttachments(colorReference)
                 .pResolveAttachments(null)
                 .pDepthStencilAttachment(null)
-                .preserveAttachmentCount(0)
                 .pPreserveAttachments(null);
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
                 .pNext(NULL)
-                .attachmentCount(1)
                 .pAttachments(attachments)
-                .subpassCount(1)
                 .pSubpasses(subpass)
-                .dependencyCount(0)
                 .pDependencies(null);
 
         LongBuffer pRenderPass = memAllocLong(1);
@@ -694,7 +681,6 @@ public class ClearScreenDemo {
         LongBuffer attachments = memAllocLong(1);
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
-                .attachmentCount(1)
                 .pAttachments(attachments)
                 .flags(VK_FLAGS_NONE)
                 .height(height)
@@ -724,8 +710,7 @@ public class ClearScreenDemo {
         if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
-                .commandBufferCount(1);
+                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
         PointerBuffer pCommandBuffers = memAllocPointer(1)
                 .put(commandBuffer)
                 .flip();
@@ -775,7 +760,6 @@ public class ClearScreenDemo {
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
                 .pNext(NULL)
                 .renderPass(renderPass)
-                .clearValueCount(1)
                 .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
         renderArea.offset()
@@ -1053,21 +1037,16 @@ public class ClearScreenDemo {
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                 .pNext(NULL)
-                .waitSemaphoreCount(1)
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
-                .commandBufferCount(1)
                 .pCommandBuffers(pCommandBuffers)
-                .signalSemaphoreCount(1)
                 .pSignalSemaphores(pRenderCompleteSemaphore);
 
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
                 .pNext(NULL)
-                .waitSemaphoreCount(1)
                 .pWaitSemaphores(pRenderCompleteSemaphore)
-                .swapchainCount(1)
                 .pSwapchains(pSwapchains)
                 .pImageIndices(pImageIndex)
                 .pResults(null);

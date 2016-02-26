@@ -134,9 +134,7 @@ public class ColoredTriangleDemo {
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                 .pNext(NULL)
                 .pApplicationInfo(appInfo)
-                .enabledExtensionCount(ppEnabledExtensionNames.remaining())
                 .ppEnabledExtensionNames(ppEnabledExtensionNames)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
                 .ppEnabledLayerNames(ppEnabledLayerNames);
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
@@ -156,7 +154,7 @@ public class ColoredTriangleDemo {
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT)
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
                 .pNext(NULL)
                 .pfnCallback(callback)
                 .pUserData(NULL)
@@ -213,7 +211,6 @@ public class ColoredTriangleDemo {
         VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
                 .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
                 .queueFamilyIndex(graphicsQueueFamilyIndex)
-                .queueCount(1)
                 .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
@@ -228,11 +225,8 @@ public class ColoredTriangleDemo {
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
                 .pNext(NULL)
-                .queueCreateInfoCount(1)
                 .pQueueCreateInfos(queueCreateInfo)
-                .enabledExtensionCount(1)
                 .ppEnabledExtensionNames(extensions)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
                 .ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
@@ -550,7 +544,6 @@ public class ColoredTriangleDemo {
                 .preTransform(preTransform)
                 .imageArrayLayers(1)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                .queueFamilyIndexCount(0)
                 .pQueueFamilyIndices(null)
                 .presentMode(swapchainPresentMode)
                 .oldSwapchain(oldSwapChain)
@@ -648,23 +641,17 @@ public class ColoredTriangleDemo {
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1)
                 .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
                 .flags(VK_FLAGS_NONE)
-                .inputAttachmentCount(0)
                 .pInputAttachments(null)
-                .colorAttachmentCount(1)           // <- only color attachment
                 .pColorAttachments(colorReference) // <- only color attachment
                 .pResolveAttachments(null)
                 .pDepthStencilAttachment(null)
-                .preserveAttachmentCount(0)
                 .pPreserveAttachments(null);
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
                 .pNext(NULL)
-                .attachmentCount(1)
                 .pAttachments(attachments)
-                .subpassCount(1)
                 .pSubpasses(subpass)
-                .dependencyCount(0)
                 .pDependencies(null);
 
         LongBuffer pRenderPass = memAllocLong(1);
@@ -685,7 +672,6 @@ public class ColoredTriangleDemo {
         LongBuffer attachments = memAllocLong(1);
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
-                .attachmentCount(1)
                 .pAttachments(attachments)
                 .flags(VK_FLAGS_NONE)
                 .height(height)
@@ -715,8 +701,7 @@ public class ColoredTriangleDemo {
         if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
-                .commandBufferCount(1);
+                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
         PointerBuffer pCommandBuffers = memAllocPointer(1)
                 .put(commandBuffer)
                 .flip();
@@ -731,13 +716,11 @@ public class ColoredTriangleDemo {
 
     private static long loadShader(String classPath, VkDevice device) throws IOException {
         ByteBuffer shaderCode = ioResourceToByteBuffer(classPath, 1024);
-        IntBuffer pCode = shaderCode.asIntBuffer();
         int err;
         VkShaderModuleCreateInfo moduleCreateInfo = VkShaderModuleCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
                 .pNext(NULL)
-                .codeSize(shaderCode.remaining())
-                .pCode(pCode)
+                .pCode(shaderCode)
                 .flags(0);
         LongBuffer pShaderModule = memAllocLong(1);
         err = vkCreateShaderModule(device, moduleCreateInfo, null, pShaderModule);
@@ -869,9 +852,7 @@ public class ColoredTriangleDemo {
         VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc();
         vi.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
         vi.pNext(NULL);
-        vi.vertexBindingDescriptionCount(1);
         vi.pVertexBindingDescriptions(bindingDescriptor);
-        vi.vertexAttributeDescriptionCount(2);
         vi.pVertexAttributeDescriptions(attributeDescriptions);
 
         Vertices ret = new Vertices();
@@ -903,7 +884,6 @@ public class ColoredTriangleDemo {
         // We don't use any in this demo
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
-                .attachmentCount(0)
                 .pAttachments(null);
 
         // Viewport state
@@ -922,8 +902,7 @@ public class ColoredTriangleDemo {
         VkPipelineDynamicStateCreateInfo dynamicState = VkPipelineDynamicStateCreateInfo.calloc()
                 // The dynamic state properties themselves are stored in the command buffer
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
-                .pDynamicStates(pDynamicStates)
-                .dynamicStateCount(pDynamicStates.remaining());
+                .pDynamicStates(pDynamicStates);
 
         // Depth and stencil state
         // Describes depth and stenctil test and compare ops
@@ -958,7 +937,6 @@ public class ColoredTriangleDemo {
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
                 .pNext(NULL)
-                .setLayoutCount(0)
                 .pSetLayouts(null);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
@@ -982,7 +960,6 @@ public class ColoredTriangleDemo {
                 .pMultisampleState(multisampleState)
                 .pViewportState(viewportState)
                 .pDepthStencilState(depthStencilState)
-                .stageCount(2) // <- two shader stages
                 .pStages(shaderStages)
                 .pDynamicState(dynamicState);
 
@@ -1043,7 +1020,6 @@ public class ColoredTriangleDemo {
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
                 .pNext(NULL)
                 .renderPass(renderPass)
-                .clearValueCount(1)
                 .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
         renderArea.offset().set(0, 0);
@@ -1332,21 +1308,16 @@ public class ColoredTriangleDemo {
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                 .pNext(NULL)
-                .waitSemaphoreCount(1)
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
-                .commandBufferCount(1)
                 .pCommandBuffers(pCommandBuffers)
-                .signalSemaphoreCount(1)
                 .pSignalSemaphores(pRenderCompleteSemaphore);
 
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
                 .pNext(NULL)
-                .waitSemaphoreCount(1)
                 .pWaitSemaphores(pRenderCompleteSemaphore)
-                .swapchainCount(1)
                 .pSwapchains(pSwapchains)
                 .pImageIndices(pImageIndex)
                 .pResults(null);
