@@ -649,6 +649,7 @@ public class ColoredRotatingQuadDemo {
                 .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
                 .flags(VK_FLAGS_NONE)
                 .pInputAttachments(null)
+                .colorAttachmentCount(colorReference.remaining())
                 .pColorAttachments(colorReference) // <- only color attachment
                 .pResolveAttachments(null)
                 .pDepthStencilAttachment(null)
@@ -1518,6 +1519,7 @@ public class ColoredRotatingQuadDemo {
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                 .pNext(NULL)
+                .waitSemaphoreCount(pImageAcquiredSemaphore.remaining())
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
                 .pCommandBuffers(pCommandBuffers)
@@ -1528,6 +1530,7 @@ public class ColoredRotatingQuadDemo {
                 .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
                 .pNext(NULL)
                 .pWaitSemaphores(pRenderCompleteSemaphore)
+                .swapchainCount(pSwapchains.remaining())
                 .pSwapchains(pSwapchains)
                 .pImageIndices(pImageIndex)
                 .pResults(null);
