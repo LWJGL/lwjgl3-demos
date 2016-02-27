@@ -1,23 +1,18 @@
-#version 130
+#version 140
 
 uniform int lod = 5;
+uniform int numPoints;
 uniform mat4 transform;
 
-#define NUM_POINTS 6
-const vec3 points[NUM_POINTS] = vec3[] (
-  vec3(-1.0, 2.0, 0.0),
-  vec3( 5.0, 2.0, 2.0),
-  vec3(-5.0, 0.0, 0.0),
-  vec3(-3.0, 5.0,-2.0),
-  vec3( 2.0, 2.0, 5.0),
-  vec3(-5.0, 0.0, 0.0)
-);
+uniform ControlPoints {
+  vec3[256] points;
+};
 
 vec3 getPoint(int i) {
   if (i < 0)
     i = 0;
-  else if (i >= NUM_POINTS)
-    i = NUM_POINTS - 1;
+  else if (i >= numPoints)
+    i = numPoints - 1;
   return points[i];
 }
 

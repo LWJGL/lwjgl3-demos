@@ -7,10 +7,14 @@ package org.lwjgl.demo.opengl.shader;
 import static org.lwjgl.demo.opengl.util.DemoUtils.createShader;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix4f;
@@ -27,7 +31,7 @@ import org.lwjgl.system.libffi.Closure;
 /**
  * Renders a cubic B-spline without using any vertex source but fully computing the vertex positions in the vertex shader.
  * <p>
- * This demo implements cubic B-spline evaluation in the vertex shader.
+ * This demo implements cubic B-spline evaluation in the vertex shader and stores the control points in a Uniform Buffer Object.
  * 
  * @author Kai Burjack
  */
@@ -40,6 +44,7 @@ public class NoVerticesBSplineDemo {
     int program;
     int transformUniform;
     int lodUniform;
+    int numPointsUniform;
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -50,6 +55,7 @@ public class NoVerticesBSplineDemo {
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     Matrix4f transform = new Matrix4f();
     int lod = 10;
+    static final int numPoints = 50;
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -74,7 +80,7 @@ public class NoVerticesBSplineDemo {
 
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -100,10 +106,10 @@ public class NoVerticesBSplineDemo {
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
-                } else if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+                } else if (key == GLFW_KEY_UP && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
                     lod++;
                     System.out.println("Increased LOD to " + lod);
-                } else if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+                } else if (key == GLFW_KEY_DOWN && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
                     lod = Math.max(1, lod - 1);
                     System.out.println("Decreased LOD to " + lod);
                 }
@@ -122,6 +128,7 @@ public class NoVerticesBSplineDemo {
 
         // Create all needed GL resources
         createProgram();
+        createUbo();
         // and set some GL state
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
@@ -145,7 +152,27 @@ public class NoVerticesBSplineDemo {
         glUseProgram(program);
         transformUniform = glGetUniformLocation(program, "transform");
         lodUniform = glGetUniformLocation(program, "lod");
+        numPointsUniform = glGetUniformLocation(program, "numPoints");
         glUseProgram(0);
+    }
+
+    static void createUbo() {
+        int ubo = glGenBuffers();
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+        int pointsPerCircle = 5;
+        ByteBuffer bb = BufferUtils.createByteBuffer(numPoints * 4 * 4);
+        FloatBuffer fb = bb.asFloatBuffer();
+        for (int i = 0; i < numPoints; i++) {
+            float scale = 1.0f - (float)i/numPoints;
+            float t = (float)i / pointsPerCircle;
+            float ang = 2.0f * (float)Math.PI * t;
+            float x = (float) Math.cos(ang) * scale;
+            float y = i / 10.0f;
+            float z = (float) Math.sin(ang) * scale;
+            fb.put(x).put(y).put(z).put(1.0f);
+        }
+        glBufferData(GL_UNIFORM_BUFFER, bb, GL_STATIC_DRAW);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
     }
 
     float angle = 0.0f;
@@ -163,15 +190,16 @@ public class NoVerticesBSplineDemo {
 
         // Build some transformation matrix
         transform.setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
-                 .lookAt(0, 6, 10,
-                         0, 1, 0,
+                 .lookAt(0, 0, 6,
+                         0, 2, 0,
                          0, 1, 0)
                  .rotateY(angle * (float) Math.toRadians(20)); // 20 radians per second
         // and upload it to the shader
         glUniformMatrix4fv(transformUniform, false, transform.get(matrixBuffer));
         glUniform1i(lodUniform, lod);
+        glUniform1i(numPointsUniform, numPoints);
 
-        glDrawArrays(GL_LINE_STRIP, 0, lod * (6+1) + 1);
+        glDrawArrays(GL_LINE_STRIP, 0, lod * (numPoints+1) + 1);
 
         glUseProgram(0);
     }
