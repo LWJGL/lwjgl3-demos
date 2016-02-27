@@ -12,7 +12,6 @@ const vec3 points[NUM_POINTS] = vec3[] (
   vec3( 2.0, 2.0, 5.0),
   vec3(-5.0, 0.0, 0.0)
 );
-#define NUM_SEGMENTS (NUM_POINTS + 1)
 
 vec3 getPoint(int i) {
   if (i < 0)
