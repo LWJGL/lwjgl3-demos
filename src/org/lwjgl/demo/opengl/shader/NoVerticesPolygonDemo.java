@@ -56,7 +56,7 @@ public class NoVerticesPolygonDemo {
             @Override
             public void invoke(int error, long description) {
                 if (error == GLFW_VERSION_UNAVAILABLE)
-                    System.err.println("This demo requires OpenGL 2.0 or higher.");
+                    System.err.println("This demo requires OpenGL 3.0 or higher.");
                 delegate.invoke(error, description);
             }
 
@@ -71,6 +71,8 @@ public class NoVerticesPolygonDemo {
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -110,10 +112,6 @@ public class NoVerticesPolygonDemo {
         glfwSwapInterval(1);
         glfwShowWindow(window);
         caps = GL.createCapabilities();
-        if (!caps.GL_EXT_gpu_shader4) {
-            throw new AssertionError("This demo requires the EXT_gpu_shader4 extension.");
-        }
-
         debugProc = GLUtil.setupDebugMessageCallback();
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -157,9 +155,6 @@ public class NoVerticesPolygonDemo {
         long thisTime = System.nanoTime();
         float delta = (thisTime - lastTime) / 1E9f;
         angle += delta;
-        if (angle > 2.0 * Math.PI) {
-            angle -= 2.0f * (float) Math.PI;
-        }
         lastTime = thisTime;
 
         // Build some transformation matrix

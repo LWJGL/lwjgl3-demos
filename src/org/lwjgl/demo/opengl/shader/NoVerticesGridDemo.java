@@ -6,6 +6,7 @@ package org.lwjgl.demo.opengl.shader;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.createShader;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
@@ -13,23 +14,22 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
-import org.joml.Matrix3f;
+import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWVidMode;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 /**
- * Shows how to use immediate mode with a simple shader.
+ * Renders a grid without using any vertex source but fully computing the vertex positions in the vertex shader.
  * 
  * @author Kai Burjack
  */
-public class ImmediateModeDemo {
+public class NoVerticesGridDemo {
 
     long window;
     int width = 1024;
@@ -37,6 +37,7 @@ public class ImmediateModeDemo {
 
     int program;
     int transformUniform;
+    int sizeUniform;
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -44,8 +45,10 @@ public class ImmediateModeDemo {
     GLFWFramebufferSizeCallback fbCallback;
     Closure debugProc;
 
-    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(9);
-    Matrix3f transform = new Matrix3f();
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    Matrix4f transform = new Matrix4f();
+    int sizeX = 10;
+    int sizeY = 10;
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -54,7 +57,7 @@ public class ImmediateModeDemo {
             @Override
             public void invoke(int error, long description) {
                 if (error == GLFW_VERSION_UNAVAILABLE)
-                    System.err.println("This demo requires OpenGL 2.0 or higher.");
+                    System.err.println("This demo requires OpenGL 3.0 or higher.");
                 delegate.invoke(error, description);
             }
 
@@ -69,10 +72,12 @@ public class ImmediateModeDemo {
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-        glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        window = glfwCreateWindow(width, height, "Immediate mode shader demo", NULL, NULL);
+        window = glfwCreateWindow(width, height, "No vertices grid shader demo", NULL, NULL);
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
@@ -80,21 +85,31 @@ public class ImmediateModeDemo {
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (ImmediateModeDemo.this.width != width || ImmediateModeDemo.this.height != height)) {
-                    ImmediateModeDemo.this.width = width;
-                    ImmediateModeDemo.this.height = height;
+                if (width > 0 && height > 0 && (NoVerticesGridDemo.this.width != width || NoVerticesGridDemo.this.height != height)) {
+                    NoVerticesGridDemo.this.width = width;
+                    NoVerticesGridDemo.this.height = height;
                 }
             }
         });
 
+        System.out.println("Press 'arrow right' to increase the grid size in X");
+        System.out.println("Press 'arrow left' to decrease the grid size in X");
+        System.out.println("Press 'arrow up' to increase the grid size in Y");
+        System.out.println("Press 'arrow down' to decrease the grid size in Y");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (action != GLFW_RELEASE)
-                    return;
-
-                if (key == GLFW_KEY_ESCAPE) {
+                if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
                     glfwSetWindowShouldClose(window, GL_TRUE);
+                }
+                if (key == GLFW_KEY_LEFT && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
+                    sizeX = Math.max(1, sizeX - 1);
+                } else if (key == GLFW_KEY_RIGHT && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
+                    sizeX++;
+                } else if (key == GLFW_KEY_DOWN && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
+                    sizeY = Math.max(1, sizeY - 1);
+                } else if (key == GLFW_KEY_UP && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
+                    sizeY++;
                 }
             }
         });
@@ -102,9 +117,9 @@ public class ImmediateModeDemo {
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(1);
+        glfwSwapInterval(0);
         glfwShowWindow(window);
-        caps = GL.createCapabilities();
+        caps = createCapabilities();
         debugProc = GLUtil.setupDebugMessageCallback();
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -117,8 +132,8 @@ public class ImmediateModeDemo {
 
     void createProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = createShader("org/lwjgl/demo/opengl/shader/simple.vs", GL_VERTEX_SHADER);
-        int fshader = createShader("org/lwjgl/demo/opengl/shader/simple.fs", GL_FRAGMENT_SHADER);
+        int vshader = createShader("org/lwjgl/demo/opengl/shader/noverticesgrid.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/shader/noverticesgrid.fs", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glLinkProgram(program);
@@ -133,6 +148,7 @@ public class ImmediateModeDemo {
         this.program = program;
         glUseProgram(program);
         transformUniform = glGetUniformLocation(program, "transform");
+        sizeUniform = glGetUniformLocation(program, "size");
         glUseProgram(0);
     }
 
@@ -140,7 +156,6 @@ public class ImmediateModeDemo {
     long lastTime = System.nanoTime();
     void render() {
         glClear(GL_COLOR_BUFFER_BIT);
-
         glUseProgram(this.program);
 
         // Compute rotation angle
@@ -150,31 +165,23 @@ public class ImmediateModeDemo {
         lastTime = thisTime;
 
         // Build some transformation matrix
-        float invAspect = (float) height / width;
-        transform.scaling(invAspect, 1, 1) // correct the aspect ratio with some scaling
-                 .rotateZ(angle) // rotate 0.1 radians/sec.
-                 .scale(0.5f); // make everything a bit smaller
+        transform.setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
+                 .lookAt(0, 1, 2, 0, 0, 0, 0, 1, 0)
+                 .rotateY(angle * (float) Math.toRadians(30)); // 30 radians per second
         // and upload it to the shader
-        glUniformMatrix3fv(transformUniform, false, transform.get(matrixBuffer));
+        glUniformMatrix4fv(transformUniform, false, transform.get(matrixBuffer));
+        glUniform2i(sizeUniform, sizeX, sizeY);
 
-        // draw some quad
-        glBegin(GL_QUADS);
-        glVertex2f(-1, -1);
-        glVertex2f(+1, -1);
-        glVertex2f(+1, +1);
-        glVertex2f(-1, +1);
-        glEnd();
+        glDrawArrays(GL_TRIANGLES, 0, 6 * sizeX * sizeY);
 
         glUseProgram(0);
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GL_FALSE) {
+        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
-
             render();
-
             glfwSwapBuffers(window);
         }
     }
@@ -200,7 +207,7 @@ public class ImmediateModeDemo {
     }
 
     public static void main(String[] args) {
-        new ImmediateModeDemo().run();
+        new NoVerticesGridDemo().run();
     }
 
 }
