@@ -899,13 +899,13 @@ public class TwoRotatingTrianglesDemo {
         ByteBuffer vertexBuffer = memAlloc(2 * 3 * (3 + 3) * 4);
         FloatBuffer fb = vertexBuffer.asFloatBuffer();
         // first triangle
-        fb.put(-0.5f).put( 0.5f).put(1.0f).put(1.0f).put(0.0f).put(0.0f);
-        fb.put( 0.5f).put( 0.5f).put(1.0f).put(0.0f).put(1.0f).put(0.0f);
-        fb.put( 0.0f).put(-0.5f).put(1.0f).put(0.0f).put(0.0f).put(1.0f);
+        fb.put(-0.5f).put(-0.5f).put(1.0f).put(1.0f).put(0.0f).put(0.0f);
+        fb.put( 0.5f).put(-0.5f).put(1.0f).put(0.0f).put(1.0f).put(0.0f);
+        fb.put( 0.0f).put( 0.5f).put(1.0f).put(0.0f).put(0.0f).put(1.0f);
         // second triangle
-        fb.put( 0.5f).put( 0.5f).put(-1.0f).put(1.0f).put(1.0f).put(0.0f);
-        fb.put(-0.5f).put( 0.5f).put(-1.0f).put(0.0f).put(1.0f).put(1.0f);
-        fb.put( 0.0f).put(-0.5f).put(-1.0f).put(1.0f).put(0.0f).put(1.0f);
+        fb.put( 0.5f).put(-0.5f).put(-1.0f).put(1.0f).put(1.0f).put(0.0f);
+        fb.put(-0.5f).put(-0.5f).put(-1.0f).put(0.0f).put(1.0f).put(1.0f);
+        fb.put( 0.0f).put( 0.5f).put(-1.0f).put(1.0f).put(0.0f).put(1.0f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
@@ -1184,7 +1184,7 @@ public class TwoRotatingTrianglesDemo {
         VkPipelineRasterizationStateCreateInfo rasterizationState = VkPipelineRasterizationStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO)
                 .polygonMode(VK_POLYGON_MODE_FILL)
-                .cullMode(VK_CULL_MODE_NONE)
+                .cullMode(VK_CULL_MODE_NONE) // <- VK_CULL_MODE_BACK_BIT would work here, too!
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
                 .depthClampEnable(VK_FALSE)
                 .rasterizerDiscardEnable(VK_FALSE)
@@ -1419,8 +1419,9 @@ public class TwoRotatingTrianglesDemo {
 
     private static void updateUbo(VkDevice device, UboDescriptor ubo, float angle) {
         Matrix4f m = new Matrix4f()
+                .scale(1, -1, 1) // <- correcting viewport transformation (what Direct3D does, too)
                 .perspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 10.0f, true)
-                .lookAt(0, -1, 3,
+                .lookAt(0, 1, 3,
                         0, 0, 0,
                         0, 1, 0)
                 .rotateY(angle);
