@@ -51,12 +51,12 @@ public class MultisampledFboDemo {
 				glfwDestroyWindow(window);
 			}
 			if (debugProc != null)
-				debugProc.release();
-			keyCallback.release();
-			fbCallback.release();
+				debugProc.free();
+			keyCallback.free();
+			fbCallback.free();
 		} finally {
 			glfwTerminate();
-			errorCallback.release();
+			errorCallback.free();
 		}
 	}
 

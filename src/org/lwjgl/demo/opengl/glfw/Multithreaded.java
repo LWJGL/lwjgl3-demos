@@ -41,12 +41,12 @@ public class Multithreaded {
 				glfwDestroyWindow(window);
 			}
 			if (debugProc != null)
-				debugProc.release();
-			keyCallback.release();
-			fsCallback.release();
+				debugProc.free();
+			keyCallback.free();
+			fsCallback.free();
 		} finally {
 			glfwTerminate();
-			errorCallback.release();
+			errorCallback.free();
 		}
 	}
 

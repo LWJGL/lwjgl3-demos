@@ -1029,12 +1029,12 @@ public class SpaceGame {
             loop();
 
             if (debugProc != null)
-                debugProc.release();
+                debugProc.free();
 
-            keyCallback.release();
-            cpCallback.release();
-            mbCallback.release();
-            fbCallback.release();
+            keyCallback.free();
+            cpCallback.free();
+            mbCallback.free();
+            fbCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();

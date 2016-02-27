@@ -1387,8 +1387,8 @@ public class ColoredTriangleDemo {
 
         vkDestroyDebugReportCallbackEXT(instance, debugCallbackHandle, null);
 
-        windowSizeCallback.release();
-        keyCallback.release();
+        windowSizeCallback.free();
+        keyCallback.free();
         glfwDestroyWindow(window);
         glfwTerminate();
 

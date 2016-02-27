@@ -148,9 +148,9 @@ public class PhotonMappingBindlessDemo {
 			}
 
 			@Override
-			public void release() {
-				delegate.release();
-				super.release();
+			public void free() {
+				delegate.free();
+				super.free();
 			}
 		});
 
@@ -706,11 +706,11 @@ public class PhotonMappingBindlessDemo {
 			init();
 			loop();
 
-			errCallback.release();
-			keyCallback.release();
-			fbCallback.release();
-			cpCallback.release();
-			mbCallback.release();
+			errCallback.free();
+			keyCallback.free();
+			fbCallback.free();
+			cpCallback.free();
+			mbCallback.free();
 			glfwDestroyWindow(window);
 		} catch (Throwable t) {
 			t.printStackTrace();

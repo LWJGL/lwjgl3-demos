@@ -59,9 +59,9 @@ public class Texture2DArrayMipmapping {
 			}
 
 			@Override
-			public void release() {
-				delegate.release();
-				super.release();
+			public void free() {
+				delegate.free();
+				super.free();
 			}
 		});
 
@@ -256,12 +256,12 @@ public class Texture2DArrayMipmapping {
 			loop();
 
 			if (debugProc != null) {
-				debugProc.release();
+				debugProc.free();
 			}
 
-			errCallback.release();
-			keyCallback.release();
-			fbCallback.release();
+			errCallback.free();
+			keyCallback.free();
+			fbCallback.free();
 			glfwDestroyWindow(window);
 		} catch (Throwable t) {
 			t.printStackTrace();

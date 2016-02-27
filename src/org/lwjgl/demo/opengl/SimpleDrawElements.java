@@ -32,14 +32,14 @@ public class SimpleDrawElements {
  
             // Release window and window callbacks
             glfwDestroyWindow(window);
-            keyCallback.release();
-            wsCallback.release();
+            keyCallback.free();
+            wsCallback.free();
 			if (debugProc != null)
-				debugProc.release();
+				debugProc.free();
         } finally {
             // Terminate GLFW and release the GLFWerrorfun
             glfwTerminate();
-            errorCallback.release();
+            errorCallback.free();
         }
     }
  

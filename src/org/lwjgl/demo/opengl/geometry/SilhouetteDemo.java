@@ -69,9 +69,9 @@ public class SilhouetteDemo {
             }
 
             @Override
-            public void release() {
-                delegate.release();
-                super.release();
+            public void free() {
+                delegate.free();
+                super.free();
             }
         });
 
@@ -243,10 +243,10 @@ public class SilhouetteDemo {
             loop();
 
             if (debugProc != null)
-                debugProc.release();
-            errCallback.release();
-            keyCallback.release();
-            fbCallback.release();
+                debugProc.free();
+            errCallback.free();
+            keyCallback.free();
+            fbCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();

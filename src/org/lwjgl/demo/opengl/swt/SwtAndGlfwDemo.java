@@ -106,17 +106,17 @@ public class SwtAndGlfwDemo {
 
         // Dispose of SWT
         if (swtDebugProc != null)
-            swtDebugProc.release();
+            swtDebugProc.free();
         if (!shell.isDisposed())
             shell.dispose();
         display.dispose();
 
         // Dispose of GLFW
         if (glfwDebugProc != null)
-            glfwDebugProc.release();
-        keyCallback.release();
+            glfwDebugProc.free();
+        keyCallback.free();
         glfwDestroyWindow(glfwWindow);
         glfwTerminate();
-        errorCallback.release();
+        errorCallback.free();
     }
 }

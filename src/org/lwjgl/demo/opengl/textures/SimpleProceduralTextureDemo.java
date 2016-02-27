@@ -134,12 +134,12 @@ public class SimpleProceduralTextureDemo {
             loop();
 
             if (debugProc != null) {
-                debugProc.release();
+                debugProc.free();
             }
 
-            errCallback.release();
-            keyCallback.release();
-            fbCallback.release();
+            errCallback.free();
+            keyCallback.free();
+            fbCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();
