@@ -47,7 +47,7 @@ public class NoVerticesPolygonDemo {
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(9);
     Matrix3f transform = new Matrix3f();
-    int count = 4; // <- must be at least 3
+    int count = 5; // <- must be at least 3
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -126,8 +126,8 @@ public class NoVerticesPolygonDemo {
 
     void createProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = createShader("org/lwjgl/demo/opengl/shader/noverticesquad.vs", GL_VERTEX_SHADER);
-        int fshader = createShader("org/lwjgl/demo/opengl/shader/noverticesquad.fs", GL_FRAGMENT_SHADER);
+        int vshader = createShader("org/lwjgl/demo/opengl/shader/noverticespolygon.vs", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/shader/noverticespolygon.fs", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glLinkProgram(program);

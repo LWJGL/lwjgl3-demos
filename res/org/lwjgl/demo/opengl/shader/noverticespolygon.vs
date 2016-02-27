@@ -10,8 +10,9 @@ void main(void) {
   vec2 pos = vec2(0.0, 0.0);
   if (gl_VertexID > 0) {
     float t = float(gl_VertexID-1);
-    float x = cos(t * 2.0 * PI / float(count));
-    float y = sin(t * 2.0 * PI / float(count));
+    float ang = t * 2.0 * PI / float(count);
+    float x = cos(ang);
+    float y = sin(ang);
     pos = vec2(x, y);
   }
   gl_Position = vec4(transform * vec3(pos, 0.0), 1.0);
