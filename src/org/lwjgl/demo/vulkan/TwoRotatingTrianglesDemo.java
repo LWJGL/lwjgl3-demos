@@ -666,7 +666,7 @@ public class TwoRotatingTrianglesDemo {
     }
 
     private static DepthStencil createDepthStencil(VkDevice device, VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties, int depthFormat, VkCommandBuffer setupCmdBuffer) {
-        VkImageCreateInfo image = VkImageCreateInfo.calloc()
+        VkImageCreateInfo imageCreateInfo = VkImageCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
                 .pNext(NULL)
                 .imageType(VK_IMAGE_TYPE_2D)
@@ -677,7 +677,7 @@ public class TwoRotatingTrianglesDemo {
                 .tiling(VK_IMAGE_TILING_OPTIMAL)
                 .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
                 .flags(0);
-        image.extent().width(width).height(height).depth(1);
+        imageCreateInfo.extent().width(width).height(height).depth(1);
 
         VkMemoryAllocateInfo mem_alloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
@@ -702,9 +702,10 @@ public class TwoRotatingTrianglesDemo {
         int err;
 
         LongBuffer pDepthStencilImage = memAllocLong(1);
-        err = vkCreateImage(device, image, null, pDepthStencilImage);
+        err = vkCreateImage(device, imageCreateInfo, null, pDepthStencilImage);
         long depthStencilImage = pDepthStencilImage.get(0);
         memFree(pDepthStencilImage);
+        imageCreateInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create depth-stencil image: " + translateVulkanResult(err));
         }
@@ -716,11 +717,12 @@ public class TwoRotatingTrianglesDemo {
         memFree(pMemoryTypeIndex);
         LongBuffer pDepthStencilMem = memAllocLong(1);
         err = vkAllocateMemory(device, mem_alloc, null, pDepthStencilMem);
+        long depthStencilMem = pDepthStencilImage.get(0);
+        memFree(pDepthStencilMem);
+        mem_alloc.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create depth-stencil memory: " + translateVulkanResult(err));
         }
-        long depthStencilMem = pDepthStencilImage.get(0);
-        memFree(pDepthStencilMem);
 
         err = vkBindImageMemory(device, depthStencilImage, depthStencilMem, 0);
         if (err != VK_SUCCESS) {
@@ -733,10 +735,11 @@ public class TwoRotatingTrianglesDemo {
         err = vkCreateImageView(device, depthStencilViewCreateInfo, null, pDepthStencilView);
         long depthStencilView = pDepthStencilView.get(0);
         memFree(pDepthStencilView);
+        depthStencilViewCreateInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create depth-stencil image view: " + translateVulkanResult(err));
         }
-        
+
         DepthStencil ret = new DepthStencil();
         ret.view = depthStencilView;
         return ret;
@@ -793,6 +796,7 @@ public class TwoRotatingTrianglesDemo {
         long renderPass = pRenderPass.get(0);
         memFree(pRenderPass);
         renderPassInfo.free();
+        depthReference.free();
         colorReference.free();
         subpass.free();
         attachments.free();
@@ -899,13 +903,13 @@ public class TwoRotatingTrianglesDemo {
         ByteBuffer vertexBuffer = memAlloc(2 * 3 * (3 + 3) * 4);
         FloatBuffer fb = vertexBuffer.asFloatBuffer();
         // first triangle
-        fb.put(-0.5f).put(-0.5f).put(1.0f).put(1.0f).put(0.0f).put(0.0f);
-        fb.put( 0.5f).put(-0.5f).put(1.0f).put(0.0f).put(1.0f).put(0.0f);
-        fb.put( 0.0f).put( 0.5f).put(1.0f).put(0.0f).put(0.0f).put(1.0f);
+        fb.put(-0.5f).put(-0.5f).put(0.5f).put(1.0f).put(0.0f).put(0.0f);
+        fb.put( 0.5f).put(-0.5f).put(0.5f).put(0.0f).put(1.0f).put(0.0f);
+        fb.put( 0.0f).put( 0.5f).put(0.5f).put(0.0f).put(0.0f).put(1.0f);
         // second triangle
-        fb.put( 0.5f).put(-0.5f).put(-1.0f).put(1.0f).put(1.0f).put(0.0f);
-        fb.put(-0.5f).put(-0.5f).put(-1.0f).put(0.0f).put(1.0f).put(1.0f);
-        fb.put( 0.0f).put( 0.5f).put(-1.0f).put(1.0f).put(0.0f).put(1.0f);
+        fb.put( 0.5f).put(-0.5f).put(-0.5f).put(1.0f).put(1.0f).put(0.0f);
+        fb.put(-0.5f).put(-0.5f).put(-0.5f).put(0.0f).put(1.0f).put(1.0f);
+        fb.put( 0.0f).put( 0.5f).put(-0.5f).put(1.0f).put(0.0f).put(1.0f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
@@ -950,7 +954,7 @@ public class TwoRotatingTrianglesDemo {
         }
 
         PointerBuffer pData = memAllocPointer(1);
-        err = vkMapMemory(device, verticesMem, 0, memAlloc.allocationSize(), 0, pData);
+        err = vkMapMemory(device, verticesMem, 0, vertexBuffer.remaining(), 0, pData);
         memAlloc.free();
         long data = pData.get(0);
         memFree(pData);
@@ -1037,7 +1041,6 @@ public class TwoRotatingTrianglesDemo {
 
     private static class UboDescriptor {
         long memory;
-        long allocationSize;
         long buffer;
         long offset;
         long range;
@@ -1093,7 +1096,6 @@ public class TwoRotatingTrianglesDemo {
 
         UboDescriptor ret = new UboDescriptor();
         ret.memory = uniformDataVSMemory;
-        ret.allocationSize = memSize;
         ret.buffer = uniformDataVSBuffer;
         ret.offset = 0L;
         ret.range = 16 * 4;
@@ -1246,16 +1248,16 @@ public class TwoRotatingTrianglesDemo {
         // Create the pipeline layout that is used to generate the rendering pipelines that
         // are based on this descriptor set layout
         LongBuffer pDescriptorSetLayout = memAllocLong(1).put(0, descriptorSetLayout);
-        VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
+        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
                 .pNext(NULL)
                 .pSetLayouts(pDescriptorSetLayout);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
-        err = vkCreatePipelineLayout(device, pPipelineLayoutCreateInfo, null, pPipelineLayout);
+        err = vkCreatePipelineLayout(device, pipelineLayoutCreateInfo, null, pPipelineLayout);
         long layout = pPipelineLayout.get(0);
         memFree(pPipelineLayout);
-        pPipelineLayoutCreateInfo.free();
+        pipelineLayoutCreateInfo.free();
         memFree(pDescriptorSetLayout);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create pipeline layout: " + translateVulkanResult(err));
@@ -1426,7 +1428,7 @@ public class TwoRotatingTrianglesDemo {
                         0, 1, 0)
                 .rotateY(angle);
         PointerBuffer pData = memAllocPointer(1);
-        int err = vkMapMemory(device, ubo.memory, 0, ubo.allocationSize, 0, pData);
+        int err = vkMapMemory(device, ubo.memory, 0, 16 * 4, 0, pData);
         long data = pData.get(0);
         memFree(pData);
         if (err != VK_SUCCESS) {
