@@ -8,14 +8,6 @@ uniform ControlPoints {
   vec3[256] points;
 };
 
-vec3 getPoint(int i) {
-  if (i < 0)
-    i = 0;
-  else if (i >= numPoints)
-    i = numPoints - 1;
-  return points[i];
-}
-
 void main(void) {
   int i = gl_VertexID % lod;
   int segment = gl_VertexID / lod;
@@ -25,12 +17,12 @@ void main(void) {
   float t3 = t2 * t;
   float it = 1.0 - t;
   float w0 = it * it * it / 6.0;
-  float w1 = (3.0 * t3 - 6.0 * t2 + 4.0) / 6.0;
-  float w2 = (-3.0 * t3 + 3.0 * t2 + 3.0 * t + 1.0) / 6.0;
-  float w3 =  t3 / 6.0;
-  vec3 p = w0 * getPoint(start + 0) +
-           w1 * getPoint(start + 1) +
-           w2 * getPoint(start + 2) +
-           w3 * getPoint(start + 3);
+  float w1 = 0.5 * t3 - t2 + 2.0 / 3.0;
+  float w2 = 0.5 * (-t3 + t2 + t) + 1.0 / 6.0;
+  float w3 = t3 / 6.0;
+  vec3 p = w0 * points[clamp(start+0, 0, numPoints - 1)] +
+           w1 * points[clamp(start+1, 0, numPoints - 1)] +
+           w2 * points[clamp(start+2, 0, numPoints - 1)] +
+           w3 * points[clamp(start+3, 0, numPoints - 1)];
   gl_Position = transform * vec4(p, 1.0);
 }
