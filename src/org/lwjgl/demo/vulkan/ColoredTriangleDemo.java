@@ -48,6 +48,7 @@ import org.lwjgl.vulkan.VkMemoryAllocateInfo;
 import org.lwjgl.vulkan.VkMemoryRequirements;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
+import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineDepthStencilStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineDynamicStateCreateInfo;
@@ -883,10 +884,12 @@ public class ColoredTriangleDemo {
 
         // Color blend state
         // Describes blend modes and color masks
-        // We don't use any in this demo
+        VkPipelineColorBlendAttachmentState.Buffer colorWriteMask = VkPipelineColorBlendAttachmentState.calloc(1)
+                .blendEnable(VK_FALSE)
+                .colorWriteMask(0xF); // <- RGBA
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
-                .pAttachments(null);
+                .pAttachments(colorWriteMask);
 
         // Viewport state
         VkPipelineViewportStateCreateInfo viewportState = VkPipelineViewportStateCreateInfo.calloc()
@@ -976,6 +979,7 @@ public class ColoredTriangleDemo {
         memFree(pDynamicStates);
         viewportState.free();
         colorBlendState.free();
+        colorWriteMask.free();
         rasterizationState.free();
         inputAssemblyState.free();
         if (err != VK_SUCCESS) {
