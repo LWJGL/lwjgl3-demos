@@ -90,7 +90,7 @@ import org.lwjgl.vulkan.VkWriteDescriptorSet;
 /**
  * Renders multiple spheres on a cornflower blue background on a GLFW window with Vulkan.
  * <p>
- * This demo uses instanced rendering with a big UBO to hold all spheres' transformation matrices.
+ * This demo is like {@link TwoRotatingTrianglesDemo} but uses instanced rendering with a big UBO to hold all spheres' transformation matrices.
  * 
  * @author Kai Burjack
  */
