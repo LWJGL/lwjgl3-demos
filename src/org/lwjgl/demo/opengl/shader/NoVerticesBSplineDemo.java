@@ -193,7 +193,7 @@ public class NoVerticesBSplineDemo {
                  .lookAt(0, 0, 6,
                          0, 2, 0,
                          0, 1, 0)
-                 .rotateY(angle * (float) Math.toRadians(20)); // 20 radians per second
+                 .rotateY(angle * (float) Math.toRadians(180)); // 180 degrees per second
         // and upload it to the shader
         glUniformMatrix4fv(transformUniform, false, transform.get(matrixBuffer));
         glUniform1i(lodUniform, lod);

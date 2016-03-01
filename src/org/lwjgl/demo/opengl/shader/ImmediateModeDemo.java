@@ -152,7 +152,7 @@ public class ImmediateModeDemo {
         // Build some transformation matrix
         float invAspect = (float) height / width;
         transform.scaling(invAspect, 1, 1) // correct the aspect ratio with some scaling
-                 .rotateZ(angle) // rotate 0.1 radians/sec.
+                 .rotateZ(angle * (float) Math.toRadians(45)) // rotate 45 degrees per second
                  .scale(0.5f); // make everything a bit smaller
         // and upload it to the shader
         glUniformMatrix3fv(transformUniform, false, transform.get(matrixBuffer));

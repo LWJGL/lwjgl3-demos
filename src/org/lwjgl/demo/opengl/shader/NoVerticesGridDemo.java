@@ -167,7 +167,7 @@ public class NoVerticesGridDemo {
         // Build some transformation matrix
         transform.setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
                  .lookAt(0, 1, 2, 0, 0, 0, 0, 1, 0)
-                 .rotateY(angle * (float) Math.toRadians(30)); // 30 radians per second
+                 .rotateY(angle * (float) Math.toRadians(30)); // 30 degrees per second
         // and upload it to the shader
         glUniformMatrix4fv(transformUniform, false, transform.get(matrixBuffer));
         glUniform2i(sizeUniform, sizeX, sizeY);
