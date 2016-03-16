@@ -512,7 +512,7 @@ public class DemoSsboTrianglesStacklessKdTree {
                 (float) cos(-currRotationAboutY) * cameraRadius);
         projMatrix.setPerspective((float) Math.toRadians(30.0f), (float) width / height, 0.01f, 100.0f);
         viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
-        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
         if (resetFramebuffer) {
             resizeFramebufferTexture();

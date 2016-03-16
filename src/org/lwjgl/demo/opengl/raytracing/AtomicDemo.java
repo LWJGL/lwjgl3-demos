@@ -465,7 +465,7 @@ public class AtomicDemo {
             resizeFramebufferTexture();
             resetFramebuffer = false;
         }
-        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
 		/* Bind atomic counter buffer */
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicBuffer);

@@ -315,7 +315,7 @@ public class ReadDepthBufferDemo {
 		tmpVector.set((float) sin(-currRotationAboutY) * 3.0f, 2.0f, (float) cos(-currRotationAboutY) * 3.0f);
 		camera.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
 		if (reconstructViewSpace) {
-			camera.invert(invCamera);
+			camera.invertPerspective(invCamera);
 		}
 		camera.lookAt(tmpVector, cameraLookAt, cameraUp);
 		if (!reconstructViewSpace) {

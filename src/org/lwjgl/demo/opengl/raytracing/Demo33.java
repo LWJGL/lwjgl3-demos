@@ -402,7 +402,7 @@ public class Demo33 {
             resizeFramebufferTexture();
             resetFramebuffer = false;
         }
-        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
 		long thisTime = System.nanoTime();
 		float elapsedSeconds = (thisTime - firstTime) / 1E9f;

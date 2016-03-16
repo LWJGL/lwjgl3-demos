@@ -426,7 +426,7 @@ public class Demo33Ubo {
             resizeFramebufferTexture();
             resetFramebuffer = false;
         }
-        invViewProjMatrix.set(projMatrix).mul(viewMatrix).invert();
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
 		/* Update cameraSettings UBO */
 		updateCameraSettingsUbo();

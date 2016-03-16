@@ -454,7 +454,7 @@ public class TransformFeedbackDemo {
         cameraPosition.set((float) sin(-currRotationAboutY) * cameraRadius, 5.0f, (float) cos(-currRotationAboutY)
                 * cameraRadius);
         projMatrix.setPerspective((float) Math.toRadians(30.0f), (float) width / height, 0.01f, 100.0f);
-        projMatrix.invert(invProjMatrix);
+        projMatrix.invertPerspective(invProjMatrix);
         viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
         long thisTime = System.nanoTime();

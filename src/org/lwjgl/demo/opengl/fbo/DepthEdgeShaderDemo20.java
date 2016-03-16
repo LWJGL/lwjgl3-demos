@@ -301,7 +301,7 @@ public class DepthEdgeShaderDemo20 {
 
         projMatrix.setPerspective((float) Math.toRadians(30), (float) width / height, 0.01f, 50.0f);
         // compute inverse of projection matrix to reconstruct view-space position
-        projMatrix.invert(invMatrix);
+        projMatrix.invertPerspective(invMatrix);
         viewMatrix.setLookAt(
                 0.0f, 2.0f, 7.0f,
                 0.0f, 0.0f, 0.0f,

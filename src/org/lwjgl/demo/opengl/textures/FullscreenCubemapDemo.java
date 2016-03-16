@@ -258,7 +258,7 @@ public class FullscreenCubemapDemo {
                              0.0f, 0.0f, 0.0f,
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot*0.23f).rotateZ(rot*-0.562f)
-                  .origin(tmp);
+                  .originAffine(tmp);
         invViewProjMatrix.set(projMatrix)
                          .mul(viewMatrix)
                          .invert()

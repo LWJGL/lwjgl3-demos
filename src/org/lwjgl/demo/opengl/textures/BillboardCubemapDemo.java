@@ -341,8 +341,8 @@ public class BillboardCubemapDemo {
                              0.0f, 0.0f, 0.0f,
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot * 0.23f).rotateZ(rot * -0.562f)
-                  .origin(tmp);
-        viewProjMatrix.set(projMatrix).mul(viewMatrix).invert(invViewProjMatrix);
+                  .originAffine(tmp);
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
         /* Update the background shader */
         glUseProgramObjectARB(backgroundProgram);
