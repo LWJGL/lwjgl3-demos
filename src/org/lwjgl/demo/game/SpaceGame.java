@@ -483,7 +483,7 @@ public class SpaceGame {
 
         projMatrix.setPerspective((float) Math.toRadians(40.0f), (float) width / height, 0.1f, 5000.0f);
         viewMatrix.set(cam.rotation).invertAffineUnitScale(invViewMatrix);
-        viewProjMatrix.set(projMatrix).mul(viewMatrix).invert(invViewProjMatrix);
+        viewProjMatrix.set(projMatrix).mulPerspectiveAffine(viewMatrix).invert(invViewProjMatrix);
         frustumIntersection.set(viewProjMatrix);
 
         /* Update the background shader */

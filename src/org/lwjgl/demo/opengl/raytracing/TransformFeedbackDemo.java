@@ -494,7 +494,7 @@ public class TransformFeedbackDemo {
         {
             modelMatrix.identity().rotateY(elapsedTime);
             /* Compute normal matrix */
-            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
             glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
             glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
@@ -507,7 +507,7 @@ public class TransformFeedbackDemo {
                        .scale(0.2f)
                        .scale(1.0f, (float) Math.abs(Math.sin(elapsedTime)), 1.0f);
             /* Compute normal matrix */
-            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
             glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
             glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));

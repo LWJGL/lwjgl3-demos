@@ -259,14 +259,9 @@ public class FullscreenCubemapDemo {
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot*0.23f).rotateZ(rot*-0.562f)
                   .originAffine(tmp);
-        invViewProjMatrix.set(projMatrix)
-                         .mul(viewMatrix)
-                         .invert()
-                         .get(matrixByteBuffer);
-
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix).get(matrixByteBuffer);
         glUniformMatrix4fvARB(invViewProjUniform, 1, false, matrixByteBuffer);
         glUniform3fARB(cameraPositionUniform, tmp.x, tmp.y, tmp.z);
-
         long thisTime = System.nanoTime();
         float diff = (thisTime - lastTime) / 1E9f;
         lastTime = thisTime;
