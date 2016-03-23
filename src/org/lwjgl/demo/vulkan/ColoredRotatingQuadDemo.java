@@ -97,15 +97,7 @@ public class ColoredRotatingQuadDemo {
     private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
 
     private static ByteBuffer[] layers = {
-            memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_mem_tracker", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_object_tracker", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_draw_state", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_param_checker", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_swapchain", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_device_limits", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_LUNARG_image", BufferAllocator.MALLOC),
-            memEncodeASCII("VK_LAYER_GOOGLE_unique_objects", BufferAllocator.MALLOC)
+        memEncodeASCII("VK_LAYER_LUNARG_standard_validation", BufferAllocator.MALLOC),
     };
 
     /**
@@ -128,7 +120,7 @@ public class ColoredRotatingQuadDemo {
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
                 .pApplicationName("GLFW Vulkan Demo")
                 .pEngineName("")
-                .apiVersion(VK_MAKE_VERSION(1, 0, 2));
+                .apiVersion(VK_MAKE_VERSION(1, 0, 4));
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
@@ -393,13 +385,15 @@ public class ColoredRotatingQuadDemo {
         return new VkCommandBuffer(commandBuffer, device);
     }
 
-    private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int newImageLayout) {
+    private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int srcAccess, int newImageLayout, int dstAccess) {
         // Create an image barrier object
         VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
                 .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
                 .pNext(NULL)
                 .oldLayout(oldImageLayout)
+                .srcAccessMask(srcAccess)
                 .newLayout(newImageLayout)
+                .dstAccessMask(dstAccess)
                 .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
                 .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
                 .image(image);
@@ -409,73 +403,10 @@ public class ColoredRotatingQuadDemo {
                 .levelCount(1)
                 .layerCount(1);
 
-        // Source layouts (old)
-
-        // Undefined layout
-        // Only allowed as initial layout!
-        // Make sure any writes to the image have been finished
-        if (oldImageLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
-            //imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
-            imageMemoryBarrier.srcAccessMask(0);// <- validation layer tells that this must be 0
-        }
-
-        // Old layout is color attachment
-        // Make sure any writes to the color buffer have been finished
-        if (oldImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-        }
-
-        // Old layout is transfer source
-        // Make sure any reads from the image have been finished
-        if (oldImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
-        }
-
-        // Old layout is shader read (sampler, input attachment)
-        // Make sure any shader reads from the image have been finished
-        if (oldImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_SHADER_READ_BIT);
-        }
-
-        // Target layouts (new)
-
-        // New layout is transfer destination (copy, blit)
-        // Make sure any copyies to the image have been finished
-        if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-            imageMemoryBarrier.dstAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT);
-        }
-
-        // New layout is transfer source (copy, blit)
-        // Make sure any reads from and writes to the image have been finished
-        if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
-            imageMemoryBarrier.srcAccessMask(imageMemoryBarrier.srcAccessMask() | VK_ACCESS_TRANSFER_READ_BIT);
-            imageMemoryBarrier.dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
-        }
-
-        // New layout is color attachment
-        // Make sure any writes to the color buffer hav been finished
-        if (newImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-            imageMemoryBarrier.dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
-        }
-
-        // New layout is depth attachment
-        // Make sure any writes to depth/stencil buffer have been finished
-        if (newImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-            imageMemoryBarrier.dstAccessMask(imageMemoryBarrier.dstAccessMask() | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-        }
-
-        // New layout is shader read (sampler, input attachment)
-        // Make sure any writes to the image have been finished
-        if (newImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
-            imageMemoryBarrier.dstAccessMask(VK_ACCESS_SHADER_READ_BIT);
-        }
-
         // Put barrier on top
         int srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         int destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
+        
         // Put barrier inside setup command buffer
         vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE,
                 null, // no memory barriers
@@ -611,8 +542,10 @@ public class ColoredRotatingQuadDemo {
                 .layerCount(1);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
-            // Bring the image from an UNDEFINED state to the PRESENT_SRC state
-            imageBarrier(commandBuffer, images[i], VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            // Bring the image from an UNDEFINED state to the VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT state
+            imageBarrier(commandBuffer, images[i], VK_IMAGE_ASPECT_COLOR_BIT,
+                    VK_IMAGE_LAYOUT_UNDEFINED, 0,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
             colorAttachmentView.image(images[i]);
             err = vkCreateImageView(device, colorAttachmentView, null, pBufferView);
             imageViews[i] = pBufferView.get(0);
@@ -1591,12 +1524,12 @@ public class ColoredRotatingQuadDemo {
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to present the swapchain image: " + translateVulkanResult(err));
             }
+            // Create and submit post present barrier
+            vkQueueWaitIdle(queue);
+
             // Destroy this semaphore (we will create a new one in the next frame)
             vkDestroySemaphore(device, pImageAcquiredSemaphore.get(0), null);
             vkDestroySemaphore(device, pRenderCompleteSemaphore.get(0), null);
-
-            // Create and submit post present barrier
-            vkQueueWaitIdle(queue);
             submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
         }
         presentInfo.free();
