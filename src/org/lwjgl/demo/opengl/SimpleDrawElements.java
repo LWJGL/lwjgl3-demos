@@ -111,14 +111,14 @@ public class SimpleDrawElements {
 
         int vbo = glGenBuffers();
         int ibo = glGenBuffers();
-        float[] vertices = {-1, -1, 0, 1, -1, 0, 1, 1, 0};
+        float[] vertices = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f};
         int[] indices = {0, 1, 2};
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils.createFloatBuffer(vertices.length).put(vertices).flip(), GL_STATIC_DRAW);
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (IntBuffer) BufferUtils.createIntBuffer(indices.length).put(indices).flip(), GL_STATIC_DRAW);
-        glVertexPointer(3, GL_FLOAT, 0, 0L);
+        glVertexPointer(2, GL_FLOAT, 0, 0L);
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
@@ -126,6 +126,10 @@ public class SimpleDrawElements {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
  
             glViewport(0, 0, width, height);
+            glMatrixMode(GL_PROJECTION);
+            float aspect = (float)width/height;
+            glLoadIdentity();
+            glOrtho(-aspect, aspect, -1, 1, -1, 1);
             glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0L);
 
             glfwSwapBuffers(window); // swap the color buffers

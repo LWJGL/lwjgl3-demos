@@ -25,7 +25,6 @@ import org.joml.Matrix4f;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
-import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
@@ -99,7 +98,7 @@ public class InstancedSpheresDemo {
     private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
 
     private static ByteBuffer[] layers = {
-            memEncodeASCII("VK_LAYER_LUNARG_standard_validation", BufferAllocator.MALLOC),
+            memUTF8("VK_LAYER_LUNARG_standard_validation"),
     };
 
     /**
@@ -141,12 +140,12 @@ public class InstancedSpheresDemo {
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                .pApplicationName("GLFW Vulkan Demo")
-                .pEngineName("")
+                .pApplicationName(memUTF8("GLFW Vulkan Demo"))
+                .pEngineName(memUTF8(""))
                 .apiVersion(VK_MAKE_VERSION(1, 0, 2));
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
-        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memUTF8(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -237,7 +236,7 @@ public class InstancedSpheresDemo {
                 .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
-        ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memUTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -834,7 +833,7 @@ public class InstancedSpheresDemo {
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
                 .stage(stage)
                 .module(loadShader(classPath, device))
-                .pName("main");
+                .pName(memUTF8("main"));
         return shaderStage;
     }
 
@@ -1500,7 +1499,7 @@ public class InstancedSpheresDemo {
         final VkInstance instance = createInstance(requiredExtensions);
         final VkDebugReportCallbackEXT debugCallback = new VkDebugReportCallbackEXT() {
             public int invoke(int flags, int objectType, long object, long location, int messageCode, long pLayerPrefix, long pMessage, long pUserData) {
-                System.err.println("ERROR OCCURED: " + memDecodeASCII(pMessage));
+                System.err.println("ERROR OCCURED: " + getString(pMessage));
                 return 0;
             }
         };

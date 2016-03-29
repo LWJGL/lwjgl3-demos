@@ -296,7 +296,7 @@ public class AtomicDemo {
 			PointerBuffer strings = BufferUtils.createPointerBuffer(2);
 			IntBuffer lengths = BufferUtils.createIntBuffer(2);
 
-			ByteBuffer preamble = memEncodeUTF8("#version " + version + "\n", false);
+			ByteBuffer preamble = memUTF8("#version " + version + "\n", false);
 
 			strings.put(0, preamble);
 			lengths.put(0, preamble.remaining());

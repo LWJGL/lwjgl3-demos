@@ -5,7 +5,7 @@
 package org.lwjgl.demo.opengl.util;
 
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.system.MemoryUtil.memEncodeUTF8;
+import static org.lwjgl.system.MemoryUtil.memUTF8;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -211,7 +211,7 @@ public class DemoUtils {
 			PointerBuffer strings = BufferUtils.createPointerBuffer(2);
 			IntBuffer lengths = BufferUtils.createIntBuffer(2);
 
-			ByteBuffer preamble = memEncodeUTF8("#version " + version + "\n", false);
+			ByteBuffer preamble = memUTF8("#version " + version + "\n", false);
 
 			strings.put(0, preamble);
 			lengths.put(0, preamble.remaining());
