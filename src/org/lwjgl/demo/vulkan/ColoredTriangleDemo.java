@@ -139,6 +139,8 @@ public class ColoredTriangleDemo {
         memFree(ppEnabledLayerNames);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
         memFree(ppEnabledExtensionNames);
+        memFree(appInfo.pApplicationName());
+        memFree(appInfo.pEngineName());
         appInfo.free();
         return ret;
     }
