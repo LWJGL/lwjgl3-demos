@@ -180,11 +180,12 @@ public class NoVerticesProjectedGridDemo {
         lastTime = thisTime;
 
         // Build camera view-projection matrix
-        viewproj.setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
-                .lookAt(0, 4, 20, 0, 0, 0, 0, 1, 0)
+        Matrix4f r = viewproj
+                .setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
+                .lookAt(0, 4, 20, 0, 16, 0, 0, 1, 0)
                 .invert(invViewProj) // <- invert it
                 .projectedGridRange(viewproj, -MAX_HEIGHT, MAX_HEIGHT, range); // <- build range matrix
-        if (range == null) {
+        if (r == null) {
             // grid not visible. We don't render anything!
             return;
         }
