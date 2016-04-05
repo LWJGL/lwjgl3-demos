@@ -9,7 +9,7 @@ void main(void) {
   int vertIdx = gl_VertexID % 6;
   int gridIdx = gl_VertexID / 6;
   vec2 pos = vec2(gridIdx / size.x, gridIdx % size.x);
-  pos = (pos + vec2(off[vertIdx])) / vec2(size).yx * 2.0 - 1.0;
+  pos = (pos + vec2(off[vertIdx])) / vec2(size).yx;
   vec4 p0 = projector * vec4(pos.x, pos.y, -1.0, 1.0);
   vec4 p1 = projector * vec4(pos.x, pos.y, +1.0, 1.0);
   float t = -p0.y / (p1.y - p0.y);
