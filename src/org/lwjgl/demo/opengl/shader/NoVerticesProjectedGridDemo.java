@@ -40,6 +40,7 @@ public class NoVerticesProjectedGridDemo {
     int program;
     int transformUniform;
     int projectorUniform;
+    int timeUniform;
     int sizeUniform;
 
     GLCapabilities caps;
@@ -154,6 +155,7 @@ public class NoVerticesProjectedGridDemo {
         glUseProgram(program);
         transformUniform = glGetUniformLocation(program, "transform");
         projectorUniform = glGetUniformLocation(program, "projector");
+        timeUniform = glGetUniformLocation(program, "time");
         sizeUniform = glGetUniformLocation(program, "size");
         glUseProgram(0);
     }
@@ -161,19 +163,28 @@ public class NoVerticesProjectedGridDemo {
     Matrix4f projector = new Matrix4f();
     Matrix4f invViewProj = new Matrix4f();
     Matrix4f range = new Matrix4f();
+    float alpha = 0.0f;
+    long lastTime = System.nanoTime();
+    final float MAX_HEIGHT = 0.2f;
     void render() {
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(this.program);
 
+        long thisTime = System.nanoTime();
+        float delta = (thisTime - lastTime) / 1E9f;
+        alpha += delta * 2.0f;
+        lastTime = thisTime;
+
         // Build camera view-projection matrix
         viewproj.setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
-                .lookAt(0, 1, 8, 0, 0, 0, 0, 1, 0)
+                .lookAt(0, 4, 20, 0, 0, 0, 0, 1, 0)
                 .invert(invViewProj) // <- invert it
-                .projectedGridRange(viewproj, 0, 0, range); // <- build range matrix
+                .projectedGridRange(viewproj, -MAX_HEIGHT, MAX_HEIGHT, range); // <- build range matrix
         invViewProj.mul(range, projector); // <- build final projector matrix
         // and upload it to the shader
         glUniformMatrix4fv(transformUniform, false, viewproj.get(matrixBuffer));
         glUniformMatrix4fv(projectorUniform, false, projector.get(matrixBuffer));
+        glUniform1f(timeUniform, alpha);
         glUniform2i(sizeUniform, sizeX, sizeY);
 
         glDrawArrays(GL_TRIANGLES, 0, 6 * sizeX * sizeY);
