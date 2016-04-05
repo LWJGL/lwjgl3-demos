@@ -54,8 +54,8 @@ public class NoVerticesProjectedGridDemo {
     Matrix4f view = new Matrix4f();
     Matrix4f proj = new Matrix4f();
     Matrix4f viewproj = new Matrix4f();
-    int sizeX = 40;
-    int sizeY = 40;
+    int sizeX = 128;
+    int sizeY = 128;
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
@@ -184,6 +184,10 @@ public class NoVerticesProjectedGridDemo {
                 .lookAt(0, 4, 20, 0, 0, 0, 0, 1, 0)
                 .invert(invViewProj) // <- invert it
                 .projectedGridRange(viewproj, -MAX_HEIGHT, MAX_HEIGHT, range); // <- build range matrix
+        if (range == null) {
+            // grid not visible. We don't render anything!
+            return;
+        }
         invViewProj.mul(range, projector); // <- build final projector matrix
         // compute the intersections with the y=0 plane at the grid corners in homogeneous space
         for (int i = 0; i < 4; i++) {
