@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix4f;
+import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
@@ -39,7 +40,7 @@ public class NoVerticesProjectedGridDemo {
 
     int program;
     int transformUniform;
-    int projectorUniform;
+    int intersectionsUniform;
     int timeUniform;
     int sizeUniform;
 
@@ -154,7 +155,7 @@ public class NoVerticesProjectedGridDemo {
         this.program = program;
         glUseProgram(program);
         transformUniform = glGetUniformLocation(program, "transform");
-        projectorUniform = glGetUniformLocation(program, "projector");
+        intersectionsUniform = glGetUniformLocation(program, "intersections");
         timeUniform = glGetUniformLocation(program, "time");
         sizeUniform = glGetUniformLocation(program, "size");
         glUseProgram(0);
@@ -163,6 +164,9 @@ public class NoVerticesProjectedGridDemo {
     Matrix4f projector = new Matrix4f();
     Matrix4f invViewProj = new Matrix4f();
     Matrix4f range = new Matrix4f();
+    Vector4f p0 = new Vector4f();
+    Vector4f p1 = new Vector4f();
+    Vector4f isect = new Vector4f();
     float alpha = 0.0f;
     long lastTime = System.nanoTime();
     final float MAX_HEIGHT = 0.2f;
@@ -181,9 +185,18 @@ public class NoVerticesProjectedGridDemo {
                 .invert(invViewProj) // <- invert it
                 .projectedGridRange(viewproj, -MAX_HEIGHT, MAX_HEIGHT, range); // <- build range matrix
         invViewProj.mul(range, projector); // <- build final projector matrix
-        // and upload it to the shader
+        // compute the intersections with the y=0 plane at the grid corners in homogeneous space
+        for (int i = 0; i < 4; i++) {
+            float x = (i & 1);
+            float y = (i >>> 1) & 1;
+            projector.transform(p0.set(x, y, -1, 1));
+            projector.transform(p1.set(x, y, +1, 1));
+            float t = -p0.y / (p1.y - p0.y);
+            isect.set(p1).sub(p0).mul(t).add(p0);
+            glUniform4f(intersectionsUniform+i, isect.x, isect.y, isect.z, isect.w);
+        }
+        // upload matrices to the shader
         glUniformMatrix4fv(transformUniform, false, viewproj.get(matrixBuffer));
-        glUniformMatrix4fv(projectorUniform, false, projector.get(matrixBuffer));
         glUniform1f(timeUniform, alpha);
         glUniform2i(sizeUniform, sizeX, sizeY);
 
