@@ -182,7 +182,7 @@ public class NoVerticesProjectedGridDemo {
         // Build camera view-projection matrix
         Matrix4f r = viewproj
                 .setPerspective((float) Math.toRadians(45.0f), (float)width/height, 0.1f, 100.0f)
-                .lookAt(0, 4, 20, 0, 16, 0, 0, 1, 0)
+                .lookAt(0, 4, 20, 0, 0, 0, 0, 1, 0)
                 .invert(invViewProj) // <- invert it
                 .projectedGridRange(viewproj, -MAX_HEIGHT, MAX_HEIGHT, range); // <- build range matrix
         if (r == null) {
