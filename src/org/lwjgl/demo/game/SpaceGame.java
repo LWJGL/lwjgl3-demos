@@ -261,7 +261,7 @@ public class SpaceGame {
                 if (key == GLFW_KEY_UNKNOWN) 
                     return;
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                    glfwSetWindowShouldClose(window, GL_TRUE);
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
                 }
                 if (action == GLFW_PRESS || action == GLFW_REPEAT) {
                     keyDown[key] = true;
@@ -1014,7 +1014,7 @@ public class SpaceGame {
     }
 
     private void loop() {
-        while (glfwWindowShouldClose(window) == GL_FALSE) {
+        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
             update();

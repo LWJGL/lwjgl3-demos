@@ -76,14 +76,14 @@ public class UniformArrayDemo {
 			}
 		});
 
-		if (glfwInit() != GL_TRUE)
+		if (glfwInit() != GLFW_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 		window = glfwCreateWindow(width, height, "Uniform array test", NULL,
 				NULL);
@@ -114,7 +114,7 @@ public class UniformArrayDemo {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GL_TRUE);
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
 				} else if (key == GLFW_KEY_UP) {
 					chosen = (chosen + 1) % 4;
 				} else if (key == GLFW_KEY_DOWN) {
@@ -257,7 +257,7 @@ public class UniformArrayDemo {
 	}
 
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GL_FALSE) {
+		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

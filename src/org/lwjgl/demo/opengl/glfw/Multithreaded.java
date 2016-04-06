@@ -52,12 +52,12 @@ public class Multithreaded {
 
 	void init() {
 		glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
-		if (glfwInit() != GL11.GL_TRUE)
+		if (glfwInit() != GLFW_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 		window = glfwCreateWindow(width, height, "Hello World!", NULL, NULL);
 		if (window == NULL)
@@ -66,7 +66,7 @@ public class Multithreaded {
 		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
 			public void invoke(long window, int key, int scancode, int action, int mods) {
 				if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-					glfwSetWindowShouldClose(window, GL_TRUE);
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
 		});
 		glfwSetFramebufferSizeCallback(window, fsCallback = new GLFWFramebufferSizeCallback() {
@@ -132,7 +132,7 @@ public class Multithreaded {
 			}
 		}).start();
 
-		while (glfwWindowShouldClose(window) == GL_FALSE) {
+		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
 			glfwWaitEvents();
 		}
 	}

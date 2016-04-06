@@ -105,14 +105,14 @@ public class ShadowMappingDemo {
 			}
 		});
 
-		if (glfwInit() != GL_TRUE)
+		if (glfwInit() != GLFW_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 		window = glfwCreateWindow(width, height, "Shadow Mapping Demo", NULL, NULL);
 		if (window == NULL) {
@@ -126,7 +126,7 @@ public class ShadowMappingDemo {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GL_TRUE);
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
 				}
 			}
 		});
@@ -371,7 +371,7 @@ public class ShadowMappingDemo {
 	}
 
 	void loop() {
-		while (glfwWindowShouldClose(window) == GL_FALSE) {
+		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
 			glfwPollEvents();
 
 			update();

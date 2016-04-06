@@ -136,16 +136,16 @@ public class HybridDemoSsboInstancing45 {
 			}
 		});
 
-		if (glfwInit() != GL_TRUE)
+		if (glfwInit() != GLFW_TRUE)
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 		window = glfwCreateWindow(
 				width,
@@ -168,7 +168,7 @@ public class HybridDemoSsboInstancing45 {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GL_TRUE);
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
 				} else if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_PAGE_UP) {
 					int newBounceCount = Math.min(4,
 							HybridDemoSsboInstancing45.this.bounceCount + 1);
@@ -738,7 +738,7 @@ public class HybridDemoSsboInstancing45 {
 	 * scene.
 	 */
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GL_FALSE) {
+		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

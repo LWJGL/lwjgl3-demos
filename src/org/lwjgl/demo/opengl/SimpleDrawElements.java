@@ -49,15 +49,15 @@ public class SimpleDrawElements {
     	glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
  
         // Initialize GLFW. Most GLFW functions will not work before doing this.
-        if ( glfwInit() != GL11.GL_TRUE )
+        if ( glfwInit() != GLFW_TRUE )
             throw new IllegalStateException("Unable to initialize GLFW");
  
         // Configure our window
         glfwDefaultWindowHints(); // optional, the current window hints are already the default
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_VISIBLE, GL_FALSE); // the window will stay hidden after creation
-        glfwWindowHint(GLFW_RESIZABLE, GL_TRUE); // the window will be resizable
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
  
         int WIDTH = 300;
         int HEIGHT = 300;
@@ -72,7 +72,7 @@ public class SimpleDrawElements {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
-                    glfwSetWindowShouldClose(window, GL_TRUE); // We will detect this in our rendering loop
+                    glfwSetWindowShouldClose(window, GLFW_TRUE); // We will detect this in our rendering loop
             }
         });
         glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
@@ -122,7 +122,7 @@ public class SimpleDrawElements {
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
-        while ( glfwWindowShouldClose(window) == GL_FALSE ) {
+        while ( glfwWindowShouldClose(window) == GLFW_FALSE ) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
  
             glViewport(0, 0, width, height);

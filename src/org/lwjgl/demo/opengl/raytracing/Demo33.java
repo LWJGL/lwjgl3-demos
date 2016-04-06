@@ -116,16 +116,16 @@ public class Demo33 {
 			}
 		});
 
-		if ( glfwInit() != GL_TRUE )
+		if ( glfwInit() != GLFW_TRUE )
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 		window = glfwCreateWindow(width, height, "Raytracing Demo (fragment shader)", NULL, NULL);
 		if ( window == NULL ) {
@@ -142,7 +142,7 @@ public class Demo33 {
 				}
 
 				if ( key == GLFW_KEY_ESCAPE ) {
-					glfwSetWindowShouldClose(window, GL_TRUE);
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
 				} else if ( key == GLFW_KEY_KP_ADD || key == GLFW_KEY_PAGE_UP ) {
 					int newBounceCount = Math.min(4, Demo33.this.bounceCount + 1);
 					if (newBounceCount != Demo33.this.bounceCount) {
@@ -468,7 +468,7 @@ public class Demo33 {
 	}
 
 	private void loop() {
-		while ( glfwWindowShouldClose(window) == GL_FALSE ) {
+		while ( glfwWindowShouldClose(window) == GLFW_FALSE ) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

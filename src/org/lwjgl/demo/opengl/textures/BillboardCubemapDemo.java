@@ -102,12 +102,12 @@ public class BillboardCubemapDemo {
             }
         });
 
-        if (glfwInit() != GL_TRUE)
+        if (glfwInit() != GLFW_TRUE)
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-        glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         window = glfwCreateWindow(width, height, "Cubemap texture sampling with projected quad", NULL, NULL);
         if (window == NULL) {
@@ -131,7 +131,7 @@ public class BillboardCubemapDemo {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                    glfwSetWindowShouldClose(window, GL_TRUE);
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
                 } else if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
                     debug = !debug;
                 } else if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
@@ -385,7 +385,7 @@ public class BillboardCubemapDemo {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GL_FALSE) {
+        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
 
