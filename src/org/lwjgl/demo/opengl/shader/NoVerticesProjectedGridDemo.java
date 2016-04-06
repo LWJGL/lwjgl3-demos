@@ -26,9 +26,13 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.libffi.Closure;
 
 /**
- * Renders a proejcted grid without using any vertex source but fully computing the vertex positions in the vertex shader.
+ * Renders a projected grid without using any vertex source but fully computing the vertex positions in the vertex shader.
  * <p>
  * This showcases JOML's implementation of <a href="http://fileadmin.cs.lth.se/graphics/theses/projects/projgrid/projgrid-lq.pdf">Projected Grid</a>.
+ * <p>
+ * This demo does not take care or show how to obtain a "pleasant" projector matrix. Consult section 2.4.1 in the referenced paper for more
+ * guidance on how to obtain a projector matrix.
+ * So, to keep things simple this demo instead just uses the camera's view-projection matrix as the projector matrix.
  * 
  * @author Kai Burjack
  */
@@ -84,7 +88,7 @@ public class NoVerticesProjectedGridDemo {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        window = glfwCreateWindow(width, height, "No vertices grid shader demo", NULL, NULL);
+        window = glfwCreateWindow(width, height, "No vertices projected grid shader demo", NULL, NULL);
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
