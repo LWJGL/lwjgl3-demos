@@ -108,7 +108,7 @@ public class TransformFeedbackDemo {
     Vector3f cameraPosition = new Vector3f();
     Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
     Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-    ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
@@ -483,8 +483,8 @@ public class TransformFeedbackDemo {
         glUseProgram(feedbackProgram);
 
         /* Upload model-independent matrices */
-        glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-        glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
         /* Bind buffer into which to transform the vertices */
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, this.ssbo);
@@ -496,8 +496,8 @@ public class TransformFeedbackDemo {
             /* Compute normal matrix */
             viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
-            glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
-            glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(matrixBuffer));
+            glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
             glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
         }
         /* Draw second sphere orbiting the first. The second sphere also periodically scales along the Y axis */
@@ -509,8 +509,8 @@ public class TransformFeedbackDemo {
             /* Compute normal matrix */
             viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
-            glUniformMatrix4fv(modelMatrixUniform, 1, false, modelMatrix.get(matrixByteBuffer));
-            glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(matrixBuffer));
+            glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
             glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
         }
         glBindVertexArray(0);

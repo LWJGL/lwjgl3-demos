@@ -95,7 +95,7 @@ public class HybridDemoSsbo {
 	private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
@@ -559,8 +559,8 @@ public class HybridDemoSsbo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-		glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+		glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
 		/* Rasterize the boxes into the FBO */
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);

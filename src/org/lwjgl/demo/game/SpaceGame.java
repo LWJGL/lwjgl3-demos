@@ -210,7 +210,7 @@ public class SpaceGame {
     private Matrix4f viewProjMatrix = new Matrix4f();
     private Matrix4f invViewMatrix = new Matrix4f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
-    private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private FrustumIntersection frustumIntersection = new FrustumIntersection();
 
     private GLCapabilities caps;
@@ -482,26 +482,26 @@ public class SpaceGame {
         cam.update(dt);
 
         projMatrix.setPerspective((float) Math.toRadians(40.0f), (float) width / height, 0.1f, 5000.0f);
-        viewMatrix.set(cam.rotation).invertAffineUnitScale(invViewMatrix);
-        viewProjMatrix.set(projMatrix).mulPerspectiveAffine(viewMatrix).invert(invViewProjMatrix);
+        viewMatrix.set(cam.rotation).invert(invViewMatrix);
+        viewProjMatrix.set(projMatrix).mul(viewMatrix).invert(invViewProjMatrix);
         frustumIntersection.set(viewProjMatrix);
 
         /* Update the background shader */
         glUseProgram(cubemapProgram);
-        glUniformMatrix4fv(cubemap_invViewProjUniform, 1, false, invViewProjMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(cubemap_invViewProjUniform, false, invViewProjMatrix.get(matrixBuffer));
 
         /* Update the ship shader */
         glUseProgram(shipProgram);
-        glUniformMatrix4fv(ship_viewUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-        glUniformMatrix4fv(ship_projUniform, 1, false, projMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(ship_viewUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(ship_projUniform, false, projMatrix.get(matrixBuffer));
 
         /* Update the shot shader */
         glUseProgram(shotProgram);
-        glUniformMatrix4fv(shot_projUniform, 1, false, matrixByteBuffer);
+        glUniformMatrix4fv(shot_projUniform, false, matrixBuffer);
 
         /* Update the particle shader */
         glUseProgram(particleProgram);
-        glUniformMatrix4fv(particle_projUniform, 1, false, matrixByteBuffer);
+        glUniformMatrix4fv(particle_projUniform, false, matrixBuffer);
 
         updateControls();
 
@@ -645,7 +645,7 @@ public class SpaceGame {
             if (frustumIntersection.testSphere(x, y, z, shipRadius)) {
                 modelMatrix.translation(x, y, z);
                 modelMatrix.scale(shipRadius);
-                glUniformMatrix4fv(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+                glUniformMatrix4fv(ship_modelUniform, false, modelMatrix.get(matrixBuffer));
                 glDrawArrays(GL_TRIANGLES, 0, this.ship.numVertices);
             }
         }
@@ -670,7 +670,7 @@ public class SpaceGame {
             if (frustumIntersection.testSphere(x, y, z, asteroid.scale)) {
                 modelMatrix.translation(x, y, z);
                 modelMatrix.scale(asteroid.scale);
-                glUniformMatrix4fv(ship_modelUniform, 1, false, modelMatrix.get(matrixByteBuffer));
+                glUniformMatrix4fv(ship_modelUniform, false, modelMatrix.get(matrixBuffer));
                 glDrawArrays(GL_TRIANGLES, 0, this.asteroid.numVertices);
             }
         }
@@ -765,12 +765,12 @@ public class SpaceGame {
         glNormalPointer(GL_FLOAT, 0, sphere.normals);
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
-        glLoadMatrixf(projMatrix.get(matrixByteBuffer));
+        glLoadMatrixf(projMatrix.get(matrixBuffer));
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
         glTranslatef(0, -1, -4);
-        glMultMatrixf(viewMatrix.get(matrixByteBuffer));
+        glMultMatrixf(viewMatrix.get(matrixBuffer));
         glScalef(0.3f, 0.3f, 0.3f);
         glColor4f(0.1f, 0.1f, 0.1f, 0.2f);
         glDisable(GL_DEPTH_TEST);

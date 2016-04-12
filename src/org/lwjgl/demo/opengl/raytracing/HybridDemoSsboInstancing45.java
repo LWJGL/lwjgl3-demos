@@ -693,7 +693,7 @@ public class HybridDemoSsboInstancing45 {
 		putMatrix(viewMatrix, uboBufferFv);
 		putMatrix(projMatrix, uboBufferFv);
 		uboBufferFv.rewind();
-		glNamedBufferSubData(ubo, 0, RASTER_UBO_BUFFER_SIZE, uboBuffer);
+		nglNamedBufferSubData(ubo, 0, RASTER_UBO_BUFFER_SIZE, memAddress(uboBuffer));
 	}
 
 	private void updateComputeUbo() {
@@ -711,7 +711,7 @@ public class HybridDemoSsboInstancing45 {
 		uboBufferFv.put(elapsedSeconds);
 		uboBufferIv.put(uboBufferFv.position(), bounceCount);
 		uboBufferFv.rewind();
-		glNamedBufferSubData(ubo, 0, COMPUTE_UBO_BUFFER_SIZE, uboBuffer);
+		nglNamedBufferSubData(ubo, 0, COMPUTE_UBO_BUFFER_SIZE, memAddress(uboBuffer));
 	}
 
 	/**

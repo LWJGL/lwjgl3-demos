@@ -13,7 +13,6 @@ import static org.lwjgl.opengl.EXTFramebufferObject.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix3f;
@@ -73,7 +72,7 @@ public class EdgeShaderDemo20 {
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f projMatrix = new Matrix4f();
     Matrix3f normalMatrix = new Matrix3f();
-    ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -344,9 +343,9 @@ public class EdgeShaderDemo20 {
         glEnable(GL_DEPTH_TEST);
         glUseProgram(this.normalProgram);
 
-        glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-        glUniformMatrix4fv(projMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
-        glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
+        glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

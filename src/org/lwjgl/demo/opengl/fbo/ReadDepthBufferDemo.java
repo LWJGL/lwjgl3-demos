@@ -78,7 +78,7 @@ public class ReadDepthBufferDemo {
 	private Vector3f tmpVector = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
@@ -333,7 +333,7 @@ public class ReadDepthBufferDemo {
 		glUseProgram(depthOnlyProgram);
 
 		/* Update matrices in shader */
-		glUniformMatrix4fv(viewProjMatrixUniform, 1, false, camera.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewProjMatrixUniform, false, camera.get(matrixBuffer));
 
 		/* Rasterize the boxes into the FBO */
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
@@ -352,7 +352,7 @@ public class ReadDepthBufferDemo {
 		glUseProgram(fullScreenQuadProgram);
 
 		/* Set the inverse(proj * view) matrix in the shader */
-		glUniformMatrix4fv(inverseMatrixUniform, 1, false, invCamera.get(matrixByteBuffer));
+		glUniformMatrix4fv(inverseMatrixUniform, false, invCamera.get(matrixBuffer));
 
 		glBindBuffer(GL_ARRAY_BUFFER, fullScreenQuadVbo);
 		glEnableVertexAttribArray(0);

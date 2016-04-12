@@ -13,7 +13,6 @@ import org.lwjgl.system.libffi.Closure;
 import org.joml.Matrix4f;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -40,7 +39,7 @@ public class GeometryShaderTest20 {
 
 	Matrix4f viewMatrix = new Matrix4f();
 	Matrix4f projMatrix = new Matrix4f();
-	ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
 	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
@@ -245,8 +244,8 @@ public class GeometryShaderTest20 {
 	void render() {
 		glUseProgram(this.program);
 
-		glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-		glUniformMatrix4fv(projMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+		glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
 		glUniform2f(viewportSizeUniform, width, height);
 
 		glDrawArrays(GL_TRIANGLES, 0, 3 * 2 * 6);

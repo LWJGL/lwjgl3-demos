@@ -13,7 +13,6 @@ import static org.lwjgl.opengl.EXTGeometryShader4.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -49,7 +48,7 @@ public class SilhouetteDemo {
     int viewProjMatrixUniform;
 
     Matrix4f viewProjMatrix = new Matrix4f();
-    ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -219,7 +218,7 @@ public class SilhouetteDemo {
 
     void render() {
         glUseProgram(this.program);
-        glUniformMatrix4fv(viewProjMatrixUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(viewProjMatrixUniform, false, viewProjMatrix.get(matrixBuffer));
         glDrawElements(GL_TRIANGLES_ADJACENCY_EXT, 6 * 2 * 6, GL_UNSIGNED_INT, 0L);
         glUseProgram(0);
     }

@@ -53,7 +53,7 @@ public class FullscreenCubemapDemo {
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f viewMatrix = new Matrix4f();
     Matrix4f invViewProjMatrix = new Matrix4f();
-    ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -259,8 +259,8 @@ public class FullscreenCubemapDemo {
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot*0.23f).rotateZ(rot*-0.562f)
                   .originAffine(tmp);
-        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix).get(matrixByteBuffer);
-        glUniformMatrix4fvARB(invViewProjUniform, 1, false, matrixByteBuffer);
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix).get(matrixBuffer);
+        glUniformMatrix4fvARB(invViewProjUniform, false, matrixBuffer);
         glUniform3fARB(cameraPositionUniform, tmp.x, tmp.y, tmp.z);
         long thisTime = System.nanoTime();
         float diff = (thisTime - lastTime) / 1E9f;

@@ -126,7 +126,7 @@ public class PhotonMappingBindlessDemo {
     private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 	private Vector3f lightCenterPosition = new Vector3f(2.5f, 1.4f, 3);
 	private ByteBuffer clearTexBuffer = BufferUtils.createByteBuffer(4);
 
@@ -465,7 +465,7 @@ public class PhotonMappingBindlessDemo {
 			lv.put(bindlessImageHandle);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, this.imageHandlesUbo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, photonMapTextures.length * 8, ssboData);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, ssboData);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
@@ -483,7 +483,7 @@ public class PhotonMappingBindlessDemo {
 			lv.put(photonMapTextures[i].bindlessTextureAndSamplerHandle);
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, samplersUbo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, photonMapTextures.length * 8, ssboData);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, ssboData);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
@@ -515,7 +515,7 @@ public class PhotonMappingBindlessDemo {
 				int texBuffer = glGenBuffers();
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, texBuffer);
 				int size = 2 * 2 * info.textureWidth * info.textureHeight;
-				glBufferData(GL_PIXEL_UNPACK_BUFFER, size, (ByteBuffer) null, GL_STATIC_DRAW);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER, size, GL_STATIC_DRAW);
 				glClearBufferSubData(GL_PIXEL_UNPACK_BUFFER, GL_RG16F, 0, size, GL_RG, GL_HALF_FLOAT, (ByteBuffer) null);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, info.openGlHandle);
 				for (int f = 0; f < 6; f++) {
@@ -676,8 +676,8 @@ public class PhotonMappingBindlessDemo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-		glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+		glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
 		glBindVertexArray(vaoScene);
 		glBindBufferBase(GL_UNIFORM_BUFFER, samplersUboBinding, samplersUbo);

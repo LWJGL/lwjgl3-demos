@@ -352,7 +352,7 @@ public class DemoSsbo {
 	private void createFramebufferBuffer() {
 		this.imageBuffer = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, this.imageBuffer);
-		glBufferData(GL_ARRAY_BUFFER, 4 * 4 * width * height, null, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, 4 * 4 * width * height, GL_STREAM_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 

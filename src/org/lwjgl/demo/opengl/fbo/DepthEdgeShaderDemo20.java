@@ -15,7 +15,6 @@ import static org.lwjgl.opengl.ARBTextureFloat.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import org.joml.Matrix3f;
@@ -73,7 +72,7 @@ public class DepthEdgeShaderDemo20 {
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f invMatrix = new Matrix4f();
     Matrix3f normalMatrix = new Matrix3f();
-    ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     boolean showEdge = true;
 
     GLCapabilities caps;
@@ -325,9 +324,9 @@ public class DepthEdgeShaderDemo20 {
         glEnable(GL_DEPTH_TEST);
         glUseProgram(this.normalProgram);
 
-        glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-        glUniformMatrix4fv(projMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
-        glUniformMatrix3fv(normalMatrixUniform, 1, false, normalMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
+        glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -356,7 +355,7 @@ public class DepthEdgeShaderDemo20 {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUniformMatrix4fv(inverseMatrixUniform, 1, false, invMatrix.get(matrixByteBuffer));
+        glUniformMatrix4fv(inverseMatrixUniform, false, invMatrix.get(matrixBuffer));
         glUniform1f(invWidthUniform, 1.0f / width);
         glUniform1f(invHeightUniform, 1.0f / height);
         glUniform1i(normalTexUniform, 0);

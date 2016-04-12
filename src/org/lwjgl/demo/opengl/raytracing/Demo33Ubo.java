@@ -396,7 +396,7 @@ public class Demo33Ubo {
 		fv.put(tmpVector.x).put(tmpVector.y).put(tmpVector.z).put(0.0f);
 		fv.rewind();
 		glBindBuffer(GL_UNIFORM_BUFFER, this.cameraSettingsUbo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * 5, this.cameraSettingsUboData);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, this.cameraSettingsUboData);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 

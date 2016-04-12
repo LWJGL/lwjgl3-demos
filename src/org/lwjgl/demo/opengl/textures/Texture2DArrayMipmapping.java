@@ -39,7 +39,7 @@ public class Texture2DArrayMipmapping {
 	private int viewProjMatrixUniform;
 
 	private Matrix4f viewProjMatrix = new Matrix4f();
-	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
 	GLCapabilities caps;
 	GLFWErrorCallback errCallback;
@@ -226,7 +226,7 @@ public class Texture2DArrayMipmapping {
 	private void render() {
 		glUseProgram(this.program);
 
-		glUniformMatrix4fv(viewProjMatrixUniform, 1, false, viewProjMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewProjMatrixUniform, false, viewProjMatrix.get(matrixBuffer));
 
 		glBindVertexArray(vao);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, tex);

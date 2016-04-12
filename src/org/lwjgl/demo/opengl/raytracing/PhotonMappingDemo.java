@@ -120,7 +120,7 @@ public class PhotonMappingDemo {
     private Vector3f cameraPosition = new Vector3f();
 	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-	private ByteBuffer matrixByteBuffer = BufferUtils.createByteBuffer(4 * 16);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 	private Vector3f lightCenterPosition = new Vector3f(2.5f, 2.9f, 3);
 	private ByteBuffer clearTexBuffer = BufferUtils.createByteBuffer(4);
 
@@ -425,7 +425,7 @@ public class PhotonMappingDemo {
 			int texBuffer = glGenBuffers();
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, texBuffer);
 			int size = 2 * 2 * photonMapSize * photonMapSize * 6 * boxes.length / 2;
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, size, null, GL_STATIC_DRAW);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER, size, GL_STATIC_DRAW);
 			glClearBufferSubData(GL_PIXEL_UNPACK_BUFFER, GL_RG16F, 0, size, GL_RG, GL_HALF_FLOAT, (ByteBuffer) null);
 			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, photonMapTexture);
 			glTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, 0, photonMapSize, photonMapSize, 6 * boxes.length / 2,
@@ -568,8 +568,8 @@ public class PhotonMappingDemo {
 		glUseProgram(rasterProgram);
 
 		/* Update matrices in shader */
-		glUniformMatrix4fv(viewMatrixUniform, 1, false, viewMatrix.get(matrixByteBuffer));
-		glUniformMatrix4fv(projectionMatrixUniform, 1, false, projMatrix.get(matrixByteBuffer));
+		glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+		glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, photonMapTexture);
