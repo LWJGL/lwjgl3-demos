@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Renders a regular polygon without using any vertex source but fully computing the vertex positions in the vertex shader.
@@ -43,7 +43,7 @@ public class NoVerticesPolygonDemo {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(9);
     Matrix3f transform = new Matrix3f();

@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Shows how to use immediate mode with a simple shader.
@@ -42,7 +42,7 @@ public class ImmediateModeDemo {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(9);
     Matrix3f transform = new Matrix3f();

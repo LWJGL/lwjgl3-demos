@@ -29,7 +29,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Same as {@link EdgeShaderDemo20} but renders the normals on a multisampled renderbuffer.
@@ -84,7 +84,7 @@ public class EdgeShaderMultisampleDemo20 {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
 
     void init() throws IOException {
         glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {

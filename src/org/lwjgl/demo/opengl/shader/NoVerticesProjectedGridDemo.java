@@ -23,7 +23,7 @@ import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Renders a projected grid without using any vertex source but fully computing the vertex positions in the vertex shader.
@@ -52,7 +52,7 @@ public class NoVerticesProjectedGridDemo {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     Matrix4f view = new Matrix4f();

@@ -3,7 +3,7 @@ package org.lwjgl.demo.opengl;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -19,7 +19,7 @@ public class SimpleDrawElements {
     private GLFWErrorCallback errorCallback;
     private GLFWKeyCallback   keyCallback;
     private GLFWWindowSizeCallback wsCallback;
-    private Closure debugProc;
+    private Callback debugProc;
  
     // The window handle
     private long window;

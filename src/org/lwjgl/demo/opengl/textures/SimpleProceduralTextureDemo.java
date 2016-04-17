@@ -9,7 +9,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 import java.nio.IntBuffer;
 
@@ -27,7 +27,7 @@ public class SimpleProceduralTextureDemo {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
     boolean isCrappyIntel;
 
     private void init() {

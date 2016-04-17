@@ -9,7 +9,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 import org.joml.Matrix4f;
 
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class GeometryShaderTest20 {
 	GLFWErrorCallback errCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
-	Closure debugProc;
+	Callback debugProc;
 
 	void init() throws IOException {
 		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {

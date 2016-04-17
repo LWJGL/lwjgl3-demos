@@ -6,7 +6,7 @@ package org.lwjgl.demo.opengl.glfw;
 
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -23,7 +23,7 @@ public class Multithreaded {
 	GLFWErrorCallback errorCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fsCallback;
-	Closure debugProc;
+	Callback debugProc;
 
 	long window;
 	int width = 300;

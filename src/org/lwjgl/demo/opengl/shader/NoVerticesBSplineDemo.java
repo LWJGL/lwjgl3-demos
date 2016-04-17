@@ -26,7 +26,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Renders a cubic B-spline without using any vertex source but fully computing the vertex positions in the vertex shader.
@@ -50,7 +50,7 @@ public class NoVerticesBSplineDemo {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    Closure debugProc;
+    Callback debugProc;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     Matrix4f transform = new Matrix4f();

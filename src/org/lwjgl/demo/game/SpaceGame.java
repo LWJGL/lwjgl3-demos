@@ -12,7 +12,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 import org.joml.FrustumIntersection;
 import org.joml.GeometryUtils;
 import org.joml.Intersectiond;
@@ -218,7 +218,7 @@ public class SpaceGame {
     private GLFWCursorPosCallback cpCallback;
     private GLFWMouseButtonCallback mbCallback;
     private GLFWFramebufferSizeCallback fbCallback;
-    private Closure debugProc;
+    private Callback debugProc;
 
     private void init() throws IOException {
         if (glfwInit() != GLFW_TRUE)

@@ -21,7 +21,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 /**
  * Shows how to use SWT and GLFW windows side-by-side.
@@ -56,7 +56,7 @@ public class SwtAndGlfwDemo {
         shell.setSize(800 + dw, 600 + dh);
         swtCanvas.setCurrent();
         GLCapabilities swtCapabilities = createCapabilities();
-        Closure swtDebugProc = GLUtil.setupDebugMessageCallback();
+        Callback swtDebugProc = GLUtil.setupDebugMessageCallback();
         shell.open();
 
         // Create GLFW window
@@ -78,7 +78,7 @@ public class SwtAndGlfwDemo {
         });
         glfwMakeContextCurrent(glfwWindow);
         GLCapabilities glfwCapabilities = createCapabilities();
-        Closure glfwDebugProc = GLUtil.setupDebugMessageCallback();
+        Callback glfwDebugProc = GLUtil.setupDebugMessageCallback();
         glfwShowWindow(glfwWindow);
 
         while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {

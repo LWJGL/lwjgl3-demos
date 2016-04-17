@@ -9,7 +9,7 @@ import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -108,7 +108,7 @@ public class HybridDemoSsboInstancing45 {
 	GLFWCursorPosCallback cpCallback;
 	GLFWMouseButtonCallback mbCallback;
 
-	Closure debugProc;
+	Callback debugProc;
 
 	static {
 		/*

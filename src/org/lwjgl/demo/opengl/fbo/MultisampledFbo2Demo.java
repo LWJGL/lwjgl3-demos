@@ -8,7 +8,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.libffi.Closure;
+import org.lwjgl.system.Callback;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -51,7 +51,7 @@ public class MultisampledFbo2Demo {
 	GLFWErrorCallback errorCallback;
 	GLFWKeyCallback keyCallback;
 	GLFWFramebufferSizeCallback fbCallback;
-	Closure debugProc;
+	Callback debugProc;
 
 	void run() {
 		try {

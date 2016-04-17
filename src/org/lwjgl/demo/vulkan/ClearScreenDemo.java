@@ -156,7 +156,7 @@ public class ClearScreenDemo {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT) // <- the struct type
                 .pNext(NULL) // <- must be NULL
-                .pfnCallback(callback) // <- the actual function pointer (in LWJGL a Closure)
+                .pfnCallback(callback) // <- the actual function pointer (in LWJGL a Callback)
                 .pUserData(NULL) // <- any user data provided to the debug report callback function
                 .flags(flags); // <- indicates which kind of messages we want to receive
         LongBuffer pCallback = memAllocLong(1); // <- allocate a LongBuffer (for a non-dispatchable handle)
