@@ -61,11 +61,10 @@ public class ImmediateModeDemo {
             @Override
             public void free() {
                 delegate.free();
-                super.free();
             }
         });
 
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -94,7 +93,7 @@ public class ImmediateModeDemo {
                     return;
 
                 if (key == GLFW_KEY_ESCAPE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 }
             }
         });
@@ -169,7 +168,7 @@ public class ImmediateModeDemo {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
 

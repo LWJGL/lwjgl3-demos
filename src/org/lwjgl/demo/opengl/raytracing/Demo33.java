@@ -112,11 +112,10 @@ public class Demo33 {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if ( glfwInit() != GLFW_TRUE )
+		if ( !glfwInit() )
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -142,7 +141,7 @@ public class Demo33 {
 				}
 
 				if ( key == GLFW_KEY_ESCAPE ) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				} else if ( key == GLFW_KEY_KP_ADD || key == GLFW_KEY_PAGE_UP ) {
 					int newBounceCount = Math.min(4, Demo33.this.bounceCount + 1);
 					if (newBounceCount != Demo33.this.bounceCount) {
@@ -468,7 +467,7 @@ public class Demo33 {
 	}
 
 	private void loop() {
-		while ( glfwWindowShouldClose(window) == GLFW_FALSE ) {
+		while ( !glfwWindowShouldClose(window) ) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

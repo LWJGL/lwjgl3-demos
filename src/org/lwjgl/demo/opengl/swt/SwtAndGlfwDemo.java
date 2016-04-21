@@ -62,7 +62,7 @@ public class SwtAndGlfwDemo {
         // Create GLFW window
         GLFWErrorCallback errorCallback;
         glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -73,7 +73,7 @@ public class SwtAndGlfwDemo {
         glfwSetKeyCallback(glfwWindow, keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
             }
         });
         glfwMakeContextCurrent(glfwWindow);
@@ -81,7 +81,7 @@ public class SwtAndGlfwDemo {
         Callback glfwDebugProc = GLUtil.setupDebugMessageCallback();
         glfwShowWindow(glfwWindow);
 
-        while (!shell.isDisposed() && glfwWindowShouldClose(glfwWindow) == GLFW_FALSE) {
+        while (!shell.isDisposed() && !glfwWindowShouldClose(glfwWindow)) {
             // Process window messages (for both SWT _and_ GLFW)
             display.readAndDispatch();
 

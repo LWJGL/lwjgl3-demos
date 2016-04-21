@@ -49,7 +49,7 @@ public class SimpleDrawElements {
     	glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
  
         // Initialize GLFW. Most GLFW functions will not work before doing this.
-        if ( glfwInit() != GLFW_TRUE )
+        if ( !glfwInit() )
             throw new IllegalStateException("Unable to initialize GLFW");
  
         // Configure our window
@@ -72,7 +72,7 @@ public class SimpleDrawElements {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
-                    glfwSetWindowShouldClose(window, GLFW_TRUE); // We will detect this in our rendering loop
+                    glfwSetWindowShouldClose(window, true); // We will detect this in our rendering loop
             }
         });
         glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
@@ -122,7 +122,7 @@ public class SimpleDrawElements {
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
-        while ( glfwWindowShouldClose(window) == GLFW_FALSE ) {
+        while ( !glfwWindowShouldClose(window) ) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
  
             glViewport(0, 0, width, height);

@@ -70,11 +70,10 @@ public class SilhouetteDemo {
             @Override
             public void free() {
                 delegate.free();
-                super.free();
             }
         });
 
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -106,7 +105,7 @@ public class SilhouetteDemo {
                     return;
 
                 if (key == GLFW_KEY_ESCAPE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 }
             }
         });
@@ -224,7 +223,7 @@ public class SilhouetteDemo {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

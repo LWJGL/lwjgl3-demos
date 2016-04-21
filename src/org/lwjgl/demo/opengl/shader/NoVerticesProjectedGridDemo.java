@@ -75,11 +75,10 @@ public class NoVerticesProjectedGridDemo {
             @Override
             public void free() {
                 delegate.free();
-                super.free();
             }
         });
 
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -111,7 +110,7 @@ public class NoVerticesProjectedGridDemo {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 }
                 if (key == GLFW_KEY_LEFT && (action == GLFW_RELEASE || action == GLFW_REPEAT)) {
                     sizeX = Math.max(1, sizeX - 1);
@@ -215,7 +214,7 @@ public class NoVerticesProjectedGridDemo {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
             render();

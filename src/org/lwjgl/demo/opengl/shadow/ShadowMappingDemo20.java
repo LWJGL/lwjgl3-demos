@@ -99,11 +99,10 @@ public class ShadowMappingDemo20 {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -124,7 +123,7 @@ public class ShadowMappingDemo20 {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				}
 			}
 		});
@@ -342,7 +341,7 @@ public class ShadowMappingDemo20 {
 	}
 
 	void loop() {
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 
 			update();

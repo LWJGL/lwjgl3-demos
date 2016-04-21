@@ -52,7 +52,7 @@ public class Multithreaded {
 
 	void init() {
 		glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -66,7 +66,7 @@ public class Multithreaded {
 		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
 			public void invoke(long window, int key, int scancode, int action, int mods) {
 				if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 			}
 		});
 		glfwSetFramebufferSizeCallback(window, fsCallback = new GLFWFramebufferSizeCallback() {
@@ -132,7 +132,7 @@ public class Multithreaded {
 			}
 		}).start();
 
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwWaitEvents();
 		}
 	}

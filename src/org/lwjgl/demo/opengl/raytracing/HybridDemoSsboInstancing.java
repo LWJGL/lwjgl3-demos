@@ -128,11 +128,10 @@ public class HybridDemoSsboInstancing {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -158,7 +157,7 @@ public class HybridDemoSsboInstancing {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				} else if (key == GLFW_KEY_KP_ADD || key == GLFW_KEY_PAGE_UP) {
 					int newBounceCount = Math.min(4, HybridDemoSsboInstancing.this.bounceCount + 1);
 					if (newBounceCount != HybridDemoSsboInstancing.this.bounceCount) {
@@ -675,7 +674,7 @@ public class HybridDemoSsboInstancing {
 	 * scene.
 	 */
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

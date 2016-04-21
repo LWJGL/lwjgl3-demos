@@ -72,11 +72,10 @@ public class UniformArrayDemo {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -114,7 +113,7 @@ public class UniformArrayDemo {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				} else if (key == GLFW_KEY_UP) {
 					chosen = (chosen + 1) % 4;
 				} else if (key == GLFW_KEY_DOWN) {
@@ -257,7 +256,7 @@ public class UniformArrayDemo {
 	}
 
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

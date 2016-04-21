@@ -150,11 +150,10 @@ public class PhotonMappingBindlessDemo {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -182,7 +181,7 @@ public class PhotonMappingBindlessDemo {
 					return;
 
 				if ( key == GLFW_KEY_ESCAPE ) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				} else if ( key == GLFW_KEY_R ) {
 					PhotonMappingBindlessDemo.this.clearPhotonMapTexture = true;
 				} else if ( key == GLFW_KEY_UP ) {
@@ -688,7 +687,7 @@ public class PhotonMappingBindlessDemo {
 	}
 
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

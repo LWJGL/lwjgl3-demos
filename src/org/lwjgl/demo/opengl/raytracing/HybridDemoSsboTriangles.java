@@ -130,11 +130,10 @@ public class HybridDemoSsboTriangles {
 			@Override
 			public void free() {
 				delegate.free();
-				super.free();
 			}
 		});
 
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -159,7 +158,7 @@ public class HybridDemoSsboTriangles {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				} else if (key == GLFW_KEY_DOWN) {
 				    int newRadius = lightRadius - 1;
 				    if (newRadius >= 0) {
@@ -693,7 +692,7 @@ public class HybridDemoSsboTriangles {
 	}
 
 	private void loop() {
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			glViewport(0, 0, width, height);
 

@@ -133,11 +133,10 @@ public class DemoSsboTrianglesStacklessKdTree {
             @Override
             public void free() {
                 delegate.free();
-                super.free();
             }
         });
 
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -162,7 +161,7 @@ public class DemoSsboTrianglesStacklessKdTree {
                     return;
 
                 if (key == GLFW_KEY_ESCAPE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 } else if (key == GLFW_KEY_D) {
                     debug = !debug;
                 }
@@ -593,7 +592,7 @@ public class DemoSsboTrianglesStacklessKdTree {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
 

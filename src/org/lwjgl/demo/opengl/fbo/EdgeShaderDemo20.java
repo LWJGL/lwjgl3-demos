@@ -94,11 +94,10 @@ public class EdgeShaderDemo20 {
             @Override
             public void free() {
                 delegate.free();
-                super.free();
             }
         });
 
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -134,7 +133,7 @@ public class EdgeShaderDemo20 {
                     return;
 
                 if (key == GLFW_KEY_ESCAPE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 } else if (key == GLFW_KEY_O) {
                     outlineOnly = !outlineOnly;
                 } else if (key == GLFW_KEY_SPACE) {
@@ -396,7 +395,7 @@ public class EdgeShaderDemo20 {
     }
 
     void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
 

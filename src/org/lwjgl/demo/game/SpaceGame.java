@@ -221,7 +221,7 @@ public class SpaceGame {
     private Callback debugProc;
 
     private void init() throws IOException {
-        if (glfwInit() != GLFW_TRUE)
+        if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
         glfwDefaultWindowHints();
@@ -261,7 +261,7 @@ public class SpaceGame {
                 if (key == GLFW_KEY_UNKNOWN) 
                     return;
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+                    glfwSetWindowShouldClose(window, true);
                 }
                 if (action == GLFW_PRESS || action == GLFW_REPEAT) {
                     keyDown[key] = true;
@@ -1014,7 +1014,7 @@ public class SpaceGame {
     }
 
     private void loop() {
-        while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glViewport(0, 0, width, height);
             update();

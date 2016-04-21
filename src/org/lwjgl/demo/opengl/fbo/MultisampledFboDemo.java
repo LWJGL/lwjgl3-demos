@@ -62,7 +62,7 @@ public class MultisampledFboDemo {
 
 	void init() {
 		glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
-		if (glfwInit() != GLFW_TRUE)
+		if (!glfwInit())
 			throw new IllegalStateException("Unable to initialize GLFW");
 
 		glfwDefaultWindowHints();
@@ -81,7 +81,7 @@ public class MultisampledFboDemo {
 					return;
 
 				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
+					glfwSetWindowShouldClose(window, true);
 				}
 			}
 		});
@@ -210,7 +210,7 @@ public class MultisampledFboDemo {
 			}
 		}).start();
 
-		while (glfwWindowShouldClose(window) == GLFW_FALSE) {
+		while (!glfwWindowShouldClose(window)) {
 			glfwWaitEvents();
 		}
 	}
