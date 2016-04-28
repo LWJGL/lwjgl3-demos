@@ -44,6 +44,7 @@ import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
+import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkImageMemoryBarrier;
@@ -422,8 +423,8 @@ public class ColoredRotatingQuadDemo {
         long[] imageViews;
     }
 
-    private static Swapchain createSwapChain(VkDevice device, VkPhysicalDevice physicalDevice, long surface, long oldSwapChain, VkCommandBuffer commandBuffer, int width,
-            int height, int colorFormat, int colorSpace) {
+    private static Swapchain createSwapChain(VkDevice device, VkPhysicalDevice physicalDevice, long surface, long oldSwapChain, VkCommandBuffer commandBuffer, int newWidth,
+            int newHeight, int colorFormat, int colorSpace) {
         int err;
         // Get physical device surface properties and formats
         VkSurfaceCapabilitiesKHR surfCaps = VkSurfaceCapabilitiesKHR.calloc();
@@ -463,6 +464,18 @@ public class ColoredRotatingQuadDemo {
         int desiredNumberOfSwapchainImages = surfCaps.minImageCount() + 1;
         if ((surfCaps.maxImageCount() > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount())) {
             desiredNumberOfSwapchainImages = surfCaps.maxImageCount();
+        }
+
+        VkExtent2D currentExtent = surfCaps.currentExtent();
+        int currentWidth = currentExtent.width();
+        int currentHeight = currentExtent.height();
+        int width, height;
+        if (currentWidth != -1 && currentHeight != -1) {
+            width = currentWidth;
+            height = currentHeight;
+        } else {
+            width = newWidth;
+            height = newHeight;
         }
 
         int preTransform;
