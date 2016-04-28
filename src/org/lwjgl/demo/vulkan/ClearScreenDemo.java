@@ -470,7 +470,6 @@ public class ClearScreenDemo {
         VkExtent2D currentExtent = surfCaps.currentExtent();
         int currentWidth = currentExtent.width();
         int currentHeight = currentExtent.height();
-        int width, height;
         if (currentWidth != -1 && currentHeight != -1) {
             width = currentWidth;
             height = currentHeight;
@@ -849,6 +848,7 @@ public class ClearScreenDemo {
      */
     private static Swapchain swapchain;
     private static long[] framebuffers;
+    private static int width, height;
     private static VkCommandBuffer[] renderCommandBuffers;
 
     public static void main(String[] args) {
@@ -911,9 +911,6 @@ public class ClearScreenDemo {
 
         final class SwapchainRecreator {
             boolean mustRecreate = true;
-            int width;
-            int height;
-
             void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
@@ -956,8 +953,8 @@ public class ClearScreenDemo {
             public void invoke(long window, int width, int height) {
                 if (width <= 0 || height <= 0)
                     return;
-                swapchainRecreator.width = width;
-                swapchainRecreator.height = height;
+                ClearScreenDemo.width = width;
+                ClearScreenDemo.height = height;
                 swapchainRecreator.mustRecreate = true;
             }
         };

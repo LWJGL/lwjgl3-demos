@@ -459,7 +459,6 @@ public class TriangleDemo {
         VkExtent2D currentExtent = surfCaps.currentExtent();
         int currentWidth = currentExtent.width();
         int currentHeight = currentExtent.height();
-        int width, height;
         if (currentWidth != -1 && currentHeight != -1) {
             width = currentWidth;
             height = currentHeight;
@@ -1113,6 +1112,7 @@ public class TriangleDemo {
      */
     private static Swapchain swapchain;
     private static long[] framebuffers;
+    private static int width, height;
     private static VkCommandBuffer[] renderCommandBuffers;
 
     public static void main(String[] args) throws IOException {
@@ -1178,9 +1178,6 @@ public class TriangleDemo {
 
         final class SwapchainRecreator {
             boolean mustRecreate = true;
-            int width;
-            int height;
-
             void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
@@ -1224,8 +1221,8 @@ public class TriangleDemo {
             public void invoke(long window, int width, int height) {
                 if (width <= 0 || height <= 0)
                     return;
-                swapchainRecreator.width = width;
-                swapchainRecreator.height = height;
+                TriangleDemo.width = width;
+                TriangleDemo.height = height;
                 swapchainRecreator.mustRecreate = true;
             }
         };

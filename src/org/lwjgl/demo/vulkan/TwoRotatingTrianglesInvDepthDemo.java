@@ -501,7 +501,6 @@ public class TwoRotatingTrianglesInvDepthDemo {
         VkExtent2D currentExtent = surfCaps.currentExtent();
         int currentWidth = currentExtent.width();
         int currentHeight = currentExtent.height();
-        int width, height;
         if (currentWidth != -1 && currentHeight != -1) {
             width = currentWidth;
             height = currentHeight;
