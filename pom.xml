@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<lwjgl.version>3.0.0-SNAPSHOT</lwjgl.version>
-		<swt.version>4.5.1</swt.version>
+		<swt.version>4.5.2</swt.version>
 		<joml.version>1.8.0-SNAPSHOT</joml.version>
 		<!-- Can be overwritten via -D property during mvn invoke to specify a 
 			different demo. The package "org.lwjgl.demo." is prepended automatically. -->
