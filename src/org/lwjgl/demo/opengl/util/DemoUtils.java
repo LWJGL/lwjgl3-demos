@@ -16,6 +16,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -136,49 +137,44 @@ public class DemoUtils {
 	 *
 	 * @throws IOException if an IO error occurs
 	 */
-	public static ByteBuffer ioResourceToByteBuffer(String resource, int bufferSize) throws IOException {
-		ByteBuffer buffer;
-
-		URL url = Thread.currentThread().getContextClassLoader().getResource(resource);
-		File file = new File(url.getFile());
-		if ( file.isFile() ) {
-			FileInputStream fis = new FileInputStream(file);
-			FileChannel fc = fis.getChannel();
-			buffer = BufferUtils.createByteBuffer((int)fc.size() + 1);
-
-			while ( fc.read(buffer) != -1 ) {
-			    // just let the loop condition do its thing
-			}
-
-			fc.close();
-			fis.close();
-		} else {
-			buffer = BufferUtils.createByteBuffer(bufferSize);
-			InputStream source = url.openStream();
-			if ( source == null )
-				throw new FileNotFoundException(resource);
-
-			try {
-				ReadableByteChannel rbc = Channels.newChannel(source);
-				try {
-					while ( true ) {
-						int bytes = rbc.read(buffer);
-						if ( bytes == -1 )
-							break;
-						if ( buffer.remaining() == 0 )
-							buffer = resizeBuffer(buffer, buffer.capacity() * 2);
-					}
-				} finally {
-					rbc.close();
-				}
-			} finally {
-				source.close();
-			}
-		}
-
-		buffer.flip();
-		return buffer;
-	}
+    public static ByteBuffer ioResourceToByteBuffer(String resource, int bufferSize) throws IOException {
+        ByteBuffer buffer;
+        URL url = Thread.currentThread().getContextClassLoader().getResource(resource);
+        File file = new File(url.getFile());
+        if (file.isFile()) {
+            FileInputStream fis = new FileInputStream(file);
+            FileChannel fc = fis.getChannel();
+            buffer = BufferUtils.createByteBuffer((int)fc.size());
+            MappedByteBuffer mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+            mapped.load();
+            buffer = mapped;
+            fc.close();
+            fis.close();
+        } else {
+            buffer = BufferUtils.createByteBuffer(bufferSize);
+            InputStream source = url.openStream();
+            if (source == null)
+                throw new FileNotFoundException(resource);
+            try {
+                ReadableByteChannel rbc = Channels.newChannel(source);
+                try {
+                    while (true) {
+                        int bytes = rbc.read(buffer);
+                        if (bytes == -1)
+                            break;
+                        if (buffer.remaining() == 0)
+                            buffer = resizeBuffer(buffer, buffer.capacity() * 2);
+                    }
+                    buffer.flip();
+                } finally {
+                    rbc.close();
+                }
+            } finally {
+                source.close();
+            }
+        }
+        return buffer;
+    }
 
 	/**
 	 * Create a shader object from the given classpath resource.
