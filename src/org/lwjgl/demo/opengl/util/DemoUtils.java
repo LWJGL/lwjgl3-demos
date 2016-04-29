@@ -144,7 +144,6 @@ public class DemoUtils {
         if (file.isFile()) {
             FileInputStream fis = new FileInputStream(file);
             FileChannel fc = fis.getChannel();
-            buffer = BufferUtils.createByteBuffer((int)fc.size());
             MappedByteBuffer mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
             mapped.load();
             buffer = mapped;
