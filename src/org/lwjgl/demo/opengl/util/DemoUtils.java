@@ -16,7 +16,6 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -144,9 +143,7 @@ public class DemoUtils {
         if (file.isFile()) {
             FileInputStream fis = new FileInputStream(file);
             FileChannel fc = fis.getChannel();
-            MappedByteBuffer mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-            mapped.load();
-            buffer = mapped;
+            buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
             fc.close();
             fis.close();
         } else {
