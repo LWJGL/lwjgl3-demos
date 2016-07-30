@@ -490,7 +490,7 @@ public class TriangleDemo {
                 .pQueueFamilyIndices(null)
                 .presentMode(swapchainPresentMode)
                 .oldSwapchain(oldSwapChain)
-                .clipped(VK_TRUE)
+                .clipped(true)
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
         swapchainCI.imageExtent()
                 .width(width)
@@ -817,14 +817,14 @@ public class TriangleDemo {
                 .polygonMode(VK_POLYGON_MODE_FILL)
                 .cullMode(VK_CULL_MODE_NONE)
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-                .depthClampEnable(VK_FALSE)
-                .rasterizerDiscardEnable(VK_FALSE)
-                .depthBiasEnable(VK_FALSE);
+                .depthClampEnable(false)
+                .rasterizerDiscardEnable(false)
+                .depthBiasEnable(false);
 
         // Color blend state
         // Describes blend modes and color masks
         VkPipelineColorBlendAttachmentState.Buffer colorWriteMask = VkPipelineColorBlendAttachmentState.calloc(1)
-                .blendEnable(VK_FALSE)
+                .blendEnable(false)
                 .colorWriteMask(0xF); // <- RGBA
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
@@ -853,11 +853,11 @@ public class TriangleDemo {
         VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc()
                 // No depth test/write and no stencil used 
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
-                .depthTestEnable(VK_FALSE)
-                .depthWriteEnable(VK_FALSE)
+                .depthTestEnable(false)
+                .depthWriteEnable(false)
                 .depthCompareOp(VK_COMPARE_OP_ALWAYS)
-                .depthBoundsTestEnable(VK_FALSE)
-                .stencilTestEnable(VK_FALSE);
+                .depthBoundsTestEnable(false)
+                .stencilTestEnable(false);
         depthStencilState.back()
                 .failOp(VK_STENCIL_OP_KEEP)
                 .passOp(VK_STENCIL_OP_KEEP)
