@@ -460,7 +460,7 @@ public class SpaceGame {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_GENERATE_MIPMAP, GL_TRUE);
         for (int i = 0; i < 6; i++) {
             imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/space_" + names[i] + (i + 1) + ".jpg", 8 * 1024);
-            if (stbi_info_from_memory(imageBuffer, w, h, comp))
+            if (!stbi_info_from_memory(imageBuffer, w, h, comp))
                 throw new IOException("Failed to read image information: " + stbi_failure_reason());
             image = stbi_load_from_memory(imageBuffer, w, h, comp, 0);
             if (image == null)
