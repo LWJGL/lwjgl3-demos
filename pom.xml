@@ -7,7 +7,7 @@
 	<properties>
 		<lwjgl.version>3.0.1-SNAPSHOT</lwjgl.version>
 		<swt.version>4.5.2</swt.version>
-		<joml.version>1.8.2-SNAPSHOT</joml.version>
+		<joml.version>1.8.3-SNAPSHOT</joml.version>
 		<!-- Can be overwritten via -D property during mvn invoke to specify a 
 			different demo. The package "org.lwjgl.demo." is prepended automatically. -->
 		<class>game.SpaceGame</class>
@@ -193,6 +193,26 @@
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vulkan</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
 			<version>${lwjgl.version}</version>
 		</dependency>
 	</dependencies>
