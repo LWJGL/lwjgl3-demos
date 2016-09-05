@@ -65,7 +65,7 @@ public class EnvironmentDemo {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        window = glfwCreateWindow(width, height, "HDR Texture", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Spherical environment mapping demo", NULL, NULL);
         if (window == NULL)
             throw new AssertionError("Failed to create the GLFW window");
 
