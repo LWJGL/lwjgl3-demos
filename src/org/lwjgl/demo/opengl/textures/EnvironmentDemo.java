@@ -42,7 +42,7 @@ public class EnvironmentDemo {
     long window;
     int width = 1024;
     int height = 768;
-    float rotX, rotY;
+    float fov = 60, rotX, rotY;
 
     ByteBuffer vertices;
     int invViewProjUniform;
@@ -56,6 +56,7 @@ public class EnvironmentDemo {
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
     GLFWCursorPosCallback cpCallback;
+    GLFWScrollCallback sCallback;
     Callback debugProc;
 
     void init() throws IOException {
@@ -70,6 +71,7 @@ public class EnvironmentDemo {
             throw new AssertionError("Failed to create the GLFW window");
 
         System.out.println("Move the mouse to look around");
+        System.out.println("Zoom in/out with mouse wheel");
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
@@ -96,6 +98,19 @@ public class EnvironmentDemo {
                 float ny = (float) y / height * 2.0f - 1.0f;
                 rotX = ny * (float)Math.PI * 0.5f;
                 rotY = nx * (float)Math.PI;
+            }
+        });
+        glfwSetScrollCallback(window, sCallback = new GLFWScrollCallback() {
+            @Override
+            public void invoke(long window, double xoffset, double yoffset) {
+                if (yoffset < 0)
+                    fov *= 1.05f;
+                else
+                    fov *= 1f/1.05f;
+                if (fov < 10.0f)
+                    fov = 10.0f;
+                else if (fov > 120.0f)
+                    fov = 120.0f;
             }
         });
 
@@ -201,10 +216,10 @@ public class EnvironmentDemo {
     }
 
     void update() {
-        projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
+        projMatrix.setPerspective((float) Math.toRadians(fov), (float) width / height, 0.01f, 100.0f);
         viewMatrix.rotationX(rotX).rotateY(rotY);
-        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix).get(matrixBuffer);
-        glUniformMatrix4fvARB(invViewProjUniform, false, matrixBuffer);
+        projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
+        glUniformMatrix4fvARB(invViewProjUniform, false, invViewProjMatrix.get(matrixBuffer));
     }
 
     static void render() {
