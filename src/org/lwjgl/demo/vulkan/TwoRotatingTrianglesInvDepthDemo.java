@@ -666,7 +666,7 @@ public class TwoRotatingTrianglesInvDepthDemo {
         memFree(pMemoryTypeIndex);
         LongBuffer pDepthStencilMem = memAllocLong(1);
         err = vkAllocateMemory(device, mem_alloc, null, pDepthStencilMem);
-        long depthStencilMem = pDepthStencilImage.get(0);
+        long depthStencilMem = pDepthStencilMem.get(0);
         memFree(pDepthStencilMem);
         mem_alloc.free();
         if (err != VK_SUCCESS) {
