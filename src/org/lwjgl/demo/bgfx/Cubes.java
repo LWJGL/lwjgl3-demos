@@ -123,7 +123,7 @@ public class Cubes extends Demo {
 
 				model.get(modelBuf);
 
-				bgfx_set_transform(modelBuf, 1);
+				bgfx_set_transform(modelBuf);
 
 				bgfx_set_vertex_buffer(vbh, 0, 8);
 				bgfx_set_index_buffer(ibh, 0, 36);

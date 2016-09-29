@@ -333,7 +333,7 @@ public class Bump extends Demo {
 			for (int yy = 0; yy < 3; ++yy) {
 				BGFXInstanceDataBuffer idb = bgfx_alloc_instance_data_buffer(numInstances, instanceStride);
 				if (idb != null) {
-					ByteBuffer data = idb.data(numInstances * instanceStride);
+					ByteBuffer data = idb.data();
 
 					for (int xx = 0; xx < 3; ++xx) {
 						mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f);
@@ -377,7 +377,7 @@ public class Bump extends Demo {
 
 					// Set transform for draw call.
 					mtx.get(mtxBuf);
-					bgfx_set_transform(mtxBuf, 1);
+					bgfx_set_transform(mtxBuf);
 
 					// Set vertex and index buffer.
 					bgfx_set_vertex_buffer(vbh, 0, 24);

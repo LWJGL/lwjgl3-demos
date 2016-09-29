@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
+import static org.lwjgl.bgfx.BGFXPlatform.bgfx_set_platform_data;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.APIUtil.apiLog;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -281,7 +282,7 @@ abstract class Demo {
 
 	private static final BGFXCacheReadCallbackI cacheReadCallback =
 			(_this, _id, _data, _size) -> {
-
+				return false;
 			};
 
 	private static final BGFXCacheWriteCallbackI cacheWriteCallback =

@@ -595,7 +595,7 @@ public class Metaballs extends Demo {
 
 			profTriangulate = glfwGetTimerValue();
 
-			ByteBuffer vertex = tvb.data(maxVertices * 32);
+			ByteBuffer vertex = tvb.data();
 
 			for (int zz = 0; zz < DIMS - 1 && numVertices + 12 < maxVertices; ++zz) {
 				rgb[2] = zz * invdim;
@@ -648,7 +648,7 @@ public class Metaballs extends Demo {
 
 			model.get(modelBuf);
 
-			bgfx_set_transform(modelBuf, 1);
+			bgfx_set_transform(modelBuf);
 
 			// Set vertex and index buffer.
 			bgfx_set_transient_vertex_buffer(tvb, 0, numVertices);

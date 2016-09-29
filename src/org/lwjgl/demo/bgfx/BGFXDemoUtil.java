@@ -6,9 +6,7 @@ package org.lwjgl.demo.bgfx;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.bgfx.BGFXMemory;
-import org.lwjgl.bgfx.BGFXReleaseFunctionCallbackI;
-import org.lwjgl.bgfx.BGFXVertexDecl;
+import org.lwjgl.bgfx.*;
 import org.lwjgl.system.MemoryUtil;
 
 import java.io.BufferedInputStream;
@@ -17,7 +15,8 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
-import static org.lwjgl.system.APIUtil.*;
+import static org.lwjgl.system.APIUtil.apiLog;
+import static org.lwjgl.system.MemoryUtil.NULL;
 
 @SuppressWarnings("StaticNonFinalField")
 final class BGFXDemoUtil {
@@ -106,7 +105,7 @@ final class BGFXDemoUtil {
 
 	static short createVertexBuffer(ByteBuffer buffer, BGFXVertexDecl decl) {
 
-		BGFXMemory vbhMem = bgfx_make_ref(buffer, buffer.remaining());
+		BGFXMemory vbhMem = bgfx_make_ref(buffer);
 
 		return bgfx_create_vertex_buffer(vbhMem, decl, BGFX_BUFFER_NONE);
 	}
@@ -123,7 +122,7 @@ final class BGFXDemoUtil {
 
 		buffer.flip();
 
-		BGFXMemory ibhMem = bgfx_make_ref(buffer, buffer.remaining());
+		BGFXMemory ibhMem = bgfx_make_ref(buffer);
 
 		return bgfx_create_index_buffer(ibhMem, BGFX_BUFFER_NONE);
 	}
@@ -186,7 +185,7 @@ final class BGFXDemoUtil {
 
 		ByteBuffer shaderCode = loadResource(resourcePath, name + ".bin");
 
-		return bgfx_create_shader(bgfx_make_ref_release(shaderCode, shaderCode.remaining(), releaseMemoryCb, null));
+		return bgfx_create_shader(bgfx_make_ref_release(shaderCode, releaseMemoryCb, NULL));
 	}
 
 	static short loadShader(char[] shaderCodeGLSL, char[] shaderCodeD3D9, char[] shaderCodeD3D11, char[] shaderCodeMtl) throws IOException {
@@ -224,14 +223,14 @@ final class BGFXDemoUtil {
 
 		shaderCode.flip();
 
-		return bgfx_create_shader(bgfx_make_ref_release(shaderCode, shaderCode.remaining(), releaseMemoryCb, null));
+		return bgfx_create_shader(bgfx_make_ref_release(shaderCode, releaseMemoryCb, NULL));
 	}
 
 	static short loadTexture(String fileName) throws IOException {
 
 		ByteBuffer textureData = loadResource("/org/lwjgl/demo/bgfx/textures/", fileName);
 
-		BGFXMemory textureMemory = bgfx_make_ref_release(textureData, textureData.remaining(), releaseMemoryCb, null);
+		BGFXMemory textureMemory = bgfx_make_ref_release(textureData, releaseMemoryCb, NULL);
 
 		return bgfx_create_texture(textureMemory, BGFX_TEXTURE_NONE, 0, null);
 	}
