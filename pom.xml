@@ -39,6 +39,12 @@
 					<version>${lwjgl.version}</version>
 					<classifier>natives-windows</classifier>
 				</dependency>
+				<dependency>
+					<groupId>org.lwjgl</groupId>
+					<artifactId>lwjgl-bgfx</artifactId>
+					<version>${lwjgl.version}</version>
+					<classifier>natives-windows</classifier>
+				</dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -99,6 +105,12 @@
 					<version>${lwjgl.version}</version>
 					<classifier>natives-linux</classifier>
 				</dependency>
+				<dependency>
+					<groupId>org.lwjgl</groupId>
+					<artifactId>lwjgl-bgfx</artifactId>
+					<version>${lwjgl.version}</version>
+					<classifier>natives-linux</classifier>
+				</dependency>
 			</dependencies>
 		</profile>
 		<profile>
@@ -156,6 +168,12 @@
 				<dependency>
 					<groupId>org.lwjgl</groupId>
 					<artifactId>lwjgl-stb</artifactId>
+					<version>${lwjgl.version}</version>
+					<classifier>natives-osx</classifier>
+				</dependency>
+				<dependency>
+					<groupId>org.lwjgl</groupId>
+					<artifactId>lwjgl-bgfx</artifactId>
 					<version>${lwjgl.version}</version>
 					<classifier>natives-osx</classifier>
 				</dependency>
