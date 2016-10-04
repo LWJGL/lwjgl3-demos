@@ -180,7 +180,7 @@ abstract class Demo {
 		} else if (hasArg(args, "vk")) {
 			renderer = BGFX_RENDERER_TYPE_VULKAN;
 		} else if (hasArg(args, "noop")) {
-			renderer = BGFX_RENDERER_TYPE_NULL;
+			renderer = BGFX_RENDERER_TYPE_NOOP;
 		} else if (Platform.get() == Platform.WINDOWS) {
 			if (hasArg(args, "d3d9")) {
 				renderer = BGFX_RENDERER_TYPE_DIRECT3D9;

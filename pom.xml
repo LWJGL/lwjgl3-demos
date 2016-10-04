@@ -157,25 +157,25 @@
 					<groupId>org.lwjgl</groupId>
 					<artifactId>lwjgl</artifactId>
 					<version>${lwjgl.version}</version>
-					<classifier>natives-osx</classifier>
+					<classifier>natives-macos</classifier>
 				</dependency>
 				<dependency>
 					<groupId>org.lwjgl</groupId>
 					<artifactId>lwjgl-glfw</artifactId>
 					<version>${lwjgl.version}</version>
-					<classifier>natives-osx</classifier>
+					<classifier>natives-macos</classifier>
 				</dependency>
 				<dependency>
 					<groupId>org.lwjgl</groupId>
 					<artifactId>lwjgl-stb</artifactId>
 					<version>${lwjgl.version}</version>
-					<classifier>natives-osx</classifier>
+					<classifier>natives-macos</classifier>
 				</dependency>
 				<dependency>
 					<groupId>org.lwjgl</groupId>
 					<artifactId>lwjgl-bgfx</artifactId>
 					<version>${lwjgl.version}</version>
-					<classifier>natives-osx</classifier>
+					<classifier>natives-macos</classifier>
 				</dependency>
 				<dependency>
 					<groupId>org.eclipse.swt</groupId>
