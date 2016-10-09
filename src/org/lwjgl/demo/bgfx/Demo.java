@@ -67,6 +67,8 @@ abstract class Demo {
 				throw new RuntimeException("Error creating GLFW window");
 			}
 
+			glfwSetFramebufferSizeCallback(window, this::resize);
+
 			BGFXPlatformData platformData = BGFXPlatformData.callocStack(stack);
 
 			switch (Platform.get()) {
@@ -223,6 +225,12 @@ abstract class Demo {
 			}
 		}
 		return false;
+	}
+
+	private void resize(long window, int width, int height) {
+		this.width = width;
+		this.height = height;
+		bgfx_reset(width, height, reset);
 	}
 
 	protected int getWindowWidth() {
