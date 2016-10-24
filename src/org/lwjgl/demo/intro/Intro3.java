@@ -27,7 +27,7 @@ import static org.lwjgl.system.MemoryStack.*;
  * <p>
  * LWJGL 3 provides a better way to handle such situations, which is by using the MemoryStack class. This class allows
  * to retrieve a small chunk of memory from a pre-allocated thread-local memory region of a fixed size. It is a stack
- * because allocations/deallocations must be issued in FIFO order, in that allocations cannot be freed randomly bust
+ * because allocations/deallocations must be issued in LIFO order, in that allocations cannot be freed randomly bust
  * must be freed in the reverse allocation order. This allows to avoid any heap allocation and compaction strategies.
  * <p>
  * Also note that the pre-allocated memory of the MemoryStack is per thread. That means, every thread will get its own
