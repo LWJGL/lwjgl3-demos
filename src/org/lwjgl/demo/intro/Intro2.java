@@ -164,6 +164,7 @@ public class Intro2 {
             glfwSwapBuffers(window);
         }
         glfwTerminate();
+        System.out.println("Fin.");
     }
 
     private static long createWindow() {

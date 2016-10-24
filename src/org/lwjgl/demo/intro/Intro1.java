@@ -96,7 +96,7 @@ public class Intro1 {
          * And that should be it for the first introduction. We learnt that LWJGL 3 provides bindings to native library
          * functions via static methods on a class which is named like the native library containing that function.
          */
-        System.out.println("The End!");
+        System.out.println("Fin.");
     }
 
 }
