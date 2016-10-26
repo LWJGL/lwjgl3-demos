@@ -12,12 +12,12 @@ import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
 
 /**
  * In this part we will see how callbacks work. Callbacks mean any method which we can register in a native library so
- * that the native library can call use back and invoke our callback method whenever it wants to.
+ * that the native library can call us back and invoke our callback method whenever it wants to.
  * <p>
  * One example of where callbacks occur frequently is GLFW. GLFW provides some number of different callbacks for various
  * events that happen on a window, such as resizing, maximizing, minimizing and mouse or keyboard events.
  * <p>
- * Now, before we go into using callback with LWJGL 3 and GLFW, we should first get a clear picture of what a callback
+ * Now, before we go into using callbacks with LWJGL 3 and GLFW, we should first get a clear picture of what a callback
  * looks like in a native library, which LWJGL 3 tries to provide a Java counterpart for.
  * <p>
  * In a native library like GLFW a callback is nothing more than a function pointer. This means that it is a physical
@@ -26,7 +26,7 @@ import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
  * signature in Java including the return type. So, both caller and callee agree on a defined set of parameters and a
  * return type to expect when the callback function is called.
  * <p>
- * When LWJGL 3 maps this concept of a function pointer into Java, it provides the user (that means you) with a Java
+ * When LWJGL 3 maps this concept of a function type into Java, it provides the user (that means you) with a Java
  * interface type that contains a single method. This method has the same (or similar) signature and return type as the
  * native callback function. If you want to see an example, look at {@link GLFWMouseButtonCallbackI}. It is an interface
  * with a single non-default method which must be implemented and will be called whenever the native library calls the
