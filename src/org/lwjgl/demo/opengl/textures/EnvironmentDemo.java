@@ -42,6 +42,8 @@ public class EnvironmentDemo {
     long window;
     int width = 1024;
     int height = 768;
+    int fbWidth = 1024;
+    int fbHeight = 768;
     float fov = 60, rotX, rotY;
 
     ByteBuffer vertices;
@@ -55,6 +57,7 @@ public class EnvironmentDemo {
     GLCapabilities caps;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
+    GLFWWindowSizeCallback wsCallback;
     GLFWCursorPosCallback cpCallback;
     GLFWScrollCallback sCallback;
     Callback debugProc;
@@ -73,6 +76,15 @@ public class EnvironmentDemo {
         System.out.println("Move the mouse to look around");
         System.out.println("Zoom in/out with mouse wheel");
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
+            @Override
+            public void invoke(long window, int width, int height) {
+                if (width > 0 && height > 0 && (EnvironmentDemo.this.fbWidth != width || EnvironmentDemo.this.fbHeight != height)) {
+                    EnvironmentDemo.this.fbWidth = width;
+                    EnvironmentDemo.this.fbHeight = height;
+                }
+            }
+        });
+        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
             @Override
             public void invoke(long window, int width, int height) {
                 if (width > 0 && height > 0 && (EnvironmentDemo.this.width != width || EnvironmentDemo.this.height != height)) {
@@ -123,8 +135,8 @@ public class EnvironmentDemo {
 
         IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
         nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-        width = framebufferSize.get(0);
-        height = framebufferSize.get(1);
+        fbWidth = framebufferSize.get(0);
+        fbHeight = framebufferSize.get(1);
 
         caps = GL.createCapabilities();
         if (!caps.GL_ARB_shader_objects)
@@ -230,7 +242,7 @@ public class EnvironmentDemo {
     void loop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            glViewport(0, 0, width, height);
+            glViewport(0, 0, fbWidth, fbHeight);
             update();
             render();
             glfwSwapBuffers(window);
@@ -247,6 +259,7 @@ public class EnvironmentDemo {
             cpCallback.free();
             keyCallback.free();
             fbCallback.free();
+            wsCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();
