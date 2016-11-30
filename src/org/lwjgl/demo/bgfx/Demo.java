@@ -8,7 +8,7 @@ import org.lwjgl.bgfx.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
-import org.lwjgl.system.libc.Stdio;
+import org.lwjgl.system.libc.LibCStdio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -271,7 +271,7 @@ abstract class Demo {
 						String filePath = (_filePath != NULL) ? memUTF8(_filePath) : "[n/a]";
 
 						ByteBuffer buffer = stack.malloc(128); // arbitary size to store formatted message
-						int length = Stdio.nvsnprintf(memAddress(buffer), buffer.remaining(), _format, _argList);
+						int length = LibCStdio.nvsnprintf(memAddress(buffer), buffer.remaining(), _format, _argList);
 
 						if (length > 0) {
 							String message = memASCII(buffer, length - 1); // bgfx log messages are terminated with the newline character
@@ -284,14 +284,10 @@ abstract class Demo {
 			};
 
 	private static final BGFXCacheReadSizeCallbackI cacheReadSizeCallback =
-			(_this, _id) -> {
-				return 0;
-			};
+			(_this, _id) -> 0;
 
 	private static final BGFXCacheReadCallbackI cacheReadCallback =
-			(_this, _id, _data, _size) -> {
-				return false;
-			};
+			(_this, _id, _data, _size) -> false;
 
 	private static final BGFXCacheWriteCallbackI cacheWriteCallback =
 			(_this, _id, _data, _size) -> {
