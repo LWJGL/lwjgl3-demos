@@ -238,7 +238,7 @@ public class ShadowMappingDemo {
 		glCompileShader(shader);
 		int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
 		String shaderLog = glGetShaderInfoLog(shader);
-		if (shaderLog.trim().length() > 0) {
+		if (shaderLog != null && shaderLog.trim().length() > 0) {
 			System.err.println(shaderLog);
 		}
 		if (compiled == 0) {
@@ -257,7 +257,7 @@ public class ShadowMappingDemo {
 		glLinkProgram(shadowProgram);
 		int linked = glGetProgrami(shadowProgram, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(shadowProgram);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
@@ -282,7 +282,7 @@ public class ShadowMappingDemo {
 		glLinkProgram(normalProgram);
 		int linked = glGetProgrami(normalProgram, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(normalProgram);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {

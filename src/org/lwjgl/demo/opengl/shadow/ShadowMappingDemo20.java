@@ -232,7 +232,7 @@ public class ShadowMappingDemo20 {
 		glLinkProgram(shadowProgram);
 		int linked = glGetProgrami(shadowProgram, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(shadowProgram);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
@@ -257,7 +257,7 @@ public class ShadowMappingDemo20 {
 		glLinkProgram(normalProgram);
 		int linked = glGetProgrami(normalProgram, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(normalProgram);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {

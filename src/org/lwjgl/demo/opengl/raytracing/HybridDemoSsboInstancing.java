@@ -381,7 +381,7 @@ public class HybridDemoSsboInstancing {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
@@ -410,7 +410,7 @@ public class HybridDemoSsboInstancing {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {
@@ -435,7 +435,7 @@ public class HybridDemoSsboInstancing {
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
-		if (programLog.trim().length() > 0) {
+		if (programLog != null && programLog.trim().length() > 0) {
 			System.err.println(programLog);
 		}
 		if (linked == 0) {

@@ -191,7 +191,7 @@ public class SpaceGame {
 
     private ByteBuffer charBuffer = BufferUtils.createByteBuffer(16 * 270);
 
-    private boolean windowed = false;
+    private boolean windowed = true;
     private boolean[] keyDown = new boolean[GLFW.GLFW_KEY_LAST];
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
@@ -390,7 +390,7 @@ public class SpaceGame {
         glCompileShader(shader);
         int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
         String shaderLog = glGetShaderInfoLog(shader);
-        if (shaderLog.trim().length() > 0) {
+        if (shaderLog != null && shaderLog.trim().length() > 0) {
             System.err.println(shaderLog);
         }
         if (compiled == 0) {
@@ -406,7 +406,7 @@ public class SpaceGame {
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
-        if (programLog.trim().length() > 0) {
+        if (programLog != null && programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
         if (linked == 0) {
