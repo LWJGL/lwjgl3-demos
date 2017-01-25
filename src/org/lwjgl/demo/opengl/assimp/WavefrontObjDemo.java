@@ -7,13 +7,12 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
 import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.ARBShaderObjects;
-import org.lwjgl.opengl.ARBVertexShader;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -186,10 +185,11 @@ public class WavefrontObjDemo {
     }
 
     void loadModel() {
-        String file = Thread.currentThread().getContextClassLoader()
+        String fileName = Thread.currentThread().getContextClassLoader()
                 .getResource("org/lwjgl/demo/opengl/assimp/magnet.obj").getFile();
+        File file = new File(fileName);
         // Assimp will be able to find the corresponding mtl file if we call aiImportFile this way.
-        AIScene scene = aiImportFile(file, aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
+        AIScene scene = aiImportFile(file.getAbsolutePath(), aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
         if (scene == null) {
             throw new IllegalStateException(aiGetErrorString());
         }
