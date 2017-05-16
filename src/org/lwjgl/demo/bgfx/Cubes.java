@@ -125,7 +125,7 @@ public class Cubes extends Demo {
 
 				bgfx_set_transform(modelBuf);
 
-				bgfx_set_vertex_buffer(vbh, 0, 8);
+				bgfx_set_vertex_buffer(0, vbh, 0, 8);
 				bgfx_set_index_buffer(ibh, 0, 36);
 
 				bgfx_set_state(BGFX_STATE_DEFAULT, 0);

@@ -349,7 +349,7 @@ public class Bump extends Demo {
 					bgfx_set_instance_data_buffer(idb, numInstances);
 
 					// Set vertex and index buffer.
-					bgfx_set_vertex_buffer(vbh, 0, 24);
+					bgfx_set_vertex_buffer(0, vbh, 0, 24);
 					bgfx_set_index_buffer(ibh, 0, 36);
 
 					// Bind textures.
@@ -380,7 +380,7 @@ public class Bump extends Demo {
 					bgfx_set_transform(mtxBuf);
 
 					// Set vertex and index buffer.
-					bgfx_set_vertex_buffer(vbh, 0, 24);
+					bgfx_set_vertex_buffer(0, vbh, 0, 24);
 					bgfx_set_index_buffer(ibh, 0, 36);
 
 					// Bind textures.

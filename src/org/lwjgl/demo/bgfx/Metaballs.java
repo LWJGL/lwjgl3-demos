@@ -651,7 +651,7 @@ public class Metaballs extends Demo {
 			bgfx_set_transform(modelBuf);
 
 			// Set vertex and index buffer.
-			bgfx_set_transient_vertex_buffer(tvb, 0, numVertices);
+			bgfx_set_transient_vertex_buffer(0, tvb, 0, numVertices);
 
 			// Set render states.
 			bgfx_set_state(BGFX_STATE_DEFAULT, 0);
