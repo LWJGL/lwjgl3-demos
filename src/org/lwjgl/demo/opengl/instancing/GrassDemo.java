@@ -322,7 +322,7 @@ public class GrassDemo {
         fb.flip();
         // Generate the world-space positions of each patch
         final FloatBuffer pb = BufferUtils.createFloatBuffer(NUM_GRASS_PATCHES * 4);
-        new BestCandidateSampling.Quad(0L, NUM_GRASS_PATCHES, 20, new Callback2d() {
+        new BestCandidateSampling.Quad().numSamples(NUM_GRASS_PATCHES).numCandidates(20).generate(new Callback2d() {
             final Random rnd = new Random(0L);
             int index = 0;
             public void onNewSample(float x, float y) {
