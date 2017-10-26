@@ -331,41 +331,41 @@ public class Bump extends Demo {
 		if (instancingSupported) {
 			// Write instance data for 3x3 cubes.
 			for (int yy = 0; yy < 3; ++yy) {
-				BGFXInstanceDataBuffer idb = bgfx_alloc_instance_data_buffer(numInstances, instanceStride);
-				if (idb != null) {
-					ByteBuffer data = idb.data();
+				BGFXInstanceDataBuffer idb = BGFXInstanceDataBuffer.calloc();
+				bgfx_alloc_instance_data_buffer(idb, numInstances, instanceStride);
+				ByteBuffer data = idb.data();
 
-					for (int xx = 0; xx < 3; ++xx) {
-						mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f);
-						mtx.m30(-3.0f + xx * 3.0f);
-						mtx.m31(-3.0f + yy * 3.0f);
-						mtx.m32(0.0f);
+				for (int xx = 0; xx < 3; ++xx) {
+					mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f);
+					mtx.m30(-3.0f + xx * 3.0f);
+					mtx.m31(-3.0f + yy * 3.0f);
+					mtx.m32(0.0f);
 
-						mtx.get(data);
-						data.position(data.position() + instanceStride);
-					}
-
-					// Set instance data buffer.
-					bgfx_set_instance_data_buffer(idb, numInstances);
-
-					// Set vertex and index buffer.
-					bgfx_set_vertex_buffer(0, vbh, 0, 24);
-					bgfx_set_index_buffer(ibh, 0, 36);
-
-					// Bind textures.
-					bgfx_set_texture(0, uniformTexColor, textureColor, 0xffffffff);
-					bgfx_set_texture(1, uniformTexNormal, textureNormal, 0xffffffff);
-
-					// Set render states.
-					bgfx_set_state(BGFX_STATE_RGB_WRITE
-							| BGFX_STATE_ALPHA_WRITE
-							| BGFX_STATE_DEPTH_WRITE
-							| BGFX_STATE_DEPTH_TEST_LESS
-							| BGFX_STATE_MSAA, 0);
-
-					// Submit primitive for rendering to view 0.
-					bgfx_submit(0, program, 0, false);
+					mtx.get(data);
+					data.position(data.position() + instanceStride);
 				}
+
+				// Set instance data buffer.
+				bgfx_set_instance_data_buffer(idb, numInstances);
+
+				// Set vertex and index buffer.
+				bgfx_set_vertex_buffer(0, vbh, 0, 24);
+				bgfx_set_index_buffer(ibh, 0, 36);
+
+				// Bind textures.
+				bgfx_set_texture(0, uniformTexColor, textureColor, 0xffffffff);
+				bgfx_set_texture(1, uniformTexNormal, textureNormal, 0xffffffff);
+
+				// Set render states.
+				bgfx_set_state(BGFX_STATE_RGB_WRITE
+						| BGFX_STATE_ALPHA_WRITE
+						| BGFX_STATE_DEPTH_WRITE
+						| BGFX_STATE_DEPTH_TEST_LESS
+						| BGFX_STATE_MSAA, 0);
+
+				// Submit primitive for rendering to view 0.
+				bgfx_submit(0, program, 0, false);
+				idb.free();
 			}
 		} else {
 			for (int yy = 0; yy < 3; ++yy) {
