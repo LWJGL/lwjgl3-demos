@@ -43,8 +43,7 @@ const vec3 lightCenterPosition = vec3(1.5, 1.5, 1.5);
 const vec4 lightColor = vec4(1);
 
 float random(vec2 f, float time);
-vec3 randomDiskPoint(vec3 rand, vec3 n, vec3 up);
-vec3 randomHemispherePoint(vec3 rand, vec3 n);
+vec3 randomDiskPoint(vec3 rand, vec3 n);
 
 /*
  * We need random values every now and then.
@@ -129,7 +128,7 @@ vec4 trace(vec3 hitPoint, vec3 normal) {
   vec4 attenuation = vec4(1.0);
   bool intersected = false;
   vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
-  vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal, cameraUp) * lightRadius;
+  vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal) * lightRadius;
   vec3 shadowRayDir = lightPosition - hitPoint;
   vec3 shadowRayStart = hitPoint + normal * EPSILON;
   hitinfo shadowRayInfo;

@@ -6,12 +6,12 @@
 #define PI 3.14159265359
 
 /**
- * Generate a uniformly distributed random point on the unit disk.
+ * Generate a uniformly distributed random point on the unit disk oriented around 'n'.
  * 
  * After:
  * http://mathworld.wolfram.com/DiskPointPicking.html
  */
-vec3 randomDiskPoint(vec3 rand, vec3 n, vec3 up) {
+vec3 randomDiskPoint(vec3 rand, vec3 n) {
   float r = rand.x * 0.5 + 0.5; // [-1..1) -> [0..1)
   float angle = (rand.y + 1.0) * PI; // [-1..1] -> [0..2*PI)
   float sr = sqrt(r);
@@ -21,7 +21,7 @@ vec3 randomDiskPoint(vec3 rand, vec3 n, vec3 up) {
    * our disk towards the normal. We use the camera's up vector
    * to have some fix reference vector over the whole screen.
    */
-  vec3 tangent = up;
+  vec3 tangent = normalize(rand);
   vec3 bitangent = cross(tangent, n);
   tangent = cross(bitangent, n);
   
@@ -82,15 +82,32 @@ vec3 ortho(vec3 v) {
     return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
 }
 
-vec3 getSampleBiased(vec3 r, vec3 dir, float power) {
-	vec3 o1 = ortho(dir);
-	vec3 o2 = cross(dir, o1);
-	r.x = (r.x + 1.0) * PI;
-	r.y = pow(r.y * 0.5 + 0.5, 1.0 / (power + 1.0));
-	float oneminus = sqrt(1.0 - r.y * r.y);
-	return cos(r.x) * oneminus * o1 + sin(r.x) * oneminus * o2 + r.y * dir;
-}
-
-vec3 randomHemisphereCosineWeightedPoint(vec3 rand, vec3 dir) {
-	return getSampleBiased(rand, dir, 1.0);
+/**
+ * Generate a cosine-weighted random point on the unit hemisphere oriented around 'n'.
+ * 
+ * @param rand a vector containing pseudo-random values
+ * @param n    the normal to orient the hemisphere around
+ * @returns    the cosine-weighted point on the oriented hemisphere
+ */
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 n) {
+  float r = rand.x * 0.5 + 0.5; // [-1..1) -> [0..1)
+  float angle = (rand.y + 1.0) * PI; // [-1..1] -> [0..2*PI)
+  float sr = sqrt(r);
+  vec2 p = vec2(sr * cos(angle), sr * sin(angle));
+  /*
+   * Unproject disk point up onto hemisphere:
+   * 1.0 == sqrt(x*x + y*y + z*z) -> z = sqrt(1.0 - x*x - y*y)
+   */
+  vec3 ph = vec3(p.xy, sqrt(1.0 - p*p));
+  /*
+   * Compute some arbitrary tangent space for orienting
+   * our hemisphere 'ph' around the normal. We use the camera's up vector
+   * to have some fix reference vector over the whole screen.
+   */
+  vec3 tangent = normalize(rand);
+  vec3 bitangent = cross(tangent, n);
+  tangent = cross(bitangent, n);
+  
+  /* Make our hemisphere orient around the normal. */
+  return tangent * ph.x + bitangent * ph.y + n * ph.z;
 }

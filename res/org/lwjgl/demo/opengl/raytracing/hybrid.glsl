@@ -39,14 +39,15 @@ const box boxes[] = {
 
 #define EPSILON 0.0001
 #define LIGHT_RADIUS 0.4
-#define LIGHT_BASE_INTENSITY 20.0
+#define LIGHT_BASE_INTENSITY 15.0
 
 const vec3 lightCenterPosition = vec3(1.5, 2.9, 3);
 const vec4 lightColor = vec4(1);
 
 float random(vec2 f, float time);
-vec3 randomDiskPoint(vec3 rand, vec3 n, vec3 up);
+vec3 randomDiskPoint(vec3 rand, vec3 n);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 n);
 
 struct hitinfo {
   float near;
@@ -113,7 +114,7 @@ vec4 trace(vec3 hitPoint, vec3 normal) {
   do {
     bounce++;
     vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
-    vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal, cameraUp) * LIGHT_RADIUS;
+    vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal) * LIGHT_RADIUS;
     vec3 shadowRayDir = lightPosition - hitPoint;
     vec3 shadowRayStart = hitPoint + normal * EPSILON;
     hitinfo shadowRayInfo;
@@ -124,7 +125,8 @@ vec4 trace(vec3 hitPoint, vec3 normal) {
       accumulated += attenuation * vec4(lightColor * LIGHT_BASE_INTENSITY * cosineFallOff * oneOverR2);
     }
     origin = shadowRayStart;
-    dir = randomHemispherePoint(rand, normal);
+    //dir = randomHemispherePoint(rand, normal);
+    dir = randomCosineWeightedHemispherePoint(rand, normal);
     attenuation *= dot(normal, dir);
     if (bounce < bounceCount) {
       intersected = intersectBoxes(origin, dir, i);

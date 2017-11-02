@@ -51,13 +51,14 @@ const box boxes[] = box[7](
 #define EPSILON 0.00001
 #define LIGHT_RADIUS 0.9
 
-#define LIGHT_BASE_INTENSITY 20.0
+#define LIGHT_BASE_INTENSITY 15.0
 const vec3 lightCenterPosition = vec3(1.5, 2.9, 3);
 const vec4 lightColor = vec4(1);
 
 float random(vec2 f, float time);
-vec3 randomDiskPoint(vec3 rand, vec3 n, vec3 up);
+vec3 randomDiskPoint(vec3 rand, vec3 n);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 n);
 
 struct hitinfo {
   float near;
@@ -140,7 +141,7 @@ vec4 trace(vec3 origin, vec3 dir) {
       vec3 hitPoint = origin + i.near * dir;
       vec3 normal = normalForBox(hitPoint, b);
       vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
-      vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal, cameraUp) * LIGHT_RADIUS;
+      vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal) * LIGHT_RADIUS;
       vec3 shadowRayDir = lightPosition - hitPoint;
       vec3 shadowRayStart = hitPoint + normal * EPSILON;
       hitinfo shadowRayInfo;
@@ -152,7 +153,8 @@ vec4 trace(vec3 origin, vec3 dir) {
         accumulated += attenuation * vec4(lightColor * LIGHT_BASE_INTENSITY * cosineFallOff * oneOverR2);
       }
       origin = shadowRayStart;
-      dir = randomHemispherePoint(rand, normal);
+      //dir = randomHemispherePoint(rand, normal);
+      dir = randomCosineWeightedHemispherePoint(rand, normal);
       attenuation *= dot(normal, dir);
     } else {
       break;
@@ -167,8 +169,8 @@ void main(void) {
   cameraUp = normalize(ray01 - ray00);
   for (int s = 0; s < 1; s++) {
     float rand1 = random(pos, time + float(s));
-    float rand2 = random(pos + vec2(641.51224, 423.178), time + float(s));
-    float rand3 = random(pos - vec2(147.16414, 363.941), time - float(s));
+    float rand2 = random(pos + vec2(1, 2), time + float(s));
+    float rand3 = random(pos - vec2(3, 4), time - float(s));
     rand = vec3(rand1, rand2, rand3);
     vec2 jitter = vec2(rand1, rand2) / vec2(width, height);
     vec2 p = pos + jitter;

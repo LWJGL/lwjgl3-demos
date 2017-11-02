@@ -44,6 +44,7 @@ uniform Images {
 float random(vec2 f, float time);
 vec3 randomSpherePoint(vec3 rand);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 n);
 
 struct hitinfo {
   float near;
@@ -182,6 +183,7 @@ void main(void) {
   /* Sample random sphere point */
   vec3 randSphere = randomSpherePoint(rand);
   vec3 positionOnLight = lightCenterPosition + randSphere * lightRadius;
-  vec3 lightDirection = randomHemispherePoint(rand, randSphere);
+  //vec3 lightDirection = randomHemispherePoint(rand, randSphere);
+  vec3 lightDirection = randomCosineWeightedHemispherePoint(rand, randSphere);
   trace(positionOnLight, lightDirection);
 }
