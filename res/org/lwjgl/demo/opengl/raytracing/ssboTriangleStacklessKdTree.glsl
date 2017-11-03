@@ -10,8 +10,8 @@
 #define SIDE_Y_NEG 3
 #define SIDE_Z_POS 4
 #define SIDE_Z_NEG 5
-#define MAX_DESCEND 70.0
-#define MAX_ROPES 50.0
+#define MAX_DESCEND 60.0
+#define MAX_ROPES 30.0
 #define EPSILON 0.0001
 #define NO_NEIGHBOR -1
 #define NO_CHILD -1
@@ -64,7 +64,7 @@ float intersectTriangle(vec3 origin, vec3 ray, vec3 v0, vec3 v1, vec3 v2) {
   vec3 edge2 = v2 - v0;
   vec3 pvec = cross(ray, edge2);
   float det = dot(edge1, pvec);
-  if (det <= 0)
+  if (det <= 0.0)
     return -1.0;
   vec3 tvec = origin - v0;
   float u = dot(tvec, pvec);
@@ -103,14 +103,14 @@ bool intersectTriangles(vec3 origin, vec3 dir, const node o, inout hitinfo info)
 vec2 intersectCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
   vec3 invDir = vec3(1.0)/dir;
   float tNear, tFar, tymin, tymax, tzmin, tzmax;
-  if (invDir.x >= 0.0) {
+  if (dir.x >= 0.0) {
     tNear = (boxMin.x - origin.x) * invDir.x;
     tFar = (boxMax.x - origin.x) * invDir.x;
   } else {
     tNear = (boxMax.x - origin.x) * invDir.x;
     tFar = (boxMin.x - origin.x) * invDir.x;
   }
-  if (invDir.y >= 0.0) {
+  if (dir.y >= 0.0) {
     tymin = (boxMin.y - origin.y) * invDir.y;
     tymax = (boxMax.y - origin.y) * invDir.y;
   } else {
@@ -119,7 +119,7 @@ vec2 intersectCube(vec3 origin, vec3 dir, vec3 boxMin, vec3 boxMax) {
   }
   if (tNear > tymax || tymin > tFar)
     return vec2(1.0, -1.0);
-  if (invDir.z >= 0.0) {
+  if (dir.z >= 0.0) {
     tzmin = (boxMin.z - origin.z) * invDir.z;
     tzmax = (boxMax.z - origin.z) * invDir.z;
   } else {
@@ -152,23 +152,23 @@ int exitRope(node n, vec3 origin, vec3 dir, float lambdaY) {
   vec3 distMax = abs(pos - n.max);
   int face = SIDE_X_NEG;
   float minDist = distMin.x;
-  if (distMax.x < minDist) {
+  if (distMax.x < minDist && dir.x > 0.0) {
     face = SIDE_X_POS;
     minDist = distMax.x;
   }
-  if (distMin.y < minDist) {
+  if (distMin.y < minDist && dir.y < 0.0) {
     face = SIDE_Y_NEG;
     minDist = distMin.y;
   }
-  if (distMax.y < minDist) {
+  if (distMax.y < minDist && dir.y > 0.0) {
     face = SIDE_Y_POS;
     minDist = distMax.y;
   }
-  if (distMin.z < minDist) {
+  if (distMin.z < minDist && dir.z < 0.0) {
     face = SIDE_Z_NEG;
     minDist = distMin.z;
   }
-  if (distMax.z < minDist) {
+  if (distMax.z < minDist && dir.z > 0.0) {
     face = SIDE_Z_POS;
     minDist = distMin.z;
   }
@@ -196,6 +196,7 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
         return vec4(1.0, 0.0, 0.0, 1.0);
       }
     }
+    info.bounds.x -= EPSILON;
     if (intersectTriangles(origin, dir, n, info)) {
       vec3 hit = origin + dir * info.t;
       info.bounds.y = info.t;
@@ -203,8 +204,8 @@ vec4 depth(node n, vec3 origin, vec3 dir) {
         break;
     }
     float exit = exitCube(origin, dir, n.min, n.max);
-    info.bounds.x = exit;
     int ropeId = exitRope(n, origin, dir, exit);
+    info.bounds.x = exit;
     if (ropeId == NO_NEIGHBOR) {
       break;
     } else {

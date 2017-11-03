@@ -7,12 +7,22 @@
 /**
  * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
  */
-uint hash(uint x) {
+uint hash_(uint x) {
   x += (x << 10u);
   x ^= (x >> 6u);
   x += (x << 3u);
   x ^= (x >> 11u);
   x += (x << 15u);
+  return x;
+}
+
+/**
+ * https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key/12996028#12996028
+ */
+uint hash(uint x) {
+  x = ((x >> 16u) ^ x) * 0x45d9f3bu;
+  x = ((x >> 16u) ^ x) * 0x45d9f3bu;
+  x = (x >> 16u) ^ x;
   return x;
 }
 

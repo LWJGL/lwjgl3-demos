@@ -113,7 +113,7 @@ bool intersect(vec3 origin, vec3 dir, out hitinfo info) {
   for (int i = 0; i < numObjects; i++) {
     const object o = objects[i];
     vec2 lambda = intersectObject(origin, dir, o);
-    if (lambda.y > 0.0 && lambda.x <= lambda.y && lambda.x < info.t) {
+    if (lambda.y >= 0.0 && lambda.x <= lambda.y && lambda.x < info.t) {
       if (intersectTriangles(origin, dir, o, info)) {
         hit = true;
       }

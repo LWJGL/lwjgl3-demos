@@ -60,7 +60,7 @@ const vec4 lightColor = vec4(1);
 float random(vec2 f, float time);
 vec3 randomDiskPoint(vec3 rand, vec3 n);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
-vec3 randomHemisphereCosineWeightedPoint(vec3 rand, vec3 dir);
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 dir);
 
 struct hitinfo {
   float near;
@@ -107,7 +107,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
   bool found = false;
   for (int i = 0; i < NUM_BOXES; i++) {
     vec2 lambda = intersectBox(origin, dir, boxes[i]);
-    if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
+    if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.near = lambda.x;
       info.far = lambda.y;
       info.bi = i;
@@ -156,7 +156,7 @@ vec4 trace(vec3 origin, vec3 dir) {
       }
       origin = shadowRayStart;
       //dir = randomHemispherePoint(rand, normal);
-      dir = randomHemisphereCosineWeightedPoint(rand, normal);
+      dir = randomCosineWeightedHemispherePoint(rand, normal);
       attenuation *= dot(normal, dir);
     } else {
       break;
