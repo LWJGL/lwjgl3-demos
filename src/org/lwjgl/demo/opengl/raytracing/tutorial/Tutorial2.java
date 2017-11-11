@@ -8,9 +8,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.Callback;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -65,9 +63,8 @@ import static org.lwjgl.system.MemoryUtil.*;
  * the framebuffer contents of the individual invocation results somehow,
  * because for any number of iterations we need the arithmetic mean/average over
  * the last N results. There is an easy way to achieve this via linearly
- * interpolating between the (N-1) average and the current iteration result N
- * via linera interpolation/blending. We just need to find a blending weight `a`
- * such that:
+ * interpolating between the (N-1) average and the current iteration result N.
+ * We just need to find a blending weight `a` such that:
  * 
  * <pre>
  * S(1) = O(0)/2 + O(1)/2
@@ -178,12 +175,6 @@ public class Tutorial2 {
 	 */
 	private Callback debugProc;
 
-	/*
-	 * LWJGL holds information about the current OpenGL context in here. Search for
-	 * "GL.createCapabilities()"
-	 */
-	private GLCapabilities caps;
-
 	/**
 	 * Do everything necessary once at the start of the application.
 	 */
@@ -213,7 +204,7 @@ public class Tutorial2 {
 		/*
 		 * Now, create the window.
 		 */
-		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 1", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 2", NULL, NULL);
 		if (window == NULL)
 			throw new AssertionError("Failed to create the GLFW window");
 
@@ -292,7 +283,7 @@ public class Tutorial2 {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		caps = GL.createCapabilities();
+		GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
@@ -340,8 +331,8 @@ public class Tutorial2 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial1/quad.vs", GL_VERTEX_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial1/quad.fs", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -434,8 +425,9 @@ public class Tutorial2 {
 		glBindTexture(GL_TEXTURE_2D, tex);
 		/*
 		 * glTexStorage2D only allocates space for the texture, but does not initialize
-		 * it with any values. This is fine, because we use the texture solely as output
-		 * texture in the compute shader.
+		 * it with any values. This is fine, because we use the texture as output
+		 * texture in the compute shader and read from it only after we've written to
+		 * it.
 		 */
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, width, height);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -478,7 +470,8 @@ public class Tutorial2 {
 	 * Monte Carlo integration/simulation is a way to numerically approximate those
 	 * integrals via a stochastic process. This essentially means we take many
 	 * numbers of "samples" of possible directions in a surface's hemisphere and
-	 * check whether light comes along this direction.
+	 * check whether light comes along this direction. Then we average over all
+	 * those sample results.
 	 * <p>
 	 * Like described in the class JavaDocs this method will compute the average of
 	 * the last frames average and the light transport computed during this
@@ -511,11 +504,6 @@ public class Tutorial2 {
 			resizeFramebufferTexture();
 			resetFramebuffer = false;
 		}
-		/*
-		 * Invert the view-projection matrix to unproject NDC-space coordinates to
-		 * world-space vectors. See next few statements.
-		 */
-		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 
 		/*
 		 * Obtain the current "time" and submit it to the compute shader for temporal
@@ -534,6 +522,11 @@ public class Tutorial2 {
 		glUniform1f(blendFactorUniform, blendFactor);
 
 		/*
+		 * Invert the view-projection matrix to unproject NDC-space coordinates to
+		 * world-space vectors. See next few statements.
+		 */
+		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
+		/*
 		 * Compute and set the view frustum corner rays in the shader for the shader to
 		 * compute the direction from the eye through a framebuffer's pixel center for a
 		 * given shader work item.
@@ -549,9 +542,9 @@ public class Tutorial2 {
 		glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
 
 		/*
-		 * Bind level 0 of framebuffer texture as writable image in the shader. This
-		 * tells OpenGL that any writes to the image defined in our shader is going to
-		 * go to the first level of the texture 'tex'.
+		 * Bind level 0 of framebuffer texture as writable and readable image in the
+		 * shader. This tells OpenGL that any writes to and reads from the image defined
+		 * in our shader is going to go to the first level of the texture 'tex'.
 		 */
 		glBindImageTexture(framebufferImageBinding, tex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 
@@ -589,26 +582,18 @@ public class Tutorial2 {
 	 * Present the final image on the default framebuffer of the GLFW window.
 	 */
 	private void present() {
-		if (caps.GL_NV_draw_texture) {
-			/*
-			 * Use some fancy NV extension to draw a screen-aligned textured quad without
-			 * needing a VAO/VBO or a shader.
-			 */
-			NVDrawTexture.glDrawTextureNV(tex, sampler, 0.0f, 0.0f, width, height, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-		} else {
-			/*
-			 * Draw the rendered image on the screen using a textured full-screen quad.
-			 */
-			glUseProgram(quadProgram);
-			glBindVertexArray(vao);
-			glBindTexture(GL_TEXTURE_2D, tex);
-			glBindSampler(0, this.sampler);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			glBindSampler(0, 0);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glBindVertexArray(0);
-			glUseProgram(0);
-		}
+		/*
+		 * Draw the rendered image on the screen using a textured full-screen quad.
+		 */
+		glUseProgram(quadProgram);
+		glBindVertexArray(vao);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glBindSampler(0, this.sampler);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindSampler(0, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 
 	private void loop() {

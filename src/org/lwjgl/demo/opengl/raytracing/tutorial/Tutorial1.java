@@ -9,9 +9,7 @@ import org.lwjgl.demo.intro.Intro1;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.Callback;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -153,12 +151,6 @@ public class Tutorial1 {
 	 */
 	private Callback debugProc;
 
-	/*
-	 * LWJGL holds information about the current OpenGL context in here. Search for
-	 * "GL.createCapabilities()"
-	 */
-	private GLCapabilities caps;
-
 	/**
 	 * Do everything necessary once at the start of the application.
 	 */
@@ -254,7 +246,7 @@ public class Tutorial1 {
 		width = framebufferSize.get(0);
 		height = framebufferSize.get(1);
 
-		caps = GL.createCapabilities();
+		GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();
 
 		/* Create all needed GL resources */
@@ -503,26 +495,18 @@ public class Tutorial1 {
 	 * Present the final image on the default framebuffer of the GLFW window.
 	 */
 	private void present() {
-		if (caps.GL_NV_draw_texture) {
-			/*
-			 * Use some fancy NV extension to draw a screen-aligned textured quad without
-			 * needing a VAO/VBO or a shader.
-			 */
-			NVDrawTexture.glDrawTextureNV(tex, sampler, 0.0f, 0.0f, width, height, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-		} else {
-			/*
-			 * Draw the rendered image on the screen using a textured full-screen quad.
-			 */
-			glUseProgram(quadProgram);
-			glBindVertexArray(vao);
-			glBindTexture(GL_TEXTURE_2D, tex);
-			glBindSampler(0, this.sampler);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			glBindSampler(0, 0);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glBindVertexArray(0);
-			glUseProgram(0);
-		}
+		/*
+		 * Draw the rendered image on the screen using a textured full-screen quad.
+		 */
+		glUseProgram(quadProgram);
+		glBindVertexArray(vao);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glBindSampler(0, this.sampler);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindSampler(0, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 
 	private void loop() {

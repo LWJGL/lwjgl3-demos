@@ -33,13 +33,15 @@ uniform float time;
  */
 uniform float blendFactor;
 
+#define PI 3.14159265359
 #define TWO_PI 6.28318530718
+#define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 #define LARGE_FLOAT 1E+10
 #define NUM_BOXES 11
 #define EPSILON 0.0001
-#define SKY_COLOR vec3(0.85, 0.92, 0.97)
-#define BOX_COLOR vec3(0.4)
+#define LIGHT_INTENSITY 4.0
+#define SKY_COLOR vec3(0.89, 0.96, 1.00)
 
 /*
  * Forward-declare external functions from random.glsl.
@@ -217,10 +219,9 @@ vec3 trace(vec3 origin, vec3 dir) {
        * The ray did not hit any box in the scene, so it escaped through
        * the open ceiling to the outside world, which is assumed to consist
        * of nothing but light coming in from everywhere.
-       * We do not attenuate the returned color any further but simply return
-       * the attenuated color as is.
+       * Return the attenuated sky color.
        */
-      return att;
+      return LIGHT_INTENSITY * SKY_COLOR * att;
     }
     /*
      * When we are here, the ray we are currently processing hit a box.
@@ -256,6 +257,19 @@ vec3 trace(vec3 origin, vec3 dir) {
      */
     dir = randomHemispherePoint(normal, randvec3(bounce));
     /*
+     * The next thing we have to take care of is evaluating the surface BRDF with
+     * the outgoing light ray direction (i.e. our previous 'dir') and the incoming
+     * light direction (i.e. our newly computed 'dir'). Since we are dealing with
+     * lambertian surfaces which reflect light equally in all directions, this BRDF
+     * function is actually a constant equal to c/PI, where 'c' is the
+     * albedo/reflectance factor of the surface determining how much of the incoming
+     * light is reflected by the surface. We will take care of the 'c' factor
+     * further below. Here we just multiply our attenuation factor by 1/PI.
+     * In this tutorial the BRDF is a constant, however in later tutorials this will
+     * be an actual function of the light direction vectors.
+     */
+    att *= ONE_OVER_PI;
+    /*
      * Now this part is important: Any light that might come along the newly
      * generated ray has to be attenuated based on the angle between the generated
      * direction vector and the surface normal. This is known as the "cosine fall-off"
@@ -274,27 +288,33 @@ vec3 trace(vec3 origin, vec3 dir) {
     /*
      * The last factor we need to take care of is an important part of the Monte Carlo
      * integration. What we are doing is sampling the hemisphere of a surface with
-     * random vectors and evaluate an integrand (in this case a lambertian BRDF) of a
-     * completely diffuse surface. If we take this integral for a given incident light
-     * direction, computing the radiance for all outgoing directions, that integral must
-     * not be greater than 1. This is to ensure energy conservation and means that a
-     * surface cannot reflect more light than it receives. The integral should also be 1
-     * for surfaces which reflect all of its incoming light. For lambertian surfaces
-     * with uniformly distributed hemisphere directions (as in our case) the correction
-     * factor to achieve this is a constant and equal to 1/(2*PI).
+     * random vectors and evaluate an integrand (in this case a lambertian BRDF).
+     * If we take this integral for a given incident light direction, computing the
+     * radiance for all outgoing directions, that integral must not be greater than 1.
+     * This is to ensure energy conservation and means that a surface cannot reflect
+     * more light than it receives. The integral should also be 1 for surfaces which
+     * reflect all of its incoming light. For uniformly distributed hemisphere
+     * directions (as in our case) the correction factor to achieve this is a
+     * constant equal to 1/(2*PI).
      *
-     * In the Monte Carlo estimator for an integrand f(x) and probability density function p(x):
+     * In the Monte Carlo estimator for an integrand f(x) and probability density
+     * function p(x):
      *
      *  F[N] = 1/N * Sum{1, N}(f(x) / p(x))
      * 
      * this correction factor is precisely p(x) and we must therefore divide by it.
+     *
+     * In later tutorial parts when we do not use uniform hemisphere samples anymore
+     * the probability density function is not going to be a constant but an actual
+     * function depending on various input vectors.
      */
     att /= ONE_OVER_2PI;
   }
   /*
-   * When followed a ray for the maximum number of bounces and that ray still did not escape through
-   * the ceiling into the light, that ray does therefore not transport any light back to the eye/camera
-   * and its contribution to this Monte Carlo iteration will be 0.
+   * When followed a ray for the maximum number of bounces and that ray still did
+   * not escape through the ceiling into the light, that ray does therefore not
+   * transport any light back to the eye/camera and its contribution to this
+   * Monte Carlo iteration will be 0.
    */
   return vec3(0.0);
 }
@@ -321,7 +341,7 @@ void main(void) {
    * Because we have to execute our compute shader with a global work size
    * that is a power of two, we need to check whether the current work item
    * is still within our actual framebuffer dimension so that we do not
-   * accidentally write to unallocated memory later.
+   * accidentally write to or read from unallocated memory later.
    */
   if (px.x >= size.x || px.y >= size.y)
     return; // <- no work to do, return.
@@ -347,7 +367,7 @@ void main(void) {
    * along in the scene. The result is a computed color which we will combine with
    * the current/previous framebuffer content below.
    */
-  vec3 color = trace(eye, dir);
+  vec3 color = trace(eye, normalize(dir));
   vec3 oldColor = vec3(0.0);
   /*
    * For any iteration but the very first, we load the current value of the pixel
