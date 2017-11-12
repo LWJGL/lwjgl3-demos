@@ -66,6 +66,8 @@ float random(vec3 f) {
  * Generate a uniformly distributed random vector on the hemisphere
  * around the given normal vector 'n'.
  *
+ * http://mathworld.wolfram.com/SpherePointPicking.html
+ *
  * @param n the normal vector determining the direction of the hemisphere
  * @param rand a vector of three floating-point pseudo-random numbers
  * @returns the random hemisphere vector plus its probability density value
@@ -76,6 +78,19 @@ vec4 randomHemispherePoint(vec3 n, vec3 rand) {
   float s = sqrt(1.0 - u * u);
   vec3 v = vec3(s * cos(ang1), s * sin(ang1), u);
   return vec4(v * sign(dot(v, n)), ONE_OVER_2PI);
+}
+
+/**
+ * Transform the given vector 'v' from its local frame into the orthonormal
+ * basis with +Z = z.
+ *
+ * @param v the vector to transform
+ * @param z the direction to transform +Z into
+ * @returns the vector in the new basis
+ */
+vec3 around(vec3 v, vec3 z) {
+  vec3 t = ortho(z), b = cross(z, t);
+  return t * v.x + b * v.y + z * v.z;
 }
 
 /**
@@ -93,8 +108,7 @@ vec4 randomHemispherePoint(vec3 n, vec3 rand) {
  */
 vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
   float p = TWO_PI * rand.x, s = sqrt(1.0 - rand.y), c = sqrt(rand.y);
-  vec3 t = ortho(n), b = cross(n, t);
-  return vec4(t * cos(p) * s + b * sin(p) * s + n * c, c * ONE_OVER_PI);
+  return vec4(around(vec3(cos(p) * s, sin(p) * s, c), n), c * ONE_OVER_PI);
 }
 
 /**
@@ -112,6 +126,5 @@ vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
  */
 vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec3 rand) {
   float p = TWO_PI * rand.x, c = pow(rand.y, 1.0 / (a + 1.0)), s = sqrt(1.0 - c * c);
-  vec3 t = ortho(r), b = cross(r, t);
-  return vec4(t * cos(p) * s + b * sin(p) * s + r * c, (a + 1.0) * pow(c, a) * ONE_OVER_2PI);
+  return vec4(around(vec3(cos(p) * s, sin(p) * s, c), r), (a + 1.0) * pow(c, a) * ONE_OVER_2PI);
 }
