@@ -294,8 +294,8 @@ public class Tutorial1 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs.glsl", GL_VERTEX_SHADER, "330");
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs.glsl", GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -322,7 +322,7 @@ public class Tutorial1 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial1/raytracing.glslcs",
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial1/raytracing.glsl",
 				GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glLinkProgram(program);
