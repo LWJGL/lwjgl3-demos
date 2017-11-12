@@ -248,9 +248,12 @@ vec3 trace(vec3 origin, vec3 dir) {
        * The ray did not hit any box in the scene, so it escaped through
        * the open ceiling to the outside world, which is assumed to consist
        * of nothing but light coming in from everywhere.
-       * Return the attenuated sky color.
+       * Light source does not scatter light equally in all directions
+       * but its radiance is attenuated by the normal at which the ray
+       * hits the light source (which shall be a simple plane in our case).
        */
-      return LIGHT_INTENSITY * SKY_COLOR * att * dot(vec3(0.0, 1.0, 0.0), dir);
+      float d = dir.y; // == dot(dir, vec3(0.0, 1.0, 0.0))
+      return LIGHT_INTENSITY * SKY_COLOR * att * d;
     }
     /*
      * When we are here, the ray we are currently processing hit a box.
@@ -281,45 +284,35 @@ vec3 trace(vec3 origin, vec3 dir) {
     /*
      * We have the new origin of the ray and now we just need its new direction.
      * This time we will have two possible ways of generating a direction vector.
-     * One is via a uniformly distributed hemisphere vector, like in the last
-     * tutorial. Another way by making use of our knowledge of the specular BRDF
-     * we are using here, and generating vectors predominantly in those directions
-     * which our BRDF would return the highest value (i.e. the lowest attenuation)
-     * of the light.
-     * Since we know that we are dealing with specular reflections we know that
-     * the BRDF will have a strong "lobe" around the direction of perfect
-     * reflection. So, assuming that the direction we used to hit the box surface
-     * (i.e. 'dir') was exactly that perfect reflection direction, we now generate
-     * incoming light directions around that vector reflected around the surface
-     * normal vector and follow this reflected vector.
-     * We call the generation of sample vectors, based on the knowledge of where
-     * a BRDF would return high values, "importance sampling", since it is used
-     * to sample the "important" (i.e. likelyness of light contribution)
-     * predominanty.
-     *
-     * There is also the possibility to switch between uniform hemisphere sampling
-     * and importance sampling.
-     *
-     * Declare the vector holding the generated sample direction and the
-     * probability density value of that direction.
+     * One is via a uniformly distributed hemisphere direction, like in the last
+     * tutorial. Another way is by making use of our knowledge of the BRDF we are
+     * using here, and generating vectors predominantly in those directions which
+     * our BRDF would return the highest value (i.e. the lowest attenuation) of
+     * the light.
+     * Since we know that we are dealing with a diffuse and specular reflection 
+     * component, we know that the BRDF will both have a strong "lobe" around the
+     * direction of perfect reflection and a broader lobe around the normal.
+     * So, assuming that the direction we used to hit the box surface (i.e. 'dir').
+     * To account for both possible components, we sample both individually with
+     * a probability equal to their respective factor in the BRDF.
+     * First, declared our vector holding the generated sample direction and its
+     * pdf(x) value.
      */
     vec4 s;
     /*
      * Generate some random values we use later to generate the random vector.
      */
     vec3 rand = randvec3(bounce);
-    bool diffuse;
     /*
      * Check whether we want to use importance sampling.
      */
     if (importanceSampled) {
       /*
        * We will use importance sampling for the two parts, diffuse and specular,
-       * of the BRDF separately. We do this via a "russian roulette" strategy by
-       * letting a random variable decide which part we want to generate an
-       * importance sampled vector for and which BRDF part we will therefore
-       * evaluate.
-       * To decide which part of the BRDF to evaluate, we divide the random
+       * of the BRDF separately. We do this via randomly choosing which
+       * component of the BRDF to sample based on the factor of this component
+       * in the whole BRDF.
+       * To decide which part of the BRDF to evaluate, we divide a random
        * variable [0, 1) into the interval [0, SPECULAR_FACTOR) and 
        * [SPECULAR_FACTOR, 1), where SPECULAR_FACTOR is the amount of 
        * specularity our surface material has. It is important that this
