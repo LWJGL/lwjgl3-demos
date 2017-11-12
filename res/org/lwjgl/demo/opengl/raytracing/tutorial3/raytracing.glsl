@@ -176,6 +176,14 @@ vec3 normalForBox(vec3 hit, const box b) {
 /**
  * This is one of the key components of our Monte Carlo integration.
  * A way of obtaining spatially and temporally varying pseudo-random numbers.
+ *
+ * Note that the first two components of the returned vector are usually used to
+ * derive spatial values such as the two spherical angles when generating a sample
+ * direction vector. The last component is used when needing a random value
+ * that does not correlate with generated angles/directions derived from the first 
+ * two components. An example of this is seen when selecting which of the two
+ * importance sampling strategies to be used in the trace() function below for
+ * sampling the BRDF components.
  * 
  * @param s this is the "bounce index" to get different random numbers for each bounce
  * @returns a vector containing three floating-point random numbers, each in the range [0, 1)
@@ -323,6 +331,15 @@ vec3 trace(vec3 origin, vec3 dir) {
        * factor is both used to weigh the BRDF components as well as to 
        * decide which of the BRDF components to sample and evaluate separately
        * when using importance sampling.
+       *
+       * Note that we are using the last of the three components in our random
+       * vector for this in order to avoid any patterns due to correlation
+       * between the sampling decision and the generated sample vectors,
+       * which always use the first two components in the random vector.
+       *
+       * When we might come to a point that we need even more uncorrelated
+       * randomness we can just generate a new random vector by calling
+       * randvec3() with a different input.
        */
       if (rand.z < specularFactor) {
         /*

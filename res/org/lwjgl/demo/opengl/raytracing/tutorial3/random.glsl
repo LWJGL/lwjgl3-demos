@@ -94,18 +94,18 @@ vec3 around(vec3 v, vec3 z) {
 }
 
 /**
- * Compute the cartesian coordinate from the values typically computed
- * when generating vectors for isotropic BRDFs.
+ * Compute the cartesian coordinates from the values typically computed
+ * when generating sample directions/angles for isotropic BRDFs.
  *
  * @param p this is phi, the angle in [0, 2PI) to rotate around
  *          the principal vector
- * @param s this is sine of theta, the angle in [0, PI/2) giving
+ * @param c this is the cosine of theta, the angle in [0, PI/2) giving
  *          the angle between the principal vector and the one to generate
- * @param c this is the cosine of theta
  *
  * @returns the cartesian direction vector
  */
-vec3 isotropic(float p, float s, float c) {
+vec3 isotropic(float p, float c) {
+  float s = sqrt(1.0 - c*c);
   return vec3(cos(p) * s, sin(p) * s, c);
 }
 
@@ -123,8 +123,8 @@ vec3 isotropic(float p, float s, float c) {
  * @returns the cosine-weighted random hemisphere vector plus its probability density value
  */
 vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
-  float p = TWO_PI * rand.x, s = sqrt(1.0 - rand.y), c = sqrt(rand.y);
-  return vec4(around(isotropic(p, s, c), n), c * ONE_OVER_PI);
+  float p = TWO_PI * rand.x, c = sqrt(rand.y);
+  return vec4(around(isotropic(p, c), n), c * ONE_OVER_PI);
 }
 
 /**
@@ -141,6 +141,6 @@ vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
  * @returns the Phong-weighted random vector
  */
 vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec3 rand) {
-  float ai = 1.0 / (a + 1.0), p = TWO_PI * rand.x, c = pow(rand.y, ai), s = sqrt(1.0 - c * c);
-  return vec4(around(isotropic(p, s, c), r), (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI);
+  float ai = 1.0 / (a + 1.0), p = TWO_PI * rand.x, c = pow(rand.y, ai);
+  return vec4(around(isotropic(p, c), r), (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI);
 }
