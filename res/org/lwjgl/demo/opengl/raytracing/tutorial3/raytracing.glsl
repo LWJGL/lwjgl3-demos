@@ -101,9 +101,10 @@ struct hitinfo {
 };
 
 /**
- * We hold the framebuffer pixel coordinate of the current of the current work item
- * to not drag is as parameter all over the place. In addition to "time" this parameter
- * provide spatial variance for generated pseudo-random numbers.
+ * We hold the framebuffer pixel coordinate of the current work item
+ * to not drag it as parameter all over the place. In addition to
+ * "time" this parameter provide spatial variance for generated
+ * pseudo-random numbers.
  */
 ivec2 px;
 
@@ -204,7 +205,9 @@ vec3 brdfDiffuse(box b, vec3 i, vec3 o, vec3 n) {
   return b.col * ONE_OVER_PI;
 }
 vec3 brdf(box b, vec3 i, vec3 o, vec3 n) {
-  return brdfSpecular(b, i, o, n) * SPECULAR_FACTOR + brdfDiffuse(b, i, o, n) * (1.0 - SPECULAR_FACTOR);
+  return brdfSpecular(b, i, o, n) * SPECULAR_FACTOR
+         +
+         brdfDiffuse(b, i, o, n) * (1.0 - SPECULAR_FACTOR);
 }
 
 /**
@@ -292,10 +295,9 @@ vec3 trace(vec3 origin, vec3 dir) {
      * Since we know that we are dealing with a diffuse and specular reflection 
      * component, we know that the BRDF will both have a strong "lobe" around the
      * direction of perfect reflection and a broader lobe around the normal.
-     * So, assuming that the direction we used to hit the box surface (i.e. 'dir').
      * To account for both possible components, we sample both individually with
      * a probability equal to their respective factor in the BRDF.
-     * First, declared our vector holding the generated sample direction and its
+     * First, declare our vector holding the generated sample direction and its
      * pdf(x) value.
      */
     vec4 s;
@@ -379,10 +381,10 @@ vec3 trace(vec3 origin, vec3 dir) {
       att /= s.w;
   }
   /*
-   * When followed a ray for the maximum number of bounces and that ray still did
-   * not escape through the ceiling into the light, that ray does therefore not
-   * transport any light back to the eye/camera and its contribution to this
-   * Monte Carlo iteration will be 0.
+   * When having followed a ray for the maximum number of bounces and that ray
+   * still did not escape through the ceiling into the light, that ray does
+   * therefore not transport any light back to the eye/camera and its
+   * contribution to this Monte Carlo iteration will be 0.
    */
   return vec3(0.0);
 }
