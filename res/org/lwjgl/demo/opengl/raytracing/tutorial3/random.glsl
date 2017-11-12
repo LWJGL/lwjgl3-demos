@@ -125,6 +125,6 @@ vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
  * @returns the Phong-weighted random vector
  */
 vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec3 rand) {
-  float p = TWO_PI * rand.x, c = pow(rand.y, 1.0 / (a + 1.0)), s = sqrt(1.0 - c * c);
-  return vec4(around(vec3(cos(p) * s, sin(p) * s, c), r), (a + 1.0) * pow(c, a) * ONE_OVER_2PI);
+  float ai = 1.0 / (a + 1.0), p = TWO_PI * rand.x, c = pow(rand.y, ai), s = sqrt(1.0 - c * c);
+  return vec4(around(vec3(cos(p) * s, sin(p) * s, c), r), (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI);
 }
