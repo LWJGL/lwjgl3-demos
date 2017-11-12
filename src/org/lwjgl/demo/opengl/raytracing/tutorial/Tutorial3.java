@@ -107,6 +107,8 @@ public class Tutorial3 {
 	private int timeUniform;
 	private int blendFactorUniform;
 	private int importanceSampledUniform;
+	private int phongExponentUniform;
+	private int specularFactorUniform;
 	/**
 	 * The binding point in the compute shader of the framebuffer image (level 0 of
 	 * the {@link #tex} texture).
@@ -125,6 +127,8 @@ public class Tutorial3 {
 	private boolean mouseDown;
 	private int frameNumber;
 	private boolean importanceSampled;
+	private float phongExponent = 128.0f;
+	private float specularFactor = 0.2f;
 
 	private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
 	private Matrix4f projMatrix = new Matrix4f();
@@ -184,9 +188,11 @@ public class Tutorial3 {
 		if (window == NULL)
 			throw new AssertionError("Failed to create the GLFW window");
 
-		System.out.println("Press WSAD to move around in the scene.");
+		System.out.println("Press WSAD, LCTRL, SPACE to move around in the scene.");
 		System.out.println("Hold down left shift to move faster.");
 		System.out.println("Press 'C' to toggle between uniform and importance sampling.");
+		System.out.println("Press +/- to increase/decrease the specular factor.");
+		System.out.println("Press PAGEUP/PAGEDOWN to increase/decrease the Phong power.");
 		System.out.println("Move the mouse to look around.");
 
 		/* And set some GLFW callbacks to get notified about events. */
@@ -203,6 +209,28 @@ public class Tutorial3 {
 						System.out.println("Using importance sampling");
 					else
 						System.out.println("Using uniform sampling");
+				} else if (key == GLFW_KEY_KP_ADD && action == GLFW_RELEASE) {
+					specularFactor += 0.1f;
+					if (specularFactor > 1.0f)
+						specularFactor = 1.0f;
+					System.out.println("Specular factor = " + specularFactor);
+					frameNumber = 0;
+				} else if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_RELEASE) {
+					specularFactor -= 0.1f;
+					if (specularFactor < 0.0f)
+						specularFactor = 0.0f;
+					System.out.println("Specular factor = " + specularFactor);
+					frameNumber = 0;
+				} else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE) {
+					phongExponent *= 1.2f;
+					System.out.println("Phong exponent = " + phongExponent);
+					frameNumber = 0;
+				} else if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_RELEASE) {
+					phongExponent /= 1.2f;
+					if (phongExponent < 1.0f)
+						phongExponent = 1.0f;
+					System.out.println("Phong exponent = " + phongExponent);
+					frameNumber = 0;
 				}
 				keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
 			}
@@ -402,6 +430,8 @@ public class Tutorial3 {
 		timeUniform = glGetUniformLocation(computeProgram, "time");
 		blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
 		importanceSampledUniform = glGetUniformLocation(computeProgram, "importanceSampled");
+		phongExponentUniform = glGetUniformLocation(computeProgram, "phongExponent");
+		specularFactorUniform = glGetUniformLocation(computeProgram, "specularFactor");
 
 		/* Query the "image binding point" of the image uniform */
 		IntBuffer params = BufferUtils.createIntBuffer(1);
@@ -530,6 +560,14 @@ public class Tutorial3 {
 		 * Set whether we want to use importance sampling.
 		 */
 		glUniform1i(importanceSampledUniform, importanceSampled ? 1 : 0);
+		/*
+		 * Set the phong power/exponent which can be configured via PAGEDOWN/PAGEUP keys.
+		 */
+		glUniform1f(phongExponentUniform, phongExponent);
+		/*
+		 * Set the specular factor which can be configured via +/- keys.
+		 */
+		glUniform1f(specularFactorUniform, specularFactor);
 
 		/*
 		 * Invert the view-projection matrix to unproject NDC-space coordinates to

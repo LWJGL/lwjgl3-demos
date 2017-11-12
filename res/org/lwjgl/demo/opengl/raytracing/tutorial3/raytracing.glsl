@@ -38,6 +38,10 @@ uniform float blendFactor;
  */
 uniform bool importanceSampled;
 
+uniform float phongExponent;
+
+uniform float specularFactor;
+
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
 #define ONE_OVER_PI (1.0 / PI)
@@ -47,8 +51,6 @@ uniform bool importanceSampled;
 #define EPSILON 0.0001
 #define LIGHT_INTENSITY 4.0
 #define SKY_COLOR vec3(0.89, 0.96, 1.00)
-#define PHONG_EXPONENT 140.0
-#define SPECULAR_FACTOR 0.3
 
 /*
  * Forward-declare external functions from random.glsl.
@@ -197,7 +199,7 @@ vec3 randvec3(int s) {
  * @returns the attenuation factor
  */
 vec3 brdfSpecular(box b, vec3 i, vec3 o, vec3 n) {
-  float a = PHONG_EXPONENT;
+  float a = phongExponent;
   vec3 r = reflect(-i, n);
   return vec3(pow(max(0.0, dot(r, o)), a) * (a + 2.0) * ONE_OVER_2PI);
 }
@@ -205,9 +207,9 @@ vec3 brdfDiffuse(box b, vec3 i, vec3 o, vec3 n) {
   return b.col * ONE_OVER_PI;
 }
 vec3 brdf(box b, vec3 i, vec3 o, vec3 n) {
-  return brdfSpecular(b, i, o, n) * SPECULAR_FACTOR
+  return brdfSpecular(b, i, o, n) * specularFactor
          +
-         brdfDiffuse(b, i, o, n) * (1.0 - SPECULAR_FACTOR);
+         brdfDiffuse(b, i, o, n) * (1.0 - specularFactor);
 }
 
 /**
@@ -315,14 +317,14 @@ vec3 trace(vec3 origin, vec3 dir) {
        * component of the BRDF to sample based on the factor of this component
        * in the whole BRDF.
        * To decide which part of the BRDF to evaluate, we divide a random
-       * variable [0, 1) into the interval [0, SPECULAR_FACTOR) and 
-       * [SPECULAR_FACTOR, 1), where SPECULAR_FACTOR is the amount of 
+       * variable [0, 1) into the interval [0, specularFactor) and 
+       * [specularFactor, 1), where specularFactor is the amount of 
        * specularity our surface material has. It is important that this
        * factor is both used to weigh the BRDF components as well as to 
        * decide which of the BRDF components to sample and evaluate separately
        * when using importance sampling.
        */
-      if (rand.z < SPECULAR_FACTOR) {
+      if (rand.z < specularFactor) {
         /*
          * We want to sample and evaluate the specular part of the BRDF.
          * So, generate a Phong-weighted vector based on the direction of
@@ -331,7 +333,7 @@ vec3 trace(vec3 origin, vec3 dir) {
          * that reflection vector.
          */
         vec3 r = reflect(dir, normal);
-        s = randomPhongWeightedHemispherePoint(r, PHONG_EXPONENT, rand);
+        s = randomPhongWeightedHemispherePoint(r, phongExponent, rand);
         /*
          * Evaluate the specular part of the BRDF.
          */
