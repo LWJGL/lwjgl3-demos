@@ -63,24 +63,6 @@ float random(vec3 f) {
 }
 
 /**
- * Generate a uniformly distributed random vector on the hemisphere
- * around the given normal vector 'n'.
- *
- * http://mathworld.wolfram.com/SpherePointPicking.html
- *
- * @param n the normal vector determining the direction of the hemisphere
- * @param rand a vector of three floating-point pseudo-random numbers
- * @returns the random hemisphere vector plus its probability density value
- */
-vec4 randomHemispherePoint(vec3 n, vec3 rand) {
-  float ang1 = rand.x * TWO_PI;
-  float u = rand.y * 2.0 - 1.0;
-  float s = sqrt(1.0 - u * u);
-  vec3 v = vec3(s * cos(ang1), s * sin(ang1), u);
-  return vec4(v * sign(dot(v, n)), ONE_OVER_2PI);
-}
-
-/**
  * Transform the given vector 'v' from its local frame into the orthonormal
  * basis with +Z = z.
  *
@@ -107,6 +89,20 @@ vec3 around(vec3 v, vec3 z) {
 vec3 isotropic(float p, float c) {
   float s = sqrt(1.0 - c*c);
   return vec3(cos(p) * s, sin(p) * s, c);
+}
+
+/**
+ * Generate a uniformly distributed random vector on the hemisphere
+ * around the given normal vector 'n'.
+ *
+ * http://mathworld.wolfram.com/SpherePointPicking.html
+ *
+ * @param n the normal vector determining the direction of the hemisphere
+ * @param rand a vector of three floating-point pseudo-random numbers
+ * @returns the random hemisphere vector plus its probability density value
+ */
+vec4 randomHemispherePoint(vec3 n, vec3 rand) {
+  return vec4(around(isotropic(rand.x * TWO_PI, rand.y), n), ONE_OVER_2PI);
 }
 
 /**
