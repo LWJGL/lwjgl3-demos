@@ -18,28 +18,15 @@
 #define spatialrand vec2
 
 /**
- * Compute an arbitrary unit vector orthogonal to the unit vector 'v'
- * which is either of the three base coordinate axes (or the negation of
- * either of them).
+ * Compute an arbitrary unit vector orthogonal to any vector 'v'.
  *
  * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
- *
- * @param v the unit base vector to compute an orthogonal unit vector
- *          from
- * @returns the unit vector orthogonal to 'v'
- */
-vec3 orthoBase(vec3 v) {
-  return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
-}
-
-/**
- * Compute an arbitrary unit vector orthogonal to any vector 'v'.
  *
  * @param v the vector to compute an orthogonal unit vector from
  * @returns the unit vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return normalize(cross(v, orthoBase(v)));
+  return normalize(abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y));
 }
 
 /**
@@ -192,13 +179,13 @@ vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, spatialrand rand) {
 }
 
 /**
- * Generate a random vector uniformly distributed over the disk with 'd'
+ * Generate a random vector uniformly distributed over the disk with 'n'
  * pointing at its center and with the radius 'r' at a distance of 'd'.
  *
  * https://en.wikipedia.org/wiki/Solid_angle#Cone,_spherical_cap,_hemisphere
  * https://en.wikipedia.org/wiki/Angular_diameter#Formula
  *
- * @param n the normalize direction vector towards the disk's center
+ * @param n the unit direction vector towards the disk's center
  * @param d the distance to the disk
  * @param r the radius of the disk
  * @param rand a vector of two pseudo-random numbers
@@ -215,7 +202,7 @@ vec4 randomDiskPoint(vec3 n, float d, float r, spatialrand rand) {
  * https://en.wikipedia.org/wiki/Solid_angle#Cone,_spherical_cap,_hemisphere
  * https://en.wikipedia.org/wiki/Angular_diameter#Formula
  *
- * @param n the normalize direction vector towards the disk's center
+ * @param n the unit direction vector towards the disk's center
  * @param d the distance to the disk
  * @param r the radius of the disk
  * @param v the v vector to compute the pdf of

@@ -18,28 +18,15 @@
 #define spatialrand vec2
 
 /**
- * Compute an arbitrary unit vector orthogonal to the unit vector 'v'
- * which is either of the three base coordinate axes (or the negation of
- * either of them).
+ * Compute an arbitrary unit vector orthogonal to any vector 'v'.
  *
  * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
- *
- * @param v the unit base vector to compute an orthogonal unit vector
- *          from
- * @returns the unit vector orthogonal to 'v'
- */
-vec3 orthoBase(vec3 v) {
-  return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
-}
-
-/**
- * Compute an arbitrary unit vector orthogonal to any vector 'v'.
  *
  * @param v the vector to compute an orthogonal unit vector from
  * @returns the unit vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return normalize(cross(v, orthoBase(v)));
+  return normalize(abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y));
 }
 
 /**
