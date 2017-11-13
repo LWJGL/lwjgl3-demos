@@ -73,6 +73,9 @@ struct box {
   vec3 min, max, col;
 };
 
+/**
+ * Describes a sphere with center position and radius.
+ */
 struct sphere {
   vec3 c;
   float r;
@@ -101,17 +104,18 @@ const sphere spheres[NUM_SPHERES] = {
 };
 
 /**
- * Describes the first intersection of a ray with a box.
+ * Describes the first intersection of a ray with a box or a sphere.
  */
 struct hitinfo {
   /*
    * The value of the parameter 't' in the ray equation
    * `p = origin + dir * t` at which p is a point on one of the boxes
-   * intersected by the ray.
+   * or spheres intersected by the ray.
    */
   float near;
   /*
-   * The index of the box into the 'boxes' array.
+   * The index of the box into the 'boxes' array or sphere into the
+   * 'spheres' array.
    */
   int i;
   /*
@@ -414,20 +418,30 @@ vec3 trace(vec3 origin, vec3 dir) {
      */
     vec3 rand = randvec3(bounce);
     /*
-     * Check whether we want to use multiple importance sampling.
+     * Do we want to use MI sampling or just our standard hemisphere
+     * sampling?
      */
     if (multipleImportanceSampled) {
       /*
        * Obtain a light source in our scene and compute the direction
        * towards it from our current 'origin'.
        */
-      vec3 z1, z2;
       sphere li = spheres[0];
-      vec3 d = li.c - origin;
-      vec3 n = normalize(d);
+      vec3 d = li.c - origin, n = normalize(d);
       /*
-       * Check whether we want to sample the light source or use 
-       * a random hemisphere sample direction.
+       * We are going to use the "One-sample model" proposed by Veach.
+       * This means, we use one of two sampling strategies. Either
+       * sampling the light source or sampling the hemisphere.
+       * The first one is good when we can expect to hit the light
+       * and get fast convergence/low variance quickly. This approach
+       * however is not ideal when we do not directly hit the light and
+       * should instead sample the BRDF.
+       * On the other hand, sampling the BRDF can not be optimal either,
+       * for example when having a strong specular lobe which does not
+       * point towards any light.
+       * That's why we will use randomly either the one or the other 
+       * strategy by letting a random variable decide which one it is
+       * going to be.
        */
       if (rand.z < PROBABILITY_OF_LIGHT_SAMPLE) {
         /*
@@ -438,12 +452,12 @@ vec3 trace(vec3 origin, vec3 dir) {
          */
         s = randomDiskPoint(n, length(d), li.r, rand.xy);
         /*
-         * We will be using the "balanced weighting" strategy of
-         * multiple importance sampling, which requires us to evaluate
-         * the probability distribution function of the hemisphere
-         * sampling function with our disk sample direction.
+         * We will be using the "balancec heuristic" weighting strategy
+         * of multiple importance sampling, which requires us to
+         * evaluate the probability distribution function of the
+         * hemisphere sampling function with our disk sample direction.
          */
-        float p = hemisphereProbability(s.xyz, normal);
+        float p = hemisphereProbability(normal, s.xyz);
         /*
          * Now we need to compute the balanced weight of both
          * probability density values together with the probability of
@@ -451,6 +465,9 @@ vec3 trace(vec3 origin, vec3 dir) {
          */
         s.w = (s.w + p) * PROBABILITY_OF_LIGHT_SAMPLE;
       } else {
+        /*
+         * We want to sample uniformly over the hemisphere instead.
+         */
         s = randomHemispherePoint(normal, rand.xy);
         /*
          * Same as above. Also obtain pdf(x) for the other distribution.
@@ -483,9 +500,8 @@ vec3 trace(vec3 origin, vec3 dir) {
      */
     att *= max(0.0, dot(dir, normal));
     /*
-     * As mentioned above, our sample direction generation function now
-     * returns the pdf(x) value for us in the w component of the return
-     * value. Also, make sure that any value we get will not be 0.
+     * Attenuate by the sample's probability density value.
+     * (also explained in Tutorial 2).
      */
     if (s.w > 0.0)
       att /= s.w;
@@ -546,10 +562,10 @@ void main(void) {
    */
   vec3 dir = mix(mix(ray00, ray01, p.y), mix(ray10, ray11, p.y), p.x);
   /*
-   * Trace the list of boxes with the initial ray `eye + t * dir` and
-   * follow it along in the scene. The result is a computed color which
-   * we will combine with the current/previous framebuffer content
-   * below.
+   * Trace the list of boxes and spheres with the initial ray
+   * `eye + t * dir` and follow it along in the scene. The result is a
+   * computed color which we will combine with the current/previous
+   * framebuffer content below.
    */
   vec3 color = trace(eye, normalize(dir));
   vec3 oldColor = vec3(0.0);

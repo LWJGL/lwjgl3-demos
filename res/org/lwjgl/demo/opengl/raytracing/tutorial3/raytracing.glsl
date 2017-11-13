@@ -436,9 +436,8 @@ vec3 trace(vec3 origin, vec3 dir) {
      */
     att *= max(0.0, dot(dir, normal));
     /*
-     * As mentioned above, our sample direction generation function now
-     * returns the pdf(x) value for us in the w component of the return
-     * value. Also, make sure that any value we get will not be 0.
+     * Attenuate by the sample's probability density value.
+     * (also explained in Tutorial 2).
      */
     if (s.w > 0.0)
       att /= s.w;
