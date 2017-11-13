@@ -30,37 +30,22 @@ import static org.lwjgl.system.MathUtil.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * This tutorial provides an improvement over {@link Tutorial2} by making use of
- * importance sampling for a faster convergence rate of the generated light
- * transport estimate computed via our Monte Carlo integration. This means that
- * the variance in the estimate/image will be reduced significantly for the kind
- * of surfaces we are using in this tutorial.
+ * This time we are going to add (small) point lights to our scene. With those,
+ * we'll see that uniform hemisphere sampling is not quite up to the task and
+ * produces very strong noise/variance, since the generated sample directions
+ * will very likely miss the light source.
  * <p>
- * Previously in {@link Tutorial2} when a ray hit a box surface we generated a
- * new ray which was <em>uniformly</em> distributed over the surface hemisphere.
- * However, for directions that are close to parallel to the surface (i.e. whose
- * dot product with the surface normal is close to zero), any light that may
- * have come along that direction would've gotten attenuated strongly by the
- * cosine fall-off factor of the rendering equation and therefore would not have
- * contributed much to the surface irradiance.
- * <p>
- * A much better approach would be to change the generation of new ray
- * directions based on our knowledge of the rendering equation and the BRDF of
- * the surface so as to maximize the actual contribution of any light coming
- * from those directions. To account for the cosine fall-off term we are now
- * generating sample directions whose probability distribution is directly
- * proportional to the cosine of that direction with the surface normal.
- * <p>
- * To present the benefit of importance sampling we are also introducing a new
- * kind of surface in this demo. Currently we were only using lambertian/diffuse
- * surfaces which reflect light in all directions equally. Now we also want
- * specular surfaces that reflect most of the incoming light around the
- * direction of perfect reflection. There will be a mode to switch between
- * uniform hemisphere sampling and importance sampling.
+ * To combat this, we will use "Multiple Importance" sampling introduced by Eric
+ * Veach's 1998 PhD thesis "Robust Monte Carlo Methods for Light Transport
+ * Simulation". The idea is to sample not based on the BRDF but only the light
+ * sources directly. This has the potential of significantly reducing the
+ * variance in the Monte Carlo estimate, especially in our simple "room with a
+ * table" scene where we will place a small spherical light, since that light is
+ * visible from all locations but the ones under the table.
  * 
  * @author Kai Burjack
  */
-public class Tutorial3 {
+public class Tutorial4 {
 
 	/**
 	 * The GLFW window handle.
@@ -106,7 +91,7 @@ public class Tutorial3 {
 	private int ray00Uniform, ray10Uniform, ray01Uniform, ray11Uniform;
 	private int timeUniform;
 	private int blendFactorUniform;
-	private int importanceSampledUniform;
+	private int multipleImportanceSampledUniform;
 	private int phongExponentUniform;
 	private int specularFactorUniform;
 	/**
@@ -126,9 +111,9 @@ public class Tutorial3 {
 	private float mouseX, mouseY;
 	private boolean mouseDown;
 	private int frameNumber;
-	private boolean importanceSampled;
+	private boolean multipleImportanceSampled;
 	private float phongExponent = 128.0f;
-	private float specularFactor = 0.2f;
+	private float specularFactor = 0.0f;
 
 	private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
 	private Matrix4f projMatrix = new Matrix4f();
@@ -184,13 +169,13 @@ public class Tutorial3 {
 		/*
 		 * Now, create the window.
 		 */
-		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 3", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 4", NULL, NULL);
 		if (window == NULL)
 			throw new AssertionError("Failed to create the GLFW window");
 
 		System.out.println("Press WSAD, LCTRL, SPACE to move around in the scene.");
 		System.out.println("Hold down left shift to move faster.");
-		System.out.println("Press 'C' to toggle between uniform and importance sampling.");
+		System.out.println("Press 'C' to toggle between uniform and multiple importance sampling.");
 		System.out.println("Press +/- to increase/decrease the specular factor.");
 		System.out.println("Press PAGEUP/PAGEDOWN to increase/decrease the Phong power.");
 		System.out.println("Move the mouse to look around.");
@@ -203,10 +188,10 @@ public class Tutorial3 {
 				if (key == -1)
 					return;
 				if (key == GLFW_KEY_C && action == GLFW_RELEASE) {
-					importanceSampled = !importanceSampled;
+					multipleImportanceSampled = !multipleImportanceSampled;
 					frameNumber = 0;
-					if (importanceSampled)
-						System.out.println("Using importance sampling");
+					if (multipleImportanceSampled)
+						System.out.println("Using multiple importance sampling");
 					else
 						System.out.println("Using uniform sampling");
 				} else if (key == GLFW_KEY_KP_ADD && action == GLFW_RELEASE) {
@@ -243,15 +228,15 @@ public class Tutorial3 {
 		 */
 		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (Tutorial3.this.width != width || Tutorial3.this.height != height)) {
-					Tutorial3.this.width = width;
-					Tutorial3.this.height = height;
-					Tutorial3.this.resetFramebuffer = true;
+				if (width > 0 && height > 0 && (Tutorial4.this.width != width || Tutorial4.this.height != height)) {
+					Tutorial4.this.width = width;
+					Tutorial4.this.height = height;
+					Tutorial4.this.resetFramebuffer = true;
 					/*
 					 * Reset the frame counter. Any change in framebuffer size will reset the
 					 * current accumulated result.
 					 */
-					Tutorial3.this.frameNumber = 0;
+					Tutorial4.this.frameNumber = 0;
 				}
 			}
 		});
@@ -260,27 +245,27 @@ public class Tutorial3 {
 			@Override
 			public void invoke(long window, double x, double y) {
 				if (mouseDown) {
-					float deltaX = (float) x - Tutorial3.this.mouseX;
-					float deltaY = (float) y - Tutorial3.this.mouseY;
-					Tutorial3.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
-					Tutorial3.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+					float deltaX = (float) x - Tutorial4.this.mouseX;
+					float deltaY = (float) y - Tutorial4.this.mouseY;
+					Tutorial4.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
+					Tutorial4.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
 					/*
 					 * Reset the frame counter. Any change in camera position will reset the current
 					 * accumulated result.
 					 */
-					Tutorial3.this.frameNumber = 0;
+					Tutorial4.this.frameNumber = 0;
 				}
-				Tutorial3.this.mouseX = (float) x;
-				Tutorial3.this.mouseY = (float) y;
+				Tutorial4.this.mouseX = (float) x;
+				Tutorial4.this.mouseY = (float) y;
 			}
 		});
 
 		glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
 			public void invoke(long window, int button, int action, int mods) {
 				if (action == GLFW_PRESS) {
-					Tutorial3.this.mouseDown = true;
+					Tutorial4.this.mouseDown = true;
 				} else if (action == GLFW_RELEASE) {
-					Tutorial3.this.mouseDown = false;
+					Tutorial4.this.mouseDown = false;
 				}
 			}
 		});
@@ -352,9 +337,9 @@ public class Tutorial3 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial3/quad.vs.glsl",
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4/quad.vs.glsl",
 				GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial3/quad.fs.glsl",
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4/quad.fs.glsl",
 				GL_FRAGMENT_SHADER, "330");
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
@@ -382,9 +367,9 @@ public class Tutorial3 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial3/random.glsl",
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4/random.glsl",
 				GL_COMPUTE_SHADER);
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial3/raytracing.glsl",
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4/raytracing.glsl",
 				GL_COMPUTE_SHADER);
 		glAttachShader(program, random);
 		glAttachShader(program, cshader);
@@ -429,7 +414,7 @@ public class Tutorial3 {
 		ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
 		timeUniform = glGetUniformLocation(computeProgram, "time");
 		blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
-		importanceSampledUniform = glGetUniformLocation(computeProgram, "importanceSampled");
+		multipleImportanceSampledUniform = glGetUniformLocation(computeProgram, "multipleImportanceSampled");
 		phongExponentUniform = glGetUniformLocation(computeProgram, "phongExponent");
 		specularFactorUniform = glGetUniformLocation(computeProgram, "specularFactor");
 
@@ -557,9 +542,9 @@ public class Tutorial3 {
 		float blendFactor = frameNumber / (frameNumber + 1.0f);
 		glUniform1f(blendFactorUniform, blendFactor);
 		/*
-		 * Set whether we want to use importance sampling.
+		 * Set whether we want to use multiple importance sampling.
 		 */
-		glUniform1i(importanceSampledUniform, importanceSampled ? 1 : 0);
+		glUniform1i(multipleImportanceSampledUniform, multipleImportanceSampled ? 1 : 0);
 		/*
 		 * Set the phong power/exponent which can be configured via PAGEDOWN/PAGEUP
 		 * keys.
@@ -703,7 +688,7 @@ public class Tutorial3 {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new Tutorial3().run();
+		new Tutorial4().run();
 	}
 
 }

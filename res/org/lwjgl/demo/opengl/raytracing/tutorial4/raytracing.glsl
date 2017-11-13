@@ -34,10 +34,10 @@ uniform float time;
  */
 uniform float blendFactor;
 /**
- * Whether we want to importance sample the BRDF instead of
- * using uniform hemisphere samples.
+ * Whether we want to multiple importance sample the light source
+ * instead of using only uniform hemisphere samples.
  */
-uniform bool importanceSampled;
+uniform bool multipleImportanceSampled;
 
 uniform float phongExponent;
 
@@ -49,9 +49,10 @@ uniform float specularFactor;
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 #define LARGE_FLOAT 1E+10
 #define NUM_BOXES 11
+#define NUM_SPHERES 1
 #define EPSILON 0.0001
-#define LIGHT_INTENSITY 4.0
-#define SKY_COLOR vec3(0.89, 0.96, 1.00)
+#define LIGHT_INTENSITY 2000.0 // <- because the light source is very small!
+#define PROBABILITY_OF_LIGHT_SAMPLE 0.5
 
 /*
  * Forward-declare external functions from random.glsl.
@@ -60,8 +61,9 @@ uniform float specularFactor;
  */
 float random(vec3 f);
 vec4 randomHemispherePoint(vec3 n, vec2 rand);
-vec4 randomCosineWeightedHemispherePoint(vec3 n, vec2 rand);
-vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec2 rand);
+float hemisphereProbability(vec3 n, vec3 v);
+vec4 randomDiskPoint(vec3 n, float d, float r, vec2 rand);
+float diskProbability(vec3 n, float d, float r, vec3 v);
 
 /**
  * Describes an axis-aligned box by its minimum and maximum corner 
@@ -69,6 +71,11 @@ vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec2 rand);
  */
 struct box {
   vec3 min, max, col;
+};
+
+struct sphere {
+  vec3 c;
+  float r;
 };
 
 /**
@@ -89,6 +96,10 @@ const box boxes[NUM_BOXES] = {
   {vec3( 3.0,  0.0, -4.9), vec3( 3.3, 2.0, -4.6), vec3(0.6, 0.6, 0.6)}    // <- some "pillar"
 };
 
+const sphere spheres[NUM_SPHERES] = {
+  {vec3(0.0, 3.0, 0.0), 0.1}
+};
+
 /**
  * Describes the first intersection of a ray with a box.
  */
@@ -103,6 +114,10 @@ struct hitinfo {
    * The index of the box into the 'boxes' array.
    */
   int i;
+  /*
+   * We need to distinguish whether the thing we hit is a box or sphere.
+   */
+  bool isSphere;
 };
 
 /**
@@ -135,24 +150,74 @@ vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
 }
 
 /**
- * Compute the closest intersection of the given ray `origin + t * dir`
- * with all boxes and return whether there was any intersection and
- * store the value of 't' at the intersection as well as the index of
- * the intersected box into the out-parameter 'info'.
+ * Compute whether the given ray `origin + t * dir` intersects the given
+ * sphere 's' and return the values of the parameter 't' at which the
+ * ray enters and exists the sphere, called (tNear, tFar). If there is
+ * no intersection then tNear == -1 and tFar == -1.
+ *
+ * @param origin the ray's origin position
+ * @param dir the ray's direction vector
+ * @param s the sphere to test
+ * @returns (tNear, tFar)
  */
-bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
+vec2 intersectSphere(vec3 origin, vec3 dir, const sphere s) {
+  vec3 L = s.c - origin;
+  float tca = dot(L, dir);
+  float d2 = dot(L, L) - tca * tca;
+  if (d2 > s.r * s.r)
+    return vec2(-1.0);
+  float thc = sqrt(s.r * s.r - d2);
+  float t0 = tca - thc;
+  float t1 = tca + thc;
+  if (t0 < t1 && t1 >= 0.0)
+    return vec2(t0, t1);
+  return vec2(-1.0);
+}
+
+/**
+ * Compute the closest intersection of the given ray `origin + t * dir`
+ * with all boxes and spheres and return whether there was any
+ * intersection and if so, store the value of 't' at the nearest
+ * intersection as well as the index of the intersected box or sphere
+ * into the out-parameter 'info'.
+ */
+bool intersectObjects(vec3 origin, vec3 dir, out hitinfo info) {
   float smallest = LARGE_FLOAT;
   bool found = false;
+  /* Test the boxes */
   for (int i = 0; i < NUM_BOXES; i++) {
     vec2 lambda = intersectBox(origin, dir, boxes[i]);
     if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.near = lambda.x;
       info.i = i;
+      info.isSphere = false;
+      smallest = lambda.x;
+      found = true;
+    }
+  }
+  /* Also test the sphere(s) */
+  for (int i = 0; i < NUM_SPHERES; i++) {
+    vec2 lambda = intersectSphere(origin, dir, spheres[i]);
+    if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
+      info.near = lambda.x;
+      info.i = i;
+      info.isSphere = true;
       smallest = lambda.x;
       found = true;
     }
   }
   return found;
+}
+
+/**
+ * Compute the normal of a sphere at the given point.
+ *
+ * @param hit the point on the sphere
+ * @param s the sphere
+ * @returns the normal vector
+ */
+vec3 normalForSphere(vec3 hit, const sphere s) {
+  return normalize(hit - s.c);
 }
 
 /**
@@ -217,7 +282,7 @@ vec3 randvec3(int s) {
  * @param n the surface normal
  * @returns the attenuation factor
  */
-vec3 brdfSpecular(box b, vec3 i, vec3 o, vec3 n) {
+vec3 brdfSpecular(vec3 i, vec3 o, vec3 n) {
   float a = phongExponent;
   vec3 r = reflect(-i, n);
   return vec3(pow(max(0.0, dot(r, o)), a) * (a + 2.0) * ONE_OVER_2PI);
@@ -232,8 +297,8 @@ vec3 brdfSpecular(box b, vec3 i, vec3 o, vec3 n) {
  * @param n the surface normal
  * @returns the attenuation factor
  */
-vec3 brdfDiffuse(box b, vec3 i, vec3 o, vec3 n) {
-  return b.col * ONE_OVER_PI;
+vec3 brdfDiffuse(vec3 albedo, vec3 i, vec3 o, vec3 n) {
+  return albedo * ONE_OVER_PI;
 }
 /**
  * Compute the BRDF of the box's surface given the incoming and outgoing
@@ -246,20 +311,20 @@ vec3 brdfDiffuse(box b, vec3 i, vec3 o, vec3 n) {
  * @param n the surface normal
  * @returns the attenuation factor
  */
-vec3 brdf(box b, vec3 i, vec3 o, vec3 n) {
-  return brdfSpecular(b, i, o, n) * specularFactor
+vec3 brdf(vec3 albedo, vec3 i, vec3 o, vec3 n) {
+  return brdfSpecular(i, o, n) * specularFactor
          +
-         brdfDiffuse(b, i, o, n) * (1.0 - specularFactor);
+         brdfDiffuse(albedo, i, o, n) * (1.0 - specularFactor);
 }
 
 /**
  * The general algorithm of this function did not change a lot compared
  * to the last tutorial part. The only thing that changed is how we
- * generate new incoming light direction vectors. We use importance
- * sampling here, which favors direction vectors for which the BRDF of
- * the sampled surface has a large value. This will be used to
- * significantly increase the rate of convergence of the image and thus
- * reduce variance.
+ * generate new incoming light direction vectors.
+ * We use "Multiple Importance" sampling now to stochastically either  
+ * sample the light source or use simple uniform hemisphere sampling.
+ * This will be used to significantly increase the rate of convergence
+ * of the image and thus reduce variance.
  *
  * @param origin the initial origin of the ray
  * @param dir the initial direction vector of the ray
@@ -286,43 +351,43 @@ vec3 trace(vec3 origin, vec3 dir) {
    */
   for (int bounce = 0; bounce < 3; bounce++) {
     /*
-     * The ray now travels through the scene of boxes and eventually
-     * either hits a box or escapes through the open ceiling. So, test
-     * which case it is going to be.
+     * The ray now travels through the scene of boxes and spheres and
+     * eventually either hits a box/sphere or escapes through the open
+     * ceiling. So, test which case it is going to be.
      */
     hitinfo hinfo;
-    if (!intersectBoxes(origin, dir, hinfo)) {
+    if (!intersectObjects(origin, dir, hinfo)) {
       /*
-       * The ray did not hit any box in the scene, so it escaped through
-       * the open ceiling to the outside world, which is assumed to
-       * consist of nothing but light coming in from everywhere.
-       * Light source does not scatter light equally in all directions
-       * but its radiance is attenuated by the normal at which the ray
-       * hits the light source (which shall be a simple plane in our
-       * case).
+       * The ray did not hit any box or sphere in the scene, so it
+       * escaped through the open ceiling into the outside world, which
+       * is completely dark now in this tutorial part.
        */
-      float d = dir.y; // == dot(dir, vec3(0.0, 1.0, 0.0))
-      return LIGHT_INTENSITY * SKY_COLOR * att * d;
+       return vec3(0.0);
     }
     /*
-     * When we are here, the ray we are currently processing hit a box.
-     * Obtain the box from the index in the hitinfo.
-     */
-    box b = boxes[hinfo.i];
-    /*
+     * When we are here, the ray we are currently processing hit an
+     * object (box or sphere).
      * Next, we need the actual point of intersection. So evaluate the
      * ray equation `point = origin + t * dir` with 't' being the value
-     * returned by intersectBoxes() in the hitinfo.
+     * returned by intersectObjects() in the hitinfo.
      */
     vec3 point = origin + hinfo.near * dir;
-    /*
-     * Now, we want to be able to generate a new ray which starts from
-     * the point of intersection and travels away from the surface into
-     * a random direction.
-     * For that, we first need the surface's normal at the point of
-     * intersection.
-     */
-    vec3 normal = normalForBox(point, b);
+    vec3 normal, albedo;
+    if (hinfo.isSphere) {
+      /*
+       * We hit a light source! So just return its cosine-weighted
+       * attenuated radiance.
+       */
+      const sphere s = spheres[hinfo.i];
+      return att * LIGHT_INTENSITY * dot(normalForSphere(point, s), -dir);
+    } else {
+      /*
+       * We hit a box. Proceed as in the last tutorial part.
+       */
+      const box b = boxes[hinfo.i];
+      normal = normalForBox(point, b);
+      albedo = b.col;
+    }
     /*
      * Next, we reset the ray's origin to the point of intersection
      * offset by a small epsilon along the surface normal to avoid
@@ -337,18 +402,10 @@ vec3 trace(vec3 origin, vec3 dir) {
      * We have the new origin of the ray and now we just need its new
      * direction. This time we will have two possible ways of generating
      * a direction vector. One is via a uniformly distributed hemisphere
-     * direction, like in the last tutorial. Another way is by making
-     * use of our knowledge of the BRDF we are using here, and
-     * generating vectors predominantly in those directions which our
-     * BRDF would return the highest value (i.e. the lowest attenuation)
-     * of the light.
-     * Since we know that we are dealing with a diffuse and specular
-     * reflection component, we know that the BRDF will both have a
-     * strong "lobe" around the direction of perfect reflection and a
-     * broader lobe around the normal. To account for both possible
-     * components, we sample both individually with a probability equal
-     * to their respective factor in the BRDF. First, declare our vector
-     * holding the generated sample direction and its pdf(x) value.
+     * direction. Another new way is by making use of our knowledge of
+     * the light sources in the scene and generate sample directions
+     * towards them in the hope that those are not occuded by other
+     * scene geometry.
      */
     vec4 s;
     /*
@@ -357,75 +414,65 @@ vec3 trace(vec3 origin, vec3 dir) {
      */
     vec3 rand = randvec3(bounce);
     /*
-     * Check whether we want to use importance sampling.
+     * Check whether we want to use multiple importance sampling.
      */
-    if (importanceSampled) {
+    if (multipleImportanceSampled) {
       /*
-       * We will use importance sampling for the two parts, diffuse and
-       * specular, of the BRDF separately. We do this via randomly
-       * choosing which component of the BRDF to sample based on the
-       * factor of this component in the whole BRDF.
-       * To decide which part of the BRDF to evaluate, we divide a
-       * random variable [0, 1) into the interval [0, specularFactor)
-       * and [specularFactor, 1), where specularFactor is the amount of 
-       * specularity our surface material has. It is important that this
-       * factor is both used to weigh the BRDF components as well as to 
-       * decide which of the BRDF components to sample and evaluate
-       * separately when using importance sampling.
-       *
-       * Note that we are using the last of the three components in our
-       * random vector for this in order to avoid any patterns due to
-       * correlation between the sampling decision and the generated
-       * sample vectors, which always use the first two components in
-       * the random vector.
-       *
-       * When we might come to a point that we need even more
-       * uncorrelated randomness we can just generate a new random
-       * vector by calling randvec3() with a different input.
+       * Obtain a light source in our scene and compute the direction
+       * towards it from our current 'origin'.
        */
-      if (rand.z < specularFactor) {
+      vec3 z1, z2;
+      sphere li = spheres[0];
+      vec3 d = li.c - origin;
+      vec3 n = normalize(d);
+      /*
+       * Check whether we want to sample the light source or use 
+       * a random hemisphere sample direction.
+       */
+      if (rand.z < PROBABILITY_OF_LIGHT_SAMPLE) {
         /*
-         * We want to sample and evaluate the specular part of the BRDF.
-         * So, generate a Phong-weighted vector based on the direction
-         * of perfect reflection. Because Phong has a strong lobe around
-         * that reflection vector we will generate most sample vectors
-         * around that reflection vector.
+         * We want to sample the light source. From our point of view
+         * the spherical light source is a projected circle/disk and we
+         * need a way to uniformly sample a disk. So call a function
+         * which does exactly that.
          */
-        vec3 r = reflect(dir, normal);
-        s = randomPhongWeightedHemispherePoint(r, phongExponent, rand.xy);
+        s = randomDiskPoint(n, length(d), li.r, rand.xy);
         /*
-         * Evaluate the specular part of the BRDF.
+         * We will be using the "balanced weighting" strategy of
+         * multiple importance sampling, which requires us to evaluate
+         * the probability distribution function of the hemisphere
+         * sampling function with our disk sample direction.
          */
-        att *= brdfSpecular(b, s.xyz, -dir, normal);
+        float p = hemisphereProbability(s.xyz, normal);
+        /*
+         * Now we need to compute the balanced weight of both
+         * probability density values together with the probability of
+         * this sample being chosen.
+         */
+        s.w = (s.w + p) * PROBABILITY_OF_LIGHT_SAMPLE;
       } else {
+        s = randomHemispherePoint(normal, rand.xy);
         /*
-         * When we are here, we should evaluate the diffuse part of the
-         * BRDF. For that, we will use a cosine-weighted sample
-         * distribution. This is because even though a
-         * lambertian/diffuse surface reflects light in all directions
-         * that light is ultimately attenuated by the cosine fall-off
-         * term of the rendering equation. So favoring  the directions
-         * for which this cosine term is biggest is the best we can do.
+         * Same as above. Also obtain pdf(x) for the other distribution.
          */
-        s = randomCosineWeightedHemispherePoint(normal, rand.xy);
+        float p = diskProbability(n, length(d), li.r, s.xyz);
         /*
-         * Evaluate the diffuse part of the BRDF.
+         * And weight it.
          */
-        att *= brdfDiffuse(b, s.xyz, -dir, normal);
+        s.w = (s.w + p) * (1.0 - PROBABILITY_OF_LIGHT_SAMPLE);
       }
     } else {
       /*
-       * No importance sampling should be used. Just use our default
-       * uniform hemisphere sampling. This will give a significantly
-       * worse convergence rate with much more variance in the
-       * estimate/image.
+       * Not using multiple importance sampling but instead our good old
+       * trusty and correct random hemisphere sampling.
        */
       s = randomHemispherePoint(normal, rand.xy);
-      /*
-       * Evaluate the whole BRDF (all parts of it).
-       */
-      att *= brdf(b, s.xyz, -dir, normal);
     }
+    /*
+     * Now it's the same as in the previous tutorial parts. Evaluate the
+     * BRDF and attenuate by it.
+     */
+    att *= brdf(albedo, s.xyz, -dir, normal);
     /*
      * Use the newly generated direction vector as the next one to
      * follow.
@@ -445,10 +492,9 @@ vec3 trace(vec3 origin, vec3 dir) {
   }
   /*
    * When having followed a ray for the maximum number of bounces and
-   * that ray still did not escape through the ceiling into the light,
-   * that ray does therefore not transport any light back to the
-   * eye/camera and its contribution to this Monte Carlo iteration will
-   * be 0.
+   * that ray still did not hit a light source, that ray does therefore
+   * not transport any light back to the eye/camera and its contribution
+   * to this Monte Carlo iteration will be 0.
    */
   return vec3(0.0);
 }
