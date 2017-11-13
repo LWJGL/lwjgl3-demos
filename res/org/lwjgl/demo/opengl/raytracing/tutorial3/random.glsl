@@ -6,16 +6,40 @@
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
-#define FOUR_PI 12.5663706144
 #define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
-#define ONE_OVER_4PI (1.0 / FOUR_PI)
+
+/*
+ * Define the type of a random variable/vector which is used to compute
+ * spatial values (positions, directions, angles, etc.).
+ * Actually this should have been a typedef, but we can't do this in
+ * GLSL.
+ */
+#define spatialrand vec2
 
 /**
+ * Compute an arbitrary unit vector orthogonal to the unit vector 'v'
+ * which is either of the three base coordinate axes (or the negation of
+ * either of them).
+ *
  * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
+ *
+ * @param v the unit base vector to compute an orthogonal unit vector
+ *          from
+ * @returns the unit vector orthogonal to 'v'
+ */
+vec3 orthoBase(vec3 v) {
+  return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y);
+}
+
+/**
+ * Compute an arbitrary unit vector orthogonal to any vector 'v'.
+ *
+ * @param v the vector to compute an orthogonal unit vector from
+ * @returns the unit vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
+  return normalize(cross(v, orthoBase(v)));
 }
 
 /**
@@ -36,22 +60,25 @@ uint hash3(uint x, uint y, uint z) {
 }
 
 /**
- * Generates a floating-point pseudo-random number in [0, 1).
+ * Generate a floating-point pseudo-random number in [0, 1).
  *
- * With Monte Carlo sampling we need random numbers to generate random vectors
- * for shooting rays.
- * This function takes a vector of three arbitrary floating-point numbers and
- * based on those numbers returns a pseudo-random number in the range [0..1).
- * Since in GLSL we have no other state/entropy than what we input as uniforms
- * or compute from varying variables (e.g. the invocation id of the current work item),
- * any "pseudo-random" number will necessarily only be some kind of hash over the
- * input.
- * This random function however has very very good properties exhibiting no patterns
- * in the distribution of the random numbers, no matter the magnitude of the input values.
+ * With Monte Carlo sampling we need random numbers to generate random
+ * vectors for shooting rays.
+ * This function takes a vector of three arbitrary floating-point
+ * numbers and based on those numbers returns a pseudo-random number in
+ * the range [0..1).
+ * Since in GLSL we have no other state/entropy than what we input as
+ * uniforms or compute from varying variables (e.g. the invocation id of
+ * the current work item), any "pseudo-random" number will necessarily
+ * only be some kind of hash over the input.
+ * This function however has very very good properties exhibiting no
+ * patterns in the distribution of the random numbers, no matter the
+ * magnitude of the input values.
  * 
  * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
  *
- * @param f some input vector of pseudo-random numbers to generate a single number from
+ * @param f some input vector of numbers to generate a single
+ *          pseudo-random number from
  * @returns a single pseudo-random number in [0, 1)
  */
 float random(vec3 f) {
@@ -63,8 +90,8 @@ float random(vec3 f) {
 }
 
 /**
- * Transform the given vector 'v' from its local frame into the orthonormal
- * basis with +Z = z.
+ * Transform the given vector 'v' from its local frame into the
+ * orthonormal basis with +Z = z.
  *
  * @param v the vector to transform
  * @param z the direction to transform +Z into
@@ -79,15 +106,20 @@ vec3 around(vec3 v, vec3 z) {
  * Compute the cartesian coordinates from the values typically computed
  * when generating sample directions/angles for isotropic BRDFs.
  *
- * @param p this is phi, the angle in [0, 2PI) to rotate around
- *          the principal vector
+ * @param rp this is a pseudo-random number in [0, 1) representing the
+ *           angle `phi` to rotate around the principal vector. For
+ *           isotropic BRDFs where `phi` has the same probability of
+ *           being chosen, this will always be a random number in [0, 1)
+ *           that can directly be used from rand.x given to all sample
+ *           direction generation functions
  * @param c this is the cosine of theta, the angle in [0, PI/2) giving
- *          the angle between the principal vector and the one to generate
- *
+ *          the angle between the principal vector and the one to
+ *          generate. Being the cosine of an angle in [0, PI/2) the
+ *          value 'c' is itself in the range [0, 1)
  * @returns the cartesian direction vector
  */
-vec3 isotropic(float p, float c) {
-  float s = sqrt(1.0 - c*c);
+vec3 isotropic(float rp, float c) {
+  float p = TWO_PI * rp, s = sqrt(1.0 - c*c);
   return vec3(cos(p) * s, sin(p) * s, c);
 }
 
@@ -97,12 +129,15 @@ vec3 isotropic(float p, float c) {
  *
  * http://mathworld.wolfram.com/SpherePointPicking.html
  *
- * @param n the normal vector determining the direction of the hemisphere
- * @param rand a vector of three floating-point pseudo-random numbers
- * @returns the random hemisphere vector plus its probability density value
+ * @param n the normal vector determining the direction of the
+ *          hemisphere
+ * @param rand a vector of two floating-point pseudo-random numbers
+ * @returns the random hemisphere vector plus its probability density
+ *          value
  */
-vec4 randomHemispherePoint(vec3 n, vec3 rand) {
-  return vec4(around(isotropic(rand.x * TWO_PI, rand.y), n), ONE_OVER_2PI);
+vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
+  float c = rand.y;
+  return vec4(around(isotropic(rand.x, c), n), ONE_OVER_2PI);
 }
 
 /**
@@ -114,29 +149,33 @@ vec4 randomHemispherePoint(vec3 n, vec3 rand) {
  *
  * http://www.rorydriscoll.com/2009/01/07/better-sampling/
  *
- * @param n the normal vector determining the direction of the hemisphere
- * @param rand a vector of three floating-point pseudo-random numbers
- * @returns the cosine-weighted random hemisphere vector plus its probability density value
+ * @param n the normal vector determining the direction of the
+ *          hemisphere
+ * @param rand a vector of two floating-point pseudo-random numbers
+ * @returns the cosine-weighted random hemisphere vector plus its
+ *          probability density value
  */
-vec4 randomCosineWeightedHemispherePoint(vec3 n, vec3 rand) {
-  float p = TWO_PI * rand.x, c = sqrt(rand.y);
-  return vec4(around(isotropic(p, c), n), c * ONE_OVER_PI);
+vec4 randomCosineWeightedHemispherePoint(vec3 n, spatialrand rand) {
+  float c = sqrt(rand.y);
+  return vec4(around(isotropic(rand.x, c), n), c * ONE_OVER_PI);
 }
 
 /**
- * Generate Phong-weighted random vector around the given reflection vector 'r'.
+ * Generate Phong-weighted random vector around the given reflection
+ * vector 'r'.
  * Since the Phong BRDF has higher values when the outgoing vector
- * is close to the perfect reflection vector of the incoming vector across the normal,
- * we generate directions primarily around that reflection vector.
+ * is close to the perfect reflection vector of the incoming vector
+ * across the normal, we generate directions primarily around that
+ * reflection vector.
  *
  * http://blog.tobias-franke.eu/2014/03/30/notes_on_importance_sampling.html
  *
  * @param r the direction of perfect reflection
  * @param a the power to raise the cosine term to in the Phong model
- * @param rand some pseudo-random numbers
+ * @param rand a vector of two pseudo-random numbers
  * @returns the Phong-weighted random vector
  */
-vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec3 rand) {
-  float ai = 1.0 / (a + 1.0), p = TWO_PI * rand.x, c = pow(rand.y, ai);
-  return vec4(around(isotropic(p, c), r), (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI);
+vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, spatialrand rand) {
+  float ai = 1.0 / (a + 1.0), c = pow(rand.y, ai);
+  return vec4(around(isotropic(rand.x, c), r), (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI);
 }

@@ -8,10 +8,12 @@
  * The framebuffer image we write to.
  */
 layout(binding = 0, rgba32f) uniform image2D framebufferImage;
+
 /**
- * Describes the view frustum of the camera via its world-space corner edge
- * vectors which we perform bilinear interpolation on to get the world-space
- * direction vector of a work item's framebuffer pixel. See function main().
+ * Describes the view frustum of the camera via its world-space corner
+ * edge vectors which we perform bilinear interpolation on to get the
+ * world-space direction vector of a work item's framebuffer pixel.
+ * See function main().
  */
 uniform vec3 eye, ray00, ray01, ray10, ray11;
 
@@ -20,7 +22,8 @@ uniform vec3 eye, ray00, ray01, ray10, ray11;
 #define EPSILON 0.0001
 
 /**
- * Describes an axis-aligned box by its minimum and maximum corner coordinates.
+ * Describes an axis-aligned box by its minimum and maximum corner 
+ * oordinates.
  */
 struct box {
   vec3 min, max;
@@ -48,8 +51,9 @@ const box boxes[NUM_BOXES] = {
  */
 struct hitinfo {
   /*
-   * The value of the parameter 't' in the ray equation `p = origin + dir * t`
-   * at which p is a point on one of the boxes intersected by the ray.
+   * The value of the parameter 't' in the ray equation
+   * `p = origin + dir * t` at which p is a point on one of the boxes
+   * intersected by the ray.
    */
   float near;
   /*
@@ -59,10 +63,10 @@ struct hitinfo {
 };
 
 /**
- * Compute whether the given ray `origin + t * dir` intersects
- * the given box 'b' and return the values of the parameter 't'
- * at which the ray enters and exists the box, called (tNear, tFar).
- * If there is no intersection then tNear > tFar or tFar < 0.
+ * Compute whether the given ray `origin + t * dir` intersects the given
+ * box 'b' and return the values of the parameter 't' at which the ray
+ * enters and exists the box, called (tNear, tFar). If there is no
+ * intersection then tNear > tFar or tFar < 0.
  */
 vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
   vec3 tMin = (b.min - origin) / dir;
@@ -77,8 +81,8 @@ vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
 /**
  * Compute the closest intersection of the given ray `origin + t * dir`
  * with all boxes and return whether there was any intersection and
- * store the value of 't' at the intersection as well as the index of the
- * intersected box into the out-parameter 'info'.
+ * store the value of 't' at the intersection as well as the index of
+ * the intersected box into the out-parameter 'info'.
  */
 bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
   float smallest = LARGE_FLOAT;
@@ -140,35 +144,42 @@ void main(void) {
    */
   ivec2 size = imageSize(framebufferImage);
   /*
-   * Because we have to execute our compute shader with a global work size
-   * that is a power of two, we need to check whether the current work item
-   * is still within our actual framebuffer dimension so that we do not
-   * accidentally write to unallocated memory later.
+   * Because we have to execute our compute shader with a global work
+   * size that is a power of two, we need to check whether the current
+   * work item is still within our actual framebuffer dimension so that
+   * we do not accidentally write to or read from unallocated memory
+   * later.
    */
-  if (px.x >= size.x || px.y >= size.y)
+  if (any(greaterThanEqual(px, size)))
     return; // <- no work to do, return.
   /*
-   * Now we take our rayNN uniforms declared above to determine the world-space
-   * direction from the eye position through the current work item's pixel's center
-   * in the framebuffer image. We use the 'px' variable, cast it to a floating-point
-   * vector, offset it by half a pixel's width (in whole pixel units) and then
-   * transform that position relative to our framebuffer size to get values in the 
-   * interval [(0, 0), (1, 1)] for all work items covering our framebuffer.
+   * Now we take our rayNN uniforms declared above to determine the
+   * world-space direction from the eye position through the current
+   * work item's pixel's center in the framebuffer image. We use the
+   * 'px' variable, cast it to a floating-point vector, offset it by
+   * half a pixel's width (in whole pixel units) and then transform that
+   * position relative to our framebuffer size to get values in the
+   * interval [(0, 0), (1, 1)] for all work items covering our
+   * framebuffer.
    */
   vec2 p = (vec2(px) + vec2(0.5)) / vec2(size);
   /*
-   * Use bilinear interpolation based on the X and Y fraction (within 0..1)
-   * with our rayNN vectors defining the world-space vectors along the corner edges
-   * of the camera's view frustum. The result is the world-space direction of the ray
-   * originating from the camera/eye center through the work item's framebuffer pixel
-   * center.
+   * Use bilinear interpolation based on the X and Y fraction
+   * (within 0..1) with our rayNN vectors defining the world-space
+   * vectors along the corner edges of the camera's view frustum. The
+   * result is the world-space direction of the ray originating from the
+   * camera/eye center through the work item's framebuffer pixel center.
    */
   vec3 dir = mix(mix(ray00, ray01, p.y), mix(ray10, ray11, p.y), p.x);
   /*
    * Now, trace the list of boxes with the ray `eye + t * dir`.
-   * The result is a computed color which we will write at the work item's framebuffer pixel.
+   * The result is a computed color which we will write at the work
+   * item's framebuffer pixel.
    */
   vec3 color = trace(eye, normalize(dir));
-  /* Store the color in the work item's pixel in the framebuffer. */
+  /*
+   * Store the final color in the framebuffer's pixel of the current
+   * work item.
+   */
   imageStore(framebufferImage, px, vec4(color, 1.0));
 }
