@@ -24,6 +24,7 @@ import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.*;
@@ -573,7 +574,7 @@ public class Tutorial5 {
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
 		normalTex = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, normalTex);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8_SNORM, width, height);
 		positionTex = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, positionTex);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
@@ -722,7 +723,7 @@ public class Tutorial5 {
 		 * in our shader is going to go to the first level of the texture 'tex'.
 		 */
 		glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-		glBindImageTexture(normalbufferImageBinding, normalTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(normalbufferImageBinding, normalTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8_SNORM);
 		glBindImageTexture(positionbufferImageBinding, positionTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 		/*
@@ -746,7 +747,7 @@ public class Tutorial5 {
 
 		/* Reset bindings. */
 		glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-		glBindImageTexture(normalbufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(normalbufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8_SNORM);
 		glBindImageTexture(positionbufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glUseProgram(0);
 

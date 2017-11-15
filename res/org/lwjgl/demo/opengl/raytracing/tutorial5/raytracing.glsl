@@ -8,7 +8,7 @@
  * The framebuffer image we write to.
  */
 layout(binding = 0, rgba32f) uniform image2D framebufferImage;
-layout(binding = 1, rgba8) uniform image2D normalbufferImage;
+layout(binding = 1, rgba8_snorm) uniform image2D normalbufferImage;
 layout(binding = 2, rgba16f) uniform image2D positionbufferImage;
 
 /**
