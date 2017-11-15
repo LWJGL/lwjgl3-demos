@@ -499,7 +499,15 @@ public class Tutorial5 {
 	private void createFilterFBO() {
 		filterFBO = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, filterFBO);
-		/* We will attach the textures when we actually render to them in filter(). */
+		/*
+		 * The filter will ping-pong between two writable textures for each iteration.
+		 * We use glDrawBuffers() to decide which one to write to in each iteration.
+		 */
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ftex0, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ftex1, 0);
+		int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+			throw new AssertionError("Framebuffer is not complete: " + status);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -596,12 +604,14 @@ public class Tutorial5 {
 	 * Recreate the framebuffer when the window size changes.
 	 */
 	private void resizeFramebufferTexture() {
+		glDeleteFramebuffers(filterFBO);
 		glDeleteTextures(pttex);
 		glDeleteTextures(ftex0);
 		glDeleteTextures(ftex1);
 		glDeleteTextures(normalTex);
 		glDeleteTextures(positionTex);
 		createFramebufferTexture();
+		createFilterFBO();
 	}
 
 	/**
@@ -811,9 +821,9 @@ public class Tutorial5 {
 			 */
 			glBindTexture(GL_TEXTURE_2D, read);
 			/*
-			 * And attach the 'write' texture to the FBO.
+			 * Set which FBO color attachment to write to.
 			 */
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, write, 0);
+			glDrawBuffers(write == ftex0 ? GL_COLOR_ATTACHMENT0 : GL_COLOR_ATTACHMENT1);
 			/*
 			 * Draw the full-screen quad.
 			 */
