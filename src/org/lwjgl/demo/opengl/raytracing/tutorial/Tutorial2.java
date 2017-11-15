@@ -192,7 +192,7 @@ public class Tutorial2 {
 
 		/*
 		 * And set some OpenGL context attributes, such as that we are using OpenGL 4.3.
-		 * This is the minimum core version such as we can use compute shaders.
+		 * This is the minimum core version such so that can use compute shaders.
 		 */
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
