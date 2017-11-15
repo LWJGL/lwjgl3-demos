@@ -2,6 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
+#version 330 core
+
 /* The position of the vertex as two-dimensional vector */
 in vec2 vertex;
 

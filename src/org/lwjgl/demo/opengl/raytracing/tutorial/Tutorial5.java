@@ -204,6 +204,7 @@ public class Tutorial5 {
 		System.out.println("Press 'F' to toggle filtering.");
 		System.out.println("Press 'X' to toggle using 1 sample per pixel (i.e. samples do not accumulate).");
 		System.out.println("Press +/- to increase/decrease the specular factor.");
+		System.out.println("Press arrowkey up/down to increase/decrease the filter iterations [1..5]");
 		System.out.println("Press PAGEUP/PAGEDOWN to increase/decrease the Phong power.");
 		System.out.println("Move the mouse to look around.");
 
@@ -242,6 +243,14 @@ public class Tutorial5 {
 					if (phongExponent < 1.0f)
 						phongExponent = 1.0f;
 					System.out.println("Phong exponent = " + phongExponent);
+					frameNumber = 0;
+				} else if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+					filterIterations = Math.min(5, filterIterations + 1);
+					System.out.println("Filter iterations = " + filterIterations);
+					frameNumber = 0;
+				} else if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+					filterIterations = Math.max(1, filterIterations - 1);
+					System.out.println("Filter iterations = " + filterIterations);
 					frameNumber = 0;
 				} else if (key == GLFW_KEY_F && action == GLFW_RELEASE) {
 					filtered = !filtered;
@@ -388,10 +397,8 @@ public class Tutorial5 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl",
-				GL_VERTEX_SHADER, "330");
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl",
-				GL_FRAGMENT_SHADER, "330");
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -418,10 +425,8 @@ public class Tutorial5 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl",
-				GL_COMPUTE_SHADER);
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl",
-				GL_COMPUTE_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl", GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl", GL_COMPUTE_SHADER);
 		glAttachShader(program, random);
 		glAttachShader(program, cshader);
 		glLinkProgram(program);
@@ -441,10 +446,8 @@ public class Tutorial5 {
 	 */
 	private void createFilterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl",
-				GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl",
-				GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl", GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl", GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -480,7 +483,7 @@ public class Tutorial5 {
 		offsetUniform = glGetUniformLocation(filterProgram, "offset");
 		for (int i = 0, y = -2; y <= 2; y++)
 			for (int x = -2; x <= 2; x++, i++)
-				glUniform2f(offsetUniform + i, x, y);
+				glUniform2i(offsetUniform + i, x, y);
 		/* B3^T x B3 */
 		glUniform1fv(kernelUniform, new float[] { 1.0f / 256.0f, 1.0f / 64.0f, 3.0f / 128.0f, 1.0f / 64.0f,
 				1.0f / 256.0f, 1.0f / 64.0f, 1.0f / 16.0f, 3.0f / 32.0f, 1.0f / 16.0f, 1.0f / 64.0f, 3.0f / 128.0f,
@@ -801,7 +804,7 @@ public class Tutorial5 {
 			glUniform1f(c_phiUniform, 1.0f / i * c_phi0);
 			glUniform1f(n_phiUniform, 1.0f / (1 << i) * n_phi0);
 			glUniform1f(p_phiUniform, 1.0f / (1 << i) * p_phi0);
-			glUniform1f(stepwidthUniform, (1 << (i + 1)) - 1);
+			glUniform1i(stepwidthUniform, (1 << (i + 1)) - 1);
 			/*
 			 * Read from the current 'read' texture.
 			 */

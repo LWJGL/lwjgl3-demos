@@ -10,34 +10,36 @@
 uniform sampler2D colorMap;
 uniform sampler2D normalMap;
 uniform sampler2D posMap;
+
 uniform float c_phi;
 uniform float n_phi;
 uniform float p_phi;
-uniform float stepwidth;
-uniform float kernel[25];
-uniform vec2 offset[25];
+uniform int stepwidth;
+
+#define KERNEL_SIZE 25
+uniform float kernel[KERNEL_SIZE];
+uniform ivec2 offset[KERNEL_SIZE];
 
 in vec2 texcoord;
 out vec4 color;
 
 void main(void) {
   vec4 sum = vec4(0.0);
-  ivec2 size = textureSize(colorMap, 0);
-  vec2 step = vec2(1.0)/vec2(size); // resolution
-  vec4 cval = texture(colorMap, texcoord);
-  vec4 nval = texture(normalMap, texcoord);
-  vec4 pval = texture(posMap, texcoord);
+  ivec2 tx = ivec2(texcoord * textureSize(colorMap, 0));
+  vec4 cval = texelFetch(colorMap, tx, 0);
+  vec4 nval = texelFetch(normalMap, tx, 0);
+  vec4 pval = texelFetch(posMap, tx, 0);
   float cum_w = 0.0;
-  for(int i = 0; i < 25; i++) {
-    vec2 uv = texcoord + offset[i] * step * stepwidth;
-    vec4 ctmp = texture(colorMap, uv);
+  for (int i = 0; i < KERNEL_SIZE; i++) {
+    ivec2 uv = tx + offset[i] * stepwidth;
+    vec4 ctmp = texelFetch(colorMap, uv, 0);
     vec4 t = cval - ctmp;
     float c_w = min(exp(-dot(t, t) / c_phi), 1.0);
-    vec4 ntmp = texture(normalMap, uv);
+    vec4 ntmp = texelFetch(normalMap, uv, 0);
     t = nval - ntmp;
     float dist2 = max(dot(t, t) / (stepwidth * stepwidth), 0.0);
     float n_w = min(exp(-dist2 / n_phi), 1.0);
-    vec4 ptmp = texture(posMap, uv);
+    vec4 ptmp = texelFetch(posMap, uv, 0);
     t = pval - ptmp;
     float p_w = min(exp(-dot(t, t) / p_phi), 1.0);
     float weight = c_w * n_w * p_w;
