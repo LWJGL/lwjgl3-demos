@@ -107,6 +107,7 @@ public class Cubes extends Demo {
 
 		bgfx_set_view_transform(0, viewBuf, projBuf);
 
+		long encoder = bgfx_begin();
 		for (int yy = 0; yy < 11; ++yy) {
 			for (int xx = 0; xx < 11; ++xx) {
 				model
@@ -123,16 +124,17 @@ public class Cubes extends Demo {
 
 				model.get(modelBuf);
 
-				bgfx_set_transform(modelBuf);
+				bgfx_encoder_set_transform(encoder, modelBuf);
 
-				bgfx_set_vertex_buffer(0, vbh, 0, 8);
-				bgfx_set_index_buffer(ibh, 0, 36);
+				bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 8);
+				bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
-				bgfx_set_state(BGFX_STATE_DEFAULT, 0);
+				bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
 
-				bgfx_submit(0, program, 0, false);
+				bgfx_encoder_submit(encoder, 0, program, 0, false);
 			}
 		}
+		bgfx_end(encoder);
 	}
 
 	@Override

@@ -69,6 +69,18 @@ abstract class Demo {
 
 			glfwSetFramebufferSizeCallback(window, this::resize);
 
+			glfwSetKeyCallback(window, (windowHnd, key, scancode, action, mods) -> {
+				if (action != GLFW_RELEASE) {
+					return;
+				}
+
+				switch (key) {
+					case GLFW_KEY_ESCAPE:
+						glfwSetWindowShouldClose(windowHnd, true);
+						break;
+				}
+			});
+
 			BGFXPlatformData platformData = BGFXPlatformData.callocStack(stack);
 
 			switch (Platform.get()) {
@@ -155,8 +167,6 @@ abstract class Demo {
 				double time = (now - startTime) / freq;
 
 				bgfx_set_view_rect(0, 0, 0, width, height);
-
-				bgfx_touch(0);
 
 				bgfx_dbg_text_clear(0, false);
 

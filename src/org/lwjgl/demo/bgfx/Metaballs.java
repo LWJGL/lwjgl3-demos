@@ -648,16 +648,20 @@ public class Metaballs extends Demo {
 
 			model.get(modelBuf);
 
-			bgfx_set_transform(modelBuf);
+			long encoder = bgfx_begin();
+
+			bgfx_encoder_set_transform(encoder, modelBuf);
 
 			// Set vertex and index buffer.
-			bgfx_set_transient_vertex_buffer(0, tvb, 0, numVertices);
+			bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, numVertices);
 
 			// Set render states.
-			bgfx_set_state(BGFX_STATE_DEFAULT, 0);
+			bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
 
 			// Submit primitive for rendering to view 0.
-			bgfx_submit(0, program, 0, false);
+			bgfx_encoder_submit(encoder, 0, program, 0, false);
+
+			bgfx_end(encoder);
 
 			// Display stats.
 			bgfx_dbg_text_printf(1, 4, 0x0f, String.format("Num vertices: %5d (%6.4f percent)", numVertices, (float) numVertices / maxVertices * 100));

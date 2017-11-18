@@ -312,8 +312,10 @@ public class Bump extends Demo {
 			uniformBuf.putFloat(3.0f);
 		}
 
+		long encoder = bgfx_begin();
+
 		uniformBuf.flip();
-		bgfx_set_uniform(uniformLightPosRadius, uniformBuf, numLights);
+		bgfx_encoder_set_uniform(encoder, uniformLightPosRadius, uniformBuf, numLights);
 
 		uniformBuf.clear();
 		for (float[] ll : lightRgbInnerR) {
@@ -323,7 +325,7 @@ public class Bump extends Demo {
 		}
 
 		uniformBuf.flip();
-		bgfx_set_uniform(uniformLightRgbInnerR, uniformBuf, numLights);
+		bgfx_encoder_set_uniform(encoder, uniformLightRgbInnerR, uniformBuf, numLights);
 
 		int instanceStride = 64;
 		int numInstances = 3;
@@ -346,25 +348,25 @@ public class Bump extends Demo {
 				}
 
 				// Set instance data buffer.
-				bgfx_set_instance_data_buffer(idb, numInstances);
+				bgfx_encoder_set_instance_data_buffer(encoder, idb, numInstances);
 
 				// Set vertex and index buffer.
-				bgfx_set_vertex_buffer(0, vbh, 0, 24);
-				bgfx_set_index_buffer(ibh, 0, 36);
+				bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+				bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
 				// Bind textures.
-				bgfx_set_texture(0, uniformTexColor, textureColor, 0xffffffff);
-				bgfx_set_texture(1, uniformTexNormal, textureNormal, 0xffffffff);
+				bgfx_encoder_set_texture(encoder, 0, uniformTexColor, textureColor, 0xffffffff);
+				bgfx_encoder_set_texture(encoder, 1, uniformTexNormal, textureNormal, 0xffffffff);
 
 				// Set render states.
-				bgfx_set_state(BGFX_STATE_RGB_WRITE
+				bgfx_encoder_set_state(encoder, BGFX_STATE_RGB_WRITE
 						| BGFX_STATE_ALPHA_WRITE
 						| BGFX_STATE_DEPTH_WRITE
 						| BGFX_STATE_DEPTH_TEST_LESS
 						| BGFX_STATE_MSAA, 0);
 
 				// Submit primitive for rendering to view 0.
-				bgfx_submit(0, program, 0, false);
+				bgfx_encoder_submit(encoder, 0, program, 0, false);
 				idb.free();
 			}
 		} else {
@@ -377,29 +379,30 @@ public class Bump extends Demo {
 
 					// Set transform for draw call.
 					mtx.get(mtxBuf);
-					bgfx_set_transform(mtxBuf);
+					bgfx_encoder_set_transform(encoder, mtxBuf);
 
 					// Set vertex and index buffer.
-					bgfx_set_vertex_buffer(0, vbh, 0, 24);
-					bgfx_set_index_buffer(ibh, 0, 36);
+					bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+					bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
 					// Bind textures.
-					bgfx_set_texture(0, uniformTexColor, textureColor, 0xffffffff);
-					bgfx_set_texture(1, uniformTexNormal, textureNormal, 0xffffffff);
+					bgfx_encoder_set_texture(encoder, 0, uniformTexColor, textureColor, 0xffffffff);
+					bgfx_encoder_set_texture(encoder, 1, uniformTexNormal, textureNormal, 0xffffffff);
 
 					// Set render states.
-					bgfx_set_state(BGFX_STATE_RGB_WRITE
+					bgfx_encoder_set_state(encoder, BGFX_STATE_RGB_WRITE
 							| BGFX_STATE_ALPHA_WRITE
 							| BGFX_STATE_DEPTH_WRITE
 							| BGFX_STATE_DEPTH_TEST_LESS
 							| BGFX_STATE_MSAA, 0);
 
 					// Submit primitive for rendering to view 0.
-					bgfx_submit(0, program, 0, false);
+					bgfx_encoder_submit(encoder, 0, program, 0, false);
 				}
 			}
 		}
 
+		bgfx_end(encoder);
 	}
 
 	@Override

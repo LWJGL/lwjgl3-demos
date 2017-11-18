@@ -52,7 +52,7 @@ public class Raymarch extends Demo {
 		super("03-Raymarch");
 	}
 
-	private void renderScreenSpaceQuad(int _view, short _program, float _x, float _y, float _width, float _height) {
+	private void renderScreenSpaceQuad(long encoder, int _view, short _program, float _x, float _y, float _width, float _height) {
 		try (MemoryStack stack = MemoryStack.stackPush()) {
 			BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
 			BGFXTransientIndexBuffer tib = BGFXTransientIndexBuffer.callocStack(stack);
@@ -109,15 +109,15 @@ public class Raymarch extends Demo {
 				indices.putShort((short) 3);
 				indices.putShort((short) 2);
 
-				bgfx_set_state(BGFX_STATE_DEFAULT, 0);
+				bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
 
 				indices.flip();
-				bgfx_set_transient_index_buffer(tib, 0, 6);
+				bgfx_encoder_set_transient_index_buffer(encoder, tib, 0, 6);
 
 				vertex.flip();
-				bgfx_set_transient_vertex_buffer(0, tvb, 0, 4);
+				bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, 4);
 
-				bgfx_submit(_view, _program, 0, false);
+				bgfx_encoder_submit(encoder, _view, _program, 0, false);
 			}
 		}
 	}
@@ -177,17 +177,23 @@ public class Raymarch extends Demo {
 		mtxInv.transform(lightDirModelN, lightDirTime);
 		lightDirTime.w = time;
 
+		long encoder = bgfx_begin();
+
+		bgfx_encoder_touch(encoder, 0);
+
 		lightDirTime.get(lightDirTimeBuf);
-		bgfx_set_uniform(uniformLightDirTime, lightDirTimeBuf, 1);
+		bgfx_encoder_set_uniform(encoder, uniformLightDirTime, lightDirTimeBuf, 1);
 
 		vp.mul(mtx, mvp);
 
 		mvp.invert(invMvp);
 
 		invMvp.get(mtxBuf);
-		bgfx_set_uniform(uniformMtx, mtxBuf, 1);
+		bgfx_encoder_set_uniform(encoder, uniformMtx, mtxBuf, 1);
 
-		renderScreenSpaceQuad(1, program, 0.0f, 0.0f, 1280.0f, 720.0f);
+		renderScreenSpaceQuad(encoder, 1, program, 0.0f, 0.0f, 1280.0f, 720.0f);
+
+		bgfx_end(encoder);
 	}
 
 	@Override
