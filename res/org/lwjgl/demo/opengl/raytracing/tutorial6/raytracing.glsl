@@ -70,6 +70,7 @@ bool intersectBox(vec3 origin, vec3 invdir, vec3 boxMin, vec3 boxMax, out float 
  * @param t the upper bound on the distances of any triangle
  * @param[out] thinfo will store the information of the closest triangle
  * @returns the index of the closest triangle into the 'Triangles' SSBO
+ *          or NO_INTERSECTION if there was no intersection
  */
 int intersectTriangles(vec3 origin, vec3 dir, const node n, float t, out trianglehitinfo thinfo) {
   int idx = NO_INTERSECTION;
@@ -195,6 +196,9 @@ vec3 trace(vec3 origin, vec3 dir, vec3 invdir) {
 
 layout (local_size_x = 16, local_size_y = 8) in;
 
+/**
+ * Entry point of this GLSL compute shader.
+ */
 void main(void) {
   ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(framebufferImage);

@@ -108,7 +108,7 @@ struct hitinfo {
 /**
  * We hold the framebuffer pixel coordinate of the current work item to
  * not drag it as parameter all over the place. In addition to "time"
- * this parameter provide spatial variance for generated pseudo-random
+ * this parameter provides spatial variance for generated pseudo-random
  * numbers.
  */
 ivec2 px;

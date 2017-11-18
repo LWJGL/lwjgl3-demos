@@ -1,0 +1,6 @@
+The Sponza OBJ model was obtainer from:
+
+  http://g3d.cs.williams.edu/g3d/data10/index.html
+
+License: CC BY-NC
+© 2002 Marko Dabrovic

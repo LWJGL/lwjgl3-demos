@@ -4,125 +4,105 @@
  */
 package org.lwjgl.demo.opengl.raytracing.tutorial;
 
+import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.assimp.AIFace;
+import org.lwjgl.assimp.AIMesh;
+import org.lwjgl.assimp.AIScene;
+import org.lwjgl.assimp.AIVector3D;
+import org.lwjgl.assimp.Assimp;
+import org.lwjgl.demo.opengl.util.DemoUtils;
+import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
+import org.lwjgl.demo.opengl.util.Member;
+import org.lwjgl.demo.opengl.util.Std430Writer;
+import org.lwjgl.glfw.*;
+import org.lwjgl.opengl.*;
+import org.lwjgl.system.Callback;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.zip.ZipInputStream;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.system.MathUtil.mathRoundPoT;
+import static org.lwjgl.system.MathUtil.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.*;
-import java.util.*;
-import java.util.zip.ZipInputStream;
-
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.assimp.*;
-import org.lwjgl.demo.opengl.util.*;
-import org.lwjgl.glfw.*;
-import org.lwjgl.opengl.*;
-import org.lwjgl.system.Callback;
-
 /**
- * In this tutorial we will trace triangle meshes imported from a scene
- * description file via {@link Assimp}. We will also use a binary Bounding
- * Volume Hierarchy structure with axis-aligned bounding boxes and show how this
- * can be traversed in a stack-less way on the GPU.
+ * This demo shows stackless kd-tree traversal, as presented in the 2007
+ * <a href=
+ * "http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.93.8709&rep=rep1&type=pdf">Stackless
+ * KD-Tree Traversal for High Performance GPU Ray Tracing</a> paper together
+ * with hybrid rasterization.
+ * <p>
+ * The former is a nice way to avoiding unnecessary ray-triangle intersections
+ * using a kd-tree as the spatial acceleration structure. In addition, the
+ * traversal is made stackless by introducing "ropes" (i.e. pointers to neighbor
+ * nodes). See the class {@link KDTreeForTutorial7} for the actual kd-tree
+ * implementation plus the "ropes" extension.
+ * <p>
+ * The latter is a way to accelerate shooting the primary rays and intersecting
+ * them with scene geometry by simply rendering/rasterizing the scene with
+ * OpenGL in the normal way. In the fragment shader we will write the
+ * world-space normal and the view distance of the fragment into a texture,
+ * which is then read by the path tracer compute shader. From there on the path
+ * tracer will again use the default path tracing algorithm for shooting the
+ * secondary rays.
  * 
  * @author Kai Burjack
  */
-public class Tutorial6 {
+public class Tutorial7 {
 
 	/**
 	 * A triangle described by three vertices with its positions and normals.
 	 */
-	private static class Triangle {
-		private static final float ONE_THIRD = 1.0f / 3.0f;
-		private float v0x, v0y, v0z;
-		private float v1x, v1y, v1z;
-		private float v2x, v2y, v2z;
-		private float n0x, n0y, n0z;
-		private float n1x, n1y, n1z;
-		private float n2x, n2y, n2z;
+	private static class Triangle implements KDTreeForTutorial7.Boundable {
+		public Vector3f v0, v1, v2;
+		public Vector3f n0, n1, n2;
+		public KDTreeForTutorial7.Box bounds;
 
-		private float centroid(int axis) {
-			switch (axis) {
-			case 0:
-				return (v0x + v1x + v2x) * ONE_THIRD;
-			case 1:
-				return (v0y + v1y + v2y) * ONE_THIRD;
-			case 2:
-				return (v0z + v1z + v2z) * ONE_THIRD;
-			default:
-				throw new IllegalArgumentException();
-			}
-		}
-
-		private float max(int axis) {
-			switch (axis) {
-			case 0:
-				return Math.max(Math.max(v0x, v1x), v2x);
-			case 1:
-				return Math.max(Math.max(v0y, v1y), v2y);
-			case 2:
-				return Math.max(Math.max(v0z, v1z), v2z);
-			default:
-				throw new IllegalArgumentException();
-			}
-		}
-
-		private float min(int axis) {
-			switch (axis) {
-			case 0:
-				return Math.min(Math.min(v0x, v1x), v2x);
-			case 1:
-				return Math.min(Math.min(v0y, v1y), v2y);
-			case 2:
-				return Math.min(Math.min(v0z, v1z), v2z);
-			default:
-				throw new IllegalArgumentException();
-			}
+		public KDTreeForTutorial7.Box getBounds() {
+			if (bounds != null)
+				return bounds;
+			bounds = new KDTreeForTutorial7.Box();
+			bounds.min = new Vector3f(v0).min(v1).min(v2);
+			bounds.max = new Vector3f(v0).max(v1).max(v2);
+			return bounds;
 		}
 	}
 
 	/**
-	 * This demo uses a binary Bounding Volume Hierarchy using axis-aligned bounding
-	 * boxes to accelerate ray-triangle intersections.
-	 * 
-	 * @param <T>
-	 *            the kind of boundable objects (in our case this will be
-	 *            {@link Triangle})
-	 */
-	private static class BVH {
-		float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
-		float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
-		BVH parent, left, right;
-		BVH hitNext, missNext;
-		boolean isLeft;
-		List<Triangle> triangles;
-	}
-
-	/**
-	 * Reflects the "Node" structure of a BVH node as used in the raytracing.glsl
-	 * shader.
+	 * Reflects the "Node" structure of a kd-tree node as used in the
+	 * raytracing.glsl shader.
 	 * <p>
-	 * We use the {@link Std430Writer} to layout our BVH nodes in memory as the
-	 * shader expects it.
+	 * We use the {@link Std430Writer} to layout our nodes in memory as the shader
+	 * expects it.
 	 */
-	static class GPUNode {
-		Vector3f min; // int padW; // <- std430 padding!
-		Vector3f max;
-		int hitNext; // <- this will layout as max.w
-		int missNext, firstTri, numTris;
-		// int pad0; // <- std430 padding!
+	public static class GPUNode {
+		public Vector3f min, max;
+		public int dim;
+		public float plane;
+		public @Member(length = 6) int[] ropes;
+		public int left, right;
+		public int firstTri, numTris;
 	}
 
 	/**
@@ -200,8 +180,8 @@ public class Tutorial6 {
 	 * The GLFW window handle.
 	 */
 	private long window;
-	private int width = 1200;
-	private int height = 800;
+	private int width = 512;
+	private int height = 512;
 	/**
 	 * Whether we need to recreate our ray tracer framebuffer.
 	 */
@@ -212,9 +192,21 @@ public class Tutorial6 {
 	 */
 	private int pttex;
 	/**
+	 * The rasterized normal and view distance texture.
+	 */
+	private int normalAndViewDistTex;
+	/**
 	 * A VAO simply holding a VBO for rendering a simple quad.
 	 */
 	private int vao;
+	/**
+	 * The Framebuffer Object we use to render/rasterize the scene into.
+	 */
+	private int rasterFBO;
+	/**
+	 * The Renderbuffer Object to store depth information.
+	 */
+	private int depthRBO;
 	/**
 	 * The shader program handle of the compute shader.
 	 */
@@ -223,6 +215,12 @@ public class Tutorial6 {
 	 * The shader program handle of a fullscreen quad shader.
 	 */
 	private int quadProgram;
+	/**
+	 * The shader program to rasterize the mesh (normal + view distance) with.
+	 */
+	private int rasterProgram;
+	private int viewMatrixUniform;
+	private int projMatrixUniform;
 	/**
 	 * A sampler object to sample the framebuffer texture when finally presenting it
 	 * on the screen.
@@ -235,14 +233,17 @@ public class Tutorial6 {
 	 */
 	private int eyeUniform;
 	/*
-	 * The location of the rayNN uniforms. These will be explained in trace().
+	 * The location of the rayNN uniforms. These will be explained later.
 	 */
 	private int ray00Uniform, ray10Uniform, ray01Uniform, ray11Uniform;
+	private int timeUniform;
+	private int blendFactorUniform;
 	/**
 	 * The binding point in the compute shader of the framebuffer image (level 0 of
 	 * the {@link #pttex} texture).
 	 */
 	private int framebufferImageBinding;
+	private int normalAndViewDistImageBinding;
 	private int nodesSsbo;
 	private int nodesSsboBinding;
 	private int trianglesSsbo;
@@ -258,6 +259,7 @@ public class Tutorial6 {
 
 	private float mouseX, mouseY;
 	private boolean mouseDown;
+	private int frameNumber;
 
 	private Model model;
 	private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
@@ -265,8 +267,10 @@ public class Tutorial6 {
 	private Matrix4f viewMatrix = new Matrix4f();
 	private Matrix4f invViewProjMatrix = new Matrix4f();
 	private Vector3f tmpVector = new Vector3f();
-	private Vector3f cameraPosition = new Vector3f(0.0f, 2.2f, 3.0f);
-	private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
+	private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+
+	private Vector3f cameraPosition = new Vector3f(1.587E+1f, 9.643E-1f, -2.432E-1f);
+	private Vector3f cameraLookAt = new Vector3f(0, 3, 0);
 	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
 
 	/*
@@ -314,7 +318,7 @@ public class Tutorial6 {
 		/*
 		 * Now, create the window.
 		 */
-		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 6", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 7", NULL, NULL);
 		if (window == NULL)
 			throw new AssertionError("Failed to create the GLFW window");
 
@@ -341,33 +345,36 @@ public class Tutorial6 {
 		 */
 		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (Tutorial6.this.width != width || Tutorial6.this.height != height)) {
-					Tutorial6.this.width = width;
-					Tutorial6.this.height = height;
-					Tutorial6.this.resetFramebuffer = true;
+				if (width > 0 && height > 0 && (Tutorial7.this.width != width || Tutorial7.this.height != height)) {
+					Tutorial7.this.width = width;
+					Tutorial7.this.height = height;
+					Tutorial7.this.resetFramebuffer = true;
+					frameNumber = 0;
 				}
 			}
 		});
 
 		glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
+			@Override
 			public void invoke(long window, double x, double y) {
 				if (mouseDown) {
-					float deltaX = (float) x - Tutorial6.this.mouseX;
-					float deltaY = (float) y - Tutorial6.this.mouseY;
-					Tutorial6.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
-					Tutorial6.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+					float deltaX = (float) x - Tutorial7.this.mouseX;
+					float deltaY = (float) y - Tutorial7.this.mouseY;
+					Tutorial7.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
+					Tutorial7.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+					frameNumber = 0;
 				}
-				Tutorial6.this.mouseX = (float) x;
-				Tutorial6.this.mouseY = (float) y;
+				Tutorial7.this.mouseX = (float) x;
+				Tutorial7.this.mouseY = (float) y;
 			}
 		});
 
 		glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
 			public void invoke(long window, int button, int action, int mods) {
 				if (action == GLFW_PRESS) {
-					Tutorial6.this.mouseDown = true;
+					Tutorial7.this.mouseDown = true;
 				} else if (action == GLFW_RELEASE) {
-					Tutorial6.this.mouseDown = false;
+					Tutorial7.this.mouseDown = false;
 				}
 			}
 		});
@@ -395,7 +402,7 @@ public class Tutorial6 {
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
 		/* Load OBJ model */
-		byte[] bytes = readSingleFileZip("org/lwjgl/demo/opengl/raytracing/tutorial6/scene.obj.zip");
+		byte[] bytes = readSingleFileZip("org/lwjgl/demo/opengl/raytracing/tutorial7/sponza.obj.zip");
 		ByteBuffer bb = BufferUtils.createByteBuffer(bytes.length);
 		bb.put(bytes).flip();
 		AIScene scene = Assimp.aiImportFileFromMemory(bb, 0, "obj");
@@ -405,17 +412,20 @@ public class Tutorial6 {
 
 		/* Create all needed GL resources */
 		createFramebufferTextures();
+		createRasterProgram();
+		initRasterProgram();
 		createSampler();
 		quadFullScreenVao();
 		createComputeProgram();
 		initComputeProgram();
 		createQuadProgram();
 		initQuadProgram();
+		createRasterFBO();
 	}
 
 	private static byte[] readSingleFileZip(String zipResource) throws IOException {
 		ZipInputStream zipStream = new ZipInputStream(
-				Tutorial6.class.getClassLoader().getResourceAsStream(zipResource));
+				Tutorial7.class.getClassLoader().getResourceAsStream(zipResource));
 		zipStream.getNextEntry();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		byte[] buffer = new byte[1024];
@@ -427,11 +437,11 @@ public class Tutorial6 {
 		return baos.toByteArray();
 	}
 
-	private static void allocate(BVH node, Map<BVH, Integer> indexes) {
-		Queue<BVH> nodes = new LinkedList<BVH>();
+	private static void allocate(KDTreeForTutorial7.Node node, Map<KDTreeForTutorial7.Node, Integer> indexes) {
+		Queue<KDTreeForTutorial7.Node> nodes = new LinkedList<KDTreeForTutorial7.Node>();
 		nodes.add(node);
 		while (!nodes.isEmpty()) {
-			BVH n = nodes.poll();
+			KDTreeForTutorial7.Node n = nodes.poll();
 			if (n == null)
 				continue;
 			int index = indexes.size();
@@ -443,13 +453,13 @@ public class Tutorial6 {
 
 	/**
 	 * Convert the Assimp-imported scene into the Shader Storage Buffer Objects
-	 * needed for stackless BVH traversable in the compute shader.
+	 * needed for stackless kd-tree traversable in the compute shader.
 	 */
 	private void createSceneSSBOs() {
-		/*
-		 * First, we clump all meshes into a linear list of non-indexed triangles.
-		 */
-		List<Triangle> triangles = new ArrayList<Triangle>();
+		KDTreeForTutorial7 kdtree = new KDTreeForTutorial7();
+		List<KDTreeForTutorial7.Boundable> triangles = new ArrayList<KDTreeForTutorial7.Boundable>();
+		Vector3f min = new Vector3f(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
+		Vector3f max = new Vector3f(-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE);
 		for (Model.Mesh mesh : model.meshes) {
 			int trianglesCount = mesh.elementCount / 3;
 			for (int i = 0; i < trianglesCount; i++) {
@@ -457,45 +467,42 @@ public class Tutorial6 {
 				int i0 = mesh.indicesIB.get(i * 3 + 0);
 				int i1 = mesh.indicesIB.get(i * 3 + 1);
 				int i2 = mesh.indicesIB.get(i * 3 + 2);
-				t.v0x = mesh.verticesFB.get(i0 * 3 + 0);
-				t.v0y = mesh.verticesFB.get(i0 * 3 + 1);
-				t.v0z = mesh.verticesFB.get(i0 * 3 + 2);
-				t.v1x = mesh.verticesFB.get(i1 * 3 + 0);
-				t.v1y = mesh.verticesFB.get(i1 * 3 + 1);
-				t.v1z = mesh.verticesFB.get(i1 * 3 + 2);
-				t.v2x = mesh.verticesFB.get(i2 * 3 + 0);
-				t.v2y = mesh.verticesFB.get(i2 * 3 + 1);
-				t.v2z = mesh.verticesFB.get(i2 * 3 + 2);
-				t.n0x = mesh.normalsFB.get(i0 * 3 + 0);
-				t.n0y = mesh.normalsFB.get(i0 * 3 + 1);
-				t.n0z = mesh.normalsFB.get(i0 * 3 + 2);
-				t.n1x = mesh.normalsFB.get(i1 * 3 + 0);
-				t.n1y = mesh.normalsFB.get(i1 * 3 + 1);
-				t.n1z = mesh.normalsFB.get(i1 * 3 + 2);
-				t.n2x = mesh.normalsFB.get(i2 * 3 + 0);
-				t.n2y = mesh.normalsFB.get(i2 * 3 + 1);
-				t.n2z = mesh.normalsFB.get(i2 * 3 + 2);
+				float v0x = mesh.verticesFB.get(i0 * 3 + 0);
+				float v0y = mesh.verticesFB.get(i0 * 3 + 1);
+				float v0z = mesh.verticesFB.get(i0 * 3 + 2);
+				float v1x = mesh.verticesFB.get(i1 * 3 + 0);
+				float v1y = mesh.verticesFB.get(i1 * 3 + 1);
+				float v1z = mesh.verticesFB.get(i1 * 3 + 2);
+				float v2x = mesh.verticesFB.get(i2 * 3 + 0);
+				float v2y = mesh.verticesFB.get(i2 * 3 + 1);
+				float v2z = mesh.verticesFB.get(i2 * 3 + 2);
+				float n0x = mesh.normalsFB.get(i0 * 3 + 0);
+				float n0y = mesh.normalsFB.get(i0 * 3 + 1);
+				float n0z = mesh.normalsFB.get(i0 * 3 + 2);
+				float n1x = mesh.normalsFB.get(i1 * 3 + 0);
+				float n1y = mesh.normalsFB.get(i1 * 3 + 1);
+				float n1z = mesh.normalsFB.get(i1 * 3 + 2);
+				float n2x = mesh.normalsFB.get(i2 * 3 + 0);
+				float n2y = mesh.normalsFB.get(i2 * 3 + 1);
+				float n2z = mesh.normalsFB.get(i2 * 3 + 2);
+				t.v0 = new Vector3f(v0x, v0y, v0z);
+				t.v1 = new Vector3f(v1x, v1y, v1z);
+				t.v2 = new Vector3f(v2x, v2y, v2z);
+				t.n0 = new Vector3f(n0x, n0y, n0z);
+				t.n1 = new Vector3f(n1x, n1y, n1z);
+				t.n2 = new Vector3f(n2x, n2y, n2z);
 				triangles.add(t);
+				min.min(t.v0).min(t.v1).min(t.v2);
+				max.max(t.v0).max(t.v1).max(t.v2);
 			}
 		}
-		/*
-		 * Next, we build a BVH using simple "centroid split" strategy.
-		 */
-		BVH root = buildBvh(triangles);
-		buildNextLinks(root);
-		/*
-		 * Then, we take this BVH and transform it into a structure understood by the
-		 * GPU/shader, which will be two Shader Storage Buffer Objects. One for the list
-		 * of BVH nodes and the other for the list of triangles.
-		 */
+		kdtree.buildTree(triangles, new KDTreeForTutorial7.Box(min, max));
 		DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
 		DynamicByteBuffer trianglesBuffer = new DynamicByteBuffer();
-		bhvToBuffers(root, nodesBuffer, trianglesBuffer);
+		kdTreeToBuffers(kdtree, nodesBuffer, trianglesBuffer);
 		nodesBuffer.flip();
 		trianglesBuffer.flip();
-		/*
-		 * And finally we upload the two buffers to the SSBOs.
-		 */
+
 		this.nodesSsbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, nodesSsbo);
 		glBufferData(GL_ARRAY_BUFFER, nodesBuffer.bb, GL_STATIC_DRAW);
@@ -507,211 +514,63 @@ public class Tutorial6 {
 	}
 
 	/**
-	 * Heuristic for the BVH algorithm, telling it when to stop splitting a node.
-	 */
-	private static final int MAX_TRIANGLES_IN_NODE = 32;
-
-	/**
-	 * Build a "centroid split" Bounding Volume Hierarchy of axis-aligned bounding
-	 * boxes.
-	 * 
-	 * @param triangles
-	 *            the list of triangles
-	 * @return the BVH
-	 */
-	private static BVH buildBvh(List<Triangle> triangles) {
-		BVH n = new BVH();
-		/*
-		 * Compute the bounding box of the triangles.
-		 */
-		for (Triangle t : triangles) {
-			n.minX = Math.min(n.minX, t.min(0));
-			n.minY = Math.min(n.minY, t.min(1));
-			n.minZ = Math.min(n.minZ, t.min(2));
-			n.maxX = Math.max(n.maxX, t.max(0));
-			n.maxY = Math.max(n.maxY, t.max(1));
-			n.maxZ = Math.max(n.maxZ, t.max(2));
-		}
-		/*
-		 * Do we still want to split?
-		 */
-		if (triangles.size() > MAX_TRIANGLES_IN_NODE) {
-			/*
-			 * Yes, so compute the axis with the largest extents.
-			 */
-			float lenX = n.maxX - n.minX;
-			float lenY = n.maxY - n.minY;
-			float lenZ = n.maxZ - n.minZ;
-			int axis = 0;
-			if (lenY > lenX)
-				axis = 1;
-			if (lenZ > lenY && lenZ > lenX)
-				axis = 2;
-			float c = 0;
-			/*
-			 * And determine the centroid of all triangles along that axis.
-			 */
-			for (Triangle t : triangles)
-				c += t.centroid(axis);
-			c /= triangles.size();
-			/*
-			 * Next, partition the triangles based on their individual centroids.
-			 */
-			List<Triangle> left = new ArrayList<>(triangles.size() / 2);
-			List<Triangle> right = new ArrayList<>(triangles.size() / 2);
-			for (Triangle t : triangles) {
-				if (t.centroid(axis) < c)
-					left.add(t);
-				else
-					right.add(t);
-			}
-			/*
-			 * And continue building left and right.
-			 */
-			n.left = buildBvh(left);
-			n.left.isLeft = true; // <- this is needed for buildNextLinks()
-			n.left.parent = n;
-			n.right = buildBvh(right);
-			n.right.parent = n;
-		} else {
-			/*
-			 * We do not want to split further, so just set the triangles list.
-			 */
-			n.triangles = triangles;
-		}
-		return n;
-	}
-
-	/**
-	 * This is a custom implementation somewhat derived from
-	 * <a href="https://sebadorn.de/2015/03/13/stackless-bvh-traversal">Stackless
-	 * BVH traversal</a> by introducing "hitNext" and "missNext" pointers to each
-	 * BVH node.
+	 * Fill the given nodes and triangles buffers from the given kd-tree.
 	 * <p>
-	 * The idea is simple: Describe an in-order tree traversal by assigning "next"
-	 * pointers to each BVH node. So, in GPU memory, each BVH node does not have a
-	 * left and right child pointer anymore, but a pointer describing where to go
-	 * next when that particular node has been processed. And in addition to a
-	 * single simple "next" pointer, we add an optimization by using two pointers.
-	 * One "hitNext" and one "missNext" pointer. The "hitNext" pointer is followed
-	 * when the ray intersects this box, and will result in that node's first/left
-	 * child being visited (if it is not a leaf node), or the next in-order node
-	 * being visited.
+	 * These buffers will then be uploaded to a Shader Storage Buffer Object to be
+	 * used by the path tracer.
 	 * 
-	 * @param bvh
-	 *            the BVH to build "next" links for
-	 */
-	private static void buildNextLinks(BVH bvh) {
-		if (bvh.left != null)
-			buildNextLinks(bvh.left);
-		if (bvh.right != null)
-			buildNextLinks(bvh.right);
-
-		if (bvh.parent == null) {
-			/*
-			 * We are the root node. In the case of a hit, we visit the left child. In the
-			 * case of a miss, we are done.
-			 */
-			bvh.hitNext = bvh.left;
-			bvh.missNext = null;
-		} else if (bvh.isLeft && bvh.left == null) {
-			/*
-			 * We are a left leaf node. In the case of a hit or a miss, we proceed with the
-			 * right silbing (which always exists).
-			 */
-			bvh.hitNext = bvh.missNext = bvh.parent.right;
-		} else if (bvh.isLeft && bvh.left != null) {
-			/*
-			 * We are a left non-leaf. In the case of a hit we visit our left child. In the
-			 * case of a miss we visit the right sibling.
-			 */
-			bvh.hitNext = bvh.left;
-			bvh.missNext = bvh.parent.right;
-		} else if (!bvh.isLeft && bvh.left != null) {
-			/*
-			 * Here is where it gets a bit more complicated. When we are a right non-leaf
-			 * node, we need to figure out which next in-order node to visit next in the
-			 * case of a miss. See https://sebadorn.de/2015/03/13/stackless-bvh-traversal
-			 * for schematics on this.
-			 * 
-			 * But first, we say that in the case of a hit we visit our left child.
-			 */
-			bvh.hitNext = bvh.left;
-			BVH next = bvh.parent;
-			while (!next.isLeft && next.parent != null)
-				next = next.parent;
-			if (next.parent != null)
-				next = next.parent.right;
-			else
-				next = null;
-			bvh.missNext = next;
-		} else if (!bvh.isLeft && bvh.left == null) {
-			/*
-			 * Here is where it gets a bit more complicated. When we are a right leaf node,
-			 * we need to figure out which next in-order node to visit next. See
-			 * https://sebadorn.de/2015/03/13/stackless-bvh-traversal for schematics on
-			 * this.
-			 */
-			BVH next = bvh.parent;
-			while (!next.isLeft && next.parent != null)
-				next = next.parent;
-			if (next.parent != null)
-				next = next.parent.right;
-			else
-				next = null;
-			bvh.missNext = bvh.hitNext = next;
-		}
-	}
-
-	/**
-	 * Build the memory of the Shader Storage Buffer Objects for the nodes and
-	 * triangles list.
-	 * <p>
-	 * We will use {@link Std430Writer} to write the memory in std430 layout
-	 * expected by the shader. For this, we simply fill {@link GPUNode} instances.
-	 * 
-	 * @param root
-	 *            the BVH root node
+	 * @param tree
+	 *            the kd-tree to generate the nodes and triangles buffers from
 	 * @param nodesBuffer
-	 *            a dynamic/growable ByteBuffer holding the BVH nodes
+	 *            will be populated with the nodes of the stackless kd-tree
+	 *            structure used by the compute shader
 	 * @param trianglesBuffer
-	 *            a dynamic/growable ByteBuffer holding the triangles
+	 *            will be populated with the vertices of all triangles in the scene
 	 */
-	private static void bhvToBuffers(BVH root, DynamicByteBuffer nodesBuffer, DynamicByteBuffer trianglesBuffer) {
-		Map<BVH, Integer> indexes = new LinkedHashMap<BVH, Integer>();
+	private static void kdTreeToBuffers(KDTreeForTutorial7 tree, DynamicByteBuffer nodesBuffer,
+			DynamicByteBuffer trianglesBuffer) {
+		Map<KDTreeForTutorial7.Node, Integer> indexes = new LinkedHashMap<KDTreeForTutorial7.Node, Integer>();
 		// Allocate indexes for each of the nodes
-		allocate(root, indexes);
+		allocate(tree.mRootNode, indexes);
 		int triangleIndex = 0;
 		List<GPUNode> gpuNodes = new ArrayList<GPUNode>();
 		// Iterate over each node in insertion order and write to the buffers
-		for (Map.Entry<BVH, Integer> e : indexes.entrySet()) {
-			BVH n = e.getKey();
+		for (Map.Entry<KDTreeForTutorial7.Node, Integer> e : indexes.entrySet()) {
+			KDTreeForTutorial7.Node n = e.getKey();
 			GPUNode gn = new GPUNode();
-			gn.min = new Vector3f(n.minX, n.minY, n.minZ);
-			gn.max = new Vector3f(n.maxX, n.maxY, n.maxZ);
-			if (n.hitNext != null)
-				gn.hitNext = indexes.get(n.hitNext).intValue();
-			else
-				gn.hitNext = -1;
-			if (n.missNext != null)
-				gn.missNext = indexes.get(n.missNext).intValue();
-			else
-				gn.missNext = -1;
-			if (n.triangles != null) {
+			gn.min = n.boundingBox.min;
+			gn.max = n.boundingBox.max;
+			gn.dim = n.splitAxis;
+			gn.plane = n.splitPlane;
+			gn.ropes = new int[6];
+			/* Write ropes */
+			for (int i = 0; i < 6; i++) {
+				KDTreeForTutorial7.Node r = n.ropes[i];
+				if (r != null) {
+					gn.ropes[i] = indexes.get(r).intValue();
+				} else {
+					gn.ropes[i] = -1; // no neighbor
+				}
+			}
+			if (n.isLeafNode()) {
+				gn.left = -1; // no left child
+				gn.right = -1; // no right child
 				gn.firstTri = triangleIndex;
 				gn.numTris = n.triangles.size();
 				triangleIndex += n.triangles.size();
 				/* Write triangles to buffer */
 				for (int i = 0; i < n.triangles.size(); i++) {
 					Triangle t = (Triangle) n.triangles.get(i);
-					trianglesBuffer.putFloat(t.v0x).putFloat(t.v0y).putFloat(t.v0z).putFloat(1.0f);
-					trianglesBuffer.putFloat(t.v1x).putFloat(t.v1y).putFloat(t.v1z).putFloat(1.0f);
-					trianglesBuffer.putFloat(t.v2x).putFloat(t.v2y).putFloat(t.v2z).putFloat(1.0f);
-					trianglesBuffer.putFloat(t.n0x).putFloat(t.n0y).putFloat(t.n0z).putFloat(0.0f);
-					trianglesBuffer.putFloat(t.n1x).putFloat(t.n1y).putFloat(t.n1z).putFloat(0.0f);
-					trianglesBuffer.putFloat(t.n2x).putFloat(t.n2y).putFloat(t.n2z).putFloat(0.0f);
+					trianglesBuffer.putFloat(t.v0.x).putFloat(t.v0.y).putFloat(t.v0.z).putFloat(1.0f);
+					trianglesBuffer.putFloat(t.v1.x).putFloat(t.v1.y).putFloat(t.v1.z).putFloat(1.0f);
+					trianglesBuffer.putFloat(t.v2.x).putFloat(t.v2.y).putFloat(t.v2.z).putFloat(1.0f);
+					trianglesBuffer.putFloat(t.n0.x).putFloat(t.n0.y).putFloat(t.n0.z).putFloat(0.0f);
+					trianglesBuffer.putFloat(t.n1.x).putFloat(t.n1.y).putFloat(t.n1.z).putFloat(0.0f);
+					trianglesBuffer.putFloat(t.n2.x).putFloat(t.n2.y).putFloat(t.n2.z).putFloat(0.0f);
 				}
 			} else {
+				gn.left = indexes.get(n.left).intValue();
+				gn.right = indexes.get(n.right).intValue();
 				gn.firstTri = 0; // no triangles
 				gn.numTris = 0; // no triangles
 			}
@@ -719,6 +578,43 @@ public class Tutorial6 {
 		}
 		// Write GPUNode list to ByteBuffer in std430 layout
 		Std430Writer.write(gpuNodes, GPUNode.class, nodesBuffer);
+	}
+
+	/**
+	 * Create the raster shader used to render world normal and view distance into a
+	 * texture.
+	 */
+	private void createRasterProgram() throws IOException {
+		int program = glCreateProgram();
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.vs.glsl",
+				GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.fs.glsl",
+				GL_FRAGMENT_SHADER);
+		glAttachShader(program, vshader);
+		glAttachShader(program, fshader);
+		glBindAttribLocation(program, 0, "vertex");
+		glBindAttribLocation(program, 1, "normal");
+		glBindFragDataLocation(program, 0, "outNormalAndDist");
+		glLinkProgram(program);
+		int linked = glGetProgrami(program, GL_LINK_STATUS);
+		String programLog = glGetProgramInfoLog(program);
+		if (programLog != null && programLog.trim().length() > 0) {
+			System.err.println(programLog);
+		}
+		if (linked == 0) {
+			throw new AssertionError("Could not link program");
+		}
+		this.rasterProgram = program;
+	}
+
+	/**
+	 * Initialize the program to rasterize the scene.
+	 */
+	private void initRasterProgram() {
+		glUseProgram(rasterProgram);
+		projMatrixUniform = glGetUniformLocation(rasterProgram, "projMatrix");
+		viewMatrixUniform = glGetUniformLocation(rasterProgram, "viewMatrix");
+		glUseProgram(0);
 	}
 
 	/**
@@ -756,9 +652,9 @@ public class Tutorial6 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/quad.vs.glsl",
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.vs.glsl",
 				GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/quad.fs.glsl",
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.fs.glsl",
 				GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
@@ -786,12 +682,15 @@ public class Tutorial6 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/raytracing.glsl",
+		int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/geometry.glsl",
 				GL_COMPUTE_SHADER);
-		int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/geometry.glsl",
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/random.glsl",
 				GL_COMPUTE_SHADER);
-		glAttachShader(program, cshader);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raytracing.glsl",
+				GL_COMPUTE_SHADER);
 		glAttachShader(program, geometry);
+		glAttachShader(program, random);
+		glAttachShader(program, cshader);
 		glLinkProgram(program);
 		int linked = glGetProgrami(program, GL_LINK_STATUS);
 		String programLog = glGetProgramInfoLog(program);
@@ -831,6 +730,8 @@ public class Tutorial6 {
 		ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
 		ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
 		ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
+		blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
+		timeUniform = glGetUniformLocation(computeProgram, "time");
 
 		/* Query the SSBO binding points */
 		IntBuffer props = BufferUtils.createIntBuffer(1);
@@ -847,6 +748,9 @@ public class Tutorial6 {
 		int loc = glGetUniformLocation(computeProgram, "framebufferImage");
 		glGetUniformiv(computeProgram, loc, params);
 		framebufferImageBinding = params.get(0);
+		loc = glGetUniformLocation(computeProgram, "normalAndViewDistImage");
+		glGetUniformiv(computeProgram, loc, params);
+		normalAndViewDistImageBinding = params.get(0);
 
 		glUseProgram(0);
 	}
@@ -858,6 +762,9 @@ public class Tutorial6 {
 	private void createFramebufferTextures() {
 		pttex = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, pttex);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, width, height);
+		normalAndViewDistTex = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, normalAndViewDistTex);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, width, height);
 	}
 
@@ -873,11 +780,33 @@ public class Tutorial6 {
 	}
 
 	/**
+	 * Create the FBO used to rasterize the scene into. This will be used to quickly
+	 * generate the intersection of the primary rays with scene geometry.
+	 */
+	private void createRasterFBO() {
+		rasterFBO = glGenFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, rasterFBO);
+		depthRBO = glGenRenderbuffers();
+		glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, normalAndViewDistTex, 0);
+		int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+			throw new AssertionError("Framebuffer is not complete: " + status);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	/**
 	 * Recreate the framebuffer when the window size changes.
 	 */
 	private void resizeFramebufferTexture() {
+		glDeleteFramebuffers(rasterFBO);
+		glDeleteRenderbuffers(depthRBO);
 		glDeleteTextures(pttex);
+		glDeleteTextures(normalAndViewDistTex);
 		createFramebufferTextures();
+		createRasterFBO();
 	}
 
 	/**
@@ -892,27 +821,35 @@ public class Tutorial6 {
 			factor = 3.0f;
 		if (keydown[GLFW_KEY_W]) {
 			viewMatrix.translateLocal(0, 0, factor * dt);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_S]) {
 			viewMatrix.translateLocal(0, 0, -factor * dt);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_A]) {
 			viewMatrix.translateLocal(factor * dt, 0, 0);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_D]) {
 			viewMatrix.translateLocal(-factor * dt, 0, 0);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_Q]) {
 			viewMatrix.rotateLocalZ(-factor * dt);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_E]) {
 			viewMatrix.rotateLocalZ(factor * dt);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_LEFT_CONTROL]) {
 			viewMatrix.translateLocal(0, factor * dt, 0);
+			frameNumber = 0;
 		}
 		if (keydown[GLFW_KEY_SPACE]) {
 			viewMatrix.translateLocal(0, -factor * dt, 0);
+			frameNumber = 0;
 		}
 
 		/* Update matrices */
@@ -920,14 +857,39 @@ public class Tutorial6 {
 	}
 
 	/**
-	 * Trace the scene using our newly built Bounding Volume Hierarchy to avoid
-	 * unnecessary ray-triangle intersection tests.
+	 * Rasterize the scene into a FBO writing the world normal and the view distance
+	 * into the {@link #normalAndViewDistTex} texture attached to the FBO.
 	 */
+	private void rasterize() {
+		glUseProgram(rasterProgram);
+		glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+		glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
+		glBindFramebuffer(GL_FRAMEBUFFER, rasterFBO);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		for (Model.Mesh mesh : model.meshes) {
+			glBindVertexArray(mesh.vao);
+			glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0L);
+		}
+		glBindVertexArray(0);
+		glDisable(GL_DEPTH_TEST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glUseProgram(0);
+	}
+
+	/* For measuring rendering performance */
 	private long lastTime = System.nanoTime();
 	private int frame = 0;
 	private float avgTime = 0.0f;
 
-	private void trace() {
+	/**
+	 * Compute a new frame by tracing the scene using our compute shader. The
+	 * resulting pixels will be written to the framebuffer texture {@link #pttex}.
+	 * <p>
+	 * See the JavaDocs of this method in {@link Tutorial2} for a better
+	 * explanation.
+	 */
+	private void trace(float elapsedSeconds) {
 		glUseProgram(computeProgram);
 
 		/*
@@ -940,6 +902,19 @@ public class Tutorial6 {
 			resetFramebuffer = false;
 		}
 
+		/*
+		 * Submit the current time to the compute shader for temporal variance in the
+		 * generated random numbers.
+		 */
+		glUniform1f(timeUniform, elapsedSeconds);
+
+		/*
+		 * We are going to average the last computed average and this frame's result, so
+		 * here we compute the blend factor between old frame and new frame. See the
+		 * class JavaDocs above for more information about that.
+		 */
+		float blendFactor = frameNumber / (frameNumber + 1.0f);
+		glUniform1f(blendFactorUniform, blendFactor);
 		/*
 		 * Invert the view-projection matrix to unproject NDC-space coordinates to
 		 * world-space vectors. See next few statements.
@@ -969,8 +944,11 @@ public class Tutorial6 {
 		 */
 		glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 		/*
-		 * Bind the SSBO containing our BVH nodes.
+		 * Also bind the image we rasterized the normal and view distance into as
+		 * read-only.
 		 */
+		glBindImageTexture(normalAndViewDistImageBinding, normalAndViewDistTex, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+		/* Bind the SSBO containing our kd tree nodes */
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, nodesSsbo);
 		/* Bind the SSBO containing our triangles */
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, trianglesSsboBinding, trianglesSsbo);
@@ -1023,7 +1001,14 @@ public class Tutorial6 {
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, trianglesSsboBinding, 0);
 		glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+		glBindImageTexture(normalAndViewDistImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 		glUseProgram(0);
+
+		/*
+		 * Increment the frame counter to compute a correct average in the next
+		 * iteration.
+		 */
+		frameNumber++;
 	}
 
 	/**
@@ -1066,10 +1051,15 @@ public class Tutorial6 {
 			 */
 			update(dt);
 			/*
+			 * First, rasterize the scene to quickly obtain normal and view distance
+			 * information.
+			 */
+			rasterize();
+			/*
 			 * Call the compute shader to trace the scene and produce an image in our
 			 * framebuffer texture.
 			 */
-			trace();
+			trace(thisTime / 1E9f);
 			/*
 			 * Finally we blit/render the framebuffer texture to the default window
 			 * framebuffer of the GLFW window.
@@ -1101,7 +1091,7 @@ public class Tutorial6 {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new Tutorial6().run();
+		new Tutorial7().run();
 	}
 
 }
