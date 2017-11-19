@@ -120,7 +120,13 @@ int intersectTriangles(vec3 origin, vec3 dir, const node n, out trianglehitinfo 
 }
 
 /**
- * 
+ * Output structure for intersectScene() (see below).
+ * It describes the triangle which intersected with the ray by its
+ * barycentric coordinates `u` and `v`, as well as the distance `t` in
+ * the ray equation `p = origin + t * dir` where `p` is the point of
+ * intersection.
+ * In addition, the index of the triangle `tridx` as well as the kd-tree
+ * node index `nodeIdx` the triangle resides in is stored.
  */
 struct scenehitinfo {
   float t, u, v;
@@ -263,6 +269,19 @@ vec3 normalForTriangle(float u, float v, int tridx) {
 #define ONE_OVER_PI (1.0 / PI)
 
 /**
+ * Evaluate a Lambertian/diffuse BRDF.
+ *
+ * @param i the incoming light direction
+ *          (by convention this points away from the surface)
+ * @param o the outgoing light direction
+ * @param n the surface normal
+ * @returns the attenuation factor
+ */
+vec3 brdfDiffuse(vec3 i, vec3 o, vec3 n) {
+  return vec3(ONE_OVER_PI);
+}
+
+/**
  * Our simple Monte Carlo estimator. This time it looks a bit different
  * because the primary ray has already been shot into the scene and 
  * intersected with scene geometry via rasterization. So, `origin` and
@@ -289,23 +308,6 @@ vec3 trace(vec3 origin, vec3 dir, vec3 normal) {
   scenehitinfo shinfo;
   vec4 s = randomCosineWeightedHemispherePoint(normal, randvec2(0));
   /*
-   * Get the direction of the random sample. pdf(x) will be in s.w.
-   */
-  dir = s.xyz;
-  /*
-   * Attenuate by a standard Lambertian BRDF.
-   */
-  att *= ONE_OVER_PI;
-  /*
-   * and by the cosine fall-off term.
-   */
-  att *= dot(dir, normal);
-  /*
-   * And finally divide by the probability density value of our chosen
-   * random direction vector to sample next.
-   */
-  att /= s.w;
-  /*
    * Remember the kd-tree node to start descending from into our scene.
    * The stackless kd-tree traversal algorithm actually has a nice
    * property of not requiring "ray restart". Everytime the traversal
@@ -320,6 +322,28 @@ vec3 trace(vec3 origin, vec3 dir, vec3 normal) {
    * Perform two additional bounces.
    */
   for (int bounce = 1; bounce < 3; bounce++) {
+    /*
+     * Attenuate by the probability density value of the chosen sample
+     * direction.
+     */
+    att /= s.w;
+    /*
+     * Evaluate a simple Lambertian BRDF with the given incoming light
+     * direction in `s.xyz` and the given outgoing light direction (i.e.
+     * our current `dir`, but negated because by convention the vectors
+     * expected by the BRDF function all point away from the point to
+     * evaluate.
+     */
+    att *= brdfDiffuse(s.xyz, -dir, normal);
+    /*
+     * Set `dir` to be our new sample direction now. 
+     */
+    dir = s.xyz;
+    /*
+     * Attenuate by the cosine fall-off term, given the new incoming
+     * light direction `dir` and the surface normal.
+     */
+    att *= dot(dir, normal);
     /*
      * Check intersection with the scene using our newly computed sample
      * direction vector.
@@ -346,7 +370,7 @@ vec3 trace(vec3 origin, vec3 dir, vec3 normal) {
      * Obtain the interpolated triangle's normal using the barycentric
      * coordinates returned by intersectScene().
      */
-    vec3 normal = normalForTriangle(shinfo.u, shinfo.v, shinfo.tridx);
+    normal = normalForTriangle(shinfo.u, shinfo.v, shinfo.tridx);
     /*
      * The next ray origin will be the point of intersection plus some
      * offset along the normal.
@@ -356,13 +380,6 @@ vec3 trace(vec3 origin, vec3 dir, vec3 normal) {
      * Generate a new random direction vector to trace next.
      */
     s = randomCosineWeightedHemispherePoint(normal, randvec2(bounce));
-    /*
-     * And apply our known attenuation from above.
-     */
-    dir = s.xyz;
-    att *= ONE_OVER_PI;
-    att *= dot(dir, normal);
-    att /= s.w;
   }
   return vec3(0.0);
 }
@@ -409,7 +426,7 @@ void main(void) {
    * The point of intersection is now just the eye position followed
    * `dist` units along the view `dir`.
    */
-  vec3 point = eye + (dist * 0.95) * dir;
+  vec3 point = eye + (dist * 0.99) * dir;
   /*
    * Now, compute the color using the path tracer algorithm.
    */

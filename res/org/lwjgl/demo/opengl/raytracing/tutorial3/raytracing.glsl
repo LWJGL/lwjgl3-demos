@@ -225,7 +225,7 @@ vec3 brdfSpecular(box b, vec3 i, vec3 o, vec3 n) {
 /**
  * Evaluate the diffuse part of the BRDF.
  *
- * @param b the box to evaluate (used to get its diffuse color)
+ * @param albedo the diffuse color
  * @param i the incoming light direction
  *          (by convention this points away from the surface)
  * @param o the outgoing light direction

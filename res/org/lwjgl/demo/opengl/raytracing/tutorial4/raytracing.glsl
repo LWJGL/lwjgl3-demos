@@ -294,7 +294,7 @@ vec3 brdfSpecular(vec3 i, vec3 o, vec3 n) {
 /**
  * Evaluate the diffuse part of the BRDF.
  *
- * @param b the box to evaluate (used to get its diffuse color)
+ * @param albedo the diffuse color
  * @param i the incoming light direction
  *          (by convention this points away from the surface)
  * @param o the outgoing light direction
@@ -308,7 +308,7 @@ vec3 brdfDiffuse(vec3 albedo, vec3 i, vec3 o, vec3 n) {
  * Compute the BRDF of the box's surface given the incoming and outgoing
  * light directions as well as the surface normal.
  *
- * @param b the box to evaluate (used to get its diffuse color)
+ * @param albedo the diffuse color
  * @param i the incoming light direction
  *          (by convention this points away from the surface)
  * @param o the outgoing light direction

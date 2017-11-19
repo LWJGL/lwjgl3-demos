@@ -130,7 +130,6 @@ vec3 trace(vec3 origin, vec3 dir, vec3 invdir) {
     iterations++;
     if (iterations > MAX_FOLLOWS)
       return ERROR_COLOR;
-
     /*
      * Dereference the next node to visit.
      */
