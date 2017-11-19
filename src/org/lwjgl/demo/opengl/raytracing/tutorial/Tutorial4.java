@@ -30,18 +30,19 @@ import static org.lwjgl.system.MathUtil.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
- * This time we are going to add (small) point lights to our scene. With those,
- * we'll see that uniform hemisphere sampling is not quite up to the task and
- * produces very strong noise/variance, since the generated sample directions
- * will very likely miss the light source.
+ * This time we are going to add a small spherical light source to our scene.
+ * With that we'll see that uniform hemisphere sampling is not quite up to the
+ * task and produces very strong noise/variance, since the generated sample
+ * directions will very likely miss the light source.
  * <p>
  * To combat this, we will use "Multiple Importance" sampling introduced by Eric
  * Veach's 1998 PhD thesis "Robust Monte Carlo Methods for Light Transport
- * Simulation". The idea is to sample not based on the BRDF but only the light
- * sources directly. This has the potential of significantly reducing the
- * variance in the Monte Carlo estimate, especially in our simple "room with a
- * table" scene where we will place a small spherical light, since that light is
- * visible from all locations but the ones under the table.
+ * Simulation" (see chapter 9). The idea is to sample not based on the BRDF but
+ * around the direction towards the light source. This has the potential of
+ * significantly reducing the variance in the Monte Carlo estimate, especially
+ * in our simple "room with a table" scene where we will place a small spherical
+ * light, since that light is visible from all locations but the ones under the
+ * table.
  * 
  * @author Kai Burjack
  */

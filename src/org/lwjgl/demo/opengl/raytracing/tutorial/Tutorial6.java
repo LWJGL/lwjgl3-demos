@@ -36,6 +36,9 @@ import org.lwjgl.system.Callback;
  * description file via {@link Assimp}. We will also use a binary Bounding
  * Volume Hierarchy structure with axis-aligned bounding boxes and show how this
  * can be traversed in a stack-less way on the GPU.
+ * <p>
+ * The strategy to traverse the BVH tree in the compute shader is explained in
+ * the corresponding raytracing.glsl shader file.
  * 
  * @author Kai Burjack
  */
@@ -413,6 +416,15 @@ public class Tutorial6 {
 		initQuadProgram();
 	}
 
+	/**
+	 * Return the content of a single file inside of the given zip file as byte
+	 * array.
+	 * 
+	 * @param zipResource
+	 *            the classpath of a zip file resources containing a single file
+	 *            entry
+	 * @return the decompressed byte array of that single file
+	 */
 	private static byte[] readSingleFileZip(String zipResource) throws IOException {
 		ZipInputStream zipStream = new ZipInputStream(
 				Tutorial6.class.getClassLoader().getResourceAsStream(zipResource));
@@ -427,6 +439,17 @@ public class Tutorial6 {
 		return baos.toByteArray();
 	}
 
+	/**
+	 * For our compute shader we need to build a list/array of BVH nodes which the
+	 * shader will index into when reading the BVH nodes. Nodes will also store the
+	 * indexes/offsets to the next nodes to be visited. In order to do all that,
+	 * this method walks the BVH tree and assigns offsets/indexes to the BVH nodes.
+	 * 
+	 * @param node
+	 *            the root node of the BVH
+	 * @param indexes
+	 *            will contain the assigned indexes
+	 */
 	private static void allocate(BVH node, Map<BVH, Integer> indexes) {
 		Queue<BVH> nodes = new LinkedList<BVH>();
 		nodes.add(node);
@@ -443,7 +466,7 @@ public class Tutorial6 {
 
 	/**
 	 * Convert the Assimp-imported scene into the Shader Storage Buffer Objects
-	 * needed for stackless BVH traversable in the compute shader.
+	 * needed for stackless BVH traversal in the compute shader.
 	 */
 	private void createSceneSSBOs() {
 		/*
@@ -479,7 +502,7 @@ public class Tutorial6 {
 			}
 		}
 		/*
-		 * Next, we build a BVH using simple "centroid split" strategy.
+		 * Next, we build a BVH using a simple "centroid split" strategy.
 		 */
 		BVH root = buildBvh(triangles);
 		buildNextLinks(root);

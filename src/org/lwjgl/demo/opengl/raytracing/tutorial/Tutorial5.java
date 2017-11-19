@@ -37,9 +37,9 @@ import static org.lwjgl.system.MemoryUtil.*;
  * Wavelet Transform for fast Global Illumination Filtering</a> for filtering
  * the path-traced result to reduce noise at the expense of blurring the result.
  * <p>
- * The algorithm uses edge-stop functions based on the color, normal and normal
- * of each sample and these edge-stop functions can be tweaked by how much they
- * should care for a change in color, normal and position. See the
+ * The algorithm uses edge-stop functions based on the color, normal and
+ * position of each sample and these edge-stop functions can be tweaked by how
+ * much they should care for a change in color, normal and position. See the
  * {@link #filter(int)} method.
  * 
  * @author Kai Burjack
@@ -398,8 +398,10 @@ public class Tutorial5 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl", GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl",
+				GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl",
+				GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");
@@ -426,8 +428,10 @@ public class Tutorial5 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl", GL_COMPUTE_SHADER);
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl", GL_COMPUTE_SHADER);
+		int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl",
+				GL_COMPUTE_SHADER);
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl",
+				GL_COMPUTE_SHADER);
 		glAttachShader(program, random);
 		glAttachShader(program, cshader);
 		glLinkProgram(program);
@@ -447,8 +451,10 @@ public class Tutorial5 {
 	 */
 	private void createFilterProgram() throws IOException {
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl", GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl", GL_FRAGMENT_SHADER);
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl",
+				GL_VERTEX_SHADER);
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl",
+				GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
 		glBindAttribLocation(program, 0, "vertex");

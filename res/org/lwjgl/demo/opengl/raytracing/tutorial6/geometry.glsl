@@ -4,6 +4,12 @@
  */
 #version 430 core
 
+/**
+ * Description of all necessary information of a ray-triangle
+ * intersection. This includes the `t` in `origin + t * dir` where the
+ * ray hits the triangle, as well as the barycentric coordiantes of the
+ * point on the triangle in order to calculate interpolated normals.
+ */
 struct trianglehitinfo {
   float t, u, v; // <- u, v = barycentric coordinates
 };

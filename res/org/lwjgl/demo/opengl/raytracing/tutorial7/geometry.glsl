@@ -1,5 +1,11 @@
 #version 330 core
 
+/**
+ * Description of all necessary information of a ray-triangle
+ * intersection. This includes the `t` in `origin + t * dir` where the
+ * ray hits the triangle, as well as the barycentric coordiantes of the
+ * point on the triangle in order to calculate interpolated normals.
+ */
 struct trianglehitinfo {
   float t, u, v; // <- u, v = barycentric coordinates
 };
@@ -18,7 +24,6 @@ struct trianglehitinfo {
  * @param[out] thinfo will hold the `t` at the point of intersection as
  *                    well as the barycentric coordinates
  */
-#define EPSILON 1E-6
 bool intersectTriangle(vec3 origin, vec3 dir, vec3 v0, vec3 v1, vec3 v2, out trianglehitinfo thinfo) {
   vec3 e1 = v1 - v0, e2 = v2 - v0;
   vec3 pvec = cross(dir, e2);
