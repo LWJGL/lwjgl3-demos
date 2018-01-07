@@ -38,7 +38,7 @@ const vec4 lightColor = vec4(1);
 float random(vec2 f, float time);
 vec3 randomDiskPoint(vec3 rand, vec3 n);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
-vec3 randomHemisphereCosineWeightedPoint(vec3 rand, vec3 dir);
+vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 dir);
 
 struct hitinfo {
   float near;
@@ -136,7 +136,7 @@ vec4 trace(vec3 origin, vec3 dir) {
         accumulated += attenuation * vec4(lightColor * LIGHT_BASE_INTENSITY * cosineFallOff * oneOverR2);
       }
       origin = shadowRayStart;
-      dir = randomHemisphereCosineWeightedPoint(rand, normal);
+      dir = randomCosineWeightedHemispherePoint(rand, normal);
       attenuation *= dot(normal, dir);
     } else {
       break;
