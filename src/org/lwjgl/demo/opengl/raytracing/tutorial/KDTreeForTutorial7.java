@@ -67,11 +67,11 @@ public class KDTreeForTutorial7 {
 		}
 
 		public void setMax(int splitAxis, float splitPlane) {
-			max.set(splitAxis, splitPlane);
+			max.setComponent(splitAxis, splitPlane);
 		}
 
 		public void setMin(int splitAxis, float splitPlane) {
-			min.set(splitAxis, splitPlane);
+			min.setComponent(splitAxis, splitPlane);
 		}
 
 		public boolean intersectsWithBox(Box box) {
