@@ -27,7 +27,7 @@ abstract class Demo {
 	private String title;
 
 	protected int renderer = BGFX_RENDERER_TYPE_COUNT;
-	private int pciId = BGFX_PCI_ID_NONE;
+	private short pciId = BGFX_PCI_ID_NONE;
 	private int width = 1280;
 	private int height = 720;
 	private int debug = BGFX_DEBUG_TEXT;
