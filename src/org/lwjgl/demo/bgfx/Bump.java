@@ -348,7 +348,7 @@ public class Bump extends Demo {
 				}
 
 				// Set instance data buffer.
-				bgfx_encoder_set_instance_data_buffer(encoder, idb, numInstances);
+				bgfx_encoder_set_instance_data_buffer(encoder, idb, 0, numInstances);
 
 				// Set vertex and index buffer.
 				bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
@@ -359,9 +359,9 @@ public class Bump extends Demo {
 				bgfx_encoder_set_texture(encoder, 1, uniformTexNormal, textureNormal, 0xffffffff);
 
 				// Set render states.
-				bgfx_encoder_set_state(encoder, BGFX_STATE_RGB_WRITE
-						| BGFX_STATE_ALPHA_WRITE
-						| BGFX_STATE_DEPTH_WRITE
+				bgfx_encoder_set_state(encoder, BGFX_STATE_WRITE_RGB
+						| BGFX_STATE_WRITE_A
+						| BGFX_STATE_WRITE_Z
 						| BGFX_STATE_DEPTH_TEST_LESS
 						| BGFX_STATE_MSAA, 0);
 
@@ -390,9 +390,9 @@ public class Bump extends Demo {
 					bgfx_encoder_set_texture(encoder, 1, uniformTexNormal, textureNormal, 0xffffffff);
 
 					// Set render states.
-					bgfx_encoder_set_state(encoder, BGFX_STATE_RGB_WRITE
-							| BGFX_STATE_ALPHA_WRITE
-							| BGFX_STATE_DEPTH_WRITE
+					bgfx_encoder_set_state(encoder, BGFX_STATE_WRITE_RGB
+							| BGFX_STATE_WRITE_A
+							| BGFX_STATE_WRITE_Z
 							| BGFX_STATE_DEPTH_TEST_LESS
 							| BGFX_STATE_MSAA, 0);
 
