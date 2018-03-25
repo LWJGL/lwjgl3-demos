@@ -115,6 +115,12 @@
 					<artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
 					<version>${swt.version}</version>
 				</dependency>
+				<dependency>
+					<groupId>org.lwjgl</groupId>
+					<artifactId>lwjgl-vulkan</artifactId>
+					<version>${lwjgl.version}</version>
+					<classifier>natives-macos</classifier>
+				</dependency>
 			</dependencies>
 		</profile>
 	</profiles>
