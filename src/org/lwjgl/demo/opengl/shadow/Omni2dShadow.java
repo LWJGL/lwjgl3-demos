@@ -17,11 +17,12 @@ import static org.lwjgl.system.MemoryUtil.*;
 import java.io.*;
 import java.lang.Math;
 import java.nio.*;
+import java.util.*;
+import java.util.zip.*;
 
 import org.joml.*;
 import org.lwjgl.*;
-import org.lwjgl.demo.opengl.raytracing.*;
-import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.assimp.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -33,13 +34,78 @@ import org.lwjgl.system.*;
  */
 public class Omni2dShadow {
 
-    private static Vector3f[] boxes = Scene.boxes3;
+    private static class Model {
+        private List<Mesh> meshes;
+
+        private Model(AIScene scene) {
+            int meshCount = scene.mNumMeshes();
+            PointerBuffer meshesBuffer = scene.mMeshes();
+            meshes = new ArrayList<>();
+            for (int i = 0; i < meshCount; ++i)
+                meshes.add(new Mesh(AIMesh.create(meshesBuffer.get(i))));
+        }
+
+        private static class Mesh {
+            private int vao;
+            private int vertexArrayBuffer;
+            private FloatBuffer verticesFB;
+            private int normalArrayBuffer;
+            private FloatBuffer normalsFB;
+            private int elementArrayBuffer;
+            private IntBuffer indicesIB;
+            private int elementCount;
+
+            /**
+             * Build everything from the given {@link AIMesh}.
+             * 
+             * @param mesh
+             *                 the Assimp {@link AIMesh} object
+             */
+            private Mesh(AIMesh mesh) {
+                vao = glGenVertexArrays();
+                glBindVertexArray(vao);
+                vertexArrayBuffer = glGenBuffers();
+                glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffer);
+                AIVector3D.Buffer vertices = mesh.mVertices();
+                int verticesBytes = 4 * 3 * vertices.remaining();
+                verticesFB = BufferUtils.createByteBuffer(verticesBytes).asFloatBuffer();
+                memCopy(vertices.address(), memAddress(verticesFB), verticesBytes);
+                nglBufferData(GL_ARRAY_BUFFER, verticesBytes, vertices.address(), GL_STATIC_DRAW);
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
+                normalArrayBuffer = glGenBuffers();
+                glBindBuffer(GL_ARRAY_BUFFER, normalArrayBuffer);
+                AIVector3D.Buffer normals = mesh.mNormals();
+                int normalsBytes = 4 * 3 * normals.remaining();
+                normalsFB = BufferUtils.createByteBuffer(normalsBytes).asFloatBuffer();
+                memCopy(normals.address(), memAddress(normalsFB), normalsBytes);
+                nglBufferData(GL_ARRAY_BUFFER, normalsBytes, normals.address(), GL_STATIC_DRAW);
+                glEnableVertexAttribArray(1);
+                glVertexAttribPointer(1, 3, GL_FLOAT, true, 0, 0L);
+                int faceCount = mesh.mNumFaces();
+                elementCount = faceCount * 3;
+                indicesIB = BufferUtils.createIntBuffer(elementCount);
+                AIFace.Buffer facesBuffer = mesh.mFaces();
+                for (int i = 0; i < faceCount; ++i) {
+                    AIFace face = facesBuffer.get(i);
+                    if (face.mNumIndices() != 3)
+                        throw new IllegalStateException("AIFace.mNumIndices() != 3");
+                    indicesIB.put(face.mIndices());
+                }
+                indicesIB.flip();
+                elementArrayBuffer = glGenBuffers();
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBuffer);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesIB, GL_STATIC_DRAW);
+                glBindVertexArray(0);
+            }
+        }
+    }
 
     static Vector3f UP = new Vector3f(0, 0, -1);
-    static int shadowMapWidth = 512;
-    static Vector3f lightPosition = new Vector3f(0.0f, 0.5f, 0.0f);
+    static int shadowMapWidth = 1024;
+    static Vector3f lightPosition = new Vector3f();
     static Vector3f cameraPosition = new Vector3f(-1.0f, 18.0f, 0.0f);
-    static Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
+    static Vector3f cameraLookAt = new Vector3f();
     static float near = 0.1f;
     static float far = 18.0f;
 
@@ -48,11 +114,13 @@ public class Omni2dShadow {
     int height = 800;
     float time = 0.0f;
 
-    int vao, fullScreenVao;
+    Model model;
     int shadowProgram;
     int shadowProgramVPUniform;
+    int shadowDebugProgram;
+    int shadowDebugProgramNearUniform;
+    int shadowDebugProgramFarUniform;
     int normalProgram;
-    int normalProgramBiasUniform;
     int normalProgramVPUniform;
     int normalProgramLVPUniform;
     int normalProgramLightPosition;
@@ -62,6 +130,7 @@ public class Omni2dShadow {
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
+    Matrix4f identity = new Matrix4f();
     Matrix4f light = new Matrix4f();
     Matrix4f camera = new Matrix4f();
     Matrix4f biasMatrix = new Matrix4f().scaling(0.5f).translate(1, 1, 1);
@@ -144,9 +213,9 @@ public class Omni2dShadow {
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 
         /* Create all needed GL resources */
+        loadModel();
         createDepthTexture();
         createFbo();
-        createVbo();
         createShadowProgram();
         initShadowProgram();
         createNormalProgram();
@@ -186,26 +255,25 @@ public class Omni2dShadow {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    /**
-     * Creates a VBO for the scene with some boxes.
-     */
-    void createVbo() {
-        vao = glGenVertexArrays();
-        glBindVertexArray(vao);
-        int vbo = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(boxes.length * 4 * (3 + 3) * 6 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        for (int i = 0; i < boxes.length; i += 2) {
-            DemoUtils.triangulateBox(boxes[i], boxes[i + 1], fv);
+    private void loadModel() throws IOException {
+        byte[] bytes = readSingleFileZip("scene.obj.zip");
+        ByteBuffer bb = BufferUtils.createByteBuffer(bytes.length);
+        bb.put(bytes).flip();
+        AIScene scene = Assimp.aiImportFileFromMemory(bb, 0, "obj");
+        model = new Model(scene);
+    }
+
+    private byte[] readSingleFileZip(String zipResource) throws IOException {
+        ZipInputStream zipStream = new ZipInputStream(Omni2dShadow.class.getResourceAsStream(zipResource));
+        zipStream.getNextEntry();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int read = 0;
+        while ((read = zipStream.read(buffer)) > 0) {
+            baos.write(buffer, 0, read);
         }
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 4 * (3 + 3), 4 * 3);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        zipStream.close();
+        return baos.toByteArray();
     }
 
     void createShadowProgram() throws IOException {
@@ -257,7 +325,6 @@ public class Omni2dShadow {
     void initNormalProgram() {
         glUseProgram(normalProgram);
         int depthMapsUniform = glGetUniformLocation(normalProgram, "depthMaps");
-        normalProgramBiasUniform = glGetUniformLocation(normalProgram, "biasMatrix");
         normalProgramVPUniform = glGetUniformLocation(normalProgram, "viewProjectionMatrix");
         normalProgramLVPUniform = glGetUniformLocation(normalProgram, "lightViewProjectionMatrices");
         normalProgramLightPosition = glGetUniformLocation(normalProgram, "lightPosition");
@@ -266,25 +333,32 @@ public class Omni2dShadow {
     }
 
     void update() {
-        lightPosition.set((float) Math.sin(time), 0.5f, (float) Math.cos(time));
+        lightPosition.set((float) Math.sin(time), 0.8f, (float) Math.cos(time));
         camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f).lookAt(cameraPosition,
                 cameraLookAt, UP);
     }
 
     Matrix4f frustum(Matrix4f m) {
-        float yDist = 1E-4f;
-        return m.setFrustum(-near, near, -yDist, yDist, near, far);
+        m.setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
+        return m;
     }
 
-    void loadLightViewProjection(int uniform) {
-        glUniformMatrix4fv(uniform + 0, false, frustum(light).rotateY(0)
+    void loadLightViewProjection(int uniform, Matrix4f bias) {
+        glUniformMatrix4fv(uniform + 0, false, frustum(light).mulLocal(bias).rotateY(0)
                 .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 1, false, frustum(light).rotateY((float) Math.PI * 0.5f)
+        glUniformMatrix4fv(uniform + 1, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI * 0.5f)
                 .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 2, false, frustum(light).rotateY((float) Math.PI)
+        glUniformMatrix4fv(uniform + 2, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI)
                 .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 3, false, frustum(light).rotateY((float) Math.PI * 1.5f)
+        glUniformMatrix4fv(uniform + 3, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI * 1.5f)
                 .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
+    }
+
+    void renderModel() {
+        for (Model.Mesh mesh : model.meshes) {
+            glBindVertexArray(mesh.vao);
+            glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0L);
+        }
     }
 
     /**
@@ -293,14 +367,12 @@ public class Omni2dShadow {
     void renderShadowMap() {
         glUseProgram(shadowProgram);
         /* Set VP matrix of the "light cameras" */
-        loadLightViewProjection(shadowProgramVPUniform);
+        loadLightViewProjection(shadowProgramVPUniform, identity);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glViewport(0, 0, shadowMapWidth, 1);
         /* Only clear depth buffer, since we don't have a color draw buffer */
         glClear(GL_DEPTH_BUFFER_BIT);
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
-        glBindVertexArray(0);
+        renderModel();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glUseProgram(0);
     }
@@ -313,18 +385,14 @@ public class Omni2dShadow {
         /* Set MVP matrix of camera */
         glUniformMatrix4fv(normalProgramVPUniform, false, camera.get(matrixBuffer));
         /* Set MVP matrix that was used when doing the light-render */
-        loadLightViewProjection(normalProgramLVPUniform);
-        /* The bias-matrix used to convert to NDC coordinates */
-        glUniformMatrix4fv(normalProgramBiasUniform, false, biasMatrix.get(matrixBuffer));
-        /* Light position and lookat for normal lambertian computation */
+        loadLightViewProjection(normalProgramLVPUniform, biasMatrix);
+        /* Light position for lighting computation */
         glUniform3f(normalProgramLightPosition, lightPosition.x, lightPosition.y, lightPosition.z);
         glViewport(0, 0, width, height);
         /* Must clear both color and depth, since we are re-rendering the scene */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindTexture(GL_TEXTURE_1D_ARRAY, depthTexture);
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
-        glBindVertexArray(0);
+        renderModel();
         glBindTexture(GL_TEXTURE_1D_ARRAY, 0);
         glUseProgram(0);
     }

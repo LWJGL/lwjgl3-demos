@@ -4,7 +4,7 @@
  */
 #version 150
 
-#define DEPTH_OFFSET 0.0005
+#define DEPTH_OFFSET 2E-4
 #define LIGHT_INTENSITY 0.9
 #define AMBIENT 0.1
 
