@@ -103,11 +103,11 @@ public class Omni2dShadow {
 
     static Vector3f UP = new Vector3f(0, 0, -1);
     static int shadowMapWidth = 1024;
-    static Vector3f lightPosition = new Vector3f();
-    static Vector3f cameraPosition = new Vector3f(-1.0f, 18.0f, 0.0f);
+    static Vector3f lightPosition = new Vector3f(0.0f, 0.5f, 0.0f);
+    static Vector3f cameraPosition = new Vector3f(0.0f, 16.0f, 4.0f);
     static Vector3f cameraLookAt = new Vector3f();
-    static float near = 0.1f;
-    static float far = 18.0f;
+    static float near = 0.2f;
+    static float far = 30.0f;
 
     long window;
     int width = 1200;
@@ -117,14 +117,10 @@ public class Omni2dShadow {
     Model model;
     int shadowProgram;
     int shadowProgramVPUniform;
-    int shadowDebugProgram;
-    int shadowDebugProgramNearUniform;
-    int shadowDebugProgramFarUniform;
     int normalProgram;
     int normalProgramVPUniform;
     int normalProgramLVPUniform;
     int normalProgramLightPosition;
-    int normalProgramLightLookAt;
     int fbo;
     int depthTexture;
 
@@ -139,6 +135,7 @@ public class Omni2dShadow {
     GLFWErrorCallback errCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
+    GLFWCursorPosCallback cpCallback;
     Callback debugProc;
 
     void init() throws IOException {
@@ -192,6 +189,21 @@ public class Omni2dShadow {
                 }
             }
         });
+        glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
+            Vector3f origin = new Vector3f();
+            Vector3f dir = new Vector3f();
+            Vector3f point = new Vector3f();
+            Vector3f normal = new Vector3f(0, 1, 0);
+            int[] viewport = new int[4];
+
+            public void invoke(long window, double xpos, double ypos) {
+                viewport[2] = width;
+                viewport[3] = height;
+                camera.unprojectRay((float) xpos, height - (float) ypos, viewport, origin, dir);
+                float t = Intersectionf.intersectRayPlane(origin, dir, point, normal, 1E-6f);
+                lightPosition.set(dir).mul(t).add(origin).add(0f, 0.5f, 0f);
+            }
+        });
 
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
@@ -243,7 +255,6 @@ public class Omni2dShadow {
     void createFbo() {
         fbo = glGenFramebuffers();
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glBindTexture(GL_TEXTURE_1D_ARRAY, depthTexture);
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
@@ -251,7 +262,6 @@ public class Omni2dShadow {
         if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
             throw new AssertionError("Could not create FBO: " + fboStatus);
         }
-        glBindTexture(GL_TEXTURE_1D_ARRAY, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
@@ -333,14 +343,12 @@ public class Omni2dShadow {
     }
 
     void update() {
-        lightPosition.set((float) Math.sin(time), 0.8f, (float) Math.cos(time));
         camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f).lookAt(cameraPosition,
                 cameraLookAt, UP);
     }
 
     Matrix4f frustum(Matrix4f m) {
-        m.setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
-        return m;
+        return m.setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
     }
 
     void loadLightViewProjection(int uniform, Matrix4f bias) {
@@ -372,7 +380,9 @@ public class Omni2dShadow {
         glViewport(0, 0, shadowMapWidth, 1);
         /* Only clear depth buffer, since we don't have a color draw buffer */
         glClear(GL_DEPTH_BUFFER_BIT);
+        glCullFace(GL_FRONT);
         renderModel();
+        glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glUseProgram(0);
     }
@@ -425,6 +435,7 @@ public class Omni2dShadow {
             errCallback.free();
             keyCallback.free();
             fbCallback.free();
+            cpCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();

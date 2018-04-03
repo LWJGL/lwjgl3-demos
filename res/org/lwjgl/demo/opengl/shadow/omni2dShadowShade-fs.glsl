@@ -4,7 +4,6 @@
  */
 #version 150
 
-#define DEPTH_OFFSET 2E-4
 #define LIGHT_INTENSITY 0.9
 #define AMBIENT 0.1
 
@@ -30,7 +29,7 @@ void main(void) {
 	vec4 lightTexPosition = lightBiasedClipPositions[q] / lightBiasedClipPositions[q].w;
 	float depth = texture(depthMaps, vec2(lightTexPosition.x, q)).r;
 	color = vec4(AMBIENT, AMBIENT, AMBIENT, 1.0);
-	if (depth >= lightTexPosition.z - DEPTH_OFFSET) {
+	if (depth >= lightTexPosition.z) {
 		float dot = max(0.0, dot(normalize(lightPosition - worldPosition), worldNormal));
 		color += vec4(LIGHT_INTENSITY, LIGHT_INTENSITY, LIGHT_INTENSITY, 1.0) * dot;
 	}
