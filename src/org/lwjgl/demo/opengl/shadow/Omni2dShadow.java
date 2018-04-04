@@ -116,20 +116,21 @@ public class Omni2dShadow {
 
     Model model;
     int shadowProgram;
-    int shadowProgramVPUniform;
+    int shadowProgramProjectionUniform;
+    int shadowProgramLightPositionUniform;
     int normalProgram;
-    int normalProgramVPUniform;
-    int normalProgramLVPUniform;
-    int normalProgramLightPosition;
+    int normalProgramViewProjectionUniform;
+    int normalProgramLightProjectionUniform;
+    int normalProgramLightPositionUniform;
     int fbo;
     int depthTexture;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
     Matrix4f identity = new Matrix4f();
-    Matrix4f light = new Matrix4f();
+    Matrix4f lightProjection = new Matrix4f().setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
     Matrix4f camera = new Matrix4f();
-    Matrix4f biasMatrix = new Matrix4f().scaling(0.5f).translate(1, 1, 1);
+    Matrix4f lightTexProjection = new Matrix4f(lightProjection).translateLocal(1, 1, 1).scaleLocal(0.5f);
 
     GLCapabilities caps;
     GLFWErrorCallback errCallback;
@@ -308,7 +309,8 @@ public class Omni2dShadow {
 
     void initShadowProgram() {
         glUseProgram(shadowProgram);
-        shadowProgramVPUniform = glGetUniformLocation(shadowProgram, "viewProjectionMatrix");
+        shadowProgramProjectionUniform = glGetUniformLocation(shadowProgram, "projection");
+        shadowProgramLightPositionUniform = glGetUniformLocation(shadowProgram, "lightPosition");
         glUseProgram(0);
     }
 
@@ -335,9 +337,9 @@ public class Omni2dShadow {
     void initNormalProgram() {
         glUseProgram(normalProgram);
         int depthMapsUniform = glGetUniformLocation(normalProgram, "depthMaps");
-        normalProgramVPUniform = glGetUniformLocation(normalProgram, "viewProjectionMatrix");
-        normalProgramLVPUniform = glGetUniformLocation(normalProgram, "lightViewProjectionMatrices");
-        normalProgramLightPosition = glGetUniformLocation(normalProgram, "lightPosition");
+        normalProgramViewProjectionUniform = glGetUniformLocation(normalProgram, "viewProjection");
+        normalProgramLightProjectionUniform = glGetUniformLocation(normalProgram, "lightProjection");
+        normalProgramLightPositionUniform = glGetUniformLocation(normalProgram, "lightPosition");
         glUniform1i(depthMapsUniform, 0);
         glUseProgram(0);
     }
@@ -345,21 +347,6 @@ public class Omni2dShadow {
     void update() {
         camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f).lookAt(cameraPosition,
                 cameraLookAt, UP);
-    }
-
-    Matrix4f frustum(Matrix4f m) {
-        return m.setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
-    }
-
-    void loadLightViewProjection(int uniform, Matrix4f bias) {
-        glUniformMatrix4fv(uniform + 0, false, frustum(light).mulLocal(bias).rotateY(0)
-                .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 1, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI * 0.5f)
-                .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 2, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI)
-                .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
-        glUniformMatrix4fv(uniform + 3, false, frustum(light).mulLocal(bias).rotateY((float) Math.PI * 1.5f)
-                .translate(-lightPosition.x, -lightPosition.y, -lightPosition.z).get(matrixBuffer));
     }
 
     void renderModel() {
@@ -375,7 +362,8 @@ public class Omni2dShadow {
     void renderShadowMap() {
         glUseProgram(shadowProgram);
         /* Set VP matrix of the "light cameras" */
-        loadLightViewProjection(shadowProgramVPUniform, identity);
+        glUniformMatrix4fv(shadowProgramProjectionUniform, false, lightProjection.get(matrixBuffer));
+        glUniform3f(shadowProgramLightPositionUniform, lightPosition.x, lightPosition.y, lightPosition.z);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glViewport(0, 0, shadowMapWidth, 1);
         /* Only clear depth buffer, since we don't have a color draw buffer */
@@ -392,12 +380,12 @@ public class Omni2dShadow {
      */
     void renderNormal() {
         glUseProgram(normalProgram);
-        /* Set MVP matrix of camera */
-        glUniformMatrix4fv(normalProgramVPUniform, false, camera.get(matrixBuffer));
-        /* Set MVP matrix that was used when doing the light-render */
-        loadLightViewProjection(normalProgramLVPUniform, biasMatrix);
+        /* Set VP matrix of camera */
+        glUniformMatrix4fv(normalProgramViewProjectionUniform, false, camera.get(matrixBuffer));
+        /* Set Bias*P matrix that was used when doing the light-render */
+        glUniformMatrix4fv(normalProgramLightProjectionUniform, false, lightTexProjection.get(matrixBuffer));
         /* Light position for lighting computation */
-        glUniform3f(normalProgramLightPosition, lightPosition.x, lightPosition.y, lightPosition.z);
+        glUniform3f(normalProgramLightPositionUniform, lightPosition.x, lightPosition.y, lightPosition.z);
         glViewport(0, 0, width, height);
         /* Must clear both color and depth, since we are re-rendering the scene */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
