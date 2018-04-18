@@ -108,12 +108,20 @@ abstract class Demo {
 
 			/* Initialize bgfx */
 
-			if (!bgfx_init(renderer,
-					pciId,
-					0,
-					useCallbacks ? createCallbacks(stack) : null,
-					useCustomAllocator ? createAllocator(stack) : null)) {
+			BGFXInit init = BGFXInit.mallocStack(stack);
+            bgfx_init_ctor(init);
+            init
+                .type(renderer)
+                .vendorId(pciId)
+                .deviceId((short)0)
+				.callback(useCallbacks ? createCallbacks(stack) : null)
+				.allocator(useCustomAllocator ? createAllocator(stack) : null)
+				.resolution()
+                .width(width)
+                .height(height)
+                .flags(reset);
 
+			if (!bgfx_init(init)) {
 				throw new RuntimeException("Error initializing bgfx renderer");
 			}
 
@@ -129,8 +137,6 @@ abstract class Demo {
 			apiLog("bgfx: using renderer '" + rendererName + "'");
 
 			BGFXDemoUtil.configure(renderer);
-
-			bgfx_reset(width, height, reset);
 
 			bgfx_set_debug(debug);
 
