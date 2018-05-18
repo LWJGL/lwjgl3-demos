@@ -119,7 +119,7 @@ abstract class Demo {
 				.resolution()
                 .width(width)
                 .height(height)
-                .flags(reset);
+                .reset(reset);
 
 			if (!bgfx_init(init)) {
 				throw new RuntimeException("Error initializing bgfx renderer");
