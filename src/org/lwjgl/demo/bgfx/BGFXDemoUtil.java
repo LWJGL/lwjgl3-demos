@@ -7,7 +7,6 @@ package org.lwjgl.demo.bgfx;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.*;
-import org.lwjgl.system.MemoryUtil;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -16,7 +15,7 @@ import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.system.APIUtil.apiLog;
-import static org.lwjgl.system.MemoryUtil.NULL;
+import static org.lwjgl.system.MemoryUtil.*;
 
 @SuppressWarnings("StaticNonFinalField")
 final class BGFXDemoUtil {
@@ -24,8 +23,7 @@ final class BGFXDemoUtil {
 	private static int renderer = -1;
 	private static boolean zZeroToOne;
 
-	private static BGFXReleaseFunctionCallbackI releaseMemoryCb =
-			(_ptr, _userData) -> MemoryUtil.nmemFree(_ptr);
+	private static BGFXReleaseFunctionCallback releaseMemoryCb = BGFXReleaseFunctionCallback.create((_ptr, _userData) -> nmemFree(_ptr));
 
 	private BGFXDemoUtil() {
 	}
@@ -33,6 +31,10 @@ final class BGFXDemoUtil {
 	static void configure(int renderer) {
 		BGFXDemoUtil.renderer = renderer;
 		BGFXDemoUtil.zZeroToOne = !bgfx_get_caps().homogeneousDepth();
+	}
+
+	static void dispose() {
+		releaseMemoryCb.free();
 	}
 
 	static BGFXVertexDecl createVertexDecl(boolean withNormals, boolean withColor, int numUVs) {
@@ -139,7 +141,7 @@ final class BGFXDemoUtil {
 
 		apiLog("bgfx: loading resource '" + url.getFile() + "' (" + resourceSize + " bytes)");
 
-		ByteBuffer resource = MemoryUtil.memAlloc(resourceSize);
+		ByteBuffer resource = memAlloc(resourceSize);
 
 		try (BufferedInputStream bis = new BufferedInputStream(url.openStream())) {
 			int b;
@@ -189,7 +191,6 @@ final class BGFXDemoUtil {
 	}
 
 	static short loadShader(char[] shaderCodeGLSL, char[] shaderCodeD3D9, char[] shaderCodeD3D11, char[] shaderCodeMtl) throws IOException {
-
 		char[] sc;
 
 		switch (renderer) {
@@ -215,7 +216,7 @@ final class BGFXDemoUtil {
 				throw new IOException("No demo shaders supported for " + bgfx_get_renderer_name(renderer) + " renderer");
 		}
 
-		ByteBuffer shaderCode = MemoryUtil.memAlloc(sc.length);
+		ByteBuffer shaderCode = memAlloc(sc.length);
 
 		for (char c : sc) {
 			shaderCode.put((byte) c);

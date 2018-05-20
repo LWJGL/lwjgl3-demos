@@ -6,8 +6,7 @@ package org.lwjgl.demo.bgfx;
 
 import org.lwjgl.bgfx.*;
 import org.lwjgl.glfw.*;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.Platform;
+import org.lwjgl.system.*;
 import org.lwjgl.system.libc.LibCStdio;
 
 import java.io.IOException;
@@ -15,9 +14,12 @@ import java.nio.ByteBuffer;
 
 import static org.lwjgl.bgfx.BGFX.*;
 import static org.lwjgl.bgfx.BGFXPlatform.bgfx_set_platform_data;
+import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.APIUtil.apiLog;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.system.Pointer.*;
+import static org.lwjgl.system.libc.LibCString.nmemmove;
 
 /**
  * Abstract base class for all bgfx examples.
@@ -116,10 +118,10 @@ abstract class Demo {
                 .deviceId((short)0)
 				.callback(useCallbacks ? createCallbacks(stack) : null)
 				.allocator(useCustomAllocator ? createAllocator(stack) : null)
-				.resolution()
-                .width(width)
-                .height(height)
-                .reset(reset);
+				.resolution(it -> it
+					.width(width)
+					.height(height)
+					.reset(reset));
 
 			if (!bgfx_init(init)) {
 				throw new RuntimeException("Error initializing bgfx renderer");
@@ -187,6 +189,15 @@ abstract class Demo {
 
 			bgfx_shutdown();
 
+			if (useCallbacks) {
+				freeCallbacks(init);
+			}
+			if (useCustomAllocator) {
+				freeAllocator(init);
+			}
+			BGFXDemoUtil.dispose();
+
+			glfwFreeCallbacks(window);
 			glfwDestroyWindow(window);
 			glfwTerminate();
 		}
@@ -258,35 +269,20 @@ abstract class Demo {
 	}
 
 	private static BGFXCallbackInterface createCallbacks(MemoryStack stack) {
-		BGFXCallbackVtbl callbackVtbl = BGFXCallbackVtbl.callocStack(stack);
-		callbackVtbl.fatal(fatalCallback);
-		callbackVtbl.trace_vargs(traceVarArgsCallback);
-		callbackVtbl.cache_read_size(cacheReadSizeCallback);
-		callbackVtbl.cache_read(cacheReadCallback);
-		callbackVtbl.cache_write(cacheWriteCallback);
-		callbackVtbl.screen_shot(screenShotCallback);
-		callbackVtbl.capture_begin(captureBeginCallback);
-		callbackVtbl.capture_end(captureEndCallback);
-		callbackVtbl.capture_frame(captureFrameCallback);
-
-		BGFXCallbackInterface callbacks = BGFXCallbackInterface.callocStack(stack);
-		callbacks.vtbl(callbackVtbl);
-
-		return callbacks;
-	}
-
-	private static final BGFXFatalCallbackI fatalCallback =
-			(_this, _code, _str) -> {
-
-			};
-
-	private static final BGFXTraceVarArgsCallbackI traceVarArgsCallback =
-			(_this, _filePath, _line, _format, _argList) -> {
-				synchronized (Demo.class) {
-					try (MemoryStack stack = MemoryStack.stackPush()) {
+		return BGFXCallbackInterface.callocStack(stack)
+			.vtbl(BGFXCallbackVtbl.callocStack(stack)
+				.fatal((_this, _code, _str) -> {
+					if (_code == BGFX_FATAL_DEBUG_CHECK) {
+						System.out.println("BREAK"); // set debugger breakpoint
+					} else {
+						throw new RuntimeException("Fatal error " + _code + ": " + memASCII(_str));
+					}
+				})
+				.trace_vargs((_this, _filePath, _line, _format, _argList) -> {
+					try (MemoryStack frame = MemoryStack.stackPush()) {
 						String filePath = (_filePath != NULL) ? memUTF8(_filePath) : "[n/a]";
 
-						ByteBuffer buffer = stack.malloc(128); // arbitary size to store formatted message
+						ByteBuffer buffer = frame.malloc(128); // arbitary size to store formatted message
 						int length = LibCStdio.nvsnprintf(memAddress(buffer), buffer.remaining(), _format, _argList);
 
 						if (length > 0) {
@@ -296,73 +292,107 @@ abstract class Demo {
 							apiLog("bgfx: [" + filePath + " (" + _line + ")] - error: unable to format output: " + memASCII(_format));
 						}
 					}
-				}
-			};
+				})
+				.profiler_begin((_this, _name, _abgr, _filePath, _line) -> {
 
-	private static final BGFXCacheReadSizeCallbackI cacheReadSizeCallback =
-			(_this, _id) -> 0;
+				})
+				.profiler_begin_literal((_this, _name, _abgr, _filePath, _line) -> {
 
-	private static final BGFXCacheReadCallbackI cacheReadCallback =
-			(_this, _id, _data, _size) -> false;
+				})
+				.profiler_end(_this -> {
 
-	private static final BGFXCacheWriteCallbackI cacheWriteCallback =
-			(_this, _id, _data, _size) -> {
+				})
+				.cache_read_size((_this, _id) -> 0)
+				.cache_read((_this, _id, _data, _size) -> false)
+				.cache_write((_this, _id, _data, _size) -> {
 
-			};
+				})
+				.screen_shot((_this, _filePath, _width, _height, _pitch, _data, _size, _yflip) -> {
 
-	private static final BGFXScreenShotCallbackI screenShotCallback =
-			(_this, _filePath, _width, _height, _pitch, _data, _size, _yflip) -> {
+				})
+				.capture_begin((_this, _width, _height, _pitch, _format, _yflip) -> {
 
-			};
+				})
+				.capture_end(_this -> {
 
-	private static final BGFXCaptureBeginCallbackI captureBeginCallback =
-			(_this, _width, _height, _pitch, _format, _yflip) -> {
+				})
+				.capture_frame((_this, _data, _size) -> {
 
-			};
-
-	private static final BGFXCaptureEndCallbackI captureEndCallback =
-			_this -> {
-
-			};
-
-	private static final BGFXCaptureFrameCallbackI captureFrameCallback =
-			(_this, _data, _size) -> {
-
-			};
-
-	private static BGFXAllocatorInterface createAllocator(MemoryStack stack) {
-		BGFXAllocatorVtbl allocatorVtbl = BGFXAllocatorVtbl.callocStack(stack);
-		allocatorVtbl.realloc(allocatorCallback);
-
-		BGFXAllocatorInterface allocator = BGFXAllocatorInterface.callocStack(stack);
-		allocator.vtbl(allocatorVtbl);
-
-		return allocator;
+				})
+			);
 	}
 
-	private static final BGFXReallocCallbackI allocatorCallback =
-			(_this, _ptr, _size, _align, _file, _line) -> {
-				synchronized (Demo.class) {
-					String file = (_file != NULL) ? memUTF8(_file) : "[n/a]";
+	private static void freeCallbacks(BGFXInit init) {
+		long base = init.callback().vtbl().address();
+		for (int i = BGFXCallbackVtbl.FATAL; i < BGFXCallbackVtbl.SIZEOF; i += POINTER_SIZE) {
+			Callback.free(memGetAddress(base + i));
+		}
+	}
 
-					if (_ptr == 0 && _size > 0) {
-						if (_align != 0) {
-							_ptr = getAllocator().aligned_alloc(_align, _size);
-
-							apiLog("bgfx: allocate " + _size + " [" + _align + "] bytes at address "
-									+ Long.toHexString(_ptr) + " [" + file + " (" + _line + ")]");
-
-							return _ptr;
+	private static long NATURAL_ALIGNMENT = 8L;
+	private static BGFXAllocatorInterface createAllocator(MemoryStack stack) {
+		return BGFXAllocatorInterface.callocStack(stack)
+			.vtbl(BGFXAllocatorVtbl.callocStack(stack)
+				.realloc((_this, _ptr, _size, _align, _file, _line) -> {
+					long ptr;
+					if (_size == 0) {
+						if (_ptr != NULL) {
+							if (_align <= NATURAL_ALIGNMENT) {
+								nmemFree(_ptr);
+							} else {
+								alignedFree(_ptr);
+							}
+							apiLog("bgfx: freed memory at address " + Long.toHexString(_ptr));
 						}
+						ptr = NULL;
+					} else if (_ptr == NULL) {
+						ptr = _align <= NATURAL_ALIGNMENT
+							? nmemAlloc(_size)
+							: alignedAlloc(_size, _align);
+						apiLog("bgfx: allocated " + _size + " [" + _align + "] bytes at address " + Long.toHexString(ptr));
+					} else {
+						ptr = _align <= NATURAL_ALIGNMENT
+							? nmemRealloc(_ptr, _size)
+							: alignedRealloc(_ptr, _size, _align);
+						apiLog("bgfx: reallocated address " + Long.toHexString(_ptr) + " with " + _size + " [" + _align + "] bytes at address " + Long.toHexString(ptr));
 					}
-
-					long ptr = getAllocator().realloc(_ptr, _size);
-
-					apiLog("bgfx: (re-)allocate address " + _ptr + " with " + _size + " bytes at address "
-							+ Long.toHexString(ptr) + " [" + file + " (" + _line + ")]");
-
 					return ptr;
-				}
-			};
+				}));
+	}
+
+	private static long align(long pointer, long alignment) {
+		return (pointer + (alignment - 1)) & -alignment;
+	}
+
+	private static long alignedAlloc(long size, long alignment) {
+		long ptr	 = nmemAlloc(size + alignment);
+		long aligned = align(ptr + Integer.BYTES, alignment);
+
+		memPutInt(aligned - Integer.BYTES, (int)(aligned - ptr));
+		return aligned;
+	}
+
+	private static void alignedFree(long pointer) {
+		nmemFree(pointer - memGetInt(pointer - Integer.BYTES));
+	}
+
+	private static long alignedRealloc(long pointer, long size, long alignment) {
+		int offset = memGetInt(pointer - Integer.BYTES);
+
+		long ptr	 = nmemRealloc(pointer - offset, size + alignment);
+		long aligned = align(ptr + Integer.BYTES, alignment);
+		if (aligned == pointer) {
+			return pointer;
+		}
+
+		nmemmove(aligned, ptr + offset, size);
+		memPutInt(aligned - Integer.BYTES, (int)(aligned - ptr));
+		return aligned;
+	}
+
+	private static void freeAllocator(BGFXInit init) {
+		BGFXAllocatorVtbl vtbl = init.allocator().vtbl();
+		vtbl.realloc().free();
+	}
 
 }
