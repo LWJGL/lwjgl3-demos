@@ -4,12 +4,10 @@
  */
 package org.lwjgl.demo.opengl.fbo;
 
-import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.Callback;
-
+import org.lwjgl.system.*;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
@@ -113,10 +111,12 @@ public class MultisampledFbo2Demo {
 		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
 		glfwShowWindow(window);
 
-		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-		nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-		width = framebufferSize.get(0);
-		height = framebufferSize.get(1);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
 	}
 
 	void createFBOs() {

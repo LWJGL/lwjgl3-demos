@@ -17,7 +17,7 @@ import org.lwjgl.demo.opengl.util.Member;
 import org.lwjgl.demo.opengl.util.Std430Writer;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.Callback;
+import org.lwjgl.system.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -391,10 +391,12 @@ public class Tutorial7 {
 		/*
 		 * Account for HiDPI screens where window size != framebuffer pixel size.
 		 */
-		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-		nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-		width = framebufferSize.get(0);
-		height = framebufferSize.get(1);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
 
 		GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();

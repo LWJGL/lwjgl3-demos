@@ -33,7 +33,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.Callback;
+import org.lwjgl.system.*;
 
 /**
  * Raytracing demo.
@@ -208,10 +208,12 @@ public class Demo20 {
 		glfwSwapInterval(0);
 		glfwShowWindow(window);
 
-		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-		nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-		width = framebufferSize.get(0);
-		height = framebufferSize.get(1);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
 
 		GLCapabilities caps = GL.createCapabilities();
 		if (!caps.GL_EXT_framebuffer_object) {

@@ -3,8 +3,7 @@ package org.lwjgl.demo.opengl;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.Callback;
-
+import org.lwjgl.system.*;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -34,8 +33,8 @@ public class SimpleDrawElements {
             glfwDestroyWindow(window);
             keyCallback.free();
             wsCallback.free();
-			if (debugProc != null)
-				debugProc.free();
+            if (debugProc != null)
+                debugProc.free();
         } finally {
             // Terminate GLFW and release the GLFWerrorfun
             glfwTerminate();
@@ -46,7 +45,7 @@ public class SimpleDrawElements {
     private void init() {
         // Setup an error callback. The default implementation
         // will print the error message in System.err.
-    	glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
+        glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
  
         // Initialize GLFW. Most GLFW functions will not work before doing this.
         if ( !glfwInit() )
@@ -76,18 +75,23 @@ public class SimpleDrawElements {
             }
         });
         glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-			@Override
-			public void invoke(long window, int w, int h) {
-				if (w > 0 && h > 0) {
-					width = w;
-					height = h;
-				}
-			}
-		});
+            @Override
+            public void invoke(long window, int w, int h) {
+                if (w > 0 && h > 0) {
+                    width = w;
+                    height = h;
+                }
+            }
+        });
  
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
- 
+        glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
+        try (MemoryStack frame = MemoryStack.stackPush()) {
+            IntBuffer framebufferSize = frame.mallocInt(2);
+            nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+            width = framebufferSize.get(0);
+            height = framebufferSize.get(1);
+        }
         // Make the OpenGL context current
         glfwMakeContextCurrent(window);
         // Enable v-sync

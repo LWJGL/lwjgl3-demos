@@ -30,7 +30,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
-import org.lwjgl.system.Callback;
+import org.lwjgl.system.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -144,10 +144,12 @@ public class ShadowMappingDemo {
 		glfwSwapInterval(0);
 		glfwShowWindow(window);
 
-		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-		nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-		width = framebufferSize.get(0);
-		height = framebufferSize.get(1);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
 
 		caps = GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();
@@ -312,11 +314,11 @@ public class ShadowMappingDemo {
 		float z = (float) Math.cos(alpha);
 		lightPosition.set(lightDistance * x, 3 + (float) Math.sin(alpha), lightDistance * z);
 		light.setPerspective((float) Math.toRadians(45.0f), 1.0f, 0.1f, 60.0f)
-		     .lookAt(lightPosition, lightLookAt, UP);
+			 .lookAt(lightPosition, lightLookAt, UP);
 
 		/* Update camera */
 		camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f)
-		      .lookAt(cameraPosition, cameraLookAt, UP);
+				.lookAt(cameraPosition, cameraLookAt, UP);
 	}
 
 	/**

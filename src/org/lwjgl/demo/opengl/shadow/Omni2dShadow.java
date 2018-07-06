@@ -212,10 +212,12 @@ public class Omni2dShadow {
         glfwSwapInterval(0);
         glfwShowWindow(window);
 
-        IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-        nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-        width = framebufferSize.get(0);
-        height = framebufferSize.get(1);
+        try (MemoryStack frame = MemoryStack.stackPush()) {
+            IntBuffer framebufferSize = frame.mallocInt(2);
+            nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+            width = framebufferSize.get(0);
+            height = framebufferSize.get(1);
+        }
 
         caps = GL.createCapabilities();
         debugProc = GLUtil.setupDebugMessageCallback();
@@ -274,7 +276,7 @@ public class Omni2dShadow {
         model = new Model(scene);
     }
 
-    private byte[] readSingleFileZip(String zipResource) throws IOException {
+    private static byte[] readSingleFileZip(String zipResource) throws IOException {
         ZipInputStream zipStream = new ZipInputStream(Omni2dShadow.class.getResourceAsStream(zipResource));
         zipStream.getNextEntry();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

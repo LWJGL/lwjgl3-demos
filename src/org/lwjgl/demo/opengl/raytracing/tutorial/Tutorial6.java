@@ -29,7 +29,7 @@ import org.lwjgl.assimp.*;
 import org.lwjgl.demo.opengl.util.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.Callback;
+import org.lwjgl.system.*;
 
 /**
  * In this tutorial we will trace triangle meshes imported from a scene
@@ -387,10 +387,12 @@ public class Tutorial6 {
 		/*
 		 * Account for HiDPI screens where window size != framebuffer pixel size.
 		 */
-		IntBuffer framebufferSize = BufferUtils.createIntBuffer(2);
-		nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-		width = framebufferSize.get(0);
-		height = framebufferSize.get(1);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
 
 		GL.createCapabilities();
 		debugProc = GLUtil.setupDebugMessageCallback();
@@ -726,7 +728,7 @@ public class Tutorial6 {
 				triangleIndex += n.triangles.size();
 				/* Write triangles to buffer */
 				for (int i = 0; i < n.triangles.size(); i++) {
-					Triangle t = (Triangle) n.triangles.get(i);
+					Triangle t = n.triangles.get(i);
 					trianglesBuffer.putFloat(t.v0x).putFloat(t.v0y).putFloat(t.v0z).putFloat(1.0f);
 					trianglesBuffer.putFloat(t.v1x).putFloat(t.v1y).putFloat(t.v1z).putFloat(1.0f);
 					trianglesBuffer.putFloat(t.v2x).putFloat(t.v2y).putFloat(t.v2z).putFloat(1.0f);
