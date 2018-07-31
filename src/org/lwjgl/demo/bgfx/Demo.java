@@ -234,12 +234,6 @@ abstract class Demo {
 			pciId = BGFX_PCI_ID_SOFTWARE_RASTERIZER;
 		}
 
-		if (hasArg(args, "hmd")) {
-			reset = BGFX_RESET_HMD;
-		} else if (hasArg(args, "hmd-debug")) {
-			reset = BGFX_RESET_HMD_DEBUG;
-		}
-
 		useCallbacks = hasArg(args, "cb");
 		useCustomAllocator = hasArg(args, "alloc");
 	}

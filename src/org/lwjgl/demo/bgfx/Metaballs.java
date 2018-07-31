@@ -495,29 +495,15 @@ public class Metaballs extends Demo {
 
 			Vector3f eye = new Vector3f(0.0f, 0.0f, -50.0f);
 
-			BGFXHmd hmd = bgfx_get_hmd();
-			if (hmd != null && ((hmd.flags() & BGFX_HMD_RENDERING) != 0)) {
-				FloatBuffer rotation = hmd.eye(0).rotation();
-				Quaternionf quat = new Quaternionf(rotation.get(0), rotation.get(1), rotation.get(2), rotation.get(3));
+			BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
+			BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-				quat.get(view);
-				view.translate(-eye.x, -eye.y, -eye.z);
-				view.get(viewBuf);
+			view.get(viewBuf);
+			proj.get(projBuf);
 
-				bgfx_set_view_transform_stereo(0, viewBuf, hmd.eye(0).projection(), BGFX_VIEW_STEREO, hmd.eye(1).projection());
+			bgfx_set_view_transform(0, viewBuf, projBuf);
 
-				bgfx_set_view_rect(0, 0, 0, hmd.width(), hmd.height());
-			} else {
-				BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
-				BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
-
-				view.get(viewBuf);
-				proj.get(projBuf);
-
-				bgfx_set_view_transform(0, viewBuf, projBuf);
-
-				bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
-			}
+			bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
 
 			// Stats.
 			int numVertices = 0;
