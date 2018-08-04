@@ -133,6 +133,7 @@ public class NoVerticesBSplineDemo {
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
         // Create all needed GL resources
+        glBindVertexArray(glGenVertexArrays());
         createProgram();
         createUbo();
         // and set some GL state
