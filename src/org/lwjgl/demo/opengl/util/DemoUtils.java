@@ -16,9 +16,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
@@ -152,19 +150,16 @@ public class DemoUtils {
             if (source == null)
                 throw new FileNotFoundException(resource);
             try {
-                ReadableByteChannel rbc = Channels.newChannel(source);
-                try {
-                    while (true) {
-                        int bytes = rbc.read(buffer);
-                        if (bytes == -1)
-                            break;
-                        if (buffer.remaining() == 0)
-                            buffer = resizeBuffer(buffer, buffer.capacity() * 2);
-                    }
-                    buffer.flip();
-                } finally {
-                    rbc.close();
+                byte[] buf = new byte[8192];
+                while (true) {
+                    int bytes = source.read(buf, 0, buf.length);
+                    if (bytes == -1)
+                        break;
+                    if (buffer.remaining() < bytes)
+                        buffer = resizeBuffer(buffer, buffer.capacity() * 2);
+                    buffer.put(buf, 0, bytes);
                 }
+                buffer.flip();
             } finally {
                 source.close();
             }

@@ -218,7 +218,7 @@ public class WavefrontObjDemo {
                 };
                 AIFileTellProcI fileTellProc = new AIFileTellProc() {
                     public long invoke(long pFile) {
-                        return data.capacity();
+                        return data.limit();
                     }
                 };
                 aiFile.ReadProc(fileReadProc);
