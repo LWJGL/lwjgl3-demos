@@ -270,8 +270,8 @@ vec3 normalForBox(vec3 hit, const box b) {
 vec3 randvec3(int s) {
   return vec3(
     random(vec3(px + ivec2(s), time)),
-    random(vec3(px + ivec2(s), time + 1.1)),
-    random(vec3(px + ivec2(s), time + 0.3)));
+    random(vec3(px + ivec2(s), time * 1.1)),
+    random(vec3(px + ivec2(s), time * 0.3)));
 }
 
 /**

@@ -5,32 +5,20 @@
 #version 330 core
 
 /**
- * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
+ * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html?showComment=1507064059398#c5427444543794991219
  */
-uint hash_(uint x) {
-  x += (x << 10u);
-  x ^= (x >> 6u);
-  x += (x << 3u);
-  x ^= (x >> 11u);
-  x += (x << 15u);
+uint hash3(uint x, uint y, uint z) {
+  x += x >> 11;
+  x ^= x << 7;
+  x += y;
+  x ^= x << 3;
+  x += z ^ (x >> 14);
+  x ^= x << 6;
+  x += x >> 15;
+  x ^= x << 5;
+  x += x >> 12;
+  x ^= x << 9;
   return x;
-}
-
-/**
- * https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key/12996028#12996028
- */
-uint hash(uint x) {
-  x = ((x >> 16u) ^ x) * 0x45d9f3bu;
-  x = ((x >> 16u) ^ x) * 0x45d9f3bu;
-  x = (x >> 16u) ^ x;
-  return x;
-}
-
-/**
- * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
- */
-uint hash(uvec3 v) {
-  return hash(v.x ^ hash(v.y) ^ hash(v.z));
 }
 
 /**
@@ -54,12 +42,10 @@ uint hash(uvec3 v) {
  * 
  *   http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
  */
-float random(vec2 f, float time) {
-  const uint mantissaMask = 0x007FFFFFu;
-  const uint one = 0x3F800000u;
-  uint h = hash(floatBitsToUint(vec3(f, time)));
-  h &= mantissaMask;
-  h |= one;
-  float r2 = uintBitsToFloat(h);
-  return (r2 - 1.0) * 2.0 - 1.0;
+float random(vec2 pos, float time) {
+  uint mantissaMask = 0x007FFFFFu;
+  uint one = 0x3F800000u;
+  uvec3 u = floatBitsToUint(vec3(pos, time));
+  uint h = hash3(u.x, u.y, u.z);
+  return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
 }
