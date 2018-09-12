@@ -32,17 +32,17 @@ import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
 /**
- * In this tutorial we will trace triangle meshes imported from a scene
- * description file via {@link Assimp}. We will also use a binary Bounding
- * Volume Hierarchy structure with axis-aligned bounding boxes and show how this
- * can be traversed in a stack-less way on the GPU.
+ * Same as {@link Tutorial6} but without using next/miss pointers in the BVH
+ * nodes but instead using a bitstack in the Compute Shader to keep track of
+ * whether the near or far child was visited. This means that the Compute Shader
+ * will first visit the BVH node nearest to the ray's origin.
  * <p>
- * The strategy to traverse the BVH tree in the compute shader is explained in
- * the corresponding raytracing.glsl shader file.
+ * This allows to traverse the BVH tree in an optimal order, quickly culling
+ * many nodes when there was a triangle intersection in a near node.
  * 
  * @author Kai Burjack
  */
-public class Tutorial6 {
+public class Tutorial6_2 {
 
 	/**
 	 * A triangle described by three vertices with its positions and normals.
@@ -104,8 +104,6 @@ public class Tutorial6 {
 		float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
 		float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
 		BVH parent, left, right;
-		BVH hitNext, missNext;
-		boolean isLeft;
 		List<Triangle> triangles;
 	}
 
@@ -117,11 +115,9 @@ public class Tutorial6 {
 	 * shader expects it.
 	 */
 	static class GPUNode {
-		Vector3f min; // int padW; // <- std430 padding!
-		Vector3f max;
-		int hitNext; // <- this will layout as max.w
-		int missNext, firstTri, numTris;
-		// int pad0; // <- std430 padding!
+		Vector3f min; int left;
+		Vector3f max; int right;
+		int parent, firstTri, numTris;
 	}
 
 	/**
@@ -312,7 +308,7 @@ public class Tutorial6 {
 		/*
 		 * Now, create the window.
 		 */
-		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 6", NULL, NULL);
+		window = glfwCreateWindow(width, height, "Path Tracing Tutorial 6 (bitstack)", NULL, NULL);
 		if (window == NULL)
 			throw new AssertionError("Failed to create the GLFW window");
 
@@ -339,10 +335,10 @@ public class Tutorial6 {
 		 */
 		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (Tutorial6.this.width != width || Tutorial6.this.height != height)) {
-					Tutorial6.this.width = width;
-					Tutorial6.this.height = height;
-					Tutorial6.this.resetFramebuffer = true;
+				if (width > 0 && height > 0 && (Tutorial6_2.this.width != width || Tutorial6_2.this.height != height)) {
+					Tutorial6_2.this.width = width;
+					Tutorial6_2.this.height = height;
+					Tutorial6_2.this.resetFramebuffer = true;
 				}
 			}
 		});
@@ -350,22 +346,22 @@ public class Tutorial6 {
 		glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
 			public void invoke(long window, double x, double y) {
 				if (mouseDown) {
-					float deltaX = (float) x - Tutorial6.this.mouseX;
-					float deltaY = (float) y - Tutorial6.this.mouseY;
-					Tutorial6.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
-					Tutorial6.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+					float deltaX = (float) x - Tutorial6_2.this.mouseX;
+					float deltaY = (float) y - Tutorial6_2.this.mouseY;
+					Tutorial6_2.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
+					Tutorial6_2.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
 				}
-				Tutorial6.this.mouseX = (float) x;
-				Tutorial6.this.mouseY = (float) y;
+				Tutorial6_2.this.mouseX = (float) x;
+				Tutorial6_2.this.mouseY = (float) y;
 			}
 		});
 
 		glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
 			public void invoke(long window, int button, int action, int mods) {
 				if (action == GLFW_PRESS) {
-					Tutorial6.this.mouseDown = true;
+					Tutorial6_2.this.mouseDown = true;
 				} else if (action == GLFW_RELEASE) {
-					Tutorial6.this.mouseDown = false;
+					Tutorial6_2.this.mouseDown = false;
 				}
 			}
 		});
@@ -395,7 +391,7 @@ public class Tutorial6 {
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
 		/* Load OBJ model */
-		byte[] bytes = readSingleFileZip("org/lwjgl/demo/opengl/raytracing/tutorial6/scene.obj.zip");
+		byte[] bytes = readSingleFileZip("org/lwjgl/demo/opengl/raytracing/tutorial6_2/scene.obj.zip");
 		ByteBuffer bb = BufferUtils.createByteBuffer(bytes.length);
 		bb.put(bytes).flip();
 		AIScene scene = Assimp.aiImportFileFromMemory(bb, 0, "obj");
@@ -423,7 +419,7 @@ public class Tutorial6 {
 	 */
 	private static byte[] readSingleFileZip(String zipResource) throws IOException {
 		ZipInputStream zipStream = new ZipInputStream(
-				Tutorial6.class.getClassLoader().getResourceAsStream(zipResource));
+				Tutorial6_2.class.getClassLoader().getResourceAsStream(zipResource));
 		zipStream.getNextEntry();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		byte[] buffer = new byte[1024];
@@ -460,7 +456,7 @@ public class Tutorial6 {
 
 	/**
 	 * Convert the Assimp-imported scene into the Shader Storage Buffer Objects
-	 * needed for stackless BVH traversal in the compute shader.
+	 * needed for BVH traversal in the compute shader.
 	 */
 	private void createSceneSSBOs() {
 		/*
@@ -499,7 +495,6 @@ public class Tutorial6 {
 		 * Next, we build a BVH using a simple "centroid split" strategy.
 		 */
 		BVH root = buildBvh(triangles);
-		buildNextLinks(root);
 		/*
 		 * Then, we take this BVH and transform it into a structure understood by the
 		 * GPU/shader, which will be two Shader Storage Buffer Objects. One for the list
@@ -585,7 +580,6 @@ public class Tutorial6 {
 			 * And continue building left and right.
 			 */
 			n.left = buildBvh(left);
-			n.left.isLeft = true; // <- this is needed for buildNextLinks()
 			n.left.parent = n;
 			n.right = buildBvh(right);
 			n.right.parent = n;
@@ -596,86 +590,6 @@ public class Tutorial6 {
 			n.triangles = triangles;
 		}
 		return n;
-	}
-
-	/**
-	 * This is a custom implementation somewhat derived from
-	 * <a href="https://sebadorn.de/2015/03/13/stackless-bvh-traversal">Stackless
-	 * BVH traversal</a> by introducing "hitNext" and "missNext" pointers to each
-	 * BVH node.
-	 * <p>
-	 * The idea is simple: Describe an in-order tree traversal by assigning "next"
-	 * pointers to each BVH node. So, in GPU memory, each BVH node does not have a
-	 * left and right child pointer anymore, but a pointer describing where to go
-	 * next when that particular node has been processed. And in addition to a
-	 * single simple "next" pointer, we add an optimization by using two pointers.
-	 * One "hitNext" and one "missNext" pointer. The "hitNext" pointer is followed
-	 * when the ray intersects this box, and will result in that node's first/left
-	 * child being visited (if it is not a leaf node), or the next in-order node
-	 * being visited.
-	 * 
-	 * @param bvh the BVH to build "next" links for
-	 */
-	private static void buildNextLinks(BVH bvh) {
-		if (bvh.left != null)
-			buildNextLinks(bvh.left);
-		if (bvh.right != null)
-			buildNextLinks(bvh.right);
-
-		if (bvh.parent == null) {
-			/*
-			 * We are the root node. In the case of a hit, we visit the left child. In the
-			 * case of a miss, we are done.
-			 */
-			bvh.hitNext = bvh.left;
-			bvh.missNext = null;
-		} else if (bvh.isLeft && bvh.left == null) {
-			/*
-			 * We are a left leaf node. In the case of a hit or a miss, we proceed with the
-			 * right silbing (which always exists).
-			 */
-			bvh.hitNext = bvh.missNext = bvh.parent.right;
-		} else if (bvh.isLeft && bvh.left != null) {
-			/*
-			 * We are a left non-leaf. In the case of a hit we visit our left child. In the
-			 * case of a miss we visit the right sibling.
-			 */
-			bvh.hitNext = bvh.left;
-			bvh.missNext = bvh.parent.right;
-		} else if (!bvh.isLeft && bvh.left != null) {
-			/*
-			 * Here is where it gets a bit more complicated. When we are a right non-leaf
-			 * node, we need to figure out which next in-order node to visit next in the
-			 * case of a miss. See https://sebadorn.de/2015/03/13/stackless-bvh-traversal
-			 * for schematics on this.
-			 * 
-			 * But first, we say that in the case of a hit we visit our left child.
-			 */
-			bvh.hitNext = bvh.left;
-			BVH next = bvh.parent;
-			while (!next.isLeft && next.parent != null)
-				next = next.parent;
-			if (next.parent != null)
-				next = next.parent.right;
-			else
-				next = null;
-			bvh.missNext = next;
-		} else if (!bvh.isLeft && bvh.left == null) {
-			/*
-			 * Here is where it gets a bit more complicated. When we are a right leaf node,
-			 * we need to figure out which next in-order node to visit next. See
-			 * https://sebadorn.de/2015/03/13/stackless-bvh-traversal for schematics on
-			 * this.
-			 */
-			BVH next = bvh.parent;
-			while (!next.isLeft && next.parent != null)
-				next = next.parent;
-			if (next.parent != null)
-				next = next.parent.right;
-			else
-				next = null;
-			bvh.missNext = bvh.hitNext = next;
-		}
 	}
 
 	/**
@@ -701,14 +615,18 @@ public class Tutorial6 {
 			GPUNode gn = new GPUNode();
 			gn.min = new Vector3f(n.minX, n.minY, n.minZ);
 			gn.max = new Vector3f(n.maxX, n.maxY, n.maxZ);
-			if (n.hitNext != null)
-				gn.hitNext = indexes.get(n.hitNext).intValue();
+			if (n.parent != null)
+				gn.parent = indexes.get(n.parent).intValue();
 			else
-				gn.hitNext = -1;
-			if (n.missNext != null)
-				gn.missNext = indexes.get(n.missNext).intValue();
+				gn.parent = -1;
+			if (n.left != null)
+				gn.left = indexes.get(n.left).intValue();
 			else
-				gn.missNext = -1;
+				gn.left = -1;
+			if (n.right != null)
+				gn.right = indexes.get(n.right).intValue();
+			else
+				gn.right = -1;
 			if (n.triangles != null) {
 				gn.firstTri = triangleIndex;
 				gn.numTris = n.triangles.size();
@@ -768,9 +686,9 @@ public class Tutorial6 {
 		 * Create program and shader objects for our full-screen quad rendering.
 		 */
 		int program = glCreateProgram();
-		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/quad.vs.glsl",
+		int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.vs.glsl",
 				GL_VERTEX_SHADER);
-		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/quad.fs.glsl",
+		int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.fs.glsl",
 				GL_FRAGMENT_SHADER);
 		glAttachShader(program, vshader);
 		glAttachShader(program, fshader);
@@ -798,9 +716,9 @@ public class Tutorial6 {
 		 * shader type, now being GL_COMPUTE_SHADER.
 		 */
 		int program = glCreateProgram();
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/raytracing.glsl",
+		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/raytracing.glsl",
 				GL_COMPUTE_SHADER);
-		int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6/geometry.glsl",
+		int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/geometry.glsl",
 				GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glAttachShader(program, geometry);
@@ -1112,7 +1030,7 @@ public class Tutorial6 {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new Tutorial6().run();
+		new Tutorial6_2().run();
 	}
 
 }
