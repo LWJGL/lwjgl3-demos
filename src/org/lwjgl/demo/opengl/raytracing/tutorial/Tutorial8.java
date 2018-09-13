@@ -94,7 +94,7 @@ public class Tutorial8 {
      * The factor to scale the rasterized and path traced framebuffer down
      * compared to the window/viewport size. 1 = fullsize, 2 = half-size, etc.
      */
-    private int fbSizeScale = 1;
+    private int fbSizeScale = 2;
     /**
      * Will be set to <code>true</code> whenever the framebuffer dimensions
      * changed and textures/renderbuffers need to be recreated.
@@ -935,9 +935,9 @@ public class Tutorial8 {
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glActiveTexture(GL_TEXTURE0);
         glBindSampler(0, this.nearestSampler);
-        float c_phi0 = 10.4f;
+        float c_phi0 = 20.4f;
         float n_phi0 = 1E-2f;
-        float p_phi0 = 1E-2f;
+        float p_phi0 = 1E-1f;
         for (int i = 0; i < n; i++) {
             glUniform1f(filter_c_phiUniform, 1.0f / i * c_phi0);
             glUniform1f(filter_n_phiUniform, 1.0f / i * n_phi0);
@@ -977,7 +977,7 @@ public class Tutorial8 {
             update(dt);
             rasterDepthOnly();
             rasterAndTrace(thisTime * 1E-9f);
-            int read = filter(1);
+            int read = filter(3);
             present(read);
             swapFrames();
             glfwSwapBuffers(window);
