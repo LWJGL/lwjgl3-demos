@@ -6,7 +6,7 @@ package org.lwjgl.demo.opengl.util;
 
 import java.nio.ByteBuffer;
 
-import org.lwjgl.BufferUtils;
+import org.lwjgl.system.*;
 
 /**
  * Dynamically growable {@link ByteBuffer}.
@@ -18,14 +18,16 @@ public class DynamicByteBuffer {
 	public ByteBuffer bb;
 
 	public DynamicByteBuffer() {
-		bb = BufferUtils.createByteBuffer(1024);
+		bb = MemoryUtil.memAlloc(1024);
 	}
 
 	private void grow() {
-		ByteBuffer newbb = BufferUtils.createByteBuffer((int) (bb.capacity() * 1.5));
-		bb.flip();
-		newbb.put(bb);
+		ByteBuffer newbb = MemoryUtil.memRealloc(bb, (int) (bb.capacity() * 1.5));
 		bb = newbb;
+	}
+
+	public void free() {
+		MemoryUtil.memFree(bb);
 	}
 
 	public DynamicByteBuffer putFloat(float v) {
@@ -52,28 +54,8 @@ public class DynamicByteBuffer {
 		return this;
 	}
 
-	public int position() {
-		return bb.position();
-	}
-
-	public int capacity() {
-		return bb.capacity();
-	}
-
 	public void flip() {
 		bb.flip();
-	}
-
-	public int remaining() {
-		return bb.remaining();
-	}
-
-	public DynamicByteBuffer put(byte b) {
-		if (bb.remaining() < 1) {
-			grow();
-		}
-		bb.put(b);
-		return this;
 	}
 
 }

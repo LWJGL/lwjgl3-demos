@@ -15,7 +15,6 @@ import java.nio.*;
 import java.util.*;
 
 import org.joml.*;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.raytracing.CubeTrace.IBVHMortonTree.*;
 import org.lwjgl.demo.opengl.util.*;
 import org.lwjgl.glfw.*;
@@ -163,13 +162,13 @@ public class CubeTrace {
 	private float mouseX, mouseY;
 	private boolean mouseDown;
 	private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
-	private Matrix4f projMatrix = new Matrix4f();
-	private Matrix4f viewMatrix = new Matrix4f();
-	private Matrix4f invViewProjMatrix = new Matrix4f();
-	private Vector3f tmpVector = new Vector3f();
-	private Vector3f cameraPosition = new Vector3f(30.0f, 10.0f, 30.0f);
-	private Vector3f cameraLookAt = new Vector3f(16.0f, 0.5f, 16.0f);
-	private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
+	private Matrix4d projMatrix = new Matrix4d();
+	private Matrix4d viewMatrix = new Matrix4d();
+	private Matrix4d invViewProjMatrix = new Matrix4d();
+	private Vector3d tmpVector = new Vector3d();
+	private Vector3d cameraPosition = new Vector3d(912.0f, 140.0f, 212.0f);
+	private Vector3d cameraLookAt = new Vector3d(512.0f, 0.5f, 512.0f);
+	private Vector3d cameraUp = new Vector3d(0.0f, 1.0f, 0.0f);
 	private GLFWErrorCallback errCallback;
 	private GLFWKeyCallback keyCallback;
 	private GLFWFramebufferSizeCallback fbCallback;
@@ -221,8 +220,9 @@ public class CubeTrace {
 				if (mouseDown) {
 					float deltaX = (float) x - CubeTrace.this.mouseX;
 					float deltaY = (float) y - CubeTrace.this.mouseY;
-					CubeTrace.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
-					CubeTrace.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+					CubeTrace.this.viewMatrix.rotateLocalY(deltaX * 0.002f);
+					CubeTrace.this.viewMatrix.rotateLocalX(deltaY * 0.002f);
+					CubeTrace.this.viewMatrix.normalize3x3();
 				}
 				CubeTrace.this.mouseX = (float) x;
 				CubeTrace.this.mouseY = (float) y;
@@ -247,7 +247,7 @@ public class CubeTrace {
 			height = framebufferSize.get(1);
 		}
 		GL.createCapabilities();
-		debugProc = GLUtil.setupDebugMessageCallback();
+		// debugProc = GLUtil.setupDebugMessageCallback();
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 		buildTerrainVoxels();
 		createSceneSSBOs();
@@ -263,9 +263,11 @@ public class CubeTrace {
 
 	private void buildTerrainVoxels() {
 		voxels = new ArrayList<>();
-		for (int x = 0; x < 32; x++) {
-			for (int z = 0; z < 32; z++) {
-				int y = (int) (4.0f * (SimplexNoise.noise(x * 0.09353f, z * 0.035235f) * 0.5f + 0.5f));
+		for (int x = 0; x < 1024; x++) {
+			for (int z = 0; z < 1024; z++) {
+				float h = 168.0f * (SimplexNoise.noise(x * 0.0001153f, z * 0.0012235f) * 0.5f + 0.5f);
+				h += 22.0f * (SimplexNoise.noise(x * 0.005353f, z * 0.0032235f) * 0.5f + 0.5f);
+				int y = (int) h;
 				voxels.add(new Voxel(x, y, z));
 			}
 		}
@@ -299,10 +301,12 @@ public class CubeTrace {
 		this.nodesSsbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, nodesSsbo);
 		glBufferData(GL_ARRAY_BUFFER, nodesBuffer.bb, GL_STATIC_DRAW);
+		nodesBuffer.free();
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		this.voxelsSsbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, voxelsSsbo);
 		glBufferData(GL_ARRAY_BUFFER, voxelsBuffer.bb, GL_STATIC_DRAW);
+		voxelsBuffer.free();
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
@@ -321,7 +325,7 @@ public class CubeTrace {
 		int vbo = glGenBuffers();
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
+		ByteBuffer bb = MemoryUtil.memAlloc(4 * 2 * 6);
 		FloatBuffer fv = bb.asFloatBuffer();
 		fv.put(-1.0f).put(-1.0f);
 		fv.put(1.0f).put(-1.0f);
@@ -330,6 +334,7 @@ public class CubeTrace {
 		fv.put(-1.0f).put(1.0f);
 		fv.put(-1.0f).put(-1.0f);
 		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
+		MemoryUtil.memFree(bb);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -380,27 +385,29 @@ public class CubeTrace {
 
 	private void initComputeProgram() {
 		glUseProgram(computeProgram);
-		IntBuffer workGroupSize = BufferUtils.createIntBuffer(3);
-		glGetProgramiv(computeProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
-		workGroupSizeX = workGroupSize.get(0);
-		workGroupSizeY = workGroupSize.get(1);
-		eyeUniform = glGetUniformLocation(computeProgram, "eye");
-		ray00Uniform = glGetUniformLocation(computeProgram, "ray00");
-		ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
-		ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
-		ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
-		IntBuffer props = BufferUtils.createIntBuffer(1);
-		IntBuffer params = BufferUtils.createIntBuffer(1);
-		props.put(0, GL_BUFFER_BINDING);
-		int nodesResourceIndex = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "Nodes");
-		glGetProgramResourceiv(computeProgram, GL_SHADER_STORAGE_BLOCK, nodesResourceIndex, props, null, params);
-		nodesSsboBinding = params.get(0);
-		int voxelsResourceIndex = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "Voxels");
-		glGetProgramResourceiv(computeProgram, GL_SHADER_STORAGE_BLOCK, voxelsResourceIndex, props, null, params);
-		voxelsSsboBinding = params.get(0);
-		int loc = glGetUniformLocation(computeProgram, "framebufferImage");
-		glGetUniformiv(computeProgram, loc, params);
-		framebufferImageBinding = params.get(0);
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer workGroupSize = frame.mallocInt(3);
+			glGetProgramiv(computeProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
+			workGroupSizeX = workGroupSize.get(0);
+			workGroupSizeY = workGroupSize.get(1);
+			eyeUniform = glGetUniformLocation(computeProgram, "eye");
+			ray00Uniform = glGetUniformLocation(computeProgram, "ray00");
+			ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
+			ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
+			ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
+			IntBuffer props = frame.mallocInt(1);
+			IntBuffer params = frame.mallocInt(1);
+			props.put(0, GL_BUFFER_BINDING);
+			int nodesResourceIndex = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "Nodes");
+			glGetProgramResourceiv(computeProgram, GL_SHADER_STORAGE_BLOCK, nodesResourceIndex, props, null, params);
+			nodesSsboBinding = params.get(0);
+			int voxelsResourceIndex = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "Voxels");
+			glGetProgramResourceiv(computeProgram, GL_SHADER_STORAGE_BLOCK, voxelsResourceIndex, props, null, params);
+			voxelsSsboBinding = params.get(0);
+			int loc = glGetUniformLocation(computeProgram, "framebufferImage");
+			glGetUniformiv(computeProgram, loc, params);
+			framebufferImageBinding = params.get(0);
+		}
 		glUseProgram(0);
 	}
 
@@ -422,9 +429,9 @@ public class CubeTrace {
 	}
 
 	private void update(float dt) {
-		float factor = 5.0f;
+		float factor = 20.0f;
 		if (keydown[GLFW_KEY_LEFT_SHIFT])
-			factor = 10.0f;
+			factor = 50.0f;
 		if (keydown[GLFW_KEY_W])
 			viewMatrix.translateLocal(0, 0, factor * dt);
 		if (keydown[GLFW_KEY_S])
@@ -452,15 +459,15 @@ public class CubeTrace {
 		}
 		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 		viewMatrix.originAffine(cameraPosition);
-		glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+		glUniform3f(eyeUniform, (float) cameraPosition.x, (float) cameraPosition.y, (float) cameraPosition.z);
 		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
-		glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+		glUniform3f(ray00Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
 		invViewProjMatrix.transformProject(tmpVector.set(-1, 1, 0)).sub(cameraPosition);
-		glUniform3f(ray01Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+		glUniform3f(ray01Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
 		invViewProjMatrix.transformProject(tmpVector.set(1, -1, 0)).sub(cameraPosition);
-		glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+		glUniform3f(ray10Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
 		invViewProjMatrix.transformProject(tmpVector.set(1, 1, 0)).sub(cameraPosition);
-		glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+		glUniform3f(ray11Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
 		glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, nodesSsbo);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, voxelsSsboBinding, voxelsSsbo);

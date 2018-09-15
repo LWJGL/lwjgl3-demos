@@ -6,9 +6,9 @@
 
 #define NO_INTERSECTION -1
 #define NO_NODE -1
-#define EPSILON 1E-5
+#define EPSILON 1E-4
 #define ERROR_COLOR vec3(1.0, 0.0, 1.0)
-#define MAX_FOLLOWS 80
+#define MAX_FOLLOWS 450
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 uniform vec3 eye, ray00, ray01, ray10, ray11;
@@ -135,7 +135,7 @@ vec3 trace(vec3 origin, vec3 dir, vec3 invdir) {
       bt = nt;
     }
   }
-  return vec3(iterations) * 0.02 + normal;
+  return vec3(iterations) * 0.002 + normal;
 }
 
 layout (local_size_x = 8, local_size_y = 4) in;
