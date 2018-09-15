@@ -166,7 +166,7 @@ public class CubeTrace {
 	private Matrix4d viewMatrix = new Matrix4d();
 	private Matrix4d invViewProjMatrix = new Matrix4d();
 	private Vector3d tmpVector = new Vector3d();
-	private Vector3d cameraPosition = new Vector3d(912.0f, 140.0f, 212.0f);
+	private Vector3d cameraPosition = new Vector3d(812.0f, 70.0f, 112.0f);
 	private Vector3d cameraLookAt = new Vector3d(512.0f, 0.5f, 512.0f);
 	private Vector3d cameraUp = new Vector3d(0.0f, 1.0f, 0.0f);
 	private GLFWErrorCallback errCallback;
@@ -175,7 +175,6 @@ public class CubeTrace {
 	private GLFWCursorPosCallback cpCallback;
 	private GLFWMouseButtonCallback mbCallback;
 	private Callback debugProc;
-	private List<Voxel> voxels;
 	private long lastTime = System.nanoTime();
 	private int frame = 0;
 	private float avgTime = 0.0f;
@@ -249,8 +248,8 @@ public class CubeTrace {
 		GL.createCapabilities();
 		// debugProc = GLUtil.setupDebugMessageCallback();
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
-		buildTerrainVoxels();
-		createSceneSSBOs();
+		System.out.println("Building terrain...");
+		createSceneSSBOs(buildTerrainVoxels());
 		createFramebufferTextures();
 		createSampler();
 		quadFullScreenVao();
@@ -259,18 +258,52 @@ public class CubeTrace {
 		createQuadProgram();
 		initQuadProgram();
 		glfwShowWindow(window);
+		System.gc();
 	}
 
-	private void buildTerrainVoxels() {
-		voxels = new ArrayList<>();
-		for (int x = 0; x < 1024; x++) {
-			for (int z = 0; z < 1024; z++) {
-				float h = 168.0f * (SimplexNoise.noise(x * 0.0001153f, z * 0.0012235f) * 0.5f + 0.5f);
-				h += 22.0f * (SimplexNoise.noise(x * 0.005353f, z * 0.0032235f) * 0.5f + 0.5f);
-				int y = (int) h;
-				voxels.add(new Voxel(x, y, z));
-			}
-		}
+	private List<Voxel> buildTerrainVoxels() {
+		int width = 1024, depth = 1024, height = 64;
+		float xzScale = 0.01353f, yScale = 0.0322f;
+		byte[] field = new byte[width * depth * height];
+		for (int z = 0; z < depth; z++)
+			for (int y = 0; y < height; y++)
+				for (int x = 0; x < width; x++) {
+					float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
+					if (v > 0.15f)
+						field[x + y * width + z * width * height] = ~0;
+				}
+		/* Remove voxels that have neighbors at all sides */
+		int removed = 0, retained = 0;
+		for (int z = 1; z < depth - 1; z++)
+			for (int y = 1; y < height - 1; y++)
+				for (int x = 1; x < width - 1; x++) {
+					int idx = x + y * width + z * width * height;
+					int left = (x - 1) + y * width + z * width * height;
+					int right = (x + 1) + y * width + z * width * height;
+					int up = x + (y + 1) * width + z * width * height;
+					int down = x + (y - 1) * width + z * width * height;
+					int front = x + y * width + (z - 1) * width * height;
+					int back = x + y * width + (z + 1) * width * height;
+					if ((field[idx] & 1) == 1 && (field[left] & 1) == 1 && (field[right] & 1) == 1
+							&& (field[up] & 1) == 1 && (field[down] & 1) == 1 && (field[front] & 1) == 1
+							&& (field[back] & 1) == 1) {
+						field[idx] = 3; // <- remember that this once was a filled voxel!
+						removed++;
+					} else {
+						retained++;
+					}
+				}
+		System.out.println("Removed voxels: " + removed);
+		System.out.println("Retained voxels: " + retained);
+		List<Voxel> voxels = new ArrayList<>();
+		for (int z = 0; z < depth; z++)
+			for (int y = 0; y < height; y++)
+				for (int x = 0; x < width; x++) {
+					int idx = x + y * width + z * width * height;
+					if (field[idx] == ~0)
+						voxels.add(new Voxel(x, y, z));
+				}
+		return voxels;
 	}
 
 	private static List<IBVHMortonTree> allocate(IBVHMortonTree node) {
@@ -290,7 +323,8 @@ public class CubeTrace {
 		return linearNodes;
 	}
 
-	private void createSceneSSBOs() {
+	private void createSceneSSBOs(List<Voxel> voxels) {
+		System.out.println("Building BVH...");
 		IBVHMortonTree root = IBVHMortonTree.build(voxels);
 		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
 		voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(v.morton));
@@ -441,9 +475,9 @@ public class CubeTrace {
 		if (keydown[GLFW_KEY_D])
 			viewMatrix.translateLocal(-factor * dt, 0, 0);
 		if (keydown[GLFW_KEY_Q])
-			viewMatrix.rotateLocalZ(-dt);
+			viewMatrix.rotateLocalZ(factor * 0.05f * -dt);
 		if (keydown[GLFW_KEY_E])
-			viewMatrix.rotateLocalZ(dt);
+			viewMatrix.rotateLocalZ(factor * 0.05f * dt);
 		if (keydown[GLFW_KEY_LEFT_CONTROL])
 			viewMatrix.translateLocal(0, factor * dt, 0);
 		if (keydown[GLFW_KEY_SPACE])
