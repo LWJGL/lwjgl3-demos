@@ -4,7 +4,6 @@
  */
 #version 430 core
 
-#define NO_INTERSECTION -1
 #define NO_NODE -1
 #define EPSILON 1E-4
 #define ERROR_COLOR vec3(1.0, 0.0, 1.0)
@@ -29,7 +28,8 @@ layout(std430, binding = 1) readonly buffer Voxels {
   voxel[] voxels;
 };
 
-bool intersectBox(vec3 origin, vec3 invdir, vec3 boxMin, vec3 boxMax, inout float t) {
+bool intersectBox(const in vec3 origin, const in vec3 invdir,
+                  const in vec3 boxMin, const in vec3 boxMax, inout float t) {
   bvec3 lt = lessThan(invdir, vec3(0.0));
   vec3 m1 = (boxMin - origin) * invdir;
   vec3 m2 = (boxMax - origin) * invdir;
@@ -45,10 +45,11 @@ bool intersectBox(vec3 origin, vec3 invdir, vec3 boxMin, vec3 boxMax, inout floa
   }
 }
 
-bool intersectVoxels(vec3 origin, vec3 invdir, const node n, inout float t, out voxel hitvoxel) {
+bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int firstVoxel,
+                     const int numVoxels, inout float t, out voxel hitvoxel) {
   bool hit = false;
-  for (int i = n.firstVoxel; i < n.firstVoxel + n.numVoxels; i++) {
-    const voxel v = voxels[i];
+  for (uint i = 0; i < numVoxels; i++) {
+    const voxel v = voxels[i + firstVoxel];
     if (intersectBox(origin, invdir, vec3(v.p), vec3(v.p) + vec3(1.0), t)) {
       hit = true;
       hitvoxel = v;
@@ -57,7 +58,7 @@ bool intersectVoxels(vec3 origin, vec3 invdir, const node n, inout float t, out 
   return hit;
 }
 
-vec3 normalForVoxel(vec3 hit, ivec3 v) {
+vec3 normalForVoxel(const in vec3 hit, const in ivec3 v) {
   if (hit.x < float(v.x) + EPSILON)
     return vec3(-1.0, 0.0, 0.0);
   else if (hit.x > float(v.x + 1) - EPSILON)
@@ -72,15 +73,13 @@ vec3 normalForVoxel(vec3 hit, ivec3 v) {
     return vec3(0.0, 0.0, 1.0);
 }
 
-int closestChild(vec3 origin, const node n, out uint leftRight) {
+int closestChild(const in vec3 origin, const in node n, out uint leftRight) {
   if (n.left == NO_NODE)
     return NO_NODE;
-  const node left = nodes[n.left];
-  const node right = nodes[n.right];
+  const node left = nodes[n.left], right = nodes[n.right];
   const vec3 midLeft = (left.min + left.max) * vec3(0.5);
   const vec3 midRight = (right.min + right.max) * vec3(0.5);
-  const vec3 dl = origin - midLeft;
-  const vec3 dr = origin - midRight;
+  const vec3 dl = origin - midLeft, dr = origin - midRight;
   if (dot(dl, dl) < dot(dr, dr)) {
     leftRight = 0;
     return n.left;
@@ -90,13 +89,13 @@ int closestChild(vec3 origin, const node n, out uint leftRight) {
   }
 }
 
-bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack, inout uint depth, const in node n, inout uint nextIdx) {
-  node parent = nodes[n.parent];
+bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
+                         const in int pidx, inout uint nextIdx) {
+  node parent = nodes[pidx];
   while ((nearFarStack & 1u) == 1u) {
     nearFarStack >>= 1;
     leftRightStack >>= 1;
-    depth--;
-    if (depth == 0u)
+    if (parent.parent == NO_NODE)
       return false;
     parent = nodes[parent.parent];
   }
@@ -105,40 +104,39 @@ bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack, ino
   return true;
 }
 
-vec3 trace(vec3 origin, vec3 dir, vec3 invdir) {
+vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
   uint nextIdx = 0u;
   float nt = 1.0/0.0, bt = 1.0/0.0;
   vec3 normal = vec3(0.0);
   uint iterations = 0u;
-  uint leftRightStack = 0u, nearFarStack = 0u, depth = 0u, leftRight = 0u;
-  while (nextIdx != NO_NODE) {
+  uint leftRightStack = 0u, nearFarStack = 0u, leftRight = 0u;
+  while (true) {
     iterations++;
     if (iterations > MAX_FOLLOWS)
       return ERROR_COLOR;
     const node next = nodes[nextIdx];
     if (!intersectBox(origin, invdir, next.min, next.max, bt)) {
-      if (depth == 0u || !processNextFarChild(nearFarStack, leftRightStack, depth, next, nextIdx))
+      if (!processNextFarChild(nearFarStack, leftRightStack, next.parent, nextIdx))
         break;
     } else {
       if (next.numVoxels > 0) {
         voxel hitvoxel;
-        if (intersectVoxels(origin, invdir, next, nt, hitvoxel))
+        if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel))
           normal = normalForVoxel(origin + nt * dir, hitvoxel.p);
-        if (!processNextFarChild(nearFarStack, leftRightStack, depth, next, nextIdx))
+        if (!processNextFarChild(nearFarStack, leftRightStack, next.parent, nextIdx))
           break;
       } else {
         nextIdx = closestChild(origin, next, leftRight);
         nearFarStack <<= 1;
         leftRightStack = leftRightStack << 1 | leftRight;
-        depth++;
       }
       bt = nt;
     }
   }
-  return vec3(iterations) * 0.002 + normal;
+  return vec3(iterations) * 0.007 + normal;
 }
 
-layout (local_size_x = 8, local_size_y = 4) in;
+layout (local_size_x = 8, local_size_y = 8) in;
 
 void main(void) {
   ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
