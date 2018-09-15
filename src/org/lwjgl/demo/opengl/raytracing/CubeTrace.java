@@ -61,6 +61,7 @@ public class CubeTrace {
 		public IBVHMortonTree left;
 		public IBVHMortonTree right;
 		public List<Voxel> voxels;
+		public int index;
 		public int first, last = -1;
 		public int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
 		public int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
@@ -139,14 +140,6 @@ public class CubeTrace {
 			tree.maxZ = java.lang.Math.max(tree.left.maxZ, tree.right.maxZ);
 			return tree;
 		}
-	}
-
-	static class GPUNode {
-		Vector3f min;
-		int left;
-		Vector3f max;
-		int right;
-		int parent, firstVoxel, numVoxels;
 	}
 
 	private long window;
@@ -278,18 +271,21 @@ public class CubeTrace {
 		}
 	}
 
-	private static void allocate(IBVHMortonTree node, Map<IBVHMortonTree, Integer> indexes) {
+	private static List<IBVHMortonTree> allocate(IBVHMortonTree node) {
+		List<IBVHMortonTree> linearNodes = new ArrayList<>();
 		Queue<IBVHMortonTree> nodes = new LinkedList<>();
+		int index = 0;
 		nodes.add(node);
 		while (!nodes.isEmpty()) {
 			IBVHMortonTree n = nodes.poll();
-			if (n == null)
-				continue;
-			int index = indexes.size();
-			indexes.put(n, Integer.valueOf(index));
-			nodes.add(n.left);
-			nodes.add(n.right);
+			linearNodes.add(n);
+			n.index = index++;
+			if (n.left != null) {
+				nodes.add(n.left);
+				nodes.add(n.right);
+			}
 		}
+		return linearNodes;
 	}
 
 	private void createSceneSSBOs() {
@@ -311,31 +307,13 @@ public class CubeTrace {
 	}
 
 	private static void bhvToBuffers(IBVHMortonTree root, DynamicByteBuffer nodesBuffer) {
-		Map<IBVHMortonTree, Integer> indexes = new LinkedHashMap<IBVHMortonTree, Integer>();
-		allocate(root, indexes);
-		List<GPUNode> gpuNodes = new ArrayList<GPUNode>();
-		for (Map.Entry<IBVHMortonTree, Integer> e : indexes.entrySet()) {
-			IBVHMortonTree n = e.getKey();
-			GPUNode gn = new GPUNode();
-			gn.min = new Vector3f(n.minX, n.minY, n.minZ);
-			gn.max = new Vector3f(n.maxX + 1, n.maxY + 1, n.maxZ + 1);
-			if (n.parent != null)
-				gn.parent = indexes.get(n.parent).intValue();
-			else
-				gn.parent = -1;
-			if (n.left != null)
-				gn.left = indexes.get(n.left).intValue();
-			else
-				gn.left = -1;
-			if (n.right != null)
-				gn.right = indexes.get(n.right).intValue();
-			else
-				gn.right = -1;
-			gn.firstVoxel = n.first;
-			gn.numVoxels = n.last - n.first + 1;
-			gpuNodes.add(gn);
+		for (IBVHMortonTree n : allocate(root)) {
+			nodesBuffer.putFloat(n.minX).putFloat(n.minY).putFloat(n.minZ).putInt(n.left != null ? n.left.index : -1);
+			nodesBuffer.putFloat(n.maxX + 1).putFloat(n.maxY + 1).putFloat(n.maxZ + 1)
+					.putInt(n.right != null ? n.right.index : -1);
+			nodesBuffer.putInt(n.parent != null ? n.parent.index : -1).putInt(n.first).putInt(n.last - n.first + 1)
+					.putInt(-1);
 		}
-		Std430Writer.write(gpuNodes, GPUNode.class, nodesBuffer);
 	}
 
 	private void quadFullScreenVao() {

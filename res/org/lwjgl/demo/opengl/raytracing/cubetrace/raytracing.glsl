@@ -8,7 +8,7 @@
 #define NO_NODE -1
 #define EPSILON 1E-5
 #define ERROR_COLOR vec3(1.0, 0.0, 1.0)
-#define MAX_FOLLOWS 50
+#define MAX_FOLLOWS 80
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 uniform vec3 eye, ray00, ray01, ray10, ray11;
