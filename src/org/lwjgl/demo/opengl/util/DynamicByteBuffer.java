@@ -54,8 +54,20 @@ public class DynamicByteBuffer {
 		return this;
 	}
 
+	public DynamicByteBuffer putShort(int v) {
+		if (bb.remaining() < 2) {
+			grow();
+		}
+		bb.putShort((short) (v & 0xFFFF));
+		return this;
+	}
+
 	public void flip() {
 		bb.flip();
+	}
+
+	public int remaining() {
+		return bb.remaining();
 	}
 
 }

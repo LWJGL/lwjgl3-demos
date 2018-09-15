@@ -249,7 +249,6 @@ public class CubeTrace {
 		// debugProc = GLUtil.setupDebugMessageCallback();
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 		System.out.println("Building terrain...");
-		createSceneSSBOs(buildTerrainVoxels());
 		createFramebufferTextures();
 		createSampler();
 		quadFullScreenVao();
@@ -257,23 +256,39 @@ public class CubeTrace {
 		initComputeProgram();
 		createQuadProgram();
 		initQuadProgram();
+		createSceneSSBOs(buildTerrainVoxels());
 		glfwShowWindow(window);
-		System.gc();
 	}
 
 	private List<Voxel> buildTerrainVoxels() {
 		int width = 1024, depth = 1024, height = 64;
 		float xzScale = 0.01353f, yScale = 0.0322f;
 		byte[] field = new byte[width * depth * height];
-		for (int z = 0; z < depth; z++)
-			for (int y = 0; y < height; y++)
-				for (int x = 0; x < width; x++) {
-					float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
-					if (v > 0.15f)
-						field[x + y * width + z * width * height] = ~0;
+		Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors()];
+		for (int i = 0; i < threads.length; i++) {
+			final int ti = i;
+			threads[i] = new Thread(new Runnable() {
+				public void run() {
+					int depthSlice = depth / threads.length;
+					for (int z = ti * depthSlice; z < (ti + 1) * depthSlice; z++)
+						for (int y = 0; y < height; y++)
+							for (int x = 0; x < width; x++) {
+								float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
+								if (v > 0.15f)
+									field[x + y * width + z * width * height] = ~0;
+							}
 				}
+			});
+			threads[i].start();
+		}
+		for (int i = 0; i < threads.length; i++) {
+			try {
+				threads[i].join();
+			} catch (InterruptedException e) {
+			}
+		}
 		/* Remove voxels that have neighbors at all sides */
-		int removed = 0, retained = 0;
+		int removed = 0;
 		for (int z = 1; z < depth - 1; z++)
 			for (int y = 1; y < height - 1; y++)
 				for (int x = 1; x < width - 1; x++) {
@@ -289,12 +304,8 @@ public class CubeTrace {
 							&& (field[back] & 1) == 1) {
 						field[idx] = 3; // <- remember that this once was a filled voxel!
 						removed++;
-					} else {
-						retained++;
 					}
 				}
-		System.out.println("Removed voxels: " + removed);
-		System.out.println("Retained voxels: " + retained);
 		List<Voxel> voxels = new ArrayList<>();
 		for (int z = 0; z < depth; z++)
 			for (int y = 0; y < height; y++)
@@ -303,6 +314,8 @@ public class CubeTrace {
 					if (field[idx] == ~0)
 						voxels.add(new Voxel(x, y, z));
 				}
+		System.out.println("Removed voxels: " + removed);
+		System.out.println("Retained voxels: " + voxels.size());
 		return voxels;
 	}
 
@@ -329,9 +342,11 @@ public class CubeTrace {
 		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
 		voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(v.morton));
 		voxelsBuffer.flip();
+		System.out.println("Voxels SSBO size: " + voxelsBuffer.remaining() / 1024 / 1024 + " MB");
 		DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
 		bhvToBuffers(root, nodesBuffer);
 		nodesBuffer.flip();
+		System.out.println("BVH SSBO size: " + nodesBuffer.remaining() / 1024 / 1024 + " MB");
 		this.nodesSsbo = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, nodesSsbo);
 		glBufferData(GL_ARRAY_BUFFER, nodesBuffer.bb, GL_STATIC_DRAW);
