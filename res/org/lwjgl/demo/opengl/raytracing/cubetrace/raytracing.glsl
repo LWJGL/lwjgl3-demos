@@ -123,7 +123,7 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
       bt = nt;
     }
   }
-  return normal;
+  return normal * 0.8;
 }
 
 layout (local_size_x = 8, local_size_y = 8) in;

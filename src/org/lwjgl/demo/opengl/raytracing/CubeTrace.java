@@ -41,7 +41,7 @@ public class CubeTrace {
 	public static class IBVHMortonTree {
 		public static class Voxel implements Comparable<Voxel> {
 			public int x, y, z;
-			public int morton;
+			public long morton;
 
 			public Voxel(int x, int y, int z) {
 				this.x = x;
@@ -51,7 +51,7 @@ public class CubeTrace {
 
 			@Override
 			public int compareTo(Voxel o) {
-				return Integer.compare(morton, o.morton);
+				return Long.compare(morton, o.morton);
 			}
 		}
 
@@ -84,32 +84,34 @@ public class CubeTrace {
 			});
 		}
 
-		private static int expandBits(int v) {
-			v = v * 0x00010001 & 0xFF0000FF;
-			v = v * 0x00000101 & 0x0F00F00F;
-			v = v * 0x00000011 & 0xC30C30C3;
-			v = v * 0x00000005 & 0x49249249;
+		private static long expandBits(long v) {
+			v &= 0x00000000001fffffL;
+			v = (v | v << 32L) & 0x001f00000000ffffL;
+			v = (v | v << 16L) & 0x001f0000ff0000ffL;
+			v = (v | v << 8L) & 0x010f00f00f00f00fL;
+			v = (v | v << 4L) & 0x10c30c30c30c30c3L;
+			v = (v | v << 2L) & 0x1249249249249249L;
 			return v;
 		}
 
-		private static int morton3d(int x, int y, int z) {
-			return (expandBits(x) << 2) + (expandBits(y) << 1) + expandBits(z);
+		private static long morton3d(int x, int y, int z) {
+			return (expandBits(y) << 2L) + (expandBits(z) << 1L) + expandBits(x);
 		}
 
 		private static int findSplit(List<Voxel> sortedMortonCodes, int first, int last) {
-			int firstCode = sortedMortonCodes.get(first).morton;
-			int lastCode = sortedMortonCodes.get(last).morton;
+			long firstCode = sortedMortonCodes.get(first).morton;
+			long lastCode = sortedMortonCodes.get(last).morton;
 			if (firstCode == lastCode)
 				return first + last >> 1;
-			int commonPrefix = Integer.numberOfLeadingZeros(firstCode ^ lastCode);
+			int commonPrefix = Long.numberOfLeadingZeros(firstCode ^ lastCode);
 			int split = first;
 			int step = last - first;
 			do {
 				step = step + 1 >> 1;
 				int newSplit = split + step;
 				if (newSplit < last) {
-					int splitCode = sortedMortonCodes.get(newSplit).morton;
-					int splitPrefix = Integer.numberOfLeadingZeros(firstCode ^ splitCode);
+					long splitCode = sortedMortonCodes.get(newSplit).morton;
+					int splitPrefix = Long.numberOfLeadingZeros(firstCode ^ splitCode);
 					if (splitPrefix > commonPrefix)
 						split = newSplit;
 				}
@@ -146,6 +148,10 @@ public class CubeTrace {
 	private int height = 1080;
 	private boolean resetFramebuffer;
 	private int cbWidth = 3;
+	private int cbPixel;
+	private int levelWidth = 2048;
+	private int levelDepth = 1024;
+	private int levelHeight = 64;
 	private int pttex;
 	private int vao;
 	private int computeProgram;
@@ -168,8 +174,8 @@ public class CubeTrace {
 	private Matrix4d viewMatrix = new Matrix4d();
 	private Matrix4d invViewProjMatrix = new Matrix4d();
 	private Vector3d tmpVector = new Vector3d();
-	private Vector3d cameraPosition = new Vector3d(812.0f, 130.0f, 512.0f);
-	private Vector3d cameraLookAt = new Vector3d(512.0f, 0.5f, 512.0f);
+	private Vector3d cameraPosition = new Vector3d(levelWidth * 0.9f, levelHeight * 1.4f, levelDepth * 0.5f);
+	private Vector3d cameraLookAt = new Vector3d(0, 0, 0);
 	private Vector3d cameraUp = new Vector3d(0.0f, 1.0f, 0.0f);
 	private GLFWErrorCallback errCallback;
 	private GLFWKeyCallback keyCallback;
@@ -263,7 +269,7 @@ public class CubeTrace {
 	}
 
 	private List<Voxel> buildTerrainVoxels() {
-		int width = 1024, depth = 1024, height = 128;
+		int width = levelWidth, depth = levelDepth, height = levelHeight;
 		float xzScale = 0.01353f, yScale = 0.0322f;
 		byte[] field = new byte[width * depth * height];
 		Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors()];
@@ -276,7 +282,7 @@ public class CubeTrace {
 						for (int y = 0; y < height; y++)
 							for (int x = 0; x < width; x++) {
 								float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
-								if (v > 0.15f)
+								if (y == 0 || v > 0.15f)
 									field[x + y * width + z * width * height] = ~0;
 							}
 				}
@@ -342,7 +348,7 @@ public class CubeTrace {
 		System.out.println("Building BVH...");
 		IBVHMortonTree root = IBVHMortonTree.build(voxels);
 		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
-		voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(v.morton));
+		voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(0));
 		voxelsBuffer.flip();
 		System.out.println("Voxels SSBO size: " + voxelsBuffer.remaining() / 1024 / 1024 + " MB");
 		DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
@@ -494,17 +500,15 @@ public class CubeTrace {
 		if (keydown[GLFW_KEY_D])
 			viewMatrix.translateLocal(-factor * dt, 0, 0);
 		if (keydown[GLFW_KEY_Q])
-			viewMatrix.rotateLocalZ(factor * 0.05f * -dt);
+			viewMatrix.rotateLocalZ(factor * 0.02f * -dt);
 		if (keydown[GLFW_KEY_E])
-			viewMatrix.rotateLocalZ(factor * 0.05f * dt);
+			viewMatrix.rotateLocalZ(factor * 0.02f * dt);
 		if (keydown[GLFW_KEY_LEFT_CONTROL])
 			viewMatrix.translateLocal(0, factor * dt, 0);
 		if (keydown[GLFW_KEY_SPACE])
 			viewMatrix.translateLocal(0, -factor * dt, 0);
 		projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
 	}
-
-	private int pixel = 0;
 
 	private void trace() {
 		glUseProgram(computeProgram);
@@ -515,8 +519,8 @@ public class CubeTrace {
 		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 		viewMatrix.originAffine(cameraPosition);
 		glUniform2i(cbwidthUniform, cbWidth, cbWidth);
-		glUniform2i(offUniform, pixel % cbWidth, pixel / cbWidth);
-		pixel = (pixel + 1) % (cbWidth * cbWidth);
+		glUniform2i(offUniform, cbPixel % cbWidth, cbPixel / cbWidth);
+		cbPixel = (cbPixel + 1) % (cbWidth * cbWidth);
 		glUniform3f(eyeUniform, (float) cameraPosition.x, (float) cameraPosition.y, (float) cameraPosition.z);
 		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
 		glUniform3f(ray00Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
