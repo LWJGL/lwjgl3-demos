@@ -5,7 +5,6 @@
 #version 430 core
 
 #define NO_NODE -1
-#define EPSILON 1E-4
 #define ERROR_COLOR vec3(1.0, 0.0, 1.0)
 #define MAX_FOLLOWS 750
 
@@ -55,18 +54,15 @@ bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int first
 }
 
 vec3 normalForVoxel(const in vec3 hit, const in vec3 dir, const in ivec3 v) {
-  if (dir.x > 0.0 && hit.x < float(v.x) + EPSILON)
-    return vec3(-1.0, 0.0, 0.0);
-  else if (dir.x < 0.0 && hit.x > float(v.x + 1) - EPSILON)
-    return vec3(1.0, 0.0, 0.0);
-  else if (dir.y > 0.0 && hit.y < float(v.y) + EPSILON)
-    return vec3(0.0, -1.0, 0.0);
-  else if (dir.y < 0.0 && hit.y > float(v.y + 1) - EPSILON)
-    return vec3(0.0, 1.0, 0.0);
-  else if (dir.z > 0.0 && hit.z < float(v.z) + EPSILON)
-    return vec3(0.0, 0.0, -1.0);
+  float dx = dir.x > 0.0 ? abs(hit.x - float(v.x)) : abs(hit.x - float(v.x+1));
+  float dy = dir.y > 0.0 ? abs(hit.y - float(v.y)) : abs(hit.y - float(v.y+1));
+  float dz = dir.z > 0.0 ? abs(hit.z - float(v.z)) : abs(hit.z - float(v.z+1));
+  if (dx < dy && dx < dz)
+    return dir.x < 0.0 ? vec3(1.0, 0.0, 0.0) : vec3(-1.0, 0.0, 0.0);
+  else if (dy < dz)
+    return dir.y < 0.0 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, -1.0, 0.0);
   else
-    return vec3(0.0, 0.0, 1.0);
+    return dir.z < 0.0 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 0.0, -1.0);
 }
 
 uint closestChild(const in vec3 origin, const in node n, inout uint leftRightStack) {
