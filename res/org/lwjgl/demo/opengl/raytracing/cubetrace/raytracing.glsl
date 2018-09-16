@@ -11,6 +11,7 @@
 
 layout(binding = 0, rgba8) writeonly uniform image2D framebufferImage;
 uniform vec3 eye, ray00, ray01, ray10, ray11;
+uniform ivec2 off, cbwidth;
 
 struct node {
   vec3 min; int left;
@@ -31,18 +32,13 @@ layout(std430, binding = 1) readonly buffer Voxels {
 bool intersectBox(const in vec3 origin, const in vec3 invdir,
                   const in vec3 boxMin, const in vec3 boxMax, inout float t) {
   bvec3 lt = lessThan(invdir, vec3(0.0));
-  vec3 m1 = (boxMin - origin) * invdir;
-  vec3 m2 = (boxMax - origin) * invdir;
-  vec3 tmin = mix(m1, m2, lt);
-  vec3 tmax = mix(m2, m1, lt);
+  vec3 m1 = (boxMin - origin) * invdir, m2 = (boxMax - origin) * invdir;
+  vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
   float mint = max(max(tmin.x, tmin.y), tmin.z);
   float maxt = min(min(tmax.x, tmax.y), tmax.z);
-  if (mint < t && maxt >= 0.0 && mint < maxt) {
-    t = mint;
-    return true;
-  } else {
-    return false;
-  }
+  bool cond = mint < t && maxt >= 0.0 && mint < maxt;
+  t = mix(t, mint, cond);
+  return cond;
 }
 
 bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int firstVoxel,
@@ -58,39 +54,41 @@ bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int first
   return hit;
 }
 
-vec3 normalForVoxel(const in vec3 hit, const in ivec3 v) {
-  if (hit.x < float(v.x) + EPSILON)
+vec3 normalForVoxel(const in vec3 hit, const in vec3 dir, const in ivec3 v) {
+  if (dir.x > 0.0 && hit.x < float(v.x) + EPSILON)
     return vec3(-1.0, 0.0, 0.0);
-  else if (hit.x > float(v.x + 1) - EPSILON)
+  else if (dir.x < 0.0 && hit.x > float(v.x + 1) - EPSILON)
     return vec3(1.0, 0.0, 0.0);
-  else if (hit.y < float(v.y) + EPSILON)
+  else if (dir.y > 0.0 && hit.y < float(v.y) + EPSILON)
     return vec3(0.0, -1.0, 0.0);
-  else if (hit.y > float(v.y + 1) - EPSILON)
+  else if (dir.y < 0.0 && hit.y > float(v.y + 1) - EPSILON)
     return vec3(0.0, 1.0, 0.0);
-  else if (hit.z < float(v.z) + EPSILON)
+  else if (dir.z > 0.0 && hit.z < float(v.z) + EPSILON)
     return vec3(0.0, 0.0, -1.0);
   else
     return vec3(0.0, 0.0, 1.0);
 }
 
-int closestChild(const in vec3 origin, const in node n, out uint leftRight) {
+uint closestChild(const in vec3 origin, const in node n, inout uint leftRightStack) {
   if (n.left == NO_NODE)
     return NO_NODE;
   const node left = nodes[n.left], right = nodes[n.right];
   const vec3 midLeft = (left.min + left.max) * vec3(0.5);
   const vec3 midRight = (right.min + right.max) * vec3(0.5);
   const vec3 dl = origin - midLeft, dr = origin - midRight;
+  uint res;
   if (dot(dl, dl) < dot(dr, dr)) {
-    leftRight = 0;
-    return n.left;
+    leftRightStack <<= 1;
+    res = n.left;
   } else {
-    leftRight = 1;
-    return n.right;
+    leftRightStack = leftRightStack << 1 | 1;
+    res = n.right;
   }
+  return res;
 }
 
 bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
-                         const in int pidx, inout uint nextIdx) {
+                         const in uint pidx, inout uint nextIdx) {
   node parent = nodes[pidx];
   while ((nearFarStack & 1u) == 1u) {
     nearFarStack >>= 1;
@@ -105,14 +103,11 @@ bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
 }
 
 vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
-  uint nextIdx = 0u;
   float nt = 1.0/0.0, bt = 1.0/0.0;
   vec3 normal = vec3(0.0);
-  uint iterations = 0u;
-  uint leftRightStack = 0u, nearFarStack = 0u, leftRight = 0u;
+  uint nextIdx = 0u, iterations = 0u, diverges = 0u, leftRightStack = 0u, nearFarStack = 0u;
   while (true) {
-    iterations++;
-    if (iterations > MAX_FOLLOWS)
+    if (iterations++ > MAX_FOLLOWS)
       return ERROR_COLOR;
     const node next = nodes[nextIdx];
     if (!intersectBox(origin, invdir, next.min, next.max, bt)) {
@@ -122,13 +117,12 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
       if (next.numVoxels > 0) {
         voxel hitvoxel;
         if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel))
-          normal = normalForVoxel(origin + nt * dir, hitvoxel.p);
+          normal = normalForVoxel(origin + nt * dir, dir, hitvoxel.p);
         if (!processNextFarChild(nearFarStack, leftRightStack, next.parent, nextIdx))
           break;
       } else {
-        nextIdx = closestChild(origin, next, leftRight);
+        nextIdx = closestChild(origin, next, leftRightStack);
         nearFarStack <<= 1;
-        leftRightStack = leftRightStack << 1 | leftRight;
       }
       bt = nt;
     }
@@ -139,7 +133,7 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
 layout (local_size_x = 8, local_size_y = 8) in;
 
 void main(void) {
-  ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 pix = ivec2(gl_GlobalInvocationID.xy) * cbwidth + off;
   ivec2 size = imageSize(framebufferImage);
   if (any(greaterThanEqual(pix, size)))
     return;

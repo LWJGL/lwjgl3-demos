@@ -144,13 +144,15 @@ public class CubeTrace {
 	private long window;
 	private int width = 1920;
 	private int height = 1080;
-	private boolean resetFramebuffer = true;
+	private boolean resetFramebuffer;
+	private int cbWidth = 3;
 	private int pttex;
 	private int vao;
 	private int computeProgram;
 	private int quadProgram;
 	private int sampler;
 	private int eyeUniform;
+	private int offUniform, cbwidthUniform;
 	private int ray00Uniform, ray10Uniform, ray01Uniform, ray11Uniform;
 	private int framebufferImageBinding;
 	private int nodesSsbo;
@@ -166,7 +168,7 @@ public class CubeTrace {
 	private Matrix4d viewMatrix = new Matrix4d();
 	private Matrix4d invViewProjMatrix = new Matrix4d();
 	private Vector3d tmpVector = new Vector3d();
-	private Vector3d cameraPosition = new Vector3d(812.0f, 70.0f, 112.0f);
+	private Vector3d cameraPosition = new Vector3d(812.0f, 130.0f, 512.0f);
 	private Vector3d cameraLookAt = new Vector3d(512.0f, 0.5f, 512.0f);
 	private Vector3d cameraUp = new Vector3d(0.0f, 1.0f, 0.0f);
 	private GLFWErrorCallback errCallback;
@@ -261,7 +263,7 @@ public class CubeTrace {
 	}
 
 	private List<Voxel> buildTerrainVoxels() {
-		int width = 1024, depth = 1024, height = 64;
+		int width = 1024, depth = 1024, height = 128;
 		float xzScale = 0.01353f, yScale = 0.0322f;
 		byte[] field = new byte[width * depth * height];
 		Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors()];
@@ -439,6 +441,8 @@ public class CubeTrace {
 			glGetProgramiv(computeProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
 			workGroupSizeX = workGroupSize.get(0);
 			workGroupSizeY = workGroupSize.get(1);
+			cbwidthUniform = glGetUniformLocation(computeProgram, "cbwidth");
+			offUniform = glGetUniformLocation(computeProgram, "off");
 			eyeUniform = glGetUniformLocation(computeProgram, "eye");
 			ray00Uniform = glGetUniformLocation(computeProgram, "ray00");
 			ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
@@ -500,6 +504,8 @@ public class CubeTrace {
 		projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
 	}
 
+	private int pixel = 0;
+
 	private void trace() {
 		glUseProgram(computeProgram);
 		if (resetFramebuffer) {
@@ -508,6 +514,9 @@ public class CubeTrace {
 		}
 		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 		viewMatrix.originAffine(cameraPosition);
+		glUniform2i(cbwidthUniform, cbWidth, cbWidth);
+		glUniform2i(offUniform, pixel % cbWidth, pixel / cbWidth);
+		pixel = (pixel + 1) % (cbWidth * cbWidth);
 		glUniform3f(eyeUniform, (float) cameraPosition.x, (float) cameraPosition.y, (float) cameraPosition.z);
 		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
 		glUniform3f(ray00Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
@@ -517,11 +526,11 @@ public class CubeTrace {
 		glUniform3f(ray10Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
 		invViewProjMatrix.transformProject(tmpVector.set(1, 1, 0)).sub(cameraPosition);
 		glUniform3f(ray11Uniform, (float) tmpVector.x, (float) tmpVector.y, (float) tmpVector.z);
-		glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+		glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, nodesSsbo);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, voxelsSsboBinding, voxelsSsbo);
-		int worksizeX = mathRoundPoT(width);
-		int worksizeY = mathRoundPoT(height);
+		int worksizeX = mathRoundPoT(width / cbWidth);
+		int worksizeY = mathRoundPoT(height / cbWidth);
 		int q0 = ARBOcclusionQuery.glGenQueriesARB();
 		int q1 = ARBOcclusionQuery.glGenQueriesARB();
 		ARBTimerQuery.glQueryCounter(q0, ARBTimerQuery.GL_TIMESTAMP);
@@ -529,7 +538,7 @@ public class CubeTrace {
 		ARBTimerQuery.glQueryCounter(q1, ARBTimerQuery.GL_TIMESTAMP);
 		while (ARBOcclusionQuery.glGetQueryObjectiARB(q0, ARBOcclusionQuery.GL_QUERY_RESULT_AVAILABLE_ARB) == 0
 				|| ARBOcclusionQuery.glGetQueryObjectiARB(q1, ARBOcclusionQuery.GL_QUERY_RESULT_AVAILABLE_ARB) == 0)
-			;
+			Thread.yield();
 		long time1 = ARBTimerQuery.glGetQueryObjectui64(q0, ARBOcclusionQuery.GL_QUERY_RESULT_ARB);
 		long time2 = ARBTimerQuery.glGetQueryObjectui64(q1, ARBOcclusionQuery.GL_QUERY_RESULT_ARB);
 		float factor = (float) frame / (frame + 1);
@@ -545,7 +554,7 @@ public class CubeTrace {
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, voxelsSsboBinding, 0);
-		glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+		glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUseProgram(0);
 	}
 
