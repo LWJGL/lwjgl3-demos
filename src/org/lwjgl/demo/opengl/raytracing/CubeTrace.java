@@ -42,11 +42,15 @@ public class CubeTrace {
 		public static class Voxel implements Comparable<Voxel> {
 			public int x, y, z;
 			public long morton;
+			public float r, g, b;
 
-			public Voxel(int x, int y, int z) {
+			public Voxel(int x, int y, int z, float r, float g, float b) {
 				this.x = x;
 				this.y = y;
 				this.z = z;
+				this.r = r;
+				this.g = g;
+				this.b = b;
 			}
 
 			@Override
@@ -176,7 +180,7 @@ public class CubeTrace {
 	private Matrix4d invViewProjMatrix = new Matrix4d();
 	private Vector3d tmpVector = new Vector3d();
 	private Vector3d cameraPosition = new Vector3d(levelWidth * 0.9f, levelHeight * 1.4f, levelDepth * 0.5f);
-	private Vector3d cameraLookAt = new Vector3d(0, 0, 0);
+	private Vector3d cameraLookAt = new Vector3d(levelWidth * 0.5f, levelHeight * 0.5f, levelDepth * 0.5f);
 	private Vector3d cameraUp = new Vector3d(0.0f, 1.0f, 0.0f);
 	private GLFWErrorCallback errCallback;
 	private GLFWKeyCallback keyCallback;
@@ -187,7 +191,6 @@ public class CubeTrace {
 	private long lastTime = System.nanoTime();
 	private int frame = 0;
 	private float avgTime = 0.0f;
-	private GLCapabilities caps;
 	private boolean hasShortsInShader;
 
 	private void init() throws IOException {
@@ -256,7 +259,7 @@ public class CubeTrace {
 			width = framebufferSize.get(0);
 			height = framebufferSize.get(1);
 		}
-		caps = GL.createCapabilities();
+		GLCapabilities caps = GL.createCapabilities();
 		hasShortsInShader = caps.GL_NV_gpu_shader5 || caps.GL_AMD_gpu_shader_int16;
 		// debugProc = GLUtil.setupDebugMessageCallback();
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
@@ -338,8 +341,11 @@ public class CubeTrace {
 			for (int y = 0; y < height; y++)
 				for (int x = 0; x < width; x++) {
 					int idx = x + y * width + z * width * height;
+					float r = 0.9f * (SimplexNoise.noise(x * 0.012f, y * 0.04f, z * 0.012f) * 0.5f + 0.5f);
+					float g = r;
+					float b = g;
 					if (field[idx] == ~0)
-						voxels.add(new Voxel(x, y, z));
+						voxels.add(new Voxel(x, y, z, r, g, b));
 				}
 		System.out.println("Removed voxels: " + removed);
 		System.out.println("Retained voxels: " + voxels.size());
@@ -369,9 +375,21 @@ public class CubeTrace {
 		System.out.println("Writing BVH to buffers...");
 		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer(voxels.size() * 4 * 4);
 		if (hasShortsInShader) {
-			voxels.forEach(v -> voxelsBuffer.putShort(v.x).putShort(v.y).putShort(v.z).putShort(0));
+			voxels.forEach(v -> {
+				int r = (int) (v.r * 32.0f);
+				int g = (int) (v.g * 32.0f);
+				int b = (int) (v.b * 32.0f);
+				voxelsBuffer.putShort(v.x).putShort(v.y).putShort(v.z)
+						.putShort((r & 0x1F) | ((g & 0x1F) << 5) | ((b & 0x1F) << 10));
+			});
 		} else {
-			voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(0));
+			voxels.forEach(v -> {
+				int r = (int) (v.r * 1024.0f);
+				int g = (int) (v.g * 1024.0f);
+				int b = (int) (v.b * 1024.0f);
+				voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z)
+						.putInt((r & 0x3FF) | ((g & 0x3FF) << 10) | ((b & 0x3FF) << 20));
+			});
 		}
 		voxelsBuffer.flip();
 		System.out.println("Voxels SSBO size: " + voxelsBuffer.remaining() / 1024 / 1024 + " MB");
@@ -401,7 +419,8 @@ public class CubeTrace {
 			}
 		} else {
 			for (IBVHMortonTree n : allocate(root)) {
-				nodesBuffer.putFloat(n.minX).putFloat(n.minY).putFloat(n.minZ).putInt(n.left != null ? n.left.index : -1);
+				nodesBuffer.putFloat(n.minX).putFloat(n.minY).putFloat(n.minZ)
+						.putInt(n.left != null ? n.left.index : -1);
 				nodesBuffer.putFloat(n.maxX + 1).putFloat(n.maxY + 1).putFloat(n.maxZ + 1)
 						.putInt(n.right != null ? n.right.index : -1);
 				nodesBuffer.putInt(n.parent != null ? n.parent.index : -1).putInt(n.first).putInt(n.last - n.first + 1)

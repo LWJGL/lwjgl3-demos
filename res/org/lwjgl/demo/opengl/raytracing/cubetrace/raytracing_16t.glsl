@@ -27,11 +27,15 @@ layout(std430, binding = 0) readonly buffer Nodes {
 };
 
 struct voxel {
-  u16vec3 p;
+  u16vec3 p; uint16_t c;
 };
 layout(std430, binding = 1) readonly buffer Voxels {
   voxel[] voxels;
 };
+
+vec3 decodeColor(uint16_t col) {
+  return vec3(col & 0x1Fu, (col >> 5u) & 0x1Fu, (col >> 10u) & 0x1Fu) / 31.0;
+}
 
 bool intersectBox(const in vec3 origin, const in vec3 invdir,
                   const in u16vec3 bmin, const in u16vec3 bmax, inout float t) {
@@ -105,7 +109,7 @@ bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
 
 vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
   float nt = 1.0/0.0, bt = 1.0/0.0;
-  vec3 normal = vec3(0.0);
+  vec3 normal = vec3(0.0), col = vec3(1.0);
   uint nextIdx = 0u, iterations = 0u;
   uint leftRightStack = 0u, nearFarStack = 0u;
   while (true) {
@@ -118,8 +122,10 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
     } else {
       if (next.numVoxels > 0u) {
         voxel hitvoxel;
-        if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel))
+        if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel)) {
           normal = normalForVoxel(origin + nt * dir, dir, hitvoxel.p);
+          col = decodeColor(hitvoxel.c);
+        }
         if (!processNextFarChild(nearFarStack, leftRightStack, next.parent, nextIdx))
           break;
       } else {
@@ -129,7 +135,7 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
       bt = nt;
     }
   }
-  return vec3(dot(normal, vec3(0.4, 0.8, 0.6)));
+  return col * max(0.2, dot(normal, vec3(0.4, 0.82, 0.4)));
 }
 
 layout (local_size_x = 8, local_size_y = 8) in;

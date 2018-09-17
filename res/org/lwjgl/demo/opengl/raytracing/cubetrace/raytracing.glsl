@@ -13,20 +13,24 @@ uniform vec3 eye, ray00, ray01, ray10, ray11;
 uniform ivec2 off, cbwidth;
 
 struct node {
-  vec3 min; int left;
-  vec3 max; int right;
-  int parent, firstVoxel, numVoxels;
+  vec3 min; uint left;
+  vec3 max; uint right;
+  uint parent, firstVoxel, numVoxels;
 };
 layout(std430, binding = 0) readonly buffer Nodes {
   node[] nodes;
 };
 
 struct voxel {
-  ivec3 p;
+  uvec3 p; uint c;
 };
 layout(std430, binding = 1) readonly buffer Voxels {
   voxel[] voxels;
 };
+
+vec3 decodeColor(uint col) {
+  return vec3(col & 0x3FFu, (col >> 10u) & 0x3FF, (col >> 20u) & 0x3FF) / 1024.0;
+}
 
 bool intersectBox(const in vec3 origin, const in vec3 invdir,
                   const in vec3 boxMin, const in vec3 boxMax, inout float t) {
@@ -40,8 +44,8 @@ bool intersectBox(const in vec3 origin, const in vec3 invdir,
   return cond;
 }
 
-bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int firstVoxel,
-                     const int numVoxels, inout float t, out voxel hitvoxel) {
+bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const uint firstVoxel,
+                     const uint numVoxels, inout float t, out voxel hitvoxel) {
   bool hit = false;
   for (uint i = 0; i < numVoxels; i++) {
     const voxel v = voxels[i + firstVoxel];
@@ -53,7 +57,7 @@ bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const int first
   return hit;
 }
 
-vec3 normalForVoxel(const in vec3 hit, const in vec3 dir, const in ivec3 v) {
+vec3 normalForVoxel(const in vec3 hit, const in vec3 dir, const in uvec3 v) {
   float dx = dir.x > 0.0 ? abs(hit.x - float(v.x)) : abs(hit.x - float(v.x+1));
   float dy = dir.y > 0.0 ? abs(hit.y - float(v.y)) : abs(hit.y - float(v.y+1));
   float dz = dir.z > 0.0 ? abs(hit.z - float(v.z)) : abs(hit.z - float(v.z+1));
@@ -100,7 +104,7 @@ bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
 
 vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
   float nt = 1.0/0.0, bt = 1.0/0.0;
-  vec3 normal = vec3(0.0);
+  vec3 normal = vec3(0.0), col = vec3(1.0);
   uint nextIdx = 0u, iterations = 0u, leftRightStack = 0u, nearFarStack = 0u;
   while (true) {
     if (iterations++ > MAX_FOLLOWS)
@@ -112,8 +116,10 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
     } else {
       if (next.numVoxels > 0) {
         voxel hitvoxel;
-        if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel))
+        if (intersectVoxels(origin, invdir, next.firstVoxel, next.numVoxels, nt, hitvoxel)) {
           normal = normalForVoxel(origin + nt * dir, dir, hitvoxel.p);
+          col = decodeColor(hitvoxel.c);
+        }
         if (!processNextFarChild(nearFarStack, leftRightStack, next.parent, nextIdx))
           break;
       } else {
@@ -123,7 +129,7 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
       bt = nt;
     }
   }
-  return vec3(dot(normal, vec3(0.4, 0.8, 0.6)));
+  return col * max(0.2, dot(normal, vec3(0.4, 0.82, 0.4)));
 }
 
 layout (local_size_x = 8, local_size_y = 8) in;
