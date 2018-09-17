@@ -18,7 +18,10 @@ public class DynamicByteBuffer {
 	public ByteBuffer bb;
 
 	public DynamicByteBuffer() {
-		bb = MemoryUtil.memAlloc(1024);
+		this(8192);
+	}
+	public DynamicByteBuffer(int initialSize) {
+		bb = MemoryUtil.memAlloc(initialSize);
 	}
 
 	private void grow() {
@@ -59,6 +62,14 @@ public class DynamicByteBuffer {
 			grow();
 		}
 		bb.putShort((short) (v & 0xFFFF));
+		return this;
+	}
+
+	public DynamicByteBuffer putByte(int v) {
+		if (bb.remaining() < 1) {
+			grow();
+		}
+		bb.put((byte) (v & 0xFF));
 		return this;
 	}
 

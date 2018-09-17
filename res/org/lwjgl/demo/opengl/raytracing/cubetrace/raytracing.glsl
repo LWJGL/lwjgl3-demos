@@ -101,7 +101,7 @@ bool processNextFarChild(inout uint nearFarStack, inout uint leftRightStack,
 vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
   float nt = 1.0/0.0, bt = 1.0/0.0;
   vec3 normal = vec3(0.0);
-  uint nextIdx = 0u, iterations = 0u, diverges = 0u, leftRightStack = 0u, nearFarStack = 0u;
+  uint nextIdx = 0u, iterations = 0u, leftRightStack = 0u, nearFarStack = 0u;
   while (true) {
     if (iterations++ > MAX_FOLLOWS)
       return ERROR_COLOR;
@@ -123,7 +123,7 @@ vec3 trace(const in vec3 origin, const in vec3 dir, const in vec3 invdir) {
       bt = nt;
     }
   }
-  return normal * 0.8;
+  return vec3(dot(normal, vec3(0.4, 0.8, 0.6)));
 }
 
 layout (local_size_x = 8, local_size_y = 8) in;

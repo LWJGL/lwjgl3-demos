@@ -148,6 +148,7 @@ public class CubeTrace {
 	private int height = 1080;
 	private boolean resetFramebuffer;
 	private int cbWidth = 3;
+	private byte[] samplePattern = samplePattern();
 	private int cbPixel;
 	private int levelWidth = 2048;
 	private int levelDepth = 1024;
@@ -186,6 +187,8 @@ public class CubeTrace {
 	private long lastTime = System.nanoTime();
 	private int frame = 0;
 	private float avgTime = 0.0f;
+	private GLCapabilities caps;
+	private boolean hasShortsInShader;
 
 	private void init() throws IOException {
 		glfwSetErrorCallback(errCallback = GLFWErrorCallback.createPrint(System.err));
@@ -253,7 +256,8 @@ public class CubeTrace {
 			width = framebufferSize.get(0);
 			height = framebufferSize.get(1);
 		}
-		GL.createCapabilities();
+		caps = GL.createCapabilities();
+		hasShortsInShader = caps.GL_NV_gpu_shader5 || caps.GL_AMD_gpu_shader_int16;
 		// debugProc = GLUtil.setupDebugMessageCallback();
 		viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 		System.out.println("Building terrain...");
@@ -268,24 +272,39 @@ public class CubeTrace {
 		glfwShowWindow(window);
 	}
 
+	private byte[] samplePattern() {
+		switch (cbWidth) {
+		case 1:
+			return new byte[] { 0, 0 };
+		case 2:
+		/* Use custom sample patterns for 2x2 up to 4x4 pixel groups */
+			return new byte[] { 0, 0, 1, 1, 1, 0, 0, 1 };
+		case 3:
+			return new byte[] { 0, 0, 1, 2, 2, 1, 0, 1, 2, 0, 1, 1, 2, 2, 0, 2, 1, 0 };
+		case 4:
+			return new byte[] { 0, 0, 2, 1, 1, 3, 0, 2, 2, 0, 3, 2, 2, 3, 1, 1, 3, 0, 0, 1, 2, 2, 0, 3, 3, 1, 1, 0, 3,
+					3, 1, 2 };
+		default:
+			throw new UnsupportedOperationException("No pattern for " + cbWidth + "x" + cbWidth + " sampling");
+		}
+	}
+
 	private List<Voxel> buildTerrainVoxels() {
-		int width = levelWidth, depth = levelDepth, height = levelHeight;
+		int width = levelWidth, height = levelHeight, depth = levelDepth;
 		float xzScale = 0.01353f, yScale = 0.0322f;
 		byte[] field = new byte[width * depth * height];
 		Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors()];
 		for (int i = 0; i < threads.length; i++) {
 			final int ti = i;
-			threads[i] = new Thread(new Runnable() {
-				public void run() {
-					int depthSlice = depth / threads.length;
-					for (int z = ti * depthSlice; z < (ti + 1) * depthSlice; z++)
-						for (int y = 0; y < height; y++)
-							for (int x = 0; x < width; x++) {
-								float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
-								if (y == 0 || v > 0.15f)
-									field[x + y * width + z * width * height] = ~0;
-							}
-				}
+			threads[i] = new Thread(() -> {
+				int depthSlice = depth / threads.length;
+				for (int z = ti * depthSlice; z < (ti + 1) * depthSlice; z++)
+					for (int y = 0; y < height; y++)
+						for (int x = 0; x < width; x++) {
+							float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
+							if (y == 0 || v > 0.15f)
+								field[x + y * width + z * width * height] = ~0;
+						}
 			});
 			threads[i].start();
 		}
@@ -329,7 +348,7 @@ public class CubeTrace {
 
 	private static List<IBVHMortonTree> allocate(IBVHMortonTree node) {
 		List<IBVHMortonTree> linearNodes = new ArrayList<>();
-		Queue<IBVHMortonTree> nodes = new LinkedList<>();
+		Queue<IBVHMortonTree> nodes = new ArrayDeque<>();
 		int index = 0;
 		nodes.add(node);
 		while (!nodes.isEmpty()) {
@@ -347,11 +366,16 @@ public class CubeTrace {
 	private void createSceneSSBOs(List<Voxel> voxels) {
 		System.out.println("Building BVH...");
 		IBVHMortonTree root = IBVHMortonTree.build(voxels);
-		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
-		voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(0));
+		System.out.println("Writing BVH to buffers...");
+		DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer(voxels.size() * 4 * 4);
+		if (hasShortsInShader) {
+			voxels.forEach(v -> voxelsBuffer.putShort(v.x).putShort(v.y).putShort(v.z).putShort(0));
+		} else {
+			voxels.forEach(v -> voxelsBuffer.putInt(v.x).putInt(v.y).putInt(v.z).putInt(0));
+		}
 		voxelsBuffer.flip();
 		System.out.println("Voxels SSBO size: " + voxelsBuffer.remaining() / 1024 / 1024 + " MB");
-		DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
+		DynamicByteBuffer nodesBuffer = new DynamicByteBuffer(8192);
 		bhvToBuffers(root, nodesBuffer);
 		nodesBuffer.flip();
 		System.out.println("BVH SSBO size: " + nodesBuffer.remaining() / 1024 / 1024 + " MB");
@@ -367,13 +391,22 @@ public class CubeTrace {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	private static void bhvToBuffers(IBVHMortonTree root, DynamicByteBuffer nodesBuffer) {
-		for (IBVHMortonTree n : allocate(root)) {
-			nodesBuffer.putFloat(n.minX).putFloat(n.minY).putFloat(n.minZ).putInt(n.left != null ? n.left.index : -1);
-			nodesBuffer.putFloat(n.maxX + 1).putFloat(n.maxY + 1).putFloat(n.maxZ + 1)
-					.putInt(n.right != null ? n.right.index : -1);
-			nodesBuffer.putInt(n.parent != null ? n.parent.index : -1).putInt(n.first).putInt(n.last - n.first + 1)
-					.putInt(-1);
+	private void bhvToBuffers(IBVHMortonTree root, DynamicByteBuffer nodesBuffer) {
+		if (hasShortsInShader) {
+			for (IBVHMortonTree n : allocate(root)) {
+				nodesBuffer.putShort(n.minX).putShort(n.minY).putShort(n.minZ).putByte(n.last - n.first + 1).putByte(0);
+				nodesBuffer.putShort(n.maxX + 1).putShort(n.maxY + 1).putShort(n.maxZ + 1).putShort(0);
+				nodesBuffer.putInt(n.left != null ? n.left.index : -1).putInt(n.right != null ? n.right.index : -1);
+				nodesBuffer.putInt(n.parent != null ? n.parent.index : -1).putInt(n.first);
+			}
+		} else {
+			for (IBVHMortonTree n : allocate(root)) {
+				nodesBuffer.putFloat(n.minX).putFloat(n.minY).putFloat(n.minZ).putInt(n.left != null ? n.left.index : -1);
+				nodesBuffer.putFloat(n.maxX + 1).putFloat(n.maxY + 1).putFloat(n.maxZ + 1)
+						.putInt(n.right != null ? n.right.index : -1);
+				nodesBuffer.putInt(n.parent != null ? n.parent.index : -1).putInt(n.first).putInt(n.last - n.first + 1)
+						.putInt(-1);
+			}
 		}
 	}
 
@@ -420,7 +453,8 @@ public class CubeTrace {
 
 	private void createComputeProgram() throws IOException {
 		int program = glCreateProgram();
-		int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/cubetrace/raytracing.glsl",
+		int cshader = DemoUtils.createShader(
+				"org/lwjgl/demo/opengl/raytracing/cubetrace/raytracing" + (hasShortsInShader ? "_16t" : "") + ".glsl",
 				GL_COMPUTE_SHADER);
 		glAttachShader(program, cshader);
 		glLinkProgram(program);
@@ -519,7 +553,7 @@ public class CubeTrace {
 		projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
 		viewMatrix.originAffine(cameraPosition);
 		glUniform2i(cbwidthUniform, cbWidth, cbWidth);
-		glUniform2i(offUniform, cbPixel % cbWidth, cbPixel / cbWidth);
+		glUniform2i(offUniform, samplePattern[cbPixel << 1], samplePattern[(cbPixel << 1) + 1]);
 		cbPixel = (cbPixel + 1) % (cbWidth * cbWidth);
 		glUniform3f(eyeUniform, (float) cameraPosition.x, (float) cameraPosition.y, (float) cameraPosition.z);
 		invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
