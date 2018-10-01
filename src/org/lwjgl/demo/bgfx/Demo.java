@@ -27,6 +27,7 @@ import static org.lwjgl.system.libc.LibCString.nmemmove;
 abstract class Demo {
 
 	private String title;
+	private int format;
 
 	protected int renderer = BGFX_RENDERER_TYPE_COUNT;
 	private short pciId = BGFX_PCI_ID_NONE;
@@ -126,6 +127,8 @@ abstract class Demo {
 			if (!bgfx_init(init)) {
 				throw new RuntimeException("Error initializing bgfx renderer");
 			}
+
+			format = init.resolution().format();
 
 			if (renderer == BGFX_RENDERER_TYPE_COUNT) {
 				renderer = bgfx_get_renderer_type();
@@ -251,7 +254,7 @@ abstract class Demo {
 	private void resize(long window, int width, int height) {
 		this.width = width;
 		this.height = height;
-		bgfx_reset(width, height, reset);
+		bgfx_reset(width, height, reset, format);
 	}
 
 	protected int getWindowWidth() {
@@ -265,7 +268,7 @@ abstract class Demo {
 	private static BGFXCallbackInterface createCallbacks(MemoryStack stack) {
 		return BGFXCallbackInterface.callocStack(stack)
 			.vtbl(BGFXCallbackVtbl.callocStack(stack)
-				.fatal((_this, _code, _str) -> {
+				.fatal((_this, _filePath, _line, _code, _str) -> {
 					if (_code == BGFX_FATAL_DEBUG_CHECK) {
 						System.out.println("BREAK"); // set debugger breakpoint
 					} else {
