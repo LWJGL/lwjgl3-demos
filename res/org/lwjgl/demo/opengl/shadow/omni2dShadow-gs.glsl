@@ -31,28 +31,28 @@ vec3 transform(vec3 pos, int layer) {
 }
 
 void emitForLayer(int layer) {
-	for (int i = 0; i < gl_in.length(); i++) {
-		gl_Layer = layer;
-		gl_Position = projection * vec4(transform(gl_in[i].gl_Position.xyz, layer), 1.0);
-		EmitVertex();
-	}
-	EndPrimitive();
+    for (int i = 0; i < gl_in.length(); i++) {
+        gl_Layer = layer;
+        gl_Position = projection * vec4(transform(gl_in[i].gl_Position.xyz, layer), 1.0);
+        EmitVertex();
+    }
+    EndPrimitive();
 }
 
 void withInstancing() {
-	emitForLayer(gl_InvocationID);
+    emitForLayer(gl_InvocationID);
 }
 
 void withoutInstancing() {
-	for (int layer = 0; layer < 4; layer++) {
-		emitForLayer(layer);
-	}
+    for (int layer = 0; layer < 4; layer++) {
+        emitForLayer(layer);
+    }
 }
 
 void main() {
 #ifdef GL_ARB_gpu_shader5
-	withInstancing();
+    withInstancing();
 #else
-	withoutInstancing();
+    withoutInstancing();
 #endif
 }

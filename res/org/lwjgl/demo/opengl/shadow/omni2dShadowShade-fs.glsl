@@ -17,7 +17,7 @@ in vec3 worldNormal;
 out vec4 color;
 
 int quadrant(vec2 dir) {
-	if (abs(dir.x) > abs(dir.y))
+    if (abs(dir.x) > abs(dir.y))
 		if (dir.x > 0.0) return 1;
 		else return 3;
 	if (dir.y > 0.0) return 2;
