@@ -179,7 +179,7 @@ public class EnvironmentDemo {
         glCompileShaderARB(shader);
         int compiled = glGetObjectParameteriARB(shader, GL_OBJECT_COMPILE_STATUS_ARB);
         String shaderLog = glGetInfoLogARB(shader);
-        if (shaderLog != null && shaderLog.trim().length() > 0) {
+        if (shaderLog.trim().length() > 0) {
             System.err.println(shaderLog);
         }
         if (compiled == 0) {
@@ -197,7 +197,7 @@ public class EnvironmentDemo {
         glLinkProgramARB(program);
         int linked = glGetObjectParameteriARB(program, GL_OBJECT_LINK_STATUS_ARB);
         String programLog = glGetInfoLogARB(program);
-        if (programLog != null && programLog.trim().length() > 0) {
+        if (programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
         if (linked == 0) {
