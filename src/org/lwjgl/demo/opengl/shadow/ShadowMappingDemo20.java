@@ -41,340 +41,340 @@ import org.joml.Vector3f;
  */
 public class ShadowMappingDemo20 {
 
-	private static Vector3f[] boxes = Scene.boxes2;
-	private static Vector3f UP = new Vector3f(0.0f, 1.0f, 0.0f);
+    private static Vector3f[] boxes = Scene.boxes2;
+    private static Vector3f UP = new Vector3f(0.0f, 1.0f, 0.0f);
 
-	static int shadowMapSize = 1024;
-	static Vector3f lightPosition = new Vector3f(6.0f, 3.0f, 0.0f);
-	static Vector3f lightLookAt = new Vector3f(0.0f, 1.0f, 0.0f);
-	static Vector3f cameraPosition = new Vector3f(-3.0f, 6.0f, 6.0f);
-	static Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
-	static float lightDistance = 10.0f;
-	static float lightHeight = 4.0f;
+    static int shadowMapSize = 1024;
+    static Vector3f lightPosition = new Vector3f(6.0f, 3.0f, 0.0f);
+    static Vector3f lightLookAt = new Vector3f(0.0f, 1.0f, 0.0f);
+    static Vector3f cameraPosition = new Vector3f(-3.0f, 6.0f, 6.0f);
+    static Vector3f cameraLookAt = new Vector3f(0.0f, 0.0f, 0.0f);
+    static float lightDistance = 10.0f;
+    static float lightHeight = 4.0f;
 
-	long window;
-	int width = 1200;
-	int height = 800;
+    long window;
+    int width = 1200;
+    int height = 800;
 
-	int vbo;
-	int shadowProgram;
-	int shadowProgramVPUniform;
-	int normalProgram;
-	int normalProgramBiasUniform;
-	int normalProgramVPUniform;
-	int normalProgramLVPUniform;
-	int normalProgramLightPosition;
-	int normalProgramLightLookAt;
-	int fbo;
-	int depthTexture;
-	int samplerLocation;
+    int vbo;
+    int shadowProgram;
+    int shadowProgramVPUniform;
+    int normalProgram;
+    int normalProgramBiasUniform;
+    int normalProgramVPUniform;
+    int normalProgramLVPUniform;
+    int normalProgramLightPosition;
+    int normalProgramLightLookAt;
+    int fbo;
+    int depthTexture;
+    int samplerLocation;
 
-	FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
-	Matrix4f light = new Matrix4f();
-	Matrix4f camera = new Matrix4f();
-	Matrix4f biasMatrix = new Matrix4f(
-			0.5f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.5f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.5f, 0.5f, 0.5f, 1.0f
-			);
+    Matrix4f light = new Matrix4f();
+    Matrix4f camera = new Matrix4f();
+    Matrix4f biasMatrix = new Matrix4f(
+            0.5f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.5f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.5f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f
+            );
 
-	GLCapabilities caps;
-	GLFWErrorCallback errCallback;
-	GLFWKeyCallback keyCallback;
-	GLFWFramebufferSizeCallback fbCallback;
-	Callback debugProc;
+    GLCapabilities caps;
+    GLFWErrorCallback errCallback;
+    GLFWKeyCallback keyCallback;
+    GLFWFramebufferSizeCallback fbCallback;
+    Callback debugProc;
 
-	void init() throws IOException {
-		glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
-			GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
+    void init() throws IOException {
+        glfwSetErrorCallback(errCallback = new GLFWErrorCallback() {
+            GLFWErrorCallback delegate = GLFWErrorCallback.createPrint(System.err);
 
-			public void invoke(int error, long description) {
-				if (error == GLFW_VERSION_UNAVAILABLE)
-					System.err.println("This demo requires OpenGL 2.0 or higher.");
-				delegate.invoke(error, description);
-			}
+            public void invoke(int error, long description) {
+                if (error == GLFW_VERSION_UNAVAILABLE)
+                    System.err.println("This demo requires OpenGL 2.0 or higher.");
+                delegate.invoke(error, description);
+            }
 
-			@Override
-			public void free() {
-				delegate.free();
-			}
-		});
+            @Override
+            public void free() {
+                delegate.free();
+            }
+        });
 
-		if (!glfwInit())
-			throw new IllegalStateException("Unable to initialize GLFW");
+        if (!glfwInit())
+            throw new IllegalStateException("Unable to initialize GLFW");
 
-		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		window = glfwCreateWindow(width, height, "Shadow Mapping Demo", NULL, NULL);
-		if (window == NULL) {
-			throw new AssertionError("Failed to create the GLFW window");
-		}
+        window = glfwCreateWindow(width, height, "Shadow Mapping Demo", NULL, NULL);
+        if (window == NULL) {
+            throw new AssertionError("Failed to create the GLFW window");
+        }
 
-		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
-			@Override
-			public void invoke(long window, int key, int scancode, int action, int mods) {
-				if (action != GLFW_RELEASE)
-					return;
+        glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
+            @Override
+            public void invoke(long window, int key, int scancode, int action, int mods) {
+                if (action != GLFW_RELEASE)
+                    return;
 
-				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, true);
-				}
-			}
-		});
-		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
-			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (ShadowMappingDemo20.this.width != width || ShadowMappingDemo20.this.height != height)) {
-					ShadowMappingDemo20.this.width = width;
-					ShadowMappingDemo20.this.height = height;
-				}
-			}
-		});
+                if (key == GLFW_KEY_ESCAPE) {
+                    glfwSetWindowShouldClose(window, true);
+                }
+            }
+        });
+        glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
+            public void invoke(long window, int width, int height) {
+                if (width > 0 && height > 0 && (ShadowMappingDemo20.this.width != width || ShadowMappingDemo20.this.height != height)) {
+                    ShadowMappingDemo20.this.width = width;
+                    ShadowMappingDemo20.this.height = height;
+                }
+            }
+        });
 
-		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
-		glfwMakeContextCurrent(window);
-		glfwSwapInterval(0);
-		glfwShowWindow(window);
+        GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(0);
+        glfwShowWindow(window);
 
-		try (MemoryStack frame = MemoryStack.stackPush()) {
-			IntBuffer framebufferSize = frame.mallocInt(2);
-			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-			width = framebufferSize.get(0);
-			height = framebufferSize.get(1);
-		}
+        try (MemoryStack frame = MemoryStack.stackPush()) {
+            IntBuffer framebufferSize = frame.mallocInt(2);
+            nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+            width = framebufferSize.get(0);
+            height = framebufferSize.get(1);
+        }
 
-		caps = GL.createCapabilities();
-		if (!caps.GL_EXT_framebuffer_object) {
-			throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
-		}
+        caps = GL.createCapabilities();
+        if (!caps.GL_EXT_framebuffer_object) {
+            throw new AssertionError("This demo requires the EXT_framebuffer_object extension");
+        }
 
-		debugProc = GLUtil.setupDebugMessageCallback();
+        debugProc = GLUtil.setupDebugMessageCallback();
 
-		/* Set some GL states */
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
-		glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+        /* Set some GL states */
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 
-		/* Create all needed GL resources */
-		createVbo();
-		createShadowProgram();
-		initShadowProgram();
-		createNormalProgram();
-		initNormalProgram();
-		createDepthTexture();
-		createFbo();
-	}
+        /* Create all needed GL resources */
+        createVbo();
+        createShadowProgram();
+        initShadowProgram();
+        createNormalProgram();
+        initNormalProgram();
+        createDepthTexture();
+        createFbo();
+    }
 
-	/**
-	 * Create the texture storing the depth values of the light-render.
-	 */
-	void createDepthTexture() {
-		depthTexture = glGenTextures();
-		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE,
-				(ByteBuffer) null);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
+    /**
+     * Create the texture storing the depth values of the light-render.
+     */
+    void createDepthTexture() {
+        depthTexture = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE,
+                (ByteBuffer) null);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-	/**
-	 * Create the FBO to render the depth values of the light-render into the
-	 * depth texture.
-	 */
-	void createFbo() {
-		fbo = glGenFramebuffersEXT();
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
-		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthTexture, 0);
-		int fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE_EXT) {
-			throw new AssertionError("Could not create FBO: " + fboStatus);
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-	}
+    /**
+     * Create the FBO to render the depth values of the light-render into the
+     * depth texture.
+     */
+    void createFbo() {
+        fbo = glGenFramebuffersEXT();
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthTexture, 0);
+        int fboStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+        if (fboStatus != GL_FRAMEBUFFER_COMPLETE_EXT) {
+            throw new AssertionError("Could not create FBO: " + fboStatus);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    }
 
-	/**
-	 * Creates a VBO for the scene with some boxes.
-	 */
-	static void createVbo() {
-		int vbo = glGenBuffers();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		ByteBuffer bb = BufferUtils.createByteBuffer(boxes.length * 4 * (3 + 3) * 6 * 6);
-		FloatBuffer fv = bb.asFloatBuffer();
-		for (int i = 0; i < boxes.length; i += 2) {
-			DemoUtils.triangulateBox(boxes[i], boxes[i + 1], fv);
-		}
-		glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, false, 4 * (3 + 3), 4 * 3);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
+    /**
+     * Creates a VBO for the scene with some boxes.
+     */
+    static void createVbo() {
+        int vbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        ByteBuffer bb = BufferUtils.createByteBuffer(boxes.length * 4 * (3 + 3) * 6 * 6);
+        FloatBuffer fv = bb.asFloatBuffer();
+        for (int i = 0; i < boxes.length; i += 2) {
+            DemoUtils.triangulateBox(boxes[i], boxes[i + 1], fv);
+        }
+        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * (3 + 3), 0L);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 4 * (3 + 3), 4 * 3);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 
-	void createShadowProgram() throws IOException {
-		shadowProgram = glCreateProgram();
-		int vshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMapping-vs.glsl", GL_VERTEX_SHADER);
-		int fshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMapping-fs.glsl", GL_FRAGMENT_SHADER);
-		glAttachShader(shadowProgram, vshader);
-		glAttachShader(shadowProgram, fshader);
-		glBindAttribLocation(shadowProgram, 0, "position");
-		glLinkProgram(shadowProgram);
-		int linked = glGetProgrami(shadowProgram, GL_LINK_STATUS);
-		String programLog = glGetProgramInfoLog(shadowProgram);
-		if (programLog != null && programLog.trim().length() > 0) {
-			System.err.println(programLog);
-		}
-		if (linked == 0) {
-			throw new AssertionError("Could not link program");
-		}
-	}
+    void createShadowProgram() throws IOException {
+        shadowProgram = glCreateProgram();
+        int vshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMapping-vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMapping-fs.glsl", GL_FRAGMENT_SHADER);
+        glAttachShader(shadowProgram, vshader);
+        glAttachShader(shadowProgram, fshader);
+        glBindAttribLocation(shadowProgram, 0, "position");
+        glLinkProgram(shadowProgram);
+        int linked = glGetProgrami(shadowProgram, GL_LINK_STATUS);
+        String programLog = glGetProgramInfoLog(shadowProgram);
+        if (programLog != null && programLog.trim().length() > 0) {
+            System.err.println(programLog);
+        }
+        if (linked == 0) {
+            throw new AssertionError("Could not link program");
+        }
+    }
 
-	void initShadowProgram() {
-		glUseProgram(shadowProgram);
-		shadowProgramVPUniform = glGetUniformLocation(shadowProgram, "viewProjectionMatrix");
-		glUseProgram(0);
-	}
+    void initShadowProgram() {
+        glUseProgram(shadowProgram);
+        shadowProgramVPUniform = glGetUniformLocation(shadowProgram, "viewProjectionMatrix");
+        glUseProgram(0);
+    }
 
-	void createNormalProgram() throws IOException {
-		normalProgram = glCreateProgram();
-		int vshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMappingShade-vs.glsl", GL_VERTEX_SHADER);
-		int fshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMappingShade-fs.glsl", GL_FRAGMENT_SHADER);
-		glAttachShader(normalProgram, vshader);
-		glAttachShader(normalProgram, fshader);
-		glBindAttribLocation(normalProgram, 0, "position");
-		glBindAttribLocation(normalProgram, 1, "normal");
-		glLinkProgram(normalProgram);
-		int linked = glGetProgrami(normalProgram, GL_LINK_STATUS);
-		String programLog = glGetProgramInfoLog(normalProgram);
-		if (programLog != null && programLog.trim().length() > 0) {
-			System.err.println(programLog);
-		}
-		if (linked == 0) {
-			throw new AssertionError("Could not link program");
-		}
-	}
+    void createNormalProgram() throws IOException {
+        normalProgram = glCreateProgram();
+        int vshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMappingShade-vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/shadow/shadowMappingShade-fs.glsl", GL_FRAGMENT_SHADER);
+        glAttachShader(normalProgram, vshader);
+        glAttachShader(normalProgram, fshader);
+        glBindAttribLocation(normalProgram, 0, "position");
+        glBindAttribLocation(normalProgram, 1, "normal");
+        glLinkProgram(normalProgram);
+        int linked = glGetProgrami(normalProgram, GL_LINK_STATUS);
+        String programLog = glGetProgramInfoLog(normalProgram);
+        if (programLog != null && programLog.trim().length() > 0) {
+            System.err.println(programLog);
+        }
+        if (linked == 0) {
+            throw new AssertionError("Could not link program");
+        }
+    }
 
-	void initNormalProgram() {
-		glUseProgram(normalProgram);
-		samplerLocation = glGetUniformLocation(normalProgram, "depthTexture");
-		normalProgramBiasUniform = glGetUniformLocation(normalProgram, "biasMatrix");
-		normalProgramVPUniform = glGetUniformLocation(normalProgram, "viewProjectionMatrix");
-		normalProgramLVPUniform = glGetUniformLocation(normalProgram, "lightViewProjectionMatrix");
-		normalProgramLightPosition = glGetUniformLocation(normalProgram, "lightPosition");
-		normalProgramLightLookAt = glGetUniformLocation(normalProgram, "lightLookAt");
-		glUniform1i(samplerLocation, 0);
-		glUseProgram(0);
-	}
+    void initNormalProgram() {
+        glUseProgram(normalProgram);
+        samplerLocation = glGetUniformLocation(normalProgram, "depthTexture");
+        normalProgramBiasUniform = glGetUniformLocation(normalProgram, "biasMatrix");
+        normalProgramVPUniform = glGetUniformLocation(normalProgram, "viewProjectionMatrix");
+        normalProgramLVPUniform = glGetUniformLocation(normalProgram, "lightViewProjectionMatrix");
+        normalProgramLightPosition = glGetUniformLocation(normalProgram, "lightPosition");
+        normalProgramLightLookAt = glGetUniformLocation(normalProgram, "lightLookAt");
+        glUniform1i(samplerLocation, 0);
+        glUseProgram(0);
+    }
 
-	/**
-	 * Update the camera MVP matrix.
-	 */
-	void update() {
-		/* Update light */
-		double alpha = System.currentTimeMillis() / 1000.0 * 0.5;
-		float x = (float) Math.sin(alpha);
-		float z = (float) Math.cos(alpha);
-		lightPosition.set(lightDistance * x, 3 + (float) Math.sin(alpha), lightDistance * z);
-		light.setPerspective((float) Math.toRadians(45.0f), 1.0f, 0.1f, 60.0f)
-		     .lookAt(lightPosition, lightLookAt, UP);
+    /**
+     * Update the camera MVP matrix.
+     */
+    void update() {
+        /* Update light */
+        double alpha = System.currentTimeMillis() / 1000.0 * 0.5;
+        float x = (float) Math.sin(alpha);
+        float z = (float) Math.cos(alpha);
+        lightPosition.set(lightDistance * x, 3 + (float) Math.sin(alpha), lightDistance * z);
+        light.setPerspective((float) Math.toRadians(45.0f), 1.0f, 0.1f, 60.0f)
+             .lookAt(lightPosition, lightLookAt, UP);
 
-		/* Update camera */
-		camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f)
-		      .lookAt(cameraPosition, cameraLookAt, UP);
-	}
+        /* Update camera */
+        camera.setPerspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 30.0f)
+              .lookAt(cameraPosition, cameraLookAt, UP);
+    }
 
-	/**
-	 * Render the shadow map into a depth texture.
-	 */
-	void renderShadowMap() {
-		glUseProgram(shadowProgram);
+    /**
+     * Render the shadow map into a depth texture.
+     */
+    void renderShadowMap() {
+        glUseProgram(shadowProgram);
 
-		/* Set MVP matrix of the "light camera" */
-		glUniformMatrix4fv(shadowProgramVPUniform, false, light.get(matrixBuffer));
+        /* Set MVP matrix of the "light camera" */
+        glUniformMatrix4fv(shadowProgramVPUniform, false, light.get(matrixBuffer));
 
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-		glViewport(0, 0, shadowMapSize, shadowMapSize);
-		/* Only clear depth buffer, since we don't have a color draw buffer */
-		glClear(GL_DEPTH_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+        glViewport(0, 0, shadowMapSize, shadowMapSize);
+        /* Only clear depth buffer, since we don't have a color draw buffer */
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-		glUseProgram(0);
-	}
+        glUseProgram(0);
+    }
 
-	/**
-	 * Render the scene normally, with sampling the previously rendered depth
-	 * texture.
-	 */
-	void renderNormal() {
-		glUseProgram(normalProgram);
+    /**
+     * Render the scene normally, with sampling the previously rendered depth
+     * texture.
+     */
+    void renderNormal() {
+        glUseProgram(normalProgram);
 
-		/* Set MVP matrix of camera */
-		glUniformMatrix4fv(normalProgramVPUniform, false, camera.get(matrixBuffer));
-		/* Set MVP matrix that was used when doing the light-render */
-		glUniformMatrix4fv(normalProgramLVPUniform, false, light.get(matrixBuffer));
-		/* The bias-matrix used to convert to NDC coordinates */
-		glUniformMatrix4fv(normalProgramBiasUniform, false, biasMatrix.get(matrixBuffer));
-		/* Light position and lookat for normal lambertian computation */
-		glUniform3f(normalProgramLightPosition, lightPosition.x, lightPosition.y, lightPosition.z);
-		glUniform3f(normalProgramLightLookAt, lightLookAt.x, lightLookAt.y, lightLookAt.z);
+        /* Set MVP matrix of camera */
+        glUniformMatrix4fv(normalProgramVPUniform, false, camera.get(matrixBuffer));
+        /* Set MVP matrix that was used when doing the light-render */
+        glUniformMatrix4fv(normalProgramLVPUniform, false, light.get(matrixBuffer));
+        /* The bias-matrix used to convert to NDC coordinates */
+        glUniformMatrix4fv(normalProgramBiasUniform, false, biasMatrix.get(matrixBuffer));
+        /* Light position and lookat for normal lambertian computation */
+        glUniform3f(normalProgramLightPosition, lightPosition.x, lightPosition.y, lightPosition.z);
+        glUniform3f(normalProgramLightLookAt, lightLookAt.x, lightLookAt.y, lightLookAt.z);
 
-		glViewport(0, 0, width, height);
-		/* Must clear both color and depth, since we are re-rendering the scene */
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
-		glBindTexture(GL_TEXTURE_2D, 0);
+        glViewport(0, 0, width, height);
+        /* Must clear both color and depth, since we are re-rendering the scene */
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 6 * 6 * boxes.length);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
-		glUseProgram(0);
-	}
+        glUseProgram(0);
+    }
 
-	void loop() {
-		while (!glfwWindowShouldClose(window)) {
-			glfwPollEvents();
+    void loop() {
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
 
-			update();
-			renderShadowMap();
-			renderNormal();
+            update();
+            renderShadowMap();
+            renderNormal();
 
-			glfwSwapBuffers(window);
-		}
-	}
+            glfwSwapBuffers(window);
+        }
+    }
 
-	void run() {
-		try {
-			init();
-			loop();
+    void run() {
+        try {
+            init();
+            loop();
 
-			if (debugProc != null)
-				debugProc.free();
+            if (debugProc != null)
+                debugProc.free();
 
-			errCallback.free();
-			keyCallback.free();
-			fbCallback.free();
-			glfwDestroyWindow(window);
-		} catch (Throwable t) {
-			t.printStackTrace();
-		} finally {
-			glfwTerminate();
-		}
-	}
+            errCallback.free();
+            keyCallback.free();
+            fbCallback.free();
+            glfwDestroyWindow(window);
+        } catch (Throwable t) {
+            t.printStackTrace();
+        } finally {
+            glfwTerminate();
+        }
+    }
 
-	public static void main(String[] args) {
-		new ShadowMappingDemo20().run();
-	}
+    public static void main(String[] args) {
+        new ShadowMappingDemo20().run();
+    }
 
 }
