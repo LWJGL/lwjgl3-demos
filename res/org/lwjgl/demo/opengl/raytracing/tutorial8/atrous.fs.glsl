@@ -1,3 +1,7 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
 /**
  * This is a 1:1 implementation/copy of the GLSL algorithm shown at the
  * end of the 2010 paper "Edge-Avoiding À-Trous Wavelet Transform for

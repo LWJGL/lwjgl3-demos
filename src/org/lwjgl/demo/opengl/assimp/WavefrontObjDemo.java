@@ -1,3 +1,7 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
 package org.lwjgl.demo.opengl.assimp;
 
 import org.joml.Matrix3f;
