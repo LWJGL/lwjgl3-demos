@@ -311,7 +311,7 @@ public class AtomicDemo {
         glCompileShader(shader);
         int compiled = glGetShaderi(shader, GL_COMPILE_STATUS);
         String shaderLog = glGetShaderInfoLog(shader);
-        if (shaderLog != null && shaderLog.trim().length() > 0) {
+        if (shaderLog.trim().length() > 0) {
             System.err.println(shaderLog);
         }
         if (compiled == 0) {
@@ -343,7 +343,7 @@ public class AtomicDemo {
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
-        if (programLog != null && programLog.trim().length() > 0) {
+        if (programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
         if (linked == 0) {
@@ -368,7 +368,7 @@ public class AtomicDemo {
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
-        if (programLog != null && programLog.trim().length() > 0) {
+        if (programLog.trim().length() > 0) {
             System.err.println(programLog);
         }
         if (linked == 0) {
