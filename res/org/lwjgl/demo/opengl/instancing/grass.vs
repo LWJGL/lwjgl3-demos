@@ -1,6 +1,6 @@
 /*
  * Copyright LWJGL. All rights reserved.
- * License terms: http://lwjgl.org/license.php
+ * License terms: https://www.lwjgl.org/license
  */
 #version 110
 #extension GL_NV_non_square_matrices : enable
