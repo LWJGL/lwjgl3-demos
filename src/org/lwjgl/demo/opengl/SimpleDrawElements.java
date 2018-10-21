@@ -7,14 +7,13 @@ package org.lwjgl.demo.opengl;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.system.MemoryUtil.*;
-
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
  
 public class SimpleDrawElements {
  
@@ -127,9 +126,11 @@ public class SimpleDrawElements {
         float[] vertices = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f};
         int[] indices = {0, 1, 2};
 
-        // Load the data into buffers and send it off to OpenGL using the MemoryStack api
-        // instead of BufferUtils
-        // Note: Don't forget to flip any buffers before passing them into gl functions that need them
+        // Here we need to send the vertex and index data to OpenGL via Buffers.
+        // We will use the MemoryStack api as this is a small amount of data
+        // and is not short lived. But if larger data and/or data that is longer lived
+        // is needed, It is recommended to use the memAlloc/memFree methods in the MemoryUtil class
+        // Note: Before sending off data, call the flip() method to finish putting data in
         try ( MemoryStack stack = MemoryStack.stackPush() ) {
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             FloatBuffer verticesBuffer = (FloatBuffer) stack.mallocFloat(vertices.length).put(vertices).flip();
