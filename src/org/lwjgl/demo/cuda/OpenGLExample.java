@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.cuda;
 
-import static org.lwjgl.cuda.CU.*;
 import static org.lwjgl.cuda.CU40.*;
 import static org.lwjgl.cuda.CUGL.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -157,6 +156,8 @@ public class OpenGLExample {
             0,         // <- use default stream
             null,      // <- no function parameters
             null));    // <- no extra parameters
+        // Synchronize to catch any possible async errors from cuLaunchKernel
+        check(cuCtxSynchronize());
         // Clean-up CUDA resources
         check(cuCtxDestroy(ctx.get(0)));
 

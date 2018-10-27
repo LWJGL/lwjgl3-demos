@@ -104,6 +104,8 @@ public class SequencePTX {
                 memAddress(s.ints(N)), // <- number of items in buffer
                 memAddress(s.longs(deviceMem.get(0))) // <- the buffer base address
             ), null));
+        // Synchronize to catch any possible async errors from cuLaunchKernel
+        check(cuCtxSynchronize());
         // Read-back device memory to host
         check(cuMemcpyDtoH(hostMem, deviceMem.get(0)));
         // and check whether the numbers are correct
