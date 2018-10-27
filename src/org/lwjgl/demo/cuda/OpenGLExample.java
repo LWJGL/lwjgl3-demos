@@ -22,8 +22,8 @@ import org.lwjgl.system.*;
 /**
  * CUDA/OpenGL interop example.
  * <p>
- * A device kernel function is used to fill an OpenGL texture with a constant
- * color and GLFW is used to display that texture in a window.
+ * A device kernel function is used to fill an OpenGL texture with a red color
+ * gradient and GLFW is used to display that texture in a window.
  * 
  * @author Kai Burjack
  */
@@ -89,25 +89,44 @@ public class OpenGLExample {
 // Function to write color to a surface
 ".visible .entry fillcolor () {\n" +
 // Allocate some registers to compute the thread (x, y) coordinates
-"   .reg .u32       %blockid, %blockdim, %thrid, %xidx, %yidx;\n" +
+"   .reg .u32       %blockid, %blockdim, %thrid, %xidx, %yidx, %w;\n" +
+// Allocate float registers for floating-point calculations
+"   .reg .f32       %fwidth, %xpos;\n" +
+// Allocate a u8 register to hold the red color channel value to write
+"   .reg .u8        %red;\n" +
 // Compute the x coordinate of this thread for writing to the surface
 // xidx = ctaid.x * ntid.x + tid.x
 "    mov.u32        %blockid, %ctaid.x;\n" +
 "    mov.u32        %blockdim, %ntid.x;\n" +
 "    mov.u32        %thrid, %tid.x;\n" +
 "    mad.lo.u32     %xidx, %blockid, %blockdim, %thrid;\n" +
-// Pay close attention to the documentation of the sust instruction!
-// "The lowest dimension coordinate represents a byte offset into the surface and is not scaled."
-// So we have to multiply that by 4 in order to get the actual texel x-coordinate:
-"    shl.b32        %xidx, %xidx, 2U;\n" +
 // Compute the y coordinate of this thread for writing to the surface
 // yidx = ctaid.y * ntid.y + tid.y
 "    mov.u32        %blockid, %ctaid.y;\n" +
 "    mov.u32        %blockdim, %ntid.y;\n" +
 "    mov.u32        %thrid, %tid.y;\n" +
 "    mad.lo.u32     %yidx, %blockid, %blockdim, %thrid;\n" +
-// Write "Nvidia green" to the surface
-"    sust.b.2d.v4.b8.trap [surface, {%xidx, %yidx}], {118, 185, 0, 255};\n" +
+// Compute color based on interpolated x coordinate (from 0 to 255)
+// Convert the x coordinate to a float
+"    cvt.rn.f32.u32 %xpos, %xidx;\n" +
+// Obtain the width of the surface
+"    suq.width.b32  %w, [surface];\n" +
+// Convert the width to a float
+"    cvt.rn.f32.u32 %fwidth, %w;\n" +
+// Compute the reciprocal (1.0f/fwidth)
+"    rcp.approx.f32 %fwidth, %fwidth;\n" +
+// Multiply 1/fwidth to the x coordinate
+"    mul.f32        %xpos, %xpos, %fwidth;\n" +
+// Multiply by 255.0f to get to the range [0, 255)
+"    mul.f32        %xpos, %xpos, 0F437f0000;\n" + // 255.0f
+// Convert to u8 for storing via sust
+"    cvt.rni.u8.f32 %red, %xpos;\n" +
+// Write color to surface
+// Pay close attention to the documentation of the sust instruction!
+// "The lowest dimension coordinate represents a byte offset into the surface and is not scaled."
+// So we have to multiply xidx by 4 in order to get the actual texel byte offset:
+"    shl.b32        %xidx, %xidx, 2U;\n" +
+"    sust.b.2d.v4.b8.trap [surface, {%xidx, %yidx}], {%red, 0, 0, 255};\n" +
 "}";
         // Register the OpenGL texture as a CUDA resource
         check(cuGraphicsGLRegisterImage(resource, tex, GL_TEXTURE_2D,
