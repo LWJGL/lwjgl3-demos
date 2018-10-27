@@ -20,14 +20,7 @@ import java.nio.IntBuffer;
 
 import static java.lang.Math.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL33.*;
-import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.system.MathUtil.*;
+import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -565,12 +558,14 @@ public class HybridDemo {
         glBindImageTexture(worldPositionImageBinding, positionTexture, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
         glBindImageTexture(worldNormalImageBinding, normalTexture, 0, false, 0, GL_READ_ONLY, GL_RGBA16F);
 
-        /* Compute appropriate invocation dimension. */
-        int worksizeX = mathRoundPoT(width);
-        int worksizeY = mathRoundPoT(height);
+        /*
+         * Compute appropriate global work size dimensions.
+         */
+        int numGroupsX = (int) Math.ceil((double)width / workGroupSizeX);
+        int numGroupsY = (int) Math.ceil((double)height / workGroupSizeY);
 
         /* Invoke the compute shader. */
-        glDispatchCompute(worksizeX / workGroupSizeX, worksizeY / workGroupSizeY, 1);
+        glDispatchCompute(numGroupsX, numGroupsY, 1);
         /*
          * Synchronize all writes to the framebuffer image before we let OpenGL
          * source texels from it afterwards when rendering the final image with

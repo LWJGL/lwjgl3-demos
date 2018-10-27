@@ -35,15 +35,8 @@ import java.util.Queue;
 import java.util.zip.ZipInputStream;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL14.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL33.*;
-import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.system.MathUtil.*;
+import static org.lwjgl.opengl.GL43.glDispatchCompute;
+import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -956,14 +949,10 @@ public class Tutorial7 {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, trianglesSsboBinding, trianglesSsbo);
 
         /*
-         * Compute appropriate global work size dimensions. Because OpenGL only allows
-         * to invoke a compute shader with a power-of-two global work size in each
-         * dimension, we need to compute a size that is both a power-of-two and that
-         * covers our complete framebuffer. We use LWJGL's built-in method
-         * mathRoundPoT() for this.
+         * Compute appropriate global work size dimensions.
          */
-        int worksizeX = mathRoundPoT(width);
-        int worksizeY = mathRoundPoT(height);
+        int numGroupsX = (int) Math.ceil((double)width / workGroupSizeX);
+        int numGroupsY = (int) Math.ceil((double)height / workGroupSizeY);
 
         /*
          * Prepare query objects to retrieve the GPU timestamp, which we will use to
@@ -973,7 +962,7 @@ public class Tutorial7 {
         int q1 = ARBOcclusionQuery.glGenQueriesARB();
         ARBTimerQuery.glQueryCounter(q0, ARBTimerQuery.GL_TIMESTAMP);
         /* Execute the shader. */
-        glDispatchCompute(worksizeX / workGroupSizeX, worksizeY / workGroupSizeY, 1);
+        glDispatchCompute(numGroupsX, numGroupsY, 1);
         /* Measure the time. */
         ARBTimerQuery.glQueryCounter(q1, ARBTimerQuery.GL_TIMESTAMP);
         while (ARBOcclusionQuery.glGetQueryObjectiARB(q0, ARBOcclusionQuery.GL_QUERY_RESULT_AVAILABLE_ARB) == 0

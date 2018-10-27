@@ -6,7 +6,6 @@ package org.lwjgl.demo.opengl.raytracing;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL43C.*;
-import static org.lwjgl.system.MathUtil.mathRoundPoT;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.io.IOException;
@@ -586,12 +585,12 @@ public class CubeTrace {
         glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, nodesSsboBinding, nodesSsbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, voxelsSsboBinding, voxelsSsbo);
-        int worksizeX = mathRoundPoT(width / cbWidth);
-        int worksizeY = mathRoundPoT(height / cbWidth);
+        int numGroupsX = (int) Math.ceil((double)width / workGroupSizeX);
+        int numGroupsY = (int) Math.ceil((double)height / workGroupSizeY);
         int q0 = ARBOcclusionQuery.glGenQueriesARB();
         int q1 = ARBOcclusionQuery.glGenQueriesARB();
         ARBTimerQuery.glQueryCounter(q0, ARBTimerQuery.GL_TIMESTAMP);
-        glDispatchCompute(worksizeX / workGroupSizeX, worksizeY / workGroupSizeY, 1);
+        glDispatchCompute(numGroupsX, numGroupsY, 1);
         ARBTimerQuery.glQueryCounter(q1, ARBTimerQuery.GL_TIMESTAMP);
         while (ARBOcclusionQuery.glGetQueryObjectiARB(q0, ARBOcclusionQuery.GL_QUERY_RESULT_AVAILABLE_ARB) == 0
                 || ARBOcclusionQuery.glGetQueryObjectiARB(q1, ARBOcclusionQuery.GL_QUERY_RESULT_AVAILABLE_ARB) == 0)

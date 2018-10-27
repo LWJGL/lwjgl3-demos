@@ -19,14 +19,8 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL33.*;
-import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.system.MathUtil.*;
+import static org.lwjgl.opengl.GL43.glDispatchCompute;
+import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -601,17 +595,13 @@ public class Tutorial3 {
         glBindImageTexture(framebufferImageBinding, tex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 
         /*
-         * Compute appropriate global work size dimensions. Because OpenGL only allows
-         * to invoke a compute shader with a power-of-two global work size in each
-         * dimension, we need to compute a size that is both a power-of-two and that
-         * covers our complete framebuffer. We use LWJGL's built-in method
-         * mathRoundPoT() for this.
+         * Compute appropriate global work size dimensions.
          */
-        int worksizeX = mathRoundPoT(width);
-        int worksizeY = mathRoundPoT(height);
+        int numGroupsX = (int) Math.ceil((double)width / workGroupSizeX);
+        int numGroupsY = (int) Math.ceil((double)height / workGroupSizeY);
 
         /* Invoke the compute shader. */
-        glDispatchCompute(worksizeX / workGroupSizeX, worksizeY / workGroupSizeY, 1);
+        glDispatchCompute(numGroupsX, numGroupsY, 1);
         /*
          * Synchronize all writes to the framebuffer image before we let OpenGL source
          * texels from it afterwards when rendering the final image with the full-screen
