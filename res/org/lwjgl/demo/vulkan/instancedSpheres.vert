@@ -12,7 +12,7 @@ layout(binding=0) uniform Matrices
   mat4 spheres[256];
 };
 
-out vec3 outColor;
+layout(location=0) out vec3 outColor;
 
 void main(void) {
   outColor = position;
