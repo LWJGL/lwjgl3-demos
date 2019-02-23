@@ -244,8 +244,8 @@ public class Bump extends Demo {
 
         ibh = BGFXDemoUtil.createIndexBuffer(indices, cubeIndices);
 
-        uniformTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_INT1, 1);
-        uniformTexNormal = bgfx_create_uniform("s_texNormal", BGFX_UNIFORM_TYPE_INT1, 1);
+        uniformTexColor = bgfx_create_uniform("s_texColor", BGFX_UNIFORM_TYPE_VEC4, 1);
+        uniformTexNormal = bgfx_create_uniform("s_texNormal", BGFX_UNIFORM_TYPE_VEC4, 1);
 
         numLights = 4;
         uniformLightPosRadius = bgfx_create_uniform("u_lightPosRadius", BGFX_UNIFORM_TYPE_VEC4, numLights);
