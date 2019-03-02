@@ -298,8 +298,7 @@ public class HybridDemoSsboTriangles {
             objects.add(obj);
         }
         Std430Writer.write(objects, GPUObject.class, objectsBuffer);
-        objectsBuffer.flip();
-        glBufferData(GL_ARRAY_BUFFER, objectsBuffer.bb, GL_STATIC_DRAW);
+        nglBufferData(GL_ARRAY_BUFFER, objectsBuffer.pos, objectsBuffer.addr, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 

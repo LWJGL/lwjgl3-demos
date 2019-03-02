@@ -1,12 +1,8 @@
-/*
- * Copyright LWJGL. All rights reserved.
- * License terms: https://www.lwjgl.org/license
- */
 package org.lwjgl.demo.opengl.util;
 
-import java.nio.ByteBuffer;
+import static org.lwjgl.system.MemoryUtil.*;
 
-import org.lwjgl.system.*;
+import java.nio.*;
 
 /**
  * Dynamically growable {@link ByteBuffer}.
@@ -15,70 +11,76 @@ import org.lwjgl.system.*;
  */
 public class DynamicByteBuffer {
 
-    public ByteBuffer bb;
+    public long addr;
+    public int pos;
+    public int cap;
 
     public DynamicByteBuffer() {
         this(8192);
     }
+
     public DynamicByteBuffer(int initialSize) {
-        bb = MemoryUtil.memAlloc(initialSize);
+        addr = nmemAlloc(initialSize);
+        cap = initialSize;
     }
 
     private void grow() {
-        ByteBuffer newbb = MemoryUtil.memRealloc(bb, (int) (bb.capacity() * 1.5));
-        bb = newbb;
+        int newCap = (int) (cap * 1.5f);
+        long newAddr = nmemRealloc(addr, newCap);
+        cap = newCap;
+        addr = newAddr;
     }
 
     public void free() {
-        MemoryUtil.memFree(bb);
+        nmemFree(addr);
     }
 
     public DynamicByteBuffer putFloat(float v) {
-        if (bb.remaining() < 4) {
+        if (cap - pos < 4)
             grow();
-        }
-        bb.putFloat(v);
+        memPutFloat(addr + pos, v);
+        pos += 4;
         return this;
     }
 
     public DynamicByteBuffer putLong(long v) {
-        if (bb.remaining() < 8) {
+        if (cap - pos < 8)
             grow();
-        }
-        bb.putLong(v);
+        memPutLong(addr + pos, v);
+        pos += 8;
         return this;
     }
 
     public DynamicByteBuffer putInt(int v) {
-        if (bb.remaining() < 4) {
+        if (cap - pos < 4)
             grow();
-        }
-        bb.putInt(v);
+        memPutInt(addr + pos, v);
+        pos += 4;
         return this;
     }
 
     public DynamicByteBuffer putShort(int v) {
-        if (bb.remaining() < 2) {
+        if (v > 1 << 16)
+            throw new IllegalArgumentException();
+        if (cap - pos < 2)
             grow();
-        }
-        bb.putShort((short) (v & 0xFFFF));
+        memPutShort(addr + pos, (short) v);
+        pos += 2;
         return this;
     }
 
     public DynamicByteBuffer putByte(int v) {
-        if (bb.remaining() < 1) {
+        if (v > 255)
+            throw new IllegalArgumentException();
+        if (cap - pos < 2)
             grow();
-        }
-        bb.put((byte) (v & 0xFF));
+        memPutByte(addr + pos, (byte) (v & 0xFF));
+        pos++;
         return this;
     }
 
-    public void flip() {
-        bb.flip();
-    }
-
     public int remaining() {
-        return bb.remaining();
+        return (int) (cap - pos);
     }
 
 }

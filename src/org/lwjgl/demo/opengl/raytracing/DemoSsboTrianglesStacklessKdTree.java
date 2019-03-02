@@ -337,16 +337,14 @@ public class DemoSsboTrianglesStacklessKdTree {
         DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
         DynamicByteBuffer trianglesBuffer = new DynamicByteBuffer();
         kdTreeToBuffers(kdtree, nodesBuffer, trianglesBuffer);
-        nodesBuffer.flip();
-        trianglesBuffer.flip();
 
         this.nodesSsbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, nodesSsbo);
-        glBufferData(GL_ARRAY_BUFFER, nodesBuffer.bb, GL_STATIC_DRAW);
+        nglBufferData(GL_ARRAY_BUFFER, nodesBuffer.pos, nodesBuffer.addr, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         this.trianglesSsbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, trianglesSsbo);
-        glBufferData(GL_ARRAY_BUFFER, trianglesBuffer.bb, GL_STATIC_DRAW);
+        nglBufferData(GL_ARRAY_BUFFER, trianglesBuffer.pos, trianglesBuffer.addr, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
