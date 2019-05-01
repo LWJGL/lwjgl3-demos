@@ -298,7 +298,7 @@ public class Bump extends Demo {
             uniformBuf.putFloat(3.0f);
         }
 
-        long encoder = bgfx_begin();
+        long encoder = bgfx_encoder_begin(false);
 
         uniformBuf.flip();
         bgfx_encoder_set_uniform(encoder, uniformLightPosRadius, uniformBuf, numLights);
@@ -337,7 +337,7 @@ public class Bump extends Demo {
                 bgfx_encoder_set_instance_data_buffer(encoder, idb, 0, numInstances);
 
                 // Set vertex and index buffer.
-                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24, BGFX_INVALID_HANDLE);
                 bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
                 // Bind textures.
@@ -368,7 +368,7 @@ public class Bump extends Demo {
                     bgfx_encoder_set_transform(encoder, mtxBuf);
 
                     // Set vertex and index buffer.
-                    bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+                    bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24, BGFX_INVALID_HANDLE);
                     bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
                     // Bind textures.
@@ -388,7 +388,7 @@ public class Bump extends Demo {
             }
         }
 
-        bgfx_end(encoder);
+        bgfx_encoder_end(encoder);
     }
 
     @Override

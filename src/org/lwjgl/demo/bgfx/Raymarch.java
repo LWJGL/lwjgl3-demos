@@ -115,7 +115,7 @@ public class Raymarch extends Demo {
                 bgfx_encoder_set_transient_index_buffer(encoder, tib, 0, 6);
 
                 vertex.flip();
-                bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, 4);
+                bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, 4, BGFX_INVALID_HANDLE);
 
                 bgfx_encoder_submit(encoder, _view, _program, 0, false);
             }
@@ -177,7 +177,7 @@ public class Raymarch extends Demo {
         mtxInv.transform(lightDirModelN, lightDirTime);
         lightDirTime.w = time;
 
-        long encoder = bgfx_begin();
+        long encoder = bgfx_encoder_begin(false);
 
         bgfx_encoder_touch(encoder, 0);
 
@@ -193,7 +193,7 @@ public class Raymarch extends Demo {
 
         renderScreenSpaceQuad(encoder, 1, program, 0.0f, 0.0f, 1280.0f, 720.0f);
 
-        bgfx_end(encoder);
+        bgfx_encoder_end(encoder);
     }
 
     @Override
