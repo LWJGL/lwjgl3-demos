@@ -3,11 +3,11 @@ Demo suite for LWJGL 3
 
 ## Building
 
-    mvn package
+    ./mvnw package
     
 To override main class
 
-    mvn package -Dclass=opengl.UniformArrayDemo
+    ./mvnw package -Dclass=opengl.UniformArrayDemo
 
 ## Running
 
