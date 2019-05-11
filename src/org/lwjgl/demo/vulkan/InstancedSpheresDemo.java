@@ -50,7 +50,6 @@ import org.lwjgl.vulkan.VkFormatProperties;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkImageCreateInfo;
-import org.lwjgl.vulkan.VkImageMemoryBarrier;
 import org.lwjgl.vulkan.VkImageViewCreateInfo;
 import org.lwjgl.vulkan.VkInstance;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
@@ -115,10 +114,10 @@ public class InstancedSpheresDemo {
     /**
      * Tesselation factor of the sphere. Number of longitudinal and lateral subdivisions.
      */
-    private static final int SPHERE_TESSELATION = 40;
+    private static final int SPHERE_TESSELATION = 10;
 
-    private static final int SPHERE_COUNT = 256;
-    private static final float SPHERE_SPACING = 10.0f;
+    private static final int SPHERE_COUNT = 128;
+    private static final float SPHERE_SPACING = 20.0f;
     private static final Matrix4f[] spheres;
     static {
         spheres = new Matrix4f[SPHERE_COUNT];
@@ -143,7 +142,7 @@ public class InstancedSpheresDemo {
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
                 .pApplicationName(memUTF8("GLFW Vulkan Demo"))
                 .pEngineName(memUTF8(""))
-                .apiVersion(VK_MAKE_VERSION(1, 0, 2));
+                .apiVersion(VK_API_VERSION_1_0);
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memUTF8(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -440,36 +439,6 @@ public class InstancedSpheresDemo {
         return new VkCommandBuffer(commandBuffer, device);
     }
 
-    private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int srcAccess, int newImageLayout, int dstAccess) {
-        // Create an image barrier object
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-                .pNext(NULL)
-                .oldLayout(oldImageLayout)
-                .srcAccessMask(srcAccess)
-                .newLayout(newImageLayout)
-                .dstAccessMask(dstAccess)
-                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                .image(image);
-        imageMemoryBarrier.subresourceRange()
-                .aspectMask(aspectMask)
-                .baseMipLevel(0)
-                .levelCount(1)
-                .layerCount(1);
-
-        // Put barrier on top
-        int srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        int destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        
-        // Put barrier inside setup command buffer
-        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE,
-                null, // no memory barriers
-                null, // no buffer memory barriers
-                imageMemoryBarrier); // one image memory barrier
-        imageMemoryBarrier.free();
-    }
-
     private static class Swapchain {
         long swapchainHandle;
         long[] images;
@@ -596,10 +565,10 @@ public class InstancedSpheresDemo {
                 .viewType(VK_IMAGE_VIEW_TYPE_2D)
                 .flags(VK_FLAGS_NONE);
         colorAttachmentView.components()
-                .r(VK_COMPONENT_SWIZZLE_R)
-                .g(VK_COMPONENT_SWIZZLE_G)
-                .b(VK_COMPONENT_SWIZZLE_B)
-                .a(VK_COMPONENT_SWIZZLE_A);
+                .r(VK_COMPONENT_SWIZZLE_IDENTITY)
+                .g(VK_COMPONENT_SWIZZLE_IDENTITY)
+                .b(VK_COMPONENT_SWIZZLE_IDENTITY)
+                .a(VK_COMPONENT_SWIZZLE_IDENTITY);
         colorAttachmentView.subresourceRange()
                 .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
                 .baseMipLevel(0)
@@ -608,10 +577,6 @@ public class InstancedSpheresDemo {
                 .layerCount(1);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
-            // Bring the image from an UNDEFINED state to the VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT state
-            imageBarrier(commandBuffer, images[i], VK_IMAGE_ASPECT_COLOR_BIT,
-                    VK_IMAGE_LAYOUT_UNDEFINED, 0,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
             colorAttachmentView.image(images[i]);
             err = vkCreateImageView(device, colorAttachmentView, null, pBufferView);
             imageViews[i] = pBufferView.get(0);
@@ -697,9 +662,6 @@ public class InstancedSpheresDemo {
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to bind depth-stencil image to memory: " + translateVulkanResult(err));
         }
-        imageBarrier(setupCmdBuffer, depthStencilImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED, 0,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         depthStencilViewCreateInfo.image(depthStencilImage);
         LongBuffer pDepthStencilView = memAllocLong(1);
@@ -725,8 +687,8 @@ public class InstancedSpheresDemo {
                 .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
                 .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
                 .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                .initialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                .finalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                .finalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
         attachments.get(1) // <- depth-stencil attachment
                 .format(depthFormat)
                 .samples(VK_SAMPLE_COUNT_1_BIT)
@@ -734,8 +696,8 @@ public class InstancedSpheresDemo {
                 .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
                 .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
                 .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                .initialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-                .finalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                .finalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
         VkAttachmentReference.Buffer colorReference = VkAttachmentReference.calloc(1)
                 .attachment(0)
@@ -1163,7 +1125,8 @@ public class InstancedSpheresDemo {
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
                 .depthClampEnable(false)
                 .rasterizerDiscardEnable(false)
-                .depthBiasEnable(false);
+                .depthBiasEnable(false)
+                .lineWidth(1.0f);
 
         // Color blend state
         // Describes blend modes and color masks
@@ -1371,19 +1334,6 @@ public class InstancedSpheresDemo {
 
             vkCmdEndRenderPass(renderCommandBuffers[i]);
 
-            // Add a present memory barrier to the end of the command buffer
-            // This will transform the frame buffer color attachment to a
-            // new layout for presenting it to the windowing system integration 
-            VkImageMemoryBarrier.Buffer prePresentBarrier = createPrePresentBarrier(swapchain.images[i]);
-            vkCmdPipelineBarrier(renderCommandBuffers[i],
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_FLAGS_NONE,
-                null, // No memory barriers
-                null, // No buffer memory barriers
-                prePresentBarrier); // One image memory barrier
-            prePresentBarrier.free();
-
             err = vkEndCommandBuffer(renderCommandBuffers[i]);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to begin render command buffer: " + translateVulkanResult(err));
@@ -1414,76 +1364,6 @@ public class InstancedSpheresDemo {
             spheres[i].get(16*4*(i+1), matrixBuffer);
         }
         vkUnmapMemory(device, ubo.memory);
-    }
-
-    private static VkImageMemoryBarrier.Buffer createPrePresentBarrier(long presentImage) {
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-                .pNext(NULL)
-                .srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-                .dstAccessMask(0)
-                .oldLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                .newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.subresourceRange()
-                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                .baseMipLevel(0)
-                .levelCount(1)
-                .baseArrayLayer(0)
-                .layerCount(1);
-        imageMemoryBarrier.image(presentImage);
-        return imageMemoryBarrier;
-    }
-
-    private static VkImageMemoryBarrier.Buffer createPostPresentBarrier(long presentImage) {
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
-                .pNext(NULL)
-                .srcAccessMask(0)
-                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-                .oldLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-                .newLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-        imageMemoryBarrier.subresourceRange()
-                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                .baseMipLevel(0)
-                .levelCount(1)
-                .baseArrayLayer(0)
-                .layerCount(1);
-        imageMemoryBarrier.image(presentImage);
-        return imageMemoryBarrier;
-    }
-
-    private static void submitPostPresentBarrier(long image, VkCommandBuffer commandBuffer, VkQueue queue) {
-        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                .pNext(NULL);
-        int err = vkBeginCommandBuffer(commandBuffer, cmdBufInfo);
-        cmdBufInfo.free();
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to begin command buffer: " + translateVulkanResult(err));
-        }
-
-        VkImageMemoryBarrier.Buffer postPresentBarrier = createPostPresentBarrier(image);
-        vkCmdPipelineBarrier(
-            commandBuffer,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            VK_FLAGS_NONE,
-            null, // No memory barriers,
-            null, // No buffer barriers,
-            postPresentBarrier); // one image barrier
-        postPresentBarrier.free();
-
-        err = vkEndCommandBuffer(commandBuffer);
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to wait for idle queue: " + translateVulkanResult(err));
-        }
-
-        // Submit the command buffer
-        submitCommandBuffer(queue, commandBuffer);
     }
 
     /*
@@ -1549,7 +1429,6 @@ public class InstancedSpheresDemo {
         final ColorAndDepthFormatAndSpace colorAndDepthFormatAndSpace = getColorFormatAndSpace(physicalDevice, surface);
         final long commandPool = createCommandPool(device, queueFamilyIndex);
         final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
-        final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
         final long renderPass = createRenderPass(device, colorAndDepthFormatAndSpace.colorFormat, colorAndDepthFormatAndSpace.depthFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
@@ -1710,7 +1589,6 @@ public class InstancedSpheresDemo {
             // Destroy this semaphore (we will create a new one in the next frame)
             vkDestroySemaphore(device, pImageAcquiredSemaphore.get(0), null);
             vkDestroySemaphore(device, pRenderCompleteSemaphore.get(0), null);
-            submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
         }
         presentInfo.free();
         memFree(pWaitDstStageMask);
