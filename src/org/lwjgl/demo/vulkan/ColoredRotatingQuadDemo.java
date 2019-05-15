@@ -12,7 +12,6 @@ import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFWVulkan.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -634,8 +633,8 @@ public class ColoredRotatingQuadDemo {
         }
     }
 
-    private static long loadShader(String classPath, VkDevice device) throws IOException {
-        ByteBuffer shaderCode = ioResourceToByteBuffer(classPath, 1024);
+    private static long loadShader(String classPath, VkDevice device, int stage) throws IOException {
+        ByteBuffer shaderCode = glslToSpirv(classPath, stage);
         int err;
         VkShaderModuleCreateInfo moduleCreateInfo = VkShaderModuleCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
@@ -656,7 +655,7 @@ public class ColoredRotatingQuadDemo {
         VkPipelineShaderStageCreateInfo shaderStage = VkPipelineShaderStageCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
                 .stage(stage)
-                .module(loadShader(classPath, device))
+                .module(loadShader(classPath, device, stage))
                 .pName(memUTF8("main"));
         return shaderStage;
     }
@@ -1026,8 +1025,8 @@ public class ColoredRotatingQuadDemo {
 
         // Load shaders
         VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.calloc(2);
-        shaderStages.get(0).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.vert.spv", VK_SHADER_STAGE_VERTEX_BIT));
-        shaderStages.get(1).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT));
+        shaderStages.get(0).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.vert", VK_SHADER_STAGE_VERTEX_BIT));
+        shaderStages.get(1).set(loadShader(device, "org/lwjgl/demo/vulkan/coloredRotatingTriangle.frag", VK_SHADER_STAGE_FRAGMENT_BIT));
 
         // Create the pipeline layout that is used to generate the rendering pipelines that
         // are based on this descriptor set layout

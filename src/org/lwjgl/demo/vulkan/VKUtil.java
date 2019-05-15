@@ -4,13 +4,54 @@
  */
 package org.lwjgl.demo.vulkan;
 
-import static org.lwjgl.vulkan.EXTDebugReport.*;       
-import static org.lwjgl.vulkan.KHRDisplaySwapchain.*;     
-import static org.lwjgl.vulkan.KHRSurface.*;      
-import static org.lwjgl.vulkan.KHRSwapchain.*;        
+import static org.lwjgl.BufferUtils.*;
+import static org.lwjgl.util.shaderc.Shaderc.*;
+import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHRDisplaySwapchain.*;
+import static org.lwjgl.vulkan.KHRSurface.*;
+import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
 
+import java.io.*;
+import java.nio.*;
+
+import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.system.*;
+
 public class VKUtil {
+
+    private static int vulkanStageToShadercKind(int stage) {
+        switch (stage) {
+        case VK_SHADER_STAGE_VERTEX_BIT:
+            return shaderc_vertex_shader;
+        case VK_SHADER_STAGE_FRAGMENT_BIT:
+            return shaderc_fragment_shader;
+        default:
+            throw new IllegalArgumentException("Stage: " + stage);
+        }
+    }
+
+    public static ByteBuffer glslToSpirv(String classPath, int vulkanStage) throws IOException {
+        ByteBuffer src = DemoUtils.ioResourceToByteBuffer(classPath, 1024);
+        long compiler = shaderc_compiler_initialize();
+        long res;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            res = shaderc_compile_into_spv(compiler, src, vulkanStageToShadercKind(vulkanStage),
+                            stack.UTF8(classPath), stack.UTF8("main"), 0L);
+            if (res == 0L)
+                throw new AssertionError("Internal error during compilation!");
+        }
+        if (shaderc_result_get_compilation_status(res) != shaderc_compilation_status_success) {
+            throw new AssertionError("Shader compilation failed: " + shaderc_result_get_error_message(res));
+        }
+        int size = (int) shaderc_result_get_length(res);
+        ByteBuffer resultBytes = createByteBuffer(size);
+        resultBytes.put(shaderc_result_get_bytes(res));
+        resultBytes.flip();
+        shaderc_compiler_release(res);
+        shaderc_compiler_release(compiler);
+        return resultBytes;
+    }
 
     /**
      * Translates a Vulkan {@code VkResult} value to a String describing the result.
