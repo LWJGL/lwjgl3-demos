@@ -20,6 +20,8 @@ import org.lwjgl.system.*;
 
 public class VKUtil {
 
+    public static final int VK_FLAGS_NONE = 0;
+
     private static int vulkanStageToShadercKind(int stage) {
         switch (stage) {
         case VK_SHADER_STAGE_VERTEX_BIT:
@@ -51,6 +53,11 @@ public class VKUtil {
         shaderc_compiler_release(res);
         shaderc_compiler_release(compiler);
         return resultBytes;
+    }
+
+    public static void _CHECK_(int ret, String msg) {
+        if (ret != VK_SUCCESS)
+            throw new AssertionError(msg + ": " + translateVulkanResult(ret));
     }
 
     /**

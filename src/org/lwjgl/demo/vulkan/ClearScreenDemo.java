@@ -52,7 +52,6 @@ import org.lwjgl.vulkan.VkSubpassDescription;
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR;
 import org.lwjgl.vulkan.VkSurfaceFormatKHR;
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
-import org.lwjgl.vulkan.VkViewport;
 
 /**
  * Renders a simple cornflower blue image on a GLFW window with Vulkan.
@@ -66,16 +65,6 @@ public class ClearScreenDemo {
     private static ByteBuffer[] layers = {
             memUTF8("VK_LAYER_LUNARG_standard_validation"),
     };
-
-    /**
-     * Remove if added to spec.
-     */
-    private static final int VK_FLAGS_NONE = 0;
-
-    /**
-     * This is just -1L, but it is nicer as a symbolic constant.
-     */
-    private static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
 
     /**
      * Create a Vulkan {@link VkInstance} using LWJGL 3.
@@ -370,30 +359,13 @@ public class ClearScreenDemo {
         return new VkQueue(queue, device);
     }
 
-    private static VkCommandBuffer createCommandBuffer(VkDevice device, long commandPool) {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
-                .commandPool(commandPool)
-                .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-                .commandBufferCount(1);
-        PointerBuffer pCommandBuffer = memAllocPointer(1);
-        int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
-        cmdBufAllocateInfo.free();
-        long commandBuffer = pCommandBuffer.get(0);
-        memFree(pCommandBuffer);
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to allocate command buffer: " + translateVulkanResult(err));
-        }
-        return new VkCommandBuffer(commandBuffer, device);
-    }
-
     private static class Swapchain {
         long swapchainHandle;
         long[] images;
         long[] imageViews;
     }
 
-    private static Swapchain createSwapChain(VkDevice device, VkPhysicalDevice physicalDevice, long surface, long oldSwapChain, VkCommandBuffer commandBuffer, int newWidth,
+    private static Swapchain createSwapChain(VkDevice device, VkPhysicalDevice physicalDevice, long surface, long oldSwapChain, int newWidth,
             int newHeight, int colorFormat, int colorSpace) {
         int err;
         // Get physical device surface properties and formats
@@ -618,23 +590,6 @@ public class ClearScreenDemo {
         return framebuffers;
     }
 
-    private static void submitCommandBuffer(VkQueue queue, VkCommandBuffer commandBuffer) {
-        if (commandBuffer == null || commandBuffer.address() == NULL)
-            return;
-        VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-        PointerBuffer pCommandBuffers = memAllocPointer(1)
-                .put(commandBuffer)
-                .flip();
-        submitInfo.pCommandBuffers(pCommandBuffers);
-        int err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
-        memFree(pCommandBuffers);
-        submitInfo.free();
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to submit command buffer: " + translateVulkanResult(err));
-        }
-    }
-
     private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
         // Create the render command buffers (one command buffer per framebuffer image)
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
@@ -689,31 +644,8 @@ public class ClearScreenDemo {
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to begin render command buffer: " + translateVulkanResult(err));
             }
-
             vkCmdBeginRenderPass(renderCommandBuffers[i], renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            // Update dynamic viewport state
-            VkViewport.Buffer viewport = VkViewport.calloc(1)
-                    .height(height)
-                    .width(width)
-                    .minDepth(0.0f)
-                    .maxDepth(1.0f);
-            vkCmdSetViewport(renderCommandBuffers[i], 0, viewport);
-            viewport.free();
-
-            // Update dynamic scissor state
-            VkRect2D.Buffer scissor = VkRect2D.calloc(1);
-            scissor.extent()
-                    .width(width)
-                    .height(height);
-            scissor.offset()
-                    .x(0)
-                    .y(0);
-            vkCmdSetScissor(renderCommandBuffers[i], 0, scissor);
-            scissor.free();
-
             vkCmdEndRenderPass(renderCommandBuffers[i]);
-
             err = vkEndCommandBuffer(renderCommandBuffers[i]);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to begin render command buffer: " + translateVulkanResult(err));
@@ -784,8 +716,6 @@ public class ClearScreenDemo {
 
         // Create static Vulkan resources
         final ColorFormatAndSpace colorFormatAndSpace = getColorFormatAndSpace(physicalDevice, surface);
-        final long commandPool = createCommandPool(device, queueFamilyIndex);
-        final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
         final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
@@ -793,26 +723,10 @@ public class ClearScreenDemo {
         final class SwapchainRecreator {
             boolean mustRecreate = true;
             void recreate() {
-                // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
-                VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                        .pNext(NULL);
-                int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
-                cmdBufInfo.free();
-                if (err != VK_SUCCESS) {
-                    throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanResult(err));
-                }
                 long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
                 // Create the swapchain (this will also add a memory barrier to initialize the framebuffer images)
-                swapchain = createSwapChain(device, physicalDevice, surface, oldChain, setupCommandBuffer,
+                swapchain = createSwapChain(device, physicalDevice, surface, oldChain,
                         width, height, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
-                err = vkEndCommandBuffer(setupCommandBuffer);
-                if (err != VK_SUCCESS) {
-                    throw new AssertionError("Failed to end setup command buffer: " + translateVulkanResult(err));
-                }
-                submitCommandBuffer(queue, setupCommandBuffer);
-                vkQueueWaitIdle(queue);
-
                 if (framebuffers != null) {
                     for (int i = 0; i < framebuffers.length; i++)
                         vkDestroyFramebuffer(device, framebuffers[i], null);
@@ -901,7 +815,7 @@ public class ClearScreenDemo {
 
             // Get next image from the swap chain (back/front buffer).
             // This will setup the imageAquiredSemaphore to be signalled when the operation is complete
-            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, UINT64_MAX, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
+            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, -1L, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
             currentBuffer = pImageIndex.get(0);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanResult(err));
