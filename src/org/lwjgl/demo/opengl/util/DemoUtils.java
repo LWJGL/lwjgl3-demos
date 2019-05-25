@@ -4,23 +4,19 @@
  */
 package org.lwjgl.demo.opengl.util;
 
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.system.MemoryUtil.memUTF8;
+import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.joml.Vector3f;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.system.MemoryUtil.*;
 
 /**
  * Utility methods for most of the ray tracing demos.
@@ -137,6 +133,8 @@ public class DemoUtils {
     public static ByteBuffer ioResourceToByteBuffer(String resource, int bufferSize) throws IOException {
         ByteBuffer buffer;
         URL url = Thread.currentThread().getContextClassLoader().getResource(resource);
+        if (url == null)
+            throw new IOException("Classpath resource not found: " + resource);
         File file = new File(url.getFile());
         if (file.isFile()) {
             FileInputStream fis = new FileInputStream(file);

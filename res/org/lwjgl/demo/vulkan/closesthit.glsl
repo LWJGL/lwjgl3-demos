@@ -1,0 +1,36 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
+#version 460
+#extension GL_NV_ray_tracing : require
+
+layout(location = 0) rayPayloadInNV Payload {
+    vec3 normal;
+    float t;
+} payload;
+
+hitAttributeNV vec3 attribs;
+
+layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
+layout(binding = 2, set = 0) uniform CameraProperties {
+    mat4 viewInverse;
+    mat4 projInverse;
+    vec4 lightPos;
+} cam;
+layout(binding = 4, set = 0) buffer Normals { vec4 n[]; } normals;
+layout(binding = 5, set = 0) buffer Indices { uint i[]; } indices;
+
+void main() {
+    ivec3 index = ivec3(
+        indices.i[3 * gl_PrimitiveID],
+        indices.i[3 * gl_PrimitiveID + 1],
+        indices.i[3 * gl_PrimitiveID + 2]
+    );
+    vec3 n0 = normals.n[index.x].xyz;
+    vec3 n1 = normals.n[index.y].xyz;
+    vec3 n2 = normals.n[index.z].xyz;
+    vec3 bc = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+    payload.t = gl_RayTmaxNV;
+    payload.normal = normalize(n0 * bc.x + n1 * bc.y + n2 * bc.z);
+}

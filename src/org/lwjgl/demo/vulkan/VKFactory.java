@@ -1,0 +1,315 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
+package org.lwjgl.demo.vulkan;
+
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.util.vma.VmaAllocationCreateInfo;
+import org.lwjgl.util.vma.VmaAllocationInfo;
+import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
+import org.lwjgl.util.vma.VmaVulkanFunctions;
+import org.lwjgl.vulkan.*;
+
+import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
+import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
+import static org.lwjgl.vulkan.KHRSwapchain.*;
+import static org.lwjgl.vulkan.NVRayTracing.*;
+import static org.lwjgl.vulkan.VK10.*;
+
+/**
+ * Factory methods to allocate various Vulkan structs.
+ */
+public class VKFactory {
+    static VmaVulkanFunctions VmaVulkanFunctions(MemoryStack stack) {
+        return VmaVulkanFunctions.callocStack(stack);
+    }
+
+    static VmaAllocatorCreateInfo VmaAllocatorCreateInfo(MemoryStack stack) {
+        return VmaAllocatorCreateInfo.callocStack(stack);
+    }
+
+    static VkInstanceCreateInfo VkInstanceCreateInfo(MemoryStack stack) {
+        return VkInstanceCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
+    }
+
+    static VkApplicationInfo VkApplicationInfo(MemoryStack stack) {
+        return VkApplicationInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
+    }
+
+    static VkDebugReportCallbackCreateInfoEXT VkDebugReportCallbackCreateInfoEXT(MemoryStack stack) {
+        return VkDebugReportCallbackCreateInfoEXT.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT);
+    }
+
+    static VkDeviceCreateInfo VkDeviceCreateInfo(MemoryStack stack) {
+        return VkDeviceCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+    }
+
+    static VkDeviceQueueCreateInfo.Buffer VkDeviceQueueCreateInfo(MemoryStack stack) {
+        return VkDeviceQueueCreateInfo.callocStack(1, stack)
+                .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+    }
+
+    static VkPhysicalDeviceProperties2 VkPhysicalDeviceProperties2(MemoryStack stack) {
+        return VkPhysicalDeviceProperties2.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR);
+    }
+
+    static VkPhysicalDeviceRayTracingPropertiesNV VkPhysicalDeviceRayTracingPropertiesNV(MemoryStack stack) {
+        return VkPhysicalDeviceRayTracingPropertiesNV.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV);
+    }
+
+    static VkSwapchainCreateInfoKHR VkSwapchainCreateInfoKHR(MemoryStack stack) {
+        return VkSwapchainCreateInfoKHR.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+    }
+
+    static VkImageViewCreateInfo VkImageViewCreateInfo(MemoryStack stack) {
+        return VkImageViewCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+    }
+
+    static VkCommandPoolCreateInfo VkCommandPoolCreateInfo(MemoryStack stack) {
+        return VkCommandPoolCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+    }
+
+    static VkMemoryRequirements VkMemoryRequirements(MemoryStack stack) {
+        return VkMemoryRequirements.callocStack(stack);
+    }
+
+    static VkImageCreateInfo VkImageCreateInfo(MemoryStack stack) {
+        return VkImageCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
+    }
+
+    static VkImageMemoryBarrier.Buffer VkImageMemoryBarrier(MemoryStack stack) {
+        return VkImageMemoryBarrier.callocStack(1, stack)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+    }
+
+    static VkFenceCreateInfo VkFenceCreateInfo(MemoryStack stack) {
+        return VkFenceCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
+    }
+
+    static VkSubmitInfo VkSubmitInfo(MemoryStack stack) {
+        return VkSubmitInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+    }
+
+    static VkCommandBufferBeginInfo VkCommandBufferBeginInfo(MemoryStack stack) {
+        return VkCommandBufferBeginInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+    }
+
+    static VkCommandBufferAllocateInfo VkCommandBufferAllocateInfo(MemoryStack stack) {
+        return VkCommandBufferAllocateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+    }
+
+    static VkMemoryAllocateInfo VkMemoryAllocateInfo(MemoryStack stack) {
+        return VkMemoryAllocateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
+    }
+
+    static VkBufferCreateInfo VkBufferCreateInfo(MemoryStack stack) {
+        return VkBufferCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
+    }
+
+    static VkGeometryAABBNV VkGeometryAABBNV(VkGeometryAABBNV geometry) {
+        return geometry.sType(VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV);
+    }
+
+    static VkGeometryTrianglesNV VkGeometryTrianglesNV(VkGeometryTrianglesNV geometry) {
+        return geometry.sType(VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV);
+    }
+
+    static VkGeometryNV VkGeometryNV(MemoryStack stack) {
+        return VkGeometryNV.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_GEOMETRY_NV);
+    }
+
+    static VkMemoryBarrier.Buffer VkMemoryBarrier(MemoryStack stack) {
+        return VkMemoryBarrier.callocStack(1, stack)
+                .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER);
+    }
+
+    static VkBindAccelerationStructureMemoryInfoNV.Buffer VkBindAccelerationStructureMemoryInfoNV(MemoryStack stack) {
+        return VkBindAccelerationStructureMemoryInfoNV
+                .callocStack(1, stack)
+                .sType(VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV);
+    }
+
+    static VkAccelerationStructureInfoNV VkAccelerationStructureInfoNV(MemoryStack stack) {
+        return VkAccelerationStructureInfoNV.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV);
+    }
+
+    static VkMemoryRequirements2KHR VkMemoryRequirements2KHR(MemoryStack stack) {
+        return VkMemoryRequirements2KHR.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR);
+    }
+
+    static VkAccelerationStructureMemoryRequirementsInfoNV VkAccelerationStructureMemoryRequirementsInfoNV(MemoryStack stack) {
+        return VkAccelerationStructureMemoryRequirementsInfoNV
+                .callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV);
+    }
+
+    static VkAccelerationStructureCreateInfoNV VkAccelerationStructureCreateInfoNV(MemoryStack stack) {
+        return VkAccelerationStructureCreateInfoNV
+                .callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV);
+    }
+
+    static VkPipelineShaderStageCreateInfo.Buffer VkPipelineShaderStageCreateInfo(MemoryStack stack, int count) {
+        return VkPipelineShaderStageCreateInfo.callocStack(count, stack);
+    }
+
+    static VkDescriptorSetLayoutBinding.Buffer VkDescriptorSetLayoutBinding(MemoryStack stack, int count) {
+        return VkDescriptorSetLayoutBinding.callocStack(count, stack);
+    }
+
+    static VkDescriptorSetLayoutBinding VkDescriptorSetLayoutBinding(MemoryStack stack) {
+        return VkDescriptorSetLayoutBinding.callocStack(stack);
+    }
+
+    static VkRayTracingPipelineCreateInfoNV.Buffer VkRayTracingPipelineCreateInfoNV(MemoryStack stack) {
+        return VkRayTracingPipelineCreateInfoNV.callocStack(1, stack)
+                .sType(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV);
+    }
+
+    static VkRayTracingShaderGroupCreateInfoNV.Buffer VkRayTracingShaderGroupCreateInfoNV(int size, MemoryStack stack) {
+        VkRayTracingShaderGroupCreateInfoNV.Buffer buf = VkRayTracingShaderGroupCreateInfoNV.callocStack(3, stack);
+        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV));
+        return buf;
+    }
+
+    static VkPipelineLayoutCreateInfo VkPipelineLayoutCreateInfo(MemoryStack stack) {
+        return VkPipelineLayoutCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
+    }
+
+    static VkDescriptorSetLayoutCreateInfo VkDescriptorSetLayoutCreateInfo(MemoryStack stack) {
+        return VkDescriptorSetLayoutCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
+    }
+
+    static VkDescriptorBufferInfo.Buffer VkDescriptorBufferInfo(MemoryStack stack, int count) {
+        return VkDescriptorBufferInfo.callocStack(count, stack);
+    }
+
+    static VkDescriptorImageInfo.Buffer VkDescriptorImageInfo(MemoryStack stack, int count) {
+        return VkDescriptorImageInfo.callocStack(count, stack);
+    }
+
+    static VkDescriptorPoolSize.Buffer VkDescriptorPoolSize(MemoryStack stack, int count) {
+        return VkDescriptorPoolSize.callocStack(count, stack);
+    }
+
+    static VkWriteDescriptorSetAccelerationStructureNV VkWriteDescriptorSetAccelerationStructureNV(MemoryStack stack) {
+        return VkWriteDescriptorSetAccelerationStructureNV.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV);
+    }
+
+    static VkWriteDescriptorSet VkWriteDescriptorSet(MemoryStack stack) {
+        return VkWriteDescriptorSet.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
+    }
+
+    static VkDescriptorSetAllocateInfo VkDescriptorSetAllocateInfo(MemoryStack stack) {
+        return VkDescriptorSetAllocateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
+    }
+
+    static VkDescriptorPoolCreateInfo VkDescriptorPoolCreateInfo(MemoryStack stack) {
+        return VkDescriptorPoolCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
+    }
+
+    static VkPresentInfoKHR VkPresentInfoKHR(MemoryStack stack) {
+        return VkPresentInfoKHR.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+    }
+
+    static VkSemaphoreCreateInfo VkSemaphoreCreateInfo(MemoryStack stack) {
+        return VkSemaphoreCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+    }
+
+    static VkQueueFamilyProperties.Buffer VkQueueFamilyProperties(int count) {
+        return VkQueueFamilyProperties.callocStack(count);
+    }
+
+    static VkPhysicalDeviceFeatures VkPhysicalDeviceFeatures(MemoryStack stack) {
+        return VkPhysicalDeviceFeatures.callocStack(stack);
+    }
+
+    static VkPhysicalDeviceProperties VkPhysicalDeviceProperties(MemoryStack stack) {
+        return VkPhysicalDeviceProperties.callocStack(stack);
+    }
+
+    static VkGeometryNV.Buffer VkGeometryNV(MemoryStack stack, int count) {
+        VkGeometryNV.Buffer buf = VkGeometryNV.callocStack(count, stack);
+        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_GEOMETRY_NV));
+        return buf;
+    }
+
+    static VkWriteDescriptorSet.Buffer VkWriteDescriptorSet(MemoryStack stack, int count) {
+        return VkWriteDescriptorSet.callocStack(count, stack);
+    }
+
+    static VkPipelineShaderStageCreateInfo VkPipelineShaderStageCreateInfo(MemoryStack stack) {
+        return VkPipelineShaderStageCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
+    }
+
+    static VkShaderModuleCreateInfo VkShaderModuleCreateInfo(MemoryStack stack) {
+        return VkShaderModuleCreateInfo.callocStack(stack)
+                .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+    }
+
+    static VkSurfaceCapabilitiesKHR VkSurfaceCapabilitiesKHR(MemoryStack stack) {
+        return VkSurfaceCapabilitiesKHR.callocStack(stack);
+    }
+
+    static VkSurfaceFormatKHR.Buffer VkSurfaceFormatKHR(MemoryStack stack, int count) {
+        return VkSurfaceFormatKHR.callocStack(count, stack);
+    }
+
+    static VmaAllocationCreateInfo VmaAllocationCreateInfo(MemoryStack stack) {
+        return VmaAllocationCreateInfo.callocStack(stack);
+    }
+
+    static VmaAllocationInfo VmaAllocationInfo(MemoryStack stack) {
+        return VmaAllocationInfo.callocStack(stack);
+    }
+
+    static VkBufferCopy.Buffer VkBufferCopy(MemoryStack stack, int count) {
+        return VkBufferCopy.callocStack(count, stack);
+    }
+
+    static VkSamplerCreateInfo VkSamplerCreateInfo(MemoryStack stack) {
+        return VkSamplerCreateInfo.callocStack(stack).sType(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+    }
+
+    static VkBufferImageCopy.Buffer VkBufferImageCopy(MemoryStack stack) {
+        return VkBufferImageCopy.callocStack(1, stack);
+    }
+
+    static VkImageSubresourceRange VkImageSubresourceRange(MemoryStack stack) {
+        return VkImageSubresourceRange.callocStack(stack);
+    }
+
+    static VkComponentMapping VkComponentMapping(MemoryStack stack) {
+        return VkComponentMapping.callocStack(stack);
+    }
+}

@@ -15,7 +15,7 @@
         <lwjgl.version>3.2.3-SNAPSHOT</lwjgl.version>
         <swt.version>4.6.1</swt.version>
         <joml.version>1.9.15-SNAPSHOT</joml.version>
-        <!-- Can be overwritten via -D property during mvn invoke to specify 
+        <!-- Can be overwritten via -D property during mvn invoke to specify
             a different demo. The package "org.lwjgl.demo." is prepended automatically. -->
         <class>game.SpaceGame</class>
     </properties>
@@ -249,6 +249,11 @@
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-vma</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-glfw</artifactId>
             <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
@@ -268,6 +273,12 @@
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-bgfx</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>natives-${platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-vma</artifactId>
             <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
