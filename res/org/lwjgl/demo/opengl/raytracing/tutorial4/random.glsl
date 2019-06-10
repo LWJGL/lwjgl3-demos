@@ -153,6 +153,7 @@ float hemisphereProbability(vec3 n, vec3 v) {
  */
 vec4 randomDiskPoint(vec3 n, float d, float r, spatialrand rand) {
   float D = r/d, c = inversesqrt(1.0 + D * D), pr = ONE_OVER_2PI / (1.0 - c);
+  //float A = PI * r*r, pdfW = d*d/(c*A); <-- pdf(w) based on pdf(a)
   return vec4(around(isotropic(rand.x, 1.0 - rand.y * (1.0 - c)), n), pr);
 }
 /**
