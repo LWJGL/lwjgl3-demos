@@ -135,7 +135,7 @@ vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
  * @returns pdf(v) for the uniform hemisphere distribution
  */
 float hemisphereProbability(vec3 n, vec3 v) {
-  return dot(v, n) <= 0.0 ? 0.0 : ONE_OVER_2PI;
+  return step(0.0, dot(v, n)) * ONE_OVER_2PI;
 }
 
 /**
@@ -170,6 +170,6 @@ vec4 randomDiskPoint(vec3 n, float d, float r, spatialrand rand) {
  * @returns pdf(v) for the disk distribution
  */
 float diskProbability(vec3 n, float d, float r, vec3 v) {
-  float D = r/d, c = inversesqrt(1.0 + D * D), pr = ONE_OVER_2PI / (1.0 - c);
-  return dot(n, v) <= c ? 0.0 : pr;
+  float D = r/d, c = inversesqrt(1.0 + D * D);
+  return step(c, dot(n, v)) * ONE_OVER_2PI / (1.0 - c);
 }

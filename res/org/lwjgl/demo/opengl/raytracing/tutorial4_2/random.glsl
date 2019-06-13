@@ -134,7 +134,7 @@ vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
  * @returns pdf(v) for the uniform hemisphere distribution
  */
 float hemisphereProbability(vec3 n, vec3 v) {
-  return dot(v, n) <= 0.0 ? 0.0 : ONE_OVER_2PI;
+  return step(0.0, dot(v, n)) * ONE_OVER_2PI;
 }
 
 /**
