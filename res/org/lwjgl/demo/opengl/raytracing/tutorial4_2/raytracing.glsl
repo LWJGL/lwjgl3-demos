@@ -19,16 +19,19 @@ uniform float specularFactor;
 #define LARGE_FLOAT 1E+10
 #define NUM_BOXES 11
 #define NUM_RECTANGLES 1
-#define EPSILON 0.0001
+#define EPSILON 1E-4
 #define BOUNCES 4
-#define LIGHT_INTENSITY 50.0
-#define PROBABILITY_OF_LIGHT_SAMPLE 0.5
+#define LIGHT_INTENSITY 80.0
+#define PROBABILITY_OF_LIGHT_SAMPLE 0.6
 
 float random(vec3 f);
-vec4 randomHemispherePoint(vec3 n, vec2 rand);
-float hemisphereProbability(vec3 n, vec3 v);
-vec4 randomRectanglePoint(vec3 p, vec3 c, vec3 x, vec3 y, vec2 rand);
-float rectangleProbability(vec3 p, vec3 c, vec3 x, vec3 y, vec3 s);
+vec4 randomHemisphereDirection(vec3 n, vec2 rand);
+vec4 randomCosineWeightedHemisphereDirection(vec3 n, vec2 rand);
+float randomCosineWeightedHemisphereDirectionPDF(vec3 n, vec3 v);
+vec4 randomPhongWeightedHemisphereDirection(vec3 r, float a, vec2 rand);
+float randomPhongWeightedHemisphereDirectionPDF(vec3 r, float a, vec3 v);
+vec4 randomRectangleAreaDirection(vec3 p, vec3 c, vec3 x, vec3 y, vec2 rand);
+float randomRectangleAreaDirectionPDF(vec3 p, vec3 c, vec3 x, vec3 y, vec3 v);
 bool inrect(vec3 p, vec3 c, vec3 x, vec3 y);
 
 struct box {
@@ -173,17 +176,34 @@ vec3 trace(vec3 origin, vec3 dir) {
     rectangle li = rectangles[0];
     vec4 s;
     if (multipleImportanceSampled) {
-      if (rand.z < PROBABILITY_OF_LIGHT_SAMPLE) {
-        s = randomRectanglePoint(origin, li.c, li.x, li.y, rand.xy);
-        float p = hemisphereProbability(normal, s.xyz);
-        s.w = (s.w + p) * PROBABILITY_OF_LIGHT_SAMPLE;
+      float wl = PROBABILITY_OF_LIGHT_SAMPLE;
+      vec3 ps = vec3(wl, specularFactor, 1.0 - specularFactor);
+      vec3 np = ps / (ps.x + ps.y + ps.z);
+      vec2 cdf = vec2(np.x, np.x + np.y);
+      vec3 p, c;
+      vec3 r = reflect(dir, normal);
+      if (rand.z < cdf.x) {
+        s = randomRectangleAreaDirection(origin, li.c, li.x, li.y, rand.xy);
+        p = vec3(s.w,
+                 randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz),
+                 randomPhongWeightedHemisphereDirectionPDF(r, phongExponent, s.xyz));
+        c = np.xzy;
+      } else if (rand.z < cdf.y) {
+        s = randomPhongWeightedHemisphereDirection(r, phongExponent, rand.xy);
+        p = vec3(s.w,
+                 randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz),
+                 randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz));
+        c = np.yzx;
       } else {
-        s = randomHemispherePoint(normal, rand.xy);
-        float p = rectangleProbability(origin, li.c, li.x, li.y, s.xyz);
-        s.w = (s.w + p) * (1.0 - PROBABILITY_OF_LIGHT_SAMPLE);
+        s = randomCosineWeightedHemisphereDirection(normal, rand.xy);
+        p = vec3(s.w,
+                 randomPhongWeightedHemisphereDirectionPDF(r, phongExponent, s.xyz),
+                 randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz));
+        c = np.zyx;
       }
+      s.w = dot(p, c);
     } else {
-      s = randomHemispherePoint(normal, rand.xy);
+      s = randomHemisphereDirection(normal, rand.xy);
     }
     att *= brdf(albedo, s.xyz, -dir, normal);
     dir = s.xyz;

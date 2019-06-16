@@ -14,7 +14,7 @@
         <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
         <lwjgl.version>3.2.3-SNAPSHOT</lwjgl.version>
         <swt.version>4.6.1</swt.version>
-        <joml.version>1.9.15-SNAPSHOT</joml.version>
+        <joml.version>1.9.16-SNAPSHOT</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify
             a different demo. The package "org.lwjgl.demo." is prepended automatically. -->
         <class>game.SpaceGame</class>

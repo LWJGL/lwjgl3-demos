@@ -6,6 +6,7 @@
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
+#define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 
 /*
@@ -25,7 +26,7 @@
  * @returns the unit vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return normalize(abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y));
+  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), abs(v.x) < abs(v.z)));
 }
 
 /**
@@ -121,11 +122,11 @@ vec3 isotropic(float rp, float c) {
  * @returns the random hemisphere vector plus its probability density
  *          value
  */
-vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
+vec4 randomHemisphereDirection(vec3 n, spatialrand rand) {
   return vec4(around(isotropic(rand.x, rand.y), n), ONE_OVER_2PI);
 }
 /**
- * Compute the probability density value of randomHemispherePoint()
+ * Compute the probability density value of randomHemisphereDirection()
  * generating the vector 'v'.
  *
  * @param n the normal vector determining the direction of the
@@ -133,8 +134,75 @@ vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
  * @param v the vector to compute the pdf of
  * @returns pdf(v) for the uniform hemisphere distribution
  */
-float hemisphereProbability(vec3 n, vec3 v) {
+float randomHemisphereDirectionPDF(vec3 n, vec3 v) {
   return step(0.0, dot(v, n)) * ONE_OVER_2PI;
+}
+
+/**
+ * Generate a cosine-weighted random vector on the hemisphere around the given
+ * normal vector 'n'.
+ *
+ * The probability density of any vector is directly proportional to the cosine
+ * of the angle between that vector and the given normal 'n'.
+ *
+ * http://www.rorydriscoll.com/2009/01/07/better-sampling/
+ *
+ * @param n the normal vector determining the direction of the hemisphere
+ * @param rand a vector of two floating-point pseudo-random numbers
+ * @returns the cosine-weighted random hemisphere vector plus its probability
+ *          density value
+ */
+vec4 randomCosineWeightedHemisphereDirection(vec3 n, spatialrand rand) {
+  float c = sqrt(rand.y);
+  return vec4(around(isotropic(rand.x, c), n), c * ONE_OVER_PI);
+}
+/**
+ * Evaluate the probability density function of the cosine-weighted distribution
+ * for the given sample vector 'v'.
+ *
+ * This tells the relative probability of randomCosineWeightedHemisphereDirection()
+ * generating that vector.
+ *
+ * @param r the direction of perfect reflection
+ * @param v the sample vector to evaluate the PDF for
+ * @returns pdf(v)
+ */
+float randomCosineWeightedHemisphereDirectionPDF(vec3 n, vec3 v) {
+  return max(0.0, dot(n, v)) * ONE_OVER_PI;
+}
+
+/**
+ * Generate a Phong-weighted random vector around the given reflection vector
+ * 'r'.
+ * Since the Phong BRDF has higher values when the outgoing vector is close to
+ * the perfect reflection vector of the incoming vector across the normal, we
+ * generate directions primarily around that reflection vector.
+ *
+ * http://blog.tobias-franke.eu/2014/03/30/notes_on_importance_sampling.html
+ *
+ * @param r the direction of perfect reflection
+ * @param a the power to raise the cosine term to in the Phong model
+ * @param rand a vector of two pseudo-random numbers
+ * @returns the Phong-weighted random vector
+ */
+vec4 randomPhongWeightedHemisphereDirection(vec3 r, float a, spatialrand rand) {
+  float ai = 1.0 / (a + 1.0), pr = (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI;
+  return vec4(around(isotropic(rand.x, pow(rand.y, ai)), r), pr);
+}
+/**
+ * Evaluate the probability density function of the Phong-weighted distribution
+ * for the given sample vector 'v'.
+ *
+ * This tells the relative probability of randomPhongWeightedHemisphereDirection()
+ * generating that vector.
+ *
+ * @param r the direction of perfect reflection
+ * @param a the power to raise the cosine term to in the Phong model
+ * @param v the sample vector to evaluate the PDF for
+ * @returns pdf(v)
+ */
+float randomPhongWeightedHemisphereDirectionPDF(vec3 r, float a, vec3 v) {
+  return (a + 1.0) * pow(max(0.0, dot(r, v)), a) * ONE_OVER_2PI;
 }
 
 /**
@@ -148,14 +216,11 @@ float hemisphereProbability(vec3 n, vec3 v) {
  * @param rand a vector of two pseudo-random numbers
  * @returns the random sample vector
  */
-vec4 randomRectanglePoint(vec3 p, vec3 c, vec3 x, vec3 y, spatialrand rand) {
-  vec3 s = c + rand.x * x + rand.y * y, n = cross(x, y);
-  float a2 = dot(n, n), aInv = inversesqrt(a2);
-  n *= aInv;
-  vec3 sp = p - s;
+vec4 randomRectangleAreaDirection(vec3 p, vec3 c, vec3 x, vec3 y, spatialrand rand) {
+  vec3 s = c + rand.x * x + rand.y * y, sp = p - s;
   float len2 = dot(sp, sp);
   vec3 d = sp * inversesqrt(len2);
-  return vec4(-d, aInv * len2 / max(0.0, dot(d, n)));
+  return vec4(-d, len2 / max(0.0, dot(d, cross(x, y))));
 }
 
 /**
@@ -180,7 +245,7 @@ bool inrect(vec3 p, vec3 c, vec3 x, vec3 y) {
 }
 
 /**
- * Compute the probability density value of randomRectanglePoint()
+ * Compute the probability density value of randomRectangleAreaDirection()
  * generating the vector 'v'.
  *
  * @param p the origin/point to sample from
@@ -190,14 +255,11 @@ bool inrect(vec3 p, vec3 c, vec3 x, vec3 y) {
  * @param v the vector to compute the pdf of
  * @returns pdf(v) for the rectangle distribution
  */
-float rectangleProbability(vec3 p, vec3 c, vec3 x, vec3 y, vec3 v) {
+float randomRectangleAreaDirectionPDF(vec3 p, vec3 c, vec3 x, vec3 y, vec3 v) {
   vec3 n = cross(x, y);
-  float a2 = dot(n, n), aInv = inversesqrt(a2);
-  n *= aInv;
   float den = dot(n, v), t = dot(c - p, n) / den;
   vec3 s = p + t * v, sp = p - s;
   float len2 = dot(sp, sp);
   vec3 d = sp * inversesqrt(len2);
-  return float(den < 0.0 && t > 0.0 && inrect(s, c, x, y)) *
-         aInv * len2 / dot(d, n);
+  return float(den < 0.0 && t > 0.0 && inrect(s, c, x, y)) * len2 / dot(d, n);
 }
