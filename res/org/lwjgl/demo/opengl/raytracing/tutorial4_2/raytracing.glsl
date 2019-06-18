@@ -9,8 +9,10 @@ uniform vec3 eye, ray00, ray01, ray10, ray11;
 uniform float time;
 uniform float blendFactor;
 uniform bool multipleImportanceSampled;
+uniform bool useBlueNoise;
 uniform float phongExponent;
 uniform float specularFactor;
+uniform sampler2D blueNoiseTex;
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
@@ -69,14 +71,9 @@ ivec2 px;
 
 bool intersectRectangle(vec3 origin, vec3 dir, rectangle r, out hitinfo hinfo) {
   vec3 n = cross(r.x, r.y);
-  float a2 = dot(n, n), aInv = inversesqrt(a2);
-  n *= aInv;
   float den = dot(n, dir), t = dot(r.c - origin, n) / den;
-  vec3 s = origin + t * dir, sp = origin - s;
-  float len2 = dot(sp, sp);
-  vec3 d = sp * inversesqrt(len2);
   hinfo.near = t;
-  return den < 0.0 && t > 0.0 && inrect(s, r.c, r.x, r.y);
+  return den < 0.0 && t > 0.0 && inrect(origin + t * dir, r.c, r.x, r.y);
 }
 
 vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
@@ -134,11 +131,21 @@ vec3 normalForBox(vec3 hit, const box b) {
     return vec3(0.0, 0.0, 1.0);
 }
 
-vec3 randvec3(int s) {
+vec3 randBlueNoise(int s) {
+  vec2 o = vec2(
+    random(vec3(ivec2(s), time)),
+    random(vec3(ivec2(s), time*1.3)));
+  vec3 bn = texture(blueNoiseTex, o + vec2(px) / textureSize(blueNoiseTex, 0)).rgb;
+  return fract(bn + time);
+}
+vec3 randWhiteNoise(int s) {
   return vec3(
     random(vec3(px + ivec2(s), time)),
-    random(vec3(px + ivec2(s), time * 1.1)),
-    random(vec3(px + ivec2(s), time * 0.3)));
+    random(vec3(px + ivec2(s), time*1.1)),
+    random(vec3(px + ivec2(s), time*0.3)));
+}
+vec3 randvec3(int s) {
+  return useBlueNoise ? randBlueNoise(s) : randWhiteNoise(s);
 }
 
 vec3 brdfSpecular(vec3 i, vec3 o, vec3 n) {

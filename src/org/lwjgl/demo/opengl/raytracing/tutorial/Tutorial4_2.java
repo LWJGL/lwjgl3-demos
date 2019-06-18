@@ -19,6 +19,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -49,6 +50,7 @@ public class Tutorial4_2 {
      * The OpenGL texture acting as our framebuffer for the ray tracer.
      */
     private int tex;
+    private int blueNoiseTex;
     /**
      * A VAO simply holding a VBO for rendering a simple quad.
      */
@@ -79,6 +81,7 @@ public class Tutorial4_2 {
     private int timeUniform;
     private int blendFactorUniform;
     private int multipleImportanceSampledUniform;
+    private int useBlueNoiseUniform;
     private int phongExponentUniform;
     private int specularFactorUniform;
     /**
@@ -99,8 +102,12 @@ public class Tutorial4_2 {
     private boolean mouseDown;
     private int frameNumber;
     private boolean multipleImportanceSampled;
+    private boolean useBlueNoise;
+    private boolean accumulateSamples = true;
+    private boolean freezeTime;
     private float phongExponent = 128.0f;
     private float specularFactor = 0.0f;
+    private int maxAccumulateSamples = 1;
 
     private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
     private Matrix4f projMatrix = new Matrix4f();
@@ -163,8 +170,12 @@ public class Tutorial4_2 {
         System.out.println("Press WSAD, LCTRL, SPACE to move around in the scene.");
         System.out.println("Hold down left shift to move faster.");
         System.out.println("Press 'C' to toggle between uniform and multiple importance sampling.");
+        System.out.println("Press 'B' to toggle between blue noise and white noise sampling.");
+        System.out.println("Press 'F' to enable/disable accumulating sampling indefinitely over time.");
+        System.out.println("Press 'T' to freeze/continue time.");
         System.out.println("Press +/- to increase/decrease the specular factor.");
         System.out.println("Press PAGEUP/PAGEDOWN to increase/decrease the Phong power.");
+        System.out.println("Press arrow up/down to increase/decrease the maximum number of accumulated samples.");
         System.out.println("Move the mouse to look around.");
 
         /* And set some GLFW callbacks to get notified about events. */
@@ -181,6 +192,27 @@ public class Tutorial4_2 {
                         System.out.println("Using multiple importance sampling");
                     else
                         System.out.println("Using uniform sampling");
+                } else if (key == GLFW_KEY_B && action == GLFW_RELEASE) {
+                    useBlueNoise = !useBlueNoise;
+                    frameNumber = 0;
+                    if (useBlueNoise)
+                        System.out.println("Using blue noise texture");
+                    else
+                        System.out.println("Using white noise");
+                } else if (key == GLFW_KEY_F && action == GLFW_RELEASE) {
+                    accumulateSamples = !accumulateSamples;
+                    frameNumber = 0;
+                    if (accumulateSamples)
+                        System.out.println("Accumulating samples indefinitely");
+                    else
+                        System.out.println("Accumulating max. " + maxAccumulateSamples + " samples");
+                } else if (key == GLFW_KEY_T && action == GLFW_RELEASE) {
+                    freezeTime = !freezeTime;
+                    frameNumber = 0;
+                    if (freezeTime)
+                        System.out.println("Freezing time");
+                    else
+                        System.out.println("Continuing time");
                 } else if (key == GLFW_KEY_KP_ADD && action == GLFW_RELEASE) {
                     specularFactor += 0.1f;
                     if (specularFactor > 1.0f)
@@ -203,6 +235,14 @@ public class Tutorial4_2 {
                         phongExponent = 1.0f;
                     System.out.println("Phong exponent = " + phongExponent);
                     frameNumber = 0;
+                } else if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+                    maxAccumulateSamples++;
+                    frameNumber = 0;
+                    System.out.println("Accumulating max. " + maxAccumulateSamples + " samples");
+                } else if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+                    maxAccumulateSamples = Math.max(1, maxAccumulateSamples - 1);
+                    frameNumber = 0;
+                    System.out.println("Accumulating max. " + maxAccumulateSamples + " samples");
                 }
                 keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
             }
@@ -282,6 +322,7 @@ public class Tutorial4_2 {
         viewMatrix.setLookAt(cameraPosition, cameraLookAt, cameraUp);
 
         /* Create all needed GL resources */
+        loadTexture();
         createFramebufferTexture();
         createSampler();
         quadFullScreenVao();
@@ -374,6 +415,25 @@ public class Tutorial4_2 {
         this.computeProgram = program;
     }
 
+    private void loadTexture() throws IOException {
+        try (MemoryStack frame = MemoryStack.stackPush()) {
+            IntBuffer width = frame.mallocInt(1);
+            IntBuffer height = frame.mallocInt(1);
+            IntBuffer components = frame.mallocInt(1);
+            blueNoiseTex = glGenTextures();
+            glBindTexture(GL_TEXTURE_2D, blueNoiseTex);
+            ByteBuffer data;
+            data = stbi_load_from_memory(DemoUtils.ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_2/blueNoise.png", 1024), width,
+                    height, components, 3);
+            int w = width.get(0), h = height.get(0);
+            glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGB8, w, h);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+
     /**
      * Initialize the full-screen-quad program. This just binds the program briefly
      * to obtain the uniform locations.
@@ -404,6 +464,7 @@ public class Tutorial4_2 {
         timeUniform = glGetUniformLocation(computeProgram, "time");
         blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
         multipleImportanceSampledUniform = glGetUniformLocation(computeProgram, "multipleImportanceSampled");
+        useBlueNoiseUniform = glGetUniformLocation(computeProgram, "useBlueNoise");
         phongExponentUniform = glGetUniformLocation(computeProgram, "phongExponent");
         specularFactorUniform = glGetUniformLocation(computeProgram, "specularFactor");
 
@@ -412,6 +473,7 @@ public class Tutorial4_2 {
         int loc = glGetUniformLocation(computeProgram, "framebufferImage");
         glGetUniformiv(computeProgram, loc, params);
         framebufferImageBinding = params.get(0);
+        glUniform1i(glGetUniformLocation(computeProgram, "blueNoiseTex"), 0);
 
         glUseProgram(0);
     }
@@ -442,6 +504,8 @@ public class Tutorial4_2 {
         this.sampler = glGenSamplers();
         glSamplerParameteri(this.sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glSamplerParameteri(this.sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glSamplerParameteri(this.sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glSamplerParameteri(this.sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
 
     /**
@@ -504,6 +568,8 @@ public class Tutorial4_2 {
      * explanation.
      */
     private void trace(float elapsedSeconds) {
+        if (!accumulateSamples && frameNumber > maxAccumulateSamples)
+            return;
         glUseProgram(computeProgram);
 
         /*
@@ -534,6 +600,7 @@ public class Tutorial4_2 {
          * Set whether we want to use multiple importance sampling.
          */
         glUniform1i(multipleImportanceSampledUniform, multipleImportanceSampled ? 1 : 0);
+        glUniform1i(useBlueNoiseUniform, useBlueNoise ? 1 : 0);
         /*
          * Set the phong power/exponent which can be configured via PAGEDOWN/PAGEUP
          * keys.
@@ -572,6 +639,9 @@ public class Tutorial4_2 {
          */
         glBindImageTexture(framebufferImageBinding, tex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 
+        glBindSampler(0, sampler);
+        glBindTexture(GL_TEXTURE_2D, blueNoiseTex);
+
         /*
          * Compute appropriate global work size dimensions.
          */
@@ -588,6 +658,8 @@ public class Tutorial4_2 {
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         /* Reset bindings. */
+        glBindSampler(0, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
         glUseProgram(0);
 
@@ -621,9 +693,12 @@ public class Tutorial4_2 {
          * Our render loop is really simple...
          */
         float lastTime = System.nanoTime();
+        float totalElapsedTime = 0.0f;
         while (!glfwWindowShouldClose(window)) {
             float thisTime = System.nanoTime();
             float dt = (thisTime - lastTime) / 1E9f;
+            if (!freezeTime)
+                totalElapsedTime += dt;
             lastTime = thisTime;
             /*
              * ...we just poll for GLFW window events (as usual).
@@ -641,7 +716,7 @@ public class Tutorial4_2 {
              * Call the compute shader to trace the scene and produce an image in our
              * framebuffer texture.
              */
-            trace(thisTime / 1E9f);
+            trace(totalElapsedTime);
             /*
              * Finally we blit/render the framebuffer texture to the default window
              * framebuffer of the GLFW window.
