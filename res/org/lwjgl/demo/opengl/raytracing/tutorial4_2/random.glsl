@@ -32,6 +32,21 @@ vec3 ortho(vec3 v) {
 /**
  * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html?showComment=1507064059398#c5427444543794991219
  */
+uint hash2(uint x, uint y) {
+  x += x >> 11;
+  x ^= x << 7;
+  x += y;
+  x ^= x << 6;
+  x += x >> 15;
+  x ^= x << 5;
+  x += x >> 12;
+  x ^= x << 9;
+  return x;
+}
+
+/**
+ * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html?showComment=1507064059398#c5427444543794991219
+ */
 uint hash3(uint x, uint y, uint z) {
   x += x >> 11;
   x ^= x << 7;
@@ -68,11 +83,18 @@ uint hash3(uint x, uint y, uint z) {
  *          pseudo-random number from
  * @returns a single pseudo-random number in [0, 1)
  */
-float random(vec3 f) {
+float random3(vec3 f) {
   uint mantissaMask = 0x007FFFFFu;
   uint one = 0x3F800000u;
   uvec3 u = floatBitsToUint(f);
   uint h = hash3(u.x, u.y, u.z);
+  return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
+}
+float random2(vec2 f) {
+  uint mantissaMask = 0x007FFFFFu;
+  uint one = 0x3F800000u;
+  uvec2 u = floatBitsToUint(f);
+  uint h = hash2(u.x, u.y);
   return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
 }
 
