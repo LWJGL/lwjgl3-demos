@@ -154,7 +154,7 @@ public class DemoUtils {
                     if (bytes == -1)
                         break;
                     if (buffer.remaining() < bytes)
-                        buffer = resizeBuffer(buffer, buffer.capacity() * 2);
+                        buffer = resizeBuffer(buffer, Math.max(buffer.capacity() * 2, buffer.capacity() - buffer.remaining() + bytes));
                     buffer.put(buf, 0, bytes);
                 }
                 buffer.flip();
