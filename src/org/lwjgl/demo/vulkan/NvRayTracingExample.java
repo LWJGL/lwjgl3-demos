@@ -994,7 +994,7 @@ public class NvRayTracingExample {
     private static void loadModule(MemoryStack stack, VkPipelineShaderStageCreateInfo pStage,
                                    String classpathResource, int vkShaderStageRaygenBitNv) throws IOException {
         String pack = NvRayTracingExample.class.getPackage().getName().replace('.', '/');
-        loadShader(pStage, stack, device, pack + "/" + classpathResource, vkShaderStageRaygenBitNv);
+        loadShader(pStage, null, stack, device, pack + "/" + classpathResource, vkShaderStageRaygenBitNv);
     }
 
     private static class DescriptorSets {

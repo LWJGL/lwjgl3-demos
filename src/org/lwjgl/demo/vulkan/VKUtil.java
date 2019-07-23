@@ -5,12 +5,15 @@
 package org.lwjgl.demo.vulkan;
 
 import org.lwjgl.assimp.*;
-import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.util.shaderc.ShadercIncludeResolve;
+import org.lwjgl.util.shaderc.ShadercIncludeResult;
+import org.lwjgl.util.shaderc.ShadercIncludeResultRelease;
 import org.lwjgl.vulkan.VkCommandBuffer;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
+import org.lwjgl.vulkan.VkSpecializationInfo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -56,12 +59,34 @@ public class VKUtil {
     }
 
     public static ByteBuffer glslToSpirv(String classPath, int vulkanStage) throws IOException {
-        ByteBuffer src = DemoUtils.ioResourceToByteBuffer(classPath, 1024);
+        ByteBuffer src = ioResourceToByteBuffer(classPath, 1024);
         long compiler = shaderc_compiler_initialize();
+        long options = shaderc_compile_options_initialize();
+        ShadercIncludeResolve resolver;
+        ShadercIncludeResultRelease releaser;
+        shaderc_compile_options_set_include_callbacks(options, resolver = new ShadercIncludeResolve() {
+            public long invoke(long user_data, long requested_source, int type, long requesting_source, long include_depth) {
+                ShadercIncludeResult res = ShadercIncludeResult.calloc();
+                try {
+                    String src = classPath.substring(0, classPath.lastIndexOf('/')) + "/" + memUTF8(requested_source);
+                    res.content(ioResourceToByteBuffer(src, 1024));
+                    res.source_name(memUTF8(src));
+                    return res.address(); 
+                } catch (IOException e) {
+                    throw new AssertionError("Failed to resolve include: " + src);
+                }
+            }
+        }, releaser = new ShadercIncludeResultRelease() {
+            public void invoke(long user_data, long include_result) {
+                ShadercIncludeResult result = ShadercIncludeResult.create(include_result);
+                memFree(result.source_name());
+                result.free();
+            }
+        }, 0L);
         long res;
         try (MemoryStack stack = MemoryStack.stackPush()) {
             res = shaderc_compile_into_spv(compiler, src, vulkanStageToShadercKind(vulkanStage),
-                            stack.UTF8(classPath), stack.UTF8("main"), 0L);
+                            stack.UTF8(classPath), stack.UTF8("main"), options);
             if (res == 0L)
                 throw new AssertionError("Internal error during compilation!");
         }
@@ -74,6 +99,8 @@ public class VKUtil {
         resultBytes.flip();
         shaderc_compiler_release(res);
         shaderc_compiler_release(compiler);
+        releaser.free();
+        resolver.free();
         return resultBytes;
     }
 
@@ -103,8 +130,8 @@ public class VKUtil {
         }
     }
 
-    public static void loadShader(VkPipelineShaderStageCreateInfo info, MemoryStack stack, VkDevice device,
-                                  String classPath, int stage) throws IOException {
+    public static void loadShader(VkPipelineShaderStageCreateInfo info, VkSpecializationInfo specInfo,
+                                  MemoryStack stack, VkDevice device, String classPath, int stage) throws IOException {
         ByteBuffer shaderCode = glslToSpirv(classPath, stage);
         LongBuffer pShaderModule = stack.mallocLong(1);
         _CHECK_(vkCreateShaderModule(device, VkShaderModuleCreateInfo(stack)
@@ -114,6 +141,7 @@ public class VKUtil {
                 "Failed to create shader module");
         info.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
                 .stage(stage)
+                .pSpecializationInfo(specInfo)
                 .module(pShaderModule.get(0)).pName(stack.UTF8("main"));
     }
 

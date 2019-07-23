@@ -188,7 +188,7 @@ public class VKFactory {
     }
 
     static VkRayTracingShaderGroupCreateInfoNV.Buffer VkRayTracingShaderGroupCreateInfoNV(int size, MemoryStack stack) {
-        VkRayTracingShaderGroupCreateInfoNV.Buffer buf = VkRayTracingShaderGroupCreateInfoNV.callocStack(3, stack);
+        VkRayTracingShaderGroupCreateInfoNV.Buffer buf = VkRayTracingShaderGroupCreateInfoNV.callocStack(size, stack);
         buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV));
         return buf;
     }
@@ -312,4 +312,45 @@ public class VKFactory {
     static VkComponentMapping VkComponentMapping(MemoryStack stack) {
         return VkComponentMapping.callocStack(stack);
     }
+
+    static VkAttachmentReference VkAttachmentReference(MemoryStack stack) {
+        return VkAttachmentReference.callocStack(stack);
+    }
+
+    static VkAttachmentReference.Buffer VkAttachmentReference(MemoryStack stack, int count) {
+        return VkAttachmentReference.callocStack(count, stack);
+    }
+
+    static VkSubpassDescription.Buffer VkSubpassDescription(MemoryStack stack, int count) {
+        return VkSubpassDescription.callocStack(count, stack);
+    }
+
+    static VkAttachmentDescription.Buffer VkAttachmentDescription(MemoryStack stack, int count) {
+        return VkAttachmentDescription.callocStack(count, stack);
+    }
+
+    static VkRenderPassCreateInfo VkRenderPassCreateInfo(MemoryStack stack) {
+        return VkRenderPassCreateInfo.callocStack(stack);
+    }
+
+    static VkOffset3D VkOffset3D(MemoryStack stack) {
+        return VkOffset3D.callocStack(stack);
+    }
+
+    static VkImageBlit.Buffer VkImageBlit(MemoryStack stack, int count) {
+        return VkImageBlit.callocStack(count, stack);
+    }
+
+    static VkSpecializationMapEntry.Buffer VkSpecializationMapEntry(MemoryStack stack, int count) {
+        return VkSpecializationMapEntry.callocStack(count, stack);
+    }
+
+    static VkSpecializationInfo VkSpecializationInfo(MemoryStack stack) {
+        return VkSpecializationInfo.callocStack(stack);
+    }
+
+    static VkQueryPoolCreateInfo VkQueryPoolCreateInfo(MemoryStack stack) {
+        return VkQueryPoolCreateInfo.callocStack(stack).sType(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
+    }
+
 }
