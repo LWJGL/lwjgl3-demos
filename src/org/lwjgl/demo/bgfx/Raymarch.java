@@ -23,7 +23,7 @@ import static org.lwjgl.bgfx.BGFX.*;
  */
 public class Raymarch extends Demo {
 
-    private BGFXVertexDecl decl;
+    private BGFXVertexLayout layout;
     private short program;
     private short uniformMtx;
     private short uniformLightDirTime;
@@ -57,7 +57,7 @@ public class Raymarch extends Demo {
             BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
             BGFXTransientIndexBuffer tib = BGFXTransientIndexBuffer.callocStack(stack);
 
-            if (bgfx_alloc_transient_buffers(tvb, decl, 4, tib, 6)) {
+            if (bgfx_alloc_transient_buffers(tvb, layout, 4, tib, 6)) {
                 ByteBuffer vertex = tvb.data();
 
                 float zz = 0.0f;
@@ -124,7 +124,7 @@ public class Raymarch extends Demo {
 
     @Override
     protected void create() throws IOException {
-        decl = BGFXDemoUtil.createVertexDecl(false, true, 1);
+        layout = BGFXDemoUtil.createVertexLayout(false, true, 1);
 
         uniformMtx = bgfx_create_uniform("u_mtx", BGFX_UNIFORM_TYPE_MAT4, 1);
         uniformLightDirTime = bgfx_create_uniform("u_lightDirTime", BGFX_UNIFORM_TYPE_VEC4, 1);
@@ -208,7 +208,7 @@ public class Raymarch extends Demo {
         bgfx_destroy_uniform(uniformMtx);
         bgfx_destroy_uniform(uniformLightDirTime);
 
-        decl.free();
+        layout.free();
     }
 
 }

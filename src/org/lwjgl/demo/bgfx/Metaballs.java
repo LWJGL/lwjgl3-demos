@@ -34,7 +34,7 @@ public class Metaballs extends Demo {
         Vector3f normal = new Vector3f();
     }
 
-    private BGFXVertexDecl decl;
+    private BGFXVertexLayout layout;
     private short program;
 
     private Matrix4f view = new Matrix4f();
@@ -391,7 +391,7 @@ public class Metaballs extends Demo {
     }
 
     private static final float[][] verts = new float[12][6];
-    private static final int[] idxTable = new int[] { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
+    private static final int[] idxTable = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
     private static final float[][] sphere = new float[16][4];
     private static final float[] rgb = new float[6];
     private static final Grid[] gridTable = new Grid[8];
@@ -464,7 +464,7 @@ public class Metaballs extends Demo {
 
     @Override
     protected void create() throws IOException {
-        decl = BGFXDemoUtil.createVertexDecl(true, true, 0);
+        layout = BGFXDemoUtil.createVertexLayout(true, true, 0);
 
         short vs = BGFXDemoUtil.loadShader(vs_metaballs_glsl, vs_metaballs_dx9, vs_metaballs_dx11, vs_metaballs_mtl);
         short fs = BGFXDemoUtil.loadShader(fs_metaballs_glsl, fs_metaballs_dx9, fs_metaballs_dx11, fs_metaballs_mtl);
@@ -514,7 +514,7 @@ public class Metaballs extends Demo {
             // Allocate 32K vertices in transient vertex buffer.
             int maxVertices = (32 << 10);
             BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
-            bgfx_alloc_transient_vertex_buffer(tvb, maxVertices, decl);
+            bgfx_alloc_transient_vertex_buffer(tvb, maxVertices, layout);
 
             int numSpheres = 16;
             for (int ii = 0; ii < numSpheres; ++ii) {
@@ -616,7 +616,7 @@ public class Metaballs extends Demo {
                         gridTable[6] = grid[xoffset + 1];
                         gridTable[7] = grid[xoffset];
 
-                        int num = triangulate(vertex, decl.stride(), rgb, pos, gridTable, 0.5f);
+                        int num = triangulate(vertex, layout.stride(), rgb, pos, gridTable, 0.5f);
                         numVertices += num;
                     }
                 }
@@ -665,7 +665,7 @@ public class Metaballs extends Demo {
         MemoryUtil.memFree(modelBuf);
 
         bgfx_destroy_program(program);
-        decl.free();
+        layout.free();
     }
 
     /*

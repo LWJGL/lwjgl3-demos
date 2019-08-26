@@ -23,7 +23,7 @@ import static org.lwjgl.bgfx.BGFX.*;
  */
 public class Bump extends Demo {
 
-    private BGFXVertexDecl decl;
+    private BGFXVertexLayout layout;
     private ByteBuffer vertices;
     private short vbh;
     private ByteBuffer indices;
@@ -122,7 +122,7 @@ public class Bump extends Demo {
 
     private static ByteBuffer calcTangents(
             Object[][] _vertices, int _numVertices,
-            BGFXVertexDecl _decl, int[] _indices, int _numIndices
+            BGFXVertexLayout _layout, int[] _indices, int _numIndices
     ) {
 
         float[] out = new float[4];
@@ -151,14 +151,14 @@ public class Bump extends Demo {
             int i1 = _indices[index0 + 1];
             int i2 = _indices[index0 + 2];
 
-            bgfx_vertex_unpack(v0.m_xyz, BGFX_ATTRIB_POSITION, _decl, vertices, i0);
-            bgfx_vertex_unpack(v0.m_uv, BGFX_ATTRIB_TEXCOORD0, _decl, vertices, i0);
+            bgfx_vertex_unpack(v0.m_xyz, BGFX_ATTRIB_POSITION, _layout, vertices, i0);
+            bgfx_vertex_unpack(v0.m_uv, BGFX_ATTRIB_TEXCOORD0, _layout, vertices, i0);
 
-            bgfx_vertex_unpack(v1.m_xyz, BGFX_ATTRIB_POSITION, _decl, vertices, i1);
-            bgfx_vertex_unpack(v1.m_uv, BGFX_ATTRIB_TEXCOORD0, _decl, vertices, i1);
+            bgfx_vertex_unpack(v1.m_xyz, BGFX_ATTRIB_POSITION, _layout, vertices, i1);
+            bgfx_vertex_unpack(v1.m_uv, BGFX_ATTRIB_TEXCOORD0, _layout, vertices, i1);
 
-            bgfx_vertex_unpack(v2.m_xyz, BGFX_ATTRIB_POSITION, _decl, vertices, i2);
-            bgfx_vertex_unpack(v2.m_uv, BGFX_ATTRIB_TEXCOORD0, _decl, vertices, i2);
+            bgfx_vertex_unpack(v2.m_xyz, BGFX_ATTRIB_POSITION, _layout, vertices, i2);
+            bgfx_vertex_unpack(v2.m_uv, BGFX_ATTRIB_TEXCOORD0, _layout, vertices, i2);
 
             float bax = v1.m_xyz[0] - v0.m_xyz[0];
             float bay = v1.m_xyz[1] - v0.m_xyz[1];
@@ -201,7 +201,7 @@ public class Bump extends Demo {
             Vector3f tanu = new Vector3f(tangents[ii * 6], tangents[ii * 6 + 1], tangents[ii * 6 + 2]);
             Vector3f tanv = new Vector3f(tangents[ii * 6 + 3], tangents[ii * 6 + 4], tangents[ii * 6 + 5]);
 
-            bgfx_vertex_unpack(out, BGFX_ATTRIB_NORMAL, _decl, vertices, ii);
+            bgfx_vertex_unpack(out, BGFX_ATTRIB_NORMAL, _layout, vertices, ii);
             Vector3f normal = new Vector3f(out[0], out[1], out[2]);
             float ndt = normal.dot(tanu);
 
@@ -217,7 +217,7 @@ public class Bump extends Demo {
             out[1] = tangent.y;
             out[2] = tangent.z;
             out[3] = nxt.dot(tanv) < 0.0f ? -1.0f : 1.0f;
-            bgfx_vertex_pack(out, true, BGFX_ATTRIB_TANGENT, _decl, vertices, ii);
+            bgfx_vertex_pack(out, true, BGFX_ATTRIB_TANGENT, _layout, vertices, ii);
         }
 
         return vertices;
@@ -225,20 +225,20 @@ public class Bump extends Demo {
 
     @Override
     protected void create() throws IOException {
-        decl = BGFXVertexDecl.calloc();
-        bgfx_vertex_decl_begin(decl, renderer);
-        bgfx_vertex_decl_add(decl, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false);
-        bgfx_vertex_decl_add(decl, BGFX_ATTRIB_NORMAL, 4, BGFX_ATTRIB_TYPE_UINT8, true, true);
-        bgfx_vertex_decl_add(decl, BGFX_ATTRIB_TANGENT, 4, BGFX_ATTRIB_TYPE_UINT8, true, true);
-        bgfx_vertex_decl_add(decl, BGFX_ATTRIB_TEXCOORD0, 2, BGFX_ATTRIB_TYPE_INT16, true, true);
-        bgfx_vertex_decl_end(decl);
+        layout = BGFXVertexLayout.calloc();
+        bgfx_vertex_layout_begin(layout, renderer);
+        bgfx_vertex_layout_add(layout, BGFX_ATTRIB_POSITION, 3, BGFX_ATTRIB_TYPE_FLOAT, false, false);
+        bgfx_vertex_layout_add(layout, BGFX_ATTRIB_NORMAL, 4, BGFX_ATTRIB_TYPE_UINT8, true, true);
+        bgfx_vertex_layout_add(layout, BGFX_ATTRIB_TANGENT, 4, BGFX_ATTRIB_TYPE_UINT8, true, true);
+        bgfx_vertex_layout_add(layout, BGFX_ATTRIB_TEXCOORD0, 2, BGFX_ATTRIB_TYPE_INT16, true, true);
+        bgfx_vertex_layout_end(layout);
 
         BGFXCaps caps = bgfx_get_caps();
         instancingSupported = (caps.supported() & BGFX_CAPS_INSTANCING) != 0;
 
-        vertices = calcTangents(cubeVertices, cubeVertices.length, decl, cubeIndices, cubeIndices.length);
+        vertices = calcTangents(cubeVertices, cubeVertices.length, layout, cubeIndices, cubeIndices.length);
 
-        vbh = BGFXDemoUtil.createVertexBuffer(vertices, decl);
+        vbh = BGFXDemoUtil.createVertexBuffer(vertices, layout);
 
         indices = MemoryUtil.memAlloc(cubeIndices.length * 2);
 
@@ -410,6 +410,6 @@ public class Bump extends Demo {
         MemoryUtil.memFree(mtxBuf);
         MemoryUtil.memFree(uniformBuf);
 
-        decl.free();
+        layout.free();
     }
 }

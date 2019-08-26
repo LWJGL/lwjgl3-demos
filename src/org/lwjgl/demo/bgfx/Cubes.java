@@ -6,7 +6,7 @@ package org.lwjgl.demo.bgfx;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.bgfx.BGFXVertexDecl;
+import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class Cubes extends Demo {
             6, 3, 7
     };
 
-    private BGFXVertexDecl decl;
+    private BGFXVertexLayout layout;
     private ByteBuffer vertices;
     private short vbh;
     private ByteBuffer indices;
@@ -73,11 +73,11 @@ public class Cubes extends Demo {
 
     @Override
     protected void create() throws IOException {
-        decl = BGFXDemoUtil.createVertexDecl(false, true, 0);
+        layout = BGFXDemoUtil.createVertexLayout(false, true, 0);
 
         vertices = MemoryUtil.memAlloc(8 * (3 * 4 + 4));
 
-        vbh = BGFXDemoUtil.createVertexBuffer(vertices, decl, cubeVertices);
+        vbh = BGFXDemoUtil.createVertexBuffer(vertices, layout, cubeVertices);
 
         indices = MemoryUtil.memAlloc(cubeIndices.length * 2);
 
@@ -151,7 +151,7 @@ public class Cubes extends Demo {
         bgfx_destroy_vertex_buffer(vbh);
         MemoryUtil.memFree(vertices);
 
-        decl.free();
+        layout.free();
     }
 
 }
