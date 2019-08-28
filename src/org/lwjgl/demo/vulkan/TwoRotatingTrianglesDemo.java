@@ -1042,6 +1042,7 @@ public class TwoRotatingTrianglesDemo {
         VkWriteDescriptorSet.Buffer writeDescriptorSet = VkWriteDescriptorSet.calloc(1)
                 .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                 .dstSet(descriptorSet)
+                .descriptorCount(1)
                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                 .pBufferInfo(descriptor)
                 .dstBinding(0); // <- Binds this uniform buffer to binding point 0
