@@ -102,29 +102,21 @@ public class Cubes extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 0.0f, -35.0f), view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        view.get(viewBuf);
-        proj.get(projBuf);
-
-        bgfx_set_view_transform(0, viewBuf, projBuf);
+        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
         for (int yy = 0; yy < 11; ++yy) {
             for (int xx = 0; xx < 11; ++xx) {
-                model
-                        .identity()
-                        .translate(
-                                -15.0f + xx * 3.0f,
-                                -15.0f + yy * 3.0f,
-                                0.0f)
-                        .rotateAffineXYZ(
-                                time + xx * 0.21f,
-                                time + yy * 0.37f,
-                                0.0f)
-                ;
-
-                model.get(modelBuf);
-
-                bgfx_encoder_set_transform(encoder, modelBuf);
+                bgfx_encoder_set_transform(encoder,
+                    model.translation(
+                              -15.0f + xx * 3.0f,
+                              -15.0f + yy * 3.0f,
+                              0.0f)
+                         .rotateAffineXYZ(
+                              time + xx * 0.21f,
+                              time + yy * 0.37f,
+                              0.0f)
+                         .get(modelBuf));
 
                 bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 8, BGFX_INVALID_HANDLE);
                 bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);

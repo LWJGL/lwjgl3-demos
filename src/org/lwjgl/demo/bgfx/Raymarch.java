@@ -154,20 +154,13 @@ public class Raymarch extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 0.0f, -15.0f), view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        view.get(viewBuf);
-        proj.get(projBuf);
-
-        bgfx_set_view_transform(0, viewBuf, projBuf);
+        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
 
         BGFXDemoUtil.ortho(0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 100.0f, ortho);
-        ortho.get(orthoBuf);
-        bgfx_set_view_transform(1, null, orthoBuf);
+        bgfx_set_view_transform(1, null, ortho.get(orthoBuf));
 
-        proj.mul(view, vp);
-
-        mtx.setRotationXYZ(time, time * 0.37f, 0.0f);
-
-        mtx.invert(mtxInv);
+        mtx.setRotationXYZ(time, time * 0.37f, 0.0f)
+           .invert(mtxInv);
 
         Vector4f lightDirModel = new Vector4f(-0.4f, -0.5f, -1.0f, 0.0f);
         Vector4f lightDirModelN = new Vector4f();
@@ -184,12 +177,11 @@ public class Raymarch extends Demo {
         lightDirTime.get(lightDirTimeBuf);
         bgfx_encoder_set_uniform(encoder, uniformLightDirTime, lightDirTimeBuf, 1);
 
-        vp.mul(mtx, mvp);
-
-        mvp.invert(invMvp);
-
-        invMvp.get(mtxBuf);
-        bgfx_encoder_set_uniform(encoder, uniformMtx, mtxBuf, 1);
+        bgfx_encoder_set_uniform(encoder, uniformMtx, 
+            proj.mul(view, vp)
+                .mul(mtx, mvp)
+                .invert(invMvp)
+                .get(mtxBuf), 1);
 
         renderScreenSpaceQuad(encoder, 1, program, 0.0f, 0.0f, 1280.0f, 720.0f);
 

@@ -498,10 +498,7 @@ public class Metaballs extends Demo {
             BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
             BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-            view.get(viewBuf);
-            proj.get(projBuf);
-
-            bgfx_set_view_transform(0, viewBuf, projBuf);
+            bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
 
             bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
 
@@ -625,18 +622,15 @@ public class Metaballs extends Demo {
             profTriangulate = glfwGetTimerValue() - profTriangulate;
 
             model
-                    .identity()
-                    .rotateAffineXYZ(
+                    .rotationXYZ(
                             time * 0.67f,
                             time,
                             0.0f)
             ;
 
-            model.get(modelBuf);
-
             long encoder = bgfx_encoder_begin(false);
 
-            bgfx_encoder_set_transform(encoder, modelBuf);
+            bgfx_encoder_set_transform(encoder, model.get(modelBuf));
 
             // Set vertex and index buffer.
             bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, numVertices, BGFX_INVALID_HANDLE);

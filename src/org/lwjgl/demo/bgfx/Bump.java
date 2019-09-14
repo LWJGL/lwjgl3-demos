@@ -283,10 +283,7 @@ public class Bump extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        view.get(viewBuf);
-        proj.get(projBuf);
-
-        bgfx_set_view_transform(0, viewBuf, projBuf);
+        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
 
         bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
 
@@ -324,12 +321,9 @@ public class Bump extends Demo {
                 ByteBuffer data = idb.data();
 
                 for (int xx = 0; xx < 3; ++xx) {
-                    mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f);
-                    mtx.m30(-3.0f + xx * 3.0f);
-                    mtx.m31(-3.0f + yy * 3.0f);
-                    mtx.m32(0.0f);
-
-                    mtx.get(data);
+                    mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f)
+                       .setTranslation(-3.0f + xx * 3.0f, -3.0f + yy * 3.0f, 0.0f)
+                       .get(data);
                     data.position(data.position() + instanceStride);
                 }
 
@@ -358,14 +352,11 @@ public class Bump extends Demo {
         } else {
             for (int yy = 0; yy < 3; ++yy) {
                 for (int xx = 0; xx < 3; ++xx) {
-                    mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f);
-                    mtx.m30(-3.0f + xx * 3.0f);
-                    mtx.m31(-3.0f + yy * 3.0f);
-                    mtx.m32(0.0f);
-
                     // Set transform for draw call.
-                    mtx.get(mtxBuf);
-                    bgfx_encoder_set_transform(encoder, mtxBuf);
+                    bgfx_encoder_set_transform(encoder, 
+                            mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f)
+                               .setTranslation(-3.0f + xx * 3.0f, -3.0f + yy * 3.0f, 0.0f)
+                               .get(mtxBuf));
 
                     // Set vertex and index buffer.
                     bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24, BGFX_INVALID_HANDLE);
