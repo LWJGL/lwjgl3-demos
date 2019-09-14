@@ -1472,6 +1472,7 @@ public class NvRayTracingExample {
         if (debugCallbackHandle != null) {
             debugCallbackHandle.free();
         }
+        vkDestroySurfaceKHR(instance, surface, null);
         vkDestroyInstance(instance, null);
         windowAndCallbacks.free();
     }
