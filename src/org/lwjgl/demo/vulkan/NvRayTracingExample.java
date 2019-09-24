@@ -493,24 +493,30 @@ public class NvRayTracingExample {
         }
     }
 
-    private static void submitCommandBuffer(VkCommandBuffer commandBuffer, Runnable afterComplete) {
+    private static void submitCommandBuffer(VkCommandBuffer commandBuffer, boolean endCommandBuffer, Runnable afterComplete) {
         if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
+        if (endCommandBuffer)
+            _CHECK_(vkEndCommandBuffer(commandBuffer), "Failed to end command buffer");
         try (MemoryStack stack = stackPush()) {
             if (afterComplete != null) {
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack), null, pFence), "Failed to create fence");
-                _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
-                        .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
-                        "Failed to submit command buffer");
+                synchronized (commandPoolLock) {
+                    _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
+                            .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
+                            "Failed to submit command buffer");
+                }
                 long fence = pFence.get(0);
                 fenceWaiter.execute(() ->
                     freeCommandBufferAfterFence(commandBuffer, afterComplete, fence)
                 );
             } else {
-                _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
-                        .pCommandBuffers(stack.pointers(commandBuffer)), VK_NULL_HANDLE),
-                        "Failed to submit command buffer");
+                synchronized (commandPoolLock) {
+                    _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
+                            .pCommandBuffers(stack.pointers(commandBuffer)), VK_NULL_HANDLE),
+                            "Failed to submit command buffer");
+                }
             }
         }
     }
@@ -617,10 +623,9 @@ public class NvRayTracingExample {
             VkCommandBuffer cmdBuffer = createCommandBuffer();
             vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), dstBuffer,
                     VkBufferCopy(stack, 1).size(data.remaining()));
-            vkEndCommandBuffer(cmdBuffer);
             long bufferStage = pBufferStage.get(0);
             long allocationStage = pAllocationStage.get(0);
-            submitCommandBuffer(cmdBuffer, () -> vmaDestroyBuffer(vmaAllocator, bufferStage, allocationStage));
+            submitCommandBuffer(cmdBuffer, true, () -> vmaDestroyBuffer(vmaAllocator, bufferStage, allocationStage));
         }
     }
 
@@ -758,8 +763,7 @@ public class NvRayTracingExample {
                     scratchBuffer.buffer,
                     0);
             buildBarrierForTlasBuild(stack, cmdBuffer);
-            _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
-            submitCommandBuffer(cmdBuffer, scratchBuffer::free);
+            submitCommandBuffer(cmdBuffer, true, scratchBuffer::free);
             BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
             ret.geometry = geometry;
             ret.accelerationStructure = accelerationStructure.get(0);
@@ -867,8 +871,7 @@ public class NvRayTracingExample {
                     scratchBuffer.buffer,
                     0);
             buildBarrierForShaderRead(stack, cmdBuffer);
-            _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
-            submitCommandBuffer(cmdBuffer, () -> {
+            submitCommandBuffer(cmdBuffer, true, () -> {
                 instanceMemory.free();
                 scratchBuffer.free();
             });
@@ -1407,8 +1410,7 @@ public class NvRayTracingExample {
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 6);
             long buffer = pBuffer.get(0);
             long bufferAllocation = pBufferAllocation.get(0);
-            vkEndCommandBuffer(cmdBuffer);
-            submitCommandBuffer(cmdBuffer, () -> vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation));
+            submitCommandBuffer(cmdBuffer, true, () -> vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation));
             EnvironmentTexture ret = new EnvironmentTexture();
             ret.image = pImage.get(0);
             ret.allocation = pImageAllocation.get(0);
@@ -1509,18 +1511,20 @@ public class NvRayTracingExample {
 
     private static void submitAndPresent(int imageIndex) {
         try (MemoryStack stack = stackPush()) {
-            _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
-                    .pCommandBuffers(stack.pointers(commandBuffers[imageIndex]))
-                    .pSignalSemaphores(stack.longs(renderCompleteSemaphore))
-                    .pWaitSemaphores(stack.longs(imageAcquireSemaphore))
-                    .waitSemaphoreCount(1)
-                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), VK_NULL_HANDLE), "Failed to submit queue");
-            _CHECK_(vkQueuePresentKHR(queue, VkPresentInfoKHR(stack)
-                    .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
-                    .pWaitSemaphores(stack.longs(renderCompleteSemaphore))
-                    .swapchainCount(1)
-                    .pSwapchains(stack.longs(swapchain.swapchain))
-                    .pImageIndices(stack.ints(imageIndex))), "Failed to present image");
+            synchronized (commandPoolLock) {
+                _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
+                        .pCommandBuffers(stack.pointers(commandBuffers[imageIndex]))
+                        .pSignalSemaphores(stack.longs(renderCompleteSemaphore))
+                        .pWaitSemaphores(stack.longs(imageAcquireSemaphore))
+                        .waitSemaphoreCount(1)
+                        .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), VK_NULL_HANDLE), "Failed to submit queue");
+                _CHECK_(vkQueuePresentKHR(queue, VkPresentInfoKHR(stack)
+                        .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+                        .pWaitSemaphores(stack.longs(renderCompleteSemaphore))
+                        .swapchainCount(1)
+                        .pSwapchains(stack.longs(swapchain.swapchain))
+                        .pImageIndices(stack.ints(imageIndex))), "Failed to present image");
+            }
         }
     }
 
