@@ -133,10 +133,9 @@ public class KDTreei<T extends Boundable<T>> {
         }
     }
 
-    public static class Voxel implements Boundable<Voxel>, Comparable<Voxel> {
+    public static class Voxel implements Boundable<Voxel> {
         public byte x, y, z;
         public byte ex, ey, ez;
-        public int morton;
         public byte paletteIndex;
         public int nindex;
 
@@ -229,11 +228,6 @@ public class KDTreei<T extends Boundable<T>> {
             default:
                 throw new IllegalArgumentException();
             }
-        }
-
-        @Override
-        public int compareTo(Voxel o) {
-            return Long.compare(morton, o.morton);
         }
 
         @Override
@@ -503,7 +497,7 @@ public class KDTreei<T extends Boundable<T>> {
             intervals.add(new IntervalBoundary(0, vx.min(ax)));
             intervals.add(new IntervalBoundary(1, vx.max(ax)));
         }
-        Collections.sort(intervals, (sib1, sib2) -> sib1.compareTo(sib2));
+        Collections.sort(intervals, IntervalBoundary::compareTo);
         int done_intervals = 0;
         int open_intervals = 0;
         float alpha;

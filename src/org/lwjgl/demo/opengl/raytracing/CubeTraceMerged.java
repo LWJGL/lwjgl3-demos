@@ -1,47 +1,45 @@
-/*	
- * Copyright LWJGL. All rights reserved.	
- * License terms: https://www.lwjgl.org/license	
- */
 package org.lwjgl.demo.opengl.raytracing;
 
+import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.opengl.NVDrawTexture.*;
 import static org.lwjgl.opengl.NVFillRectangle.*;
-import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
-
 import java.io.*;
 import java.lang.Math;
 import java.nio.*;
 import java.util.*;
-
 import org.joml.*;
-import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
+import org.lwjgl.demo.opengl.util.KDTreei;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
 /**
+ * Stackless kd-tree ray tracing with optimized/merged cubes.
+ * 
  * @author Kai Burjack
  */
-public class CubeTrace {
+public class CubeTraceMerged {
     private long window;
     private int width = 1920;
     private int height = 1080;
     private boolean resetFramebuffer;
-    private int cbWidth = 3;
+    private int cbWidth = 2;
     private int cbPixel;
     private byte[] samplePattern = samplePattern();
     private int scale = 1;
     private int levelWidth = 256 / scale;
     private int levelDepth = 256 / scale;
-    private int levelHeight = 128 / scale;
+    private int levelHeight = 32 / scale;
     private int pttex;
     private int vao;
     private int tex;
     private int finalGatherProgram;
     private int quadProgram;
+    private int sampler;
     private int camUniform;
     private KDTreei.Node<KDTreei.Voxel> cameraNode;
     private int startNodeIdxUniform;
@@ -96,7 +94,9 @@ public class CubeTrace {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        window = glfwCreateWindow(width, height, "KD-Tree with alpha-testing", NULL, NULL);
+        long monitor = glfwGetMonitors().get(0);
+        GLFWVidMode vidmode = glfwGetVideoMode(monitor);
+        window = glfwCreateWindow(width, height, "Stackless KD-Tree with merged cubes", NULL, NULL);
         if (window == NULL)
             throw new AssertionError("Failed to create the GLFW window");
         glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
@@ -116,25 +116,25 @@ public class CubeTrace {
         });
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (CubeTrace.this.width != width
-                        || CubeTrace.this.height != height)) {
-                    CubeTrace.this.width = width;
-                    CubeTrace.this.height = height;
-                    CubeTrace.this.resetFramebuffer = true;
+                if (width > 0 && height > 0 && (CubeTraceMerged.this.width != width
+                        || CubeTraceMerged.this.height != height)) {
+                    CubeTraceMerged.this.width = width;
+                    CubeTraceMerged.this.height = height;
+                    CubeTraceMerged.this.resetFramebuffer = true;
                 }
             }
         });
         glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
             public void invoke(long window, double x, double y) {
                 if (leftMouseDown) {
-                    float deltaX = (float) x - CubeTrace.this.mouseX;
-                    float deltaY = (float) y - CubeTrace.this.mouseY;
+                    float deltaX = (float) x - CubeTraceMerged.this.mouseX;
+                    float deltaY = (float) y - CubeTraceMerged.this.mouseY;
                     cameraLookDir
                             .rotate(quaternion.identity().rotateAxis(-deltaY * 0.002f, viewMatrix.positiveX(tmpVector))
                                     .rotateAxis(-deltaX * 0.002f, viewMatrix.positiveY(tmpVector)));
                 }
-                CubeTrace.this.mouseX = (float) x;
-                CubeTrace.this.mouseY = (float) y;
+                CubeTraceMerged.this.mouseX = (float) x;
+                CubeTraceMerged.this.mouseY = (float) y;
             }
         });
         glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
@@ -145,7 +145,6 @@ public class CubeTrace {
                     leftMouseDown = false;
             }
         });
-        GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
@@ -159,9 +158,9 @@ public class CubeTrace {
         GL_NV_draw_texture = caps.GL_NV_draw_texture;
         GL_NV_fill_rectangle = caps.GL_NV_fill_rectangle;
         debugProc = GLUtil.setupDebugMessageCallback();
-        loadTextures();
         createFramebufferTextures();
         createFinalGatherProgram();
+        createSampler();
         if (!GL_NV_draw_texture) {
             createFullScreenVao();
             createQuadProgram();
@@ -173,27 +172,10 @@ public class CubeTrace {
         glfwShowWindow(window);
     }
 
-    private void loadTextures() throws IOException {
-        try (MemoryStack frame = MemoryStack.stackPush()) {
-            IntBuffer width = frame.mallocInt(1);
-            IntBuffer height = frame.mallocInt(1);
-            IntBuffer components = frame.mallocInt(1);
-            tex = glGenTextures();
-            glBindTexture(GL_TEXTURE_2D, tex);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            ByteBuffer data;
-            data = stbi_load_from_memory(DemoUtils.ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/cubetrace/grass_high.png", 1024), width,
-                    height, components, 4);
-            int w = width.get(0), h = height.get(0);
-            glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGBA8, w, h);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
+    private void createSampler() {
+        sampler = glGenSamplers();
+        glSamplerParameteri(this.sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glSamplerParameteri(this.sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
 
     private byte[] samplePattern() {
@@ -219,20 +201,19 @@ public class CubeTrace {
 
     private List<KDTreei.Voxel> buildTerrainVoxels() {
         int width = levelWidth, height = levelHeight, depth = levelDepth;
-        float xzScale = 0.01543f * scale;
+        float xzScale = 0.02343f * scale, yScale = 0.0212f * scale;
         byte[] field = new byte[width * depth * height];
-        for (int z = 0; z < depth; z++) {
-            for (int x = 0; x < width; x++) {
-                float dx = (x - width * 0.5f) / width * 2, dz = (z - depth * 0.5f) / depth * 2;
-                float dist = (float) Math.min(1.0, Math.sqrt(dx * dx + dz * dz));
-                float y = height * (SimplexNoise.noise(x * xzScale, z * xzScale) * 0.5f + 0.5f)
-                        * ((float) Math.pow(1.0 - dist * 0.8, 5));
-                y = Math.min(y, height);
-                for (int y0 = 0; y0 <= y; y0++) {
-                    field[idx(x, y0, z, width, depth)] = ~0;
+        int numVoxels = 0;
+        for (int z = 0; z < depth; z++)
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    float v = SimplexNoise.noise(x * xzScale, z * xzScale, y * yScale);
+                    if (y == 0 || v > 0.4f) {
+                        field[idx(x, y, z, width, depth)] = ~0;
+                        numVoxels++;
+                    }
                 }
-            }
-        }
+        System.out.println("Voxels: " + numVoxels);
         /* Remove voxels that have neighbors at all sides */
         for (int z = 0; z < depth; z++) {
             for (int y = 0; y < height; y++) {
@@ -253,23 +234,10 @@ public class CubeTrace {
                 }
             }
         }
+        /* Merge voxels */
         List<KDTreei.Voxel> voxels = new ArrayList<>();
-        for (short z = 0; z < depth; z++) {
-            for (short y = 0; y < height; y++) {
-                for (short x = 0; x < width; x++) {
-                    int idx = idx(x, y, z, width, depth);
-                    int left = x > 0 && (field[idx(x - 1, y, z, width, depth)] & 1) == 1 ? 1 : 0;
-                    int right = x < width - 1 && (field[idx(x + 1, y, z, width, depth)] & 1) == 1 ? 1 : 0;
-                    int down = y > 0 && (field[idx(x, y - 1, z, width, depth)] & 1) == 1 ? 1 : 0;
-                    int up = y < height - 1 && (field[idx(x, y + 1, z, width, depth)] & 1) == 1 ? 1 : 0;
-                    int back = z > 0 && (field[idx(x, y, z - 1, width, depth)] & 1) == 1 ? 1 : 0;
-                    int front = z < depth - 1 && (field[idx(x, y, z + 1, width, depth)] & 1) == 1 ? 1 : 0;
-                    int sidesFlag = left | (right << 1) | (down << 2) | (up << 3) | (back << 4) | (front << 5);
-                    if (field[idx] == ~0)
-                        voxels.add(new KDTreei.Voxel((byte) x, (byte) y, (byte) z, (byte) ((sidesFlag << 1) | 1)));
-                }
-            }
-        }
+        for (int y = 0; y < height; y++)
+            LargestRectangle.merge(field, width, depth, y, 15, voxels);
         System.out.println("Retained voxels: " + voxels.size());
         return voxels;
     }
@@ -303,7 +271,7 @@ public class CubeTrace {
         System.out.println("Building kd tree...");
         for (int i = 0; i < 1; i++) {
             long time1 = System.nanoTime();
-            root = KDTreei.build(voxels, 17);
+            root = KDTreei.build(voxels, 14);
             long time2 = System.nanoTime();
             System.out.println("KD tree build took: " + (time2 - time1) * 1E-6f + " ms.");
         }
@@ -353,6 +321,7 @@ public class CubeTrace {
                 numVoxels = n.voxels.size();
                 n.voxels.forEach(v -> {
                     voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex);
+                    voxelsBuffer.putByte(v.ex).putByte(v.ey).putByte(v.ez).putByte(0);
                 });
                 if (n.leafIndex != -1)
                     leafNodesBuffer.putInt(first).putInt(numVoxels);
@@ -396,8 +365,8 @@ public class CubeTrace {
 
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("cubetrace/experiments/quad.vs.glsl", GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("cubetrace/experiments/quad.fs.glsl", GL_FRAGMENT_SHADER);
+        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/cubetracemerged/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/cubetracemerged/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindAttribLocation(program, 0, "vertex");
@@ -421,7 +390,7 @@ public class CubeTrace {
 
     private void createFinalGatherProgram() throws IOException {
         int program = glCreateProgram();
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/cubetrace/kdtreeseparate32grass.glsl", GL_COMPUTE_SHADER);
+        int cshader = createShader("org/lwjgl/demo/opengl/raytracing/cubetracemerged/compute.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, cshader);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -518,12 +487,12 @@ public class CubeTrace {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, nodeGeomsSsbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, leafNodesSsbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, voxelsSsbo);
-        glBindTexture(GL_TEXTURE_2D, tex);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
         int worksizeX = (int) Math.ceil((double) width / cbWidth / finalGatherWorkGroupSizeX);
         int worksizeY = (int) Math.ceil((double) height / cbWidth / finalGatherWorkGroupSizeY);
         glDispatchCompute(worksizeX, worksizeY, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
@@ -534,7 +503,7 @@ public class CubeTrace {
 
     private void present() {
         if (GL_NV_draw_texture) {
-            glDrawTextureNV(pttex, 0, 0, 0, width, height, 0, 0, 0, 1, 1);
+            glDrawTextureNV(pttex, sampler, 0, 0, width, height, 0, 0, 0, 1, 1);
         } else {
             glUseProgram(quadProgram);
             glBindVertexArray(vao);
@@ -595,7 +564,7 @@ public class CubeTrace {
     }
 
     public static void main(String[] args) throws Exception {
-        new CubeTrace().run();
+        new CubeTraceMerged().run();
     }
 
 }
