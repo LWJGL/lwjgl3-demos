@@ -499,8 +499,7 @@ public class NvRayTracingExample {
         try (MemoryStack stack = stackPush()) {
             if (afterComplete != null) {
                 LongBuffer pFence = stack.mallocLong(1);
-                _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack)
-                        .flags(VK_FLAGS_NONE), null, pFence), "Failed to create fence");
+                _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack), null, pFence), "Failed to create fence");
                 _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
                         .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
                         "Failed to submit command buffer");

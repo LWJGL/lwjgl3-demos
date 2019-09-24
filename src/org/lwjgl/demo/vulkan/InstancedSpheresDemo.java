@@ -26,6 +26,7 @@ import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.demo.vulkan.VKUtil.*;
 
 /**
  * Renders multiple spheres on a cornflower blue background on a GLFW window with Vulkan.
@@ -36,16 +37,11 @@ import static org.lwjgl.vulkan.VK10.*;
  */
 public class InstancedSpheresDemo {
 
-    private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
+    private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "true"));
 
     private static ByteBuffer[] layers = {
             memUTF8("VK_LAYER_LUNARG_standard_validation"),
     };
-
-    /**
-     * Remove if added to spec.
-     */
-    private static final int VK_FLAGS_NONE = 0;
 
     /**
      * This is just -1L, but it is nicer as a symbolic constant.
@@ -95,7 +91,6 @@ public class InstancedSpheresDemo {
         ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
-                .pNext(NULL)
                 .pApplicationInfo(appInfo)
                 .ppEnabledExtensionNames(ppEnabledExtensionNames)
                 .ppEnabledLayerNames(ppEnabledLayerNames);
@@ -120,9 +115,7 @@ public class InstancedSpheresDemo {
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
-                .pNext(NULL)
                 .pfnCallback(callback)
-                .pUserData(NULL)
                 .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
@@ -189,7 +182,6 @@ public class InstancedSpheresDemo {
 
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-                .pNext(NULL)
                 .pQueueCreateInfos(queueCreateInfo)
                 .ppEnabledExtensionNames(extensions)
                 .ppEnabledLayerNames(ppEnabledLayerNames);
@@ -450,7 +442,6 @@ public class InstancedSpheresDemo {
 
         VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
-                .pNext(NULL)
                 .surface(surface)
                 .minImageCount(desiredNumberOfSwapchainImages)
                 .imageFormat(colorFormat)
@@ -459,7 +450,6 @@ public class InstancedSpheresDemo {
                 .preTransform(preTransform)
                 .imageArrayLayers(1)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                .pQueueFamilyIndices(null)
                 .presentMode(swapchainPresentMode)
                 .oldSwapchain(oldSwapChain)
                 .clipped(true)
@@ -501,20 +491,11 @@ public class InstancedSpheresDemo {
         LongBuffer pBufferView = memAllocLong(1);
         VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
-                .pNext(NULL)
                 .format(colorFormat)
-                .viewType(VK_IMAGE_VIEW_TYPE_2D)
-                .flags(VK_FLAGS_NONE);
-        colorAttachmentView.components()
-                .r(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .g(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .b(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .a(VK_COMPONENT_SWIZZLE_IDENTITY);
+                .viewType(VK_IMAGE_VIEW_TYPE_2D);
         colorAttachmentView.subresourceRange()
                 .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                .baseMipLevel(0)
                 .levelCount(1)
-                .baseArrayLayer(0)
                 .layerCount(1);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
@@ -543,34 +524,25 @@ public class InstancedSpheresDemo {
     private static DepthStencil createDepthStencil(VkDevice device, VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties, int depthFormat, VkCommandBuffer setupCmdBuffer) {
         VkImageCreateInfo imageCreateInfo = VkImageCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
-                .pNext(NULL)
                 .imageType(VK_IMAGE_TYPE_2D)
                 .format(depthFormat)
                 .mipLevels(1)
                 .arrayLayers(1)
                 .samples(VK_SAMPLE_COUNT_1_BIT)
                 .tiling(VK_IMAGE_TILING_OPTIMAL)
-                .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-                .flags(0);
+                .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
         imageCreateInfo.extent().width(width).height(height).depth(1);
 
         VkMemoryAllocateInfo mem_alloc = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                .pNext(NULL)
-                .allocationSize(0)
-                .memoryTypeIndex(0);
+                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
 
         VkImageViewCreateInfo depthStencilViewCreateInfo = VkImageViewCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
-                .pNext(NULL)
                 .viewType(VK_IMAGE_VIEW_TYPE_2D)
-                .format(depthFormat)
-                .flags(0);
+                .format(depthFormat);
         depthStencilViewCreateInfo.subresourceRange()
                 .aspectMask(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
-                .baseMipLevel(0)
                 .levelCount(1)
-                .baseArrayLayer(0)
                 .layerCount(1);
 
         VkMemoryRequirements memReqs = VkMemoryRequirements.calloc();
@@ -650,20 +622,15 @@ public class InstancedSpheresDemo {
 
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1)
                 .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
-                .flags(VK_FLAGS_NONE)
-                .pInputAttachments(null)
                 .colorAttachmentCount(colorReference.remaining())
                 .pColorAttachments(colorReference) // <- only color attachment
-                .pResolveAttachments(null)
                 .pDepthStencilAttachment(depthReference) // <- and depth-stencil
-                .pPreserveAttachments(null);
+                ;
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
-                .pNext(NULL)
                 .pAttachments(attachments)
-                .pSubpasses(subpass)
-                .pDependencies(null);
+                .pSubpasses(subpass);
 
         LongBuffer pRenderPass = memAllocLong(1);
         int err = vkCreateRenderPass(device, renderPassInfo, null, pRenderPass);
@@ -686,11 +653,9 @@ public class InstancedSpheresDemo {
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
                 .pAttachments(attachments)
-                .flags(VK_FLAGS_NONE)
                 .height(height)
                 .width(width)
                 .layers(1)
-                .pNext(NULL)
                 .renderPass(renderPass);
         // Create a framebuffer for each swapchain image
         long[] framebuffers = new long[swapchain.images.length];
@@ -732,9 +697,7 @@ public class InstancedSpheresDemo {
         int err;
         VkShaderModuleCreateInfo moduleCreateInfo = VkShaderModuleCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
-                .pNext(NULL)
-                .pCode(shaderCode)
-                .flags(0);
+                .pCode(shaderCode);
         LongBuffer pShaderModule = memAllocLong(1);
         err = vkCreateShaderModule(device, moduleCreateInfo, null, pShaderModule);
         long shaderModule = pShaderModule.get(0);
@@ -794,10 +757,7 @@ public class InstancedSpheresDemo {
         }
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                .pNext(NULL)
-                .allocationSize(0)
-                .memoryTypeIndex(0);
+                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
         VkMemoryRequirements memReqs = VkMemoryRequirements.calloc();
 
         int err;
@@ -806,10 +766,8 @@ public class InstancedSpheresDemo {
         //  Setup
         VkBufferCreateInfo bufInfo = VkBufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
-                .pNext(NULL)
                 .size(vertexBuffer.remaining())
-                .usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-                .flags(0);
+                .usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         LongBuffer pBuffer = memAllocLong(1);
         err = vkCreateBuffer(device, bufInfo, null, pBuffer);
         long verticesBuf = pBuffer.get(0);
@@ -869,11 +827,10 @@ public class InstancedSpheresDemo {
                 .offset(0);
 
         // Assign to vertex buffer
-        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc();
-        vi.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
-        vi.pNext(NULL);
-        vi.pVertexBindingDescriptions(bindingDescriptor);
-        vi.pVertexAttributeDescriptions(attributeDescriptions);
+        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc()
+            .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
+            .pVertexBindingDescriptions(bindingDescriptor)
+            .pVertexAttributeDescriptions(attributeDescriptions);
 
         Vertices ret = new Vertices();
         ret.createInfo = vi;
@@ -897,7 +854,6 @@ public class InstancedSpheresDemo {
         // All descriptors used in this example are allocated from this pool
         VkDescriptorPoolCreateInfo descriptorPoolInfo = VkDescriptorPoolCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
-                .pNext(NULL)
                 .pPoolSizes(typeCounts)
                 // Set the max. number of sets that can be requested
                 // Requesting descriptors beyond maxSets will result in an error
@@ -954,7 +910,6 @@ public class InstancedSpheresDemo {
         LongBuffer pUniformDataVSMemory = memAllocLong(1);
         VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                .pNext(NULL)
                 .allocationSize(memSize)
                 .memoryTypeIndex(memoryTypeIndex);
         err = vkAllocateMemory(device, allocInfo, null, pUniformDataVSMemory);
@@ -1026,12 +981,10 @@ public class InstancedSpheresDemo {
                 .binding(0) // <- Binding 0 : Uniform buffer (Vertex shader)
                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                 .descriptorCount(1)
-                .stageFlags(VK_SHADER_STAGE_VERTEX_BIT)
-                .pImmutableSamplers(null);
+                .stageFlags(VK_SHADER_STAGE_VERTEX_BIT);
         // Build a create-info struct to create the descriptor set layout
         VkDescriptorSetLayoutCreateInfo descriptorLayout = VkDescriptorSetLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
-                .pNext(NULL)
                 .pBindings(layoutBinding);
 
         LongBuffer pDescriptorSetLayout = memAllocLong(1);
@@ -1065,15 +1018,11 @@ public class InstancedSpheresDemo {
                 .polygonMode(VK_POLYGON_MODE_FILL)
                 .cullMode(VK_CULL_MODE_BACK_BIT)
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-                .depthClampEnable(false)
-                .rasterizerDiscardEnable(false)
-                .depthBiasEnable(false)
                 .lineWidth(1.0f);
 
         // Color blend state
         // Describes blend modes and color masks
         VkPipelineColorBlendAttachmentState.Buffer colorWriteMask = VkPipelineColorBlendAttachmentState.calloc(1)
-                .blendEnable(false)
                 .colorWriteMask(0xF); // <- RGBA
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
@@ -1104,9 +1053,7 @@ public class InstancedSpheresDemo {
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
                 .depthTestEnable(true)
                 .depthWriteEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL)
-                .depthBoundsTestEnable(false)
-                .stencilTestEnable(false);
+                .depthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
         depthStencilState.back()
                 .failOp(VK_STENCIL_OP_KEEP)
                 .passOp(VK_STENCIL_OP_KEEP)
@@ -1117,7 +1064,6 @@ public class InstancedSpheresDemo {
         // No multi sampling used in this example
         VkPipelineMultisampleStateCreateInfo multisampleState = VkPipelineMultisampleStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
-                .pSampleMask(null)
                 .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
 
         // Load shaders
@@ -1130,7 +1076,6 @@ public class InstancedSpheresDemo {
         LongBuffer pDescriptorSetLayout = memAllocLong(1).put(0, descriptorSetLayout);
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
-                .pNext(NULL)
                 .pSetLayouts(pDescriptorSetLayout);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
@@ -1204,8 +1149,7 @@ public class InstancedSpheresDemo {
 
         // Create the command buffer begin structure
         VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                .pNext(NULL);
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
 
         // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(2);
@@ -1220,7 +1164,6 @@ public class InstancedSpheresDemo {
         // Specify everything to begin a render pass
         VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
-                .pNext(NULL)
                 .renderPass(renderPass)
                 .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
@@ -1386,8 +1329,7 @@ public class InstancedSpheresDemo {
             void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                        .pNext(NULL);
+                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
                 int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
                 cmdBufInfo.free();
                 if (err != VK_SUCCESS) {
@@ -1447,16 +1389,13 @@ public class InstancedSpheresDemo {
 
         // Info struct to create a semaphore
         VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO)
-                .pNext(NULL)
-                .flags(VK_FLAGS_NONE);
+                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
         // Info struct to submit a command buffer which will wait on the semaphore
         IntBuffer pWaitDstStageMask = memAllocInt(1);
         pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
-                .pNext(NULL)
                 .waitSemaphoreCount(pImageAcquiredSemaphore.remaining())
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
@@ -1466,12 +1405,10 @@ public class InstancedSpheresDemo {
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
-                .pNext(NULL)
                 .pWaitSemaphores(pRenderCompleteSemaphore)
                 .swapchainCount(pSwapchains.remaining())
                 .pSwapchains(pSwapchains)
-                .pImageIndices(pImageIndex)
-                .pResults(null);
+                .pImageIndices(pImageIndex);
 
         // The render loop
         long lastTime = System.nanoTime();

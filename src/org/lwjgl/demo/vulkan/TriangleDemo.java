@@ -89,11 +89,6 @@ public class TriangleDemo {
     };
 
     /**
-     * Remove if added to spec.
-     */
-    private static final int VK_FLAGS_NONE = 0;
-
-    /**
      * This is just -1L, but it is nicer as a symbolic constant.
      */
     private static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
@@ -120,7 +115,6 @@ public class TriangleDemo {
         ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
-                .pNext(NULL)
                 .pApplicationInfo(appInfo)
                 .ppEnabledExtensionNames(ppEnabledExtensionNames)
                 .ppEnabledLayerNames(ppEnabledLayerNames);
@@ -145,9 +139,7 @@ public class TriangleDemo {
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
-                .pNext(NULL)
                 .pfnCallback(callback)
-                .pUserData(NULL)
                 .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
@@ -214,7 +206,6 @@ public class TriangleDemo {
 
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-                .pNext(NULL)
                 .pQueueCreateInfos(queueCreateInfo)
                 .ppEnabledExtensionNames(extensions)
                 .ppEnabledLayerNames(ppEnabledLayerNames);
@@ -445,7 +436,6 @@ public class TriangleDemo {
 
         VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
-                .pNext(NULL)
                 .surface(surface)
                 .minImageCount(desiredNumberOfSwapchainImages)
                 .imageFormat(colorFormat)
@@ -454,7 +444,6 @@ public class TriangleDemo {
                 .preTransform(preTransform)
                 .imageArrayLayers(1)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                .pQueueFamilyIndices(null)
                 .presentMode(swapchainPresentMode)
                 .oldSwapchain(oldSwapChain)
                 .clipped(true)
@@ -496,20 +485,11 @@ public class TriangleDemo {
         LongBuffer pBufferView = memAllocLong(1);
         VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
-                .pNext(NULL)
                 .format(colorFormat)
-                .viewType(VK_IMAGE_VIEW_TYPE_2D)
-                .flags(VK_FLAGS_NONE);
-        colorAttachmentView.components()
-                .r(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .g(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .b(VK_COMPONENT_SWIZZLE_IDENTITY)
-                .a(VK_COMPONENT_SWIZZLE_IDENTITY);
+                .viewType(VK_IMAGE_VIEW_TYPE_2D);
         colorAttachmentView.subresourceRange()
                 .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                .baseMipLevel(0)
                 .levelCount(1)
-                .baseArrayLayer(0)
                 .layerCount(1);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
@@ -548,20 +528,14 @@ public class TriangleDemo {
 
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1)
                 .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
-                .flags(VK_FLAGS_NONE)
-                .pInputAttachments(null)
                 .colorAttachmentCount(colorReference.remaining())
                 .pColorAttachments(colorReference) // <- only color attachment
-                .pResolveAttachments(null)
-                .pDepthStencilAttachment(null)
-                .pPreserveAttachments(null);
+                ;
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
-                .pNext(NULL)
                 .pAttachments(attachments)
-                .pSubpasses(subpass)
-                .pDependencies(null);
+                .pSubpasses(subpass);
 
         LongBuffer pRenderPass = memAllocLong(1);
         int err = vkCreateRenderPass(device, renderPassInfo, null, pRenderPass);
@@ -582,11 +556,9 @@ public class TriangleDemo {
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
                 .pAttachments(attachments)
-                .flags(VK_FLAGS_NONE)
                 .height(height)
                 .width(width)
                 .layers(1)
-                .pNext(NULL)
                 .renderPass(renderPass);
         // Create a framebuffer for each swapchain image
         long[] framebuffers = new long[swapchain.images.length];
@@ -628,9 +600,7 @@ public class TriangleDemo {
         int err;
         VkShaderModuleCreateInfo moduleCreateInfo = VkShaderModuleCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
-                .pNext(NULL)
-                .pCode(shaderCode)
-                .flags(0);
+                .pCode(shaderCode);
         LongBuffer pShaderModule = memAllocLong(1);
         err = vkCreateShaderModule(device, moduleCreateInfo, null, pShaderModule);
         long shaderModule = pShaderModule.get(0);
@@ -679,10 +649,7 @@ public class TriangleDemo {
         fb.put( 0.0f).put( 0.5f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                .pNext(NULL)
-                .allocationSize(0)
-                .memoryTypeIndex(0);
+                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
         VkMemoryRequirements memReqs = VkMemoryRequirements.calloc();
 
         int err;
@@ -691,10 +658,8 @@ public class TriangleDemo {
         //  Setup
         VkBufferCreateInfo bufInfo = VkBufferCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
-                .pNext(NULL)
                 .size(vertexBuffer.remaining())
-                .usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-                .flags(0);
+                .usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         LongBuffer pBuffer = memAllocLong(1);
         err = vkCreateBuffer(device, bufInfo, null, pBuffer);
         long verticesBuf = pBuffer.get(0);
@@ -754,11 +719,10 @@ public class TriangleDemo {
                 .offset(0);
 
         // Assign to vertex buffer
-        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc();
-        vi.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
-        vi.pNext(NULL);
-        vi.pVertexBindingDescriptions(bindingDescriptor);
-        vi.pVertexAttributeDescriptions(attributeDescriptions);
+        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc()
+            .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
+            .pVertexBindingDescriptions(bindingDescriptor)
+            .pVertexAttributeDescriptions(attributeDescriptions);
 
         Vertices ret = new Vertices();
         ret.createInfo = vi;
@@ -780,15 +744,11 @@ public class TriangleDemo {
                 .polygonMode(VK_POLYGON_MODE_FILL)
                 .cullMode(VK_CULL_MODE_NONE)
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-                .depthClampEnable(false)
-                .rasterizerDiscardEnable(false)
-                .depthBiasEnable(false)
                 .lineWidth(1.0f);
 
         // Color blend state
         // Describes blend modes and color masks
         VkPipelineColorBlendAttachmentState.Buffer colorWriteMask = VkPipelineColorBlendAttachmentState.calloc(1)
-                .blendEnable(false)
                 .colorWriteMask(0xF); // <- RGBA
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
@@ -817,11 +777,7 @@ public class TriangleDemo {
         VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc()
                 // No depth test/write and no stencil used 
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
-                .depthTestEnable(false)
-                .depthWriteEnable(false)
-                .depthCompareOp(VK_COMPARE_OP_ALWAYS)
-                .depthBoundsTestEnable(false)
-                .stencilTestEnable(false);
+                .depthCompareOp(VK_COMPARE_OP_ALWAYS);
         depthStencilState.back()
                 .failOp(VK_STENCIL_OP_KEEP)
                 .passOp(VK_STENCIL_OP_KEEP)
@@ -832,7 +788,6 @@ public class TriangleDemo {
         // No multi sampling used in this example
         VkPipelineMultisampleStateCreateInfo multisampleState = VkPipelineMultisampleStateCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
-                .pSampleMask(null)
                 .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
 
         // Load shaders
@@ -843,9 +798,7 @@ public class TriangleDemo {
         // Create the pipeline layout that is used to generate the rendering pipelines that
         // are based on this descriptor set layout
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
-                .pNext(NULL)
-                .pSetLayouts(null);
+                .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
         err = vkCreatePipelineLayout(device, pPipelineLayoutCreateInfo, null, pPipelineLayout);
@@ -913,8 +866,7 @@ public class TriangleDemo {
 
         // Create the command buffer begin structure
         VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                .pNext(NULL);
+                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
 
         // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(1);
@@ -927,7 +879,6 @@ public class TriangleDemo {
         // Specify everything to begin a render pass
         VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
-                .pNext(NULL)
                 .renderPass(renderPass)
                 .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
@@ -1062,8 +1013,7 @@ public class TriangleDemo {
             void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-                        .pNext(NULL);
+                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
                 int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
                 cmdBufInfo.free();
                 if (err != VK_SUCCESS) {
@@ -1121,16 +1071,13 @@ public class TriangleDemo {
 
         // Info struct to create a semaphore
         VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO)
-                .pNext(NULL)
-                .flags(VK_FLAGS_NONE);
+                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
         // Info struct to submit a command buffer which will wait on the semaphore
         IntBuffer pWaitDstStageMask = memAllocInt(1);
         pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
-                .pNext(NULL)
                 .waitSemaphoreCount(pImageAcquiredSemaphore.remaining())
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
@@ -1140,12 +1087,10 @@ public class TriangleDemo {
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
                 .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
-                .pNext(NULL)
                 .pWaitSemaphores(pRenderCompleteSemaphore)
                 .swapchainCount(pSwapchains.remaining())
                 .pSwapchains(pSwapchains)
-                .pImageIndices(pImageIndex)
-                .pResults(null);
+                .pImageIndices(pImageIndex);
 
         // The render loop
         while (!glfwWindowShouldClose(window)) {

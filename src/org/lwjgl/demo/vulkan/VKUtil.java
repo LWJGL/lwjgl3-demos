@@ -135,7 +135,6 @@ public class VKUtil {
         ByteBuffer shaderCode = glslToSpirv(classPath, stage);
         LongBuffer pShaderModule = stack.mallocLong(1);
         _CHECK_(vkCreateShaderModule(device, VkShaderModuleCreateInfo(stack)
-                        .pNext(NULL)
                         .pCode(shaderCode)
                         .flags(0), null, pShaderModule),
                 "Failed to create shader module");
