@@ -543,15 +543,15 @@ public class NvRayTracingExample {
     private static VkCommandBuffer createCommandBuffer() {
         try (MemoryStack stack = stackPush()) {
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
+            synchronized (commandPoolLock) {
                 _CHECK_(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo(stack)
                         .commandBufferCount(1)
                         .commandPool(commandPool)
                         .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY), pCommandBuffer), "Failed to create command buffer");
                 VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
-            synchronized (commandPoolLock) {
                 _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo(stack)), "Failed to begin command buffer");
+                return cmdBuffer;
             }
-            return cmdBuffer;
         }
     }
 
