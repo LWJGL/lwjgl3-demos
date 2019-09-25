@@ -12,12 +12,6 @@ layout(location = 0) rayPayloadInNV Payload {
 
 hitAttributeNV vec3 attribs;
 
-layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
-layout(binding = 2, set = 0) uniform CameraProperties {
-    mat4 viewInverse;
-    mat4 projInverse;
-    vec4 lightPos;
-} cam;
 layout(binding = 4, set = 0) buffer Normals { vec4 n[]; } normals;
 layout(binding = 5, set = 0) buffer Indices { uint i[]; } indices;
 
