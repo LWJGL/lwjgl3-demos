@@ -93,8 +93,9 @@ public class NvRayTracingExample {
     private static RayTracingProperties rayTracingProperties;
     private static VkCommandBuffer[] commandBuffers;
     private static Geometry geometry;
-    private static long imageAcquireSemaphore;
-    private static long renderCompleteSemaphore;
+    private static long[] imageAcquireSemaphore;
+    private static long[] renderCompleteSemaphore;
+    private static long[] renderFence;
     private static long sampler;
     private static Matrix4f projMatrix = new Matrix4f();
     private static Matrix4f viewMatrix = new Matrix4f().translation(0, 0, -5).rotateX(0.4f).rotateY(0.1f);
@@ -1314,15 +1315,6 @@ public class NvRayTracingExample {
         ubo.flushMapped(0, Float.BYTES * 16 * 2);
     }
 
-    private static long createSemaphore() {
-        try (MemoryStack stack = stackPush()) {
-            LongBuffer pSemaphore = stack.mallocLong(1);
-            _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
-                    "Failed to create semaphore");
-            return pSemaphore.get(0);
-        }
-    }
-
     private static long createSampler() {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pSampler = stack.mallocLong(1);
@@ -1419,6 +1411,27 @@ public class NvRayTracingExample {
         }
     }
 
+    private static void createSyncObjects() {
+        imageAcquireSemaphore = new long[swapchain.images.length];
+        renderCompleteSemaphore = new long[swapchain.images.length];
+        renderFence = new long[swapchain.images.length];
+        for (int i = 0; i < swapchain.images.length; i++) {
+            try (MemoryStack stack = stackPush()) {
+                LongBuffer pSemaphore = stack.mallocLong(1);
+                _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
+                        "Failed to create semaphore");
+                imageAcquireSemaphore[i] = pSemaphore.get(0);
+                _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
+                        "Failed to create semaphore");
+                renderCompleteSemaphore[i] = pSemaphore.get(0);
+                LongBuffer pFence = stack.mallocLong(1);
+                _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack).flags(VK_FENCE_CREATE_SIGNALED_BIT), null,
+                        pFence), "Failed to create fence");
+                renderFence[i] = pFence.get(0);
+            }
+        }
+    }
+
     private static void init(MemoryStack stack) throws IOException {
         instance = createInstance(initGlfw());
         windowAndCallbacks = createWindow();
@@ -1442,8 +1455,7 @@ public class NvRayTracingExample {
         sampler = createSampler();
         descriptorSets = createDescriptorSets();
         commandBuffers = createRayTracingCommandBuffers();
-        renderCompleteSemaphore = createSemaphore();
-        imageAcquireSemaphore = createSemaphore();
+        createSyncObjects();
     }
 
     private static void cleanup() {
@@ -1455,8 +1467,11 @@ public class NvRayTracingExample {
             e.printStackTrace();
         }
         _CHECK_(vkDeviceWaitIdle(device), "Failed to wait for device idle");
-        vkDestroySemaphore(device, imageAcquireSemaphore, null);
-        vkDestroySemaphore(device, renderCompleteSemaphore, null);
+        for (int i = 0; i < swapchain.images.length; i++) {
+            vkDestroySemaphore(device, imageAcquireSemaphore[i], null);
+            vkDestroySemaphore(device, renderCompleteSemaphore[i], null);
+            vkDestroyFence(device, renderFence[i], null);
+        }
         vkDestroySampler(device, sampler, null);
         environmentTexture.free();
         freeCommandBuffers();
@@ -1509,18 +1524,18 @@ public class NvRayTracingExample {
         updateFramebufferSize();
     }
 
-    private static void submitAndPresent(int imageIndex) {
+    private static void submitAndPresent(int imageIndex, int idx) {
         try (MemoryStack stack = stackPush()) {
             synchronized (commandPoolLock) {
                 _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
                         .pCommandBuffers(stack.pointers(commandBuffers[imageIndex]))
-                        .pSignalSemaphores(stack.longs(renderCompleteSemaphore))
-                        .pWaitSemaphores(stack.longs(imageAcquireSemaphore))
+                        .pSignalSemaphores(stack.longs(renderCompleteSemaphore[idx]))
+                        .pWaitSemaphores(stack.longs(imageAcquireSemaphore[idx]))
                         .waitSemaphoreCount(1)
-                        .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), VK_NULL_HANDLE), "Failed to submit queue");
+                        .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), renderFence[idx]), "Failed to submit queue");
                 _CHECK_(vkQueuePresentKHR(queue, VkPresentInfoKHR(stack)
                         .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
-                        .pWaitSemaphores(stack.longs(renderCompleteSemaphore))
+                        .pWaitSemaphores(stack.longs(renderCompleteSemaphore[idx]))
                         .swapchainCount(1)
                         .pSwapchains(stack.longs(swapchain.swapchain))
                         .pImageIndices(stack.ints(imageIndex))), "Failed to present image");
@@ -1534,6 +1549,7 @@ public class NvRayTracingExample {
             glfwShowWindow(windowAndCallbacks.window);
             IntBuffer pImageIndex = stack.mallocInt(1);
             long lastTime = System.nanoTime();
+            int idx = 0;
             while (!glfwWindowShouldClose(windowAndCallbacks.window)) {
                 long thisTime = System.nanoTime();
                 float dt = (thisTime - lastTime) * 1E-9f;
@@ -1543,14 +1559,17 @@ public class NvRayTracingExample {
                 if (!isWindowRenderable()) {
                     continue;
                 }
+                vkWaitForFences(device, renderFence[idx], true, Long.MAX_VALUE);
+                vkResetFences(device, renderFence[idx]);
                 if (windowSizeChanged()) {
+                    vkQueueWaitIdle(queue);
                     reallocateOnResize();
                 }
                 updateUniformBufferObject();
-                _CHECK_(vkAcquireNextImageKHR(device, swapchain.swapchain, -1L, imageAcquireSemaphore, VK_NULL_HANDLE, pImageIndex),
-                        "Failed to acquire image");
-                submitAndPresent(pImageIndex.get(0));
-                _CHECK_(vkQueueWaitIdle(queue), "Failed to wait for idle queue");
+                _CHECK_(vkAcquireNextImageKHR(device, swapchain.swapchain, -1L, imageAcquireSemaphore[idx], VK_NULL_HANDLE,
+                        pImageIndex), "Failed to acquire image");
+                submitAndPresent(pImageIndex.get(0), idx);
+                idx = (idx + 1) % swapchain.images.length;
             }
             cleanup();
         }
