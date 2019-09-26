@@ -2,7 +2,6 @@ package org.lwjgl.demo.opengl.util;
 
 import java.util.*;
 
-import org.joml.Matrix4d;
 import org.joml.Vector3d;
 
 public class KDTreei<T extends Boundable<T>> {
@@ -111,7 +110,8 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
-        public boolean intersectsWithBox(Boundable<?> vx) {
+        @Override
+        public boolean intersects(Boundable<?> vx) {
             return maxX >= vx.min(0) && maxY >= vx.min(1) && maxZ >= vx.min(2) && minX <= vx.max(0) && minY <= vx.max(1)
                     && minZ <= vx.max(2);
         }
@@ -207,12 +207,18 @@ public class KDTreei<T extends Boundable<T>> {
         }
 
         @Override
+        public boolean intersects(Boundable<?> vx) {
+            return max(0) >= vx.min(0) && max(1) >= vx.min(1) && max(2) >= vx.min(2) && min(0) <= vx.max(0) && min(1) <= vx.max(1)
+                    && min(2) <= vx.max(2);
+        }
+
+        @Override
         public String toString() {
             return "[" + x + ", " + y + ", " + z + "]";
         }
     }
 
-    public static class Node<B> {
+    public static class Node<B extends Boundable<B>> {
         private static final int SIDE_X_POS = 0;
         private static final int SIDE_X_NEG = 1;
         private static final int SIDE_Y_POS = 2;
@@ -313,28 +319,7 @@ public class KDTreei<T extends Boundable<T>> {
             return r;
         }
 
-        public void frustumCull(Matrix4d viewProjection, Vector3d p, int depth, int maxDepth, int maxNodes,
-                PriorityQueue<Node<B>> nodes) {
-            Box b = boundingBox;
-            if (nodes.size() > maxNodes)
-                return;
-            if (!viewProjection.testAab(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ))
-                return;
-            if (left == null || depth >= maxDepth) {
-                if (this.count > 0)
-                    nodes.add(this);
-            } else if (left != null) {
-                if (p.get(splitAxis) < splitPos) {
-                    left.frustumCull(viewProjection, p, depth + 1, maxDepth, maxNodes, nodes);
-                    right.frustumCull(viewProjection, p, depth + 1, maxDepth, maxNodes, nodes);
-                } else {
-                    right.frustumCull(viewProjection, p, depth + 1, maxDepth, maxNodes, nodes);
-                    left.frustumCull(viewProjection, p, depth + 1, maxDepth, maxNodes, nodes);
-                }
-            }
-        }
-
-        public Node<B> findNode(Vector3d cameraPosition) {
+        private Node<B> findNode(Vector3d cameraPosition) {
             Vector3d p = cameraPosition;
             Box b = boundingBox;
             if (p.x < b.minX || p.x > b.maxX || p.y < b.minY || p.y > b.maxY || p.z < b.minZ || p.z > b.maxZ
@@ -343,6 +328,22 @@ public class KDTreei<T extends Boundable<T>> {
             if (cameraPosition.get(splitAxis) < splitPos)
                 return left.findNode(cameraPosition);
             return right.findNode(cameraPosition);
+        }
+
+        private void intersects(Box box, List<B> boundables) {
+            Box b = boundingBox;
+            if (!b.intersects(box))
+                return;
+            if (isLeafNode()) {
+                for (B voxel : voxels) {
+                    if (!box.intersects(voxel))
+                        continue;
+                    boundables.add(voxel);
+                }
+            } else {
+                left.intersects(box, boundables);
+                right.intersects(box, boundables);
+            }
         }
     }
 
@@ -365,6 +366,10 @@ public class KDTreei<T extends Boundable<T>> {
         KDTreei<T> root = new KDTreei<T>();
         root.buildTree(voxels, b, neighbors, maxDepth);
         return root;
+    }
+
+    public void intersects(Box box, List<T> boundables) {
+        root.intersects(box, boundables);
     }
 
     public Node<T> findNode(Vector3d cameraPosition) {
@@ -449,7 +454,7 @@ public class KDTreei<T extends Boundable<T>> {
         nPrims /= divisor;
         for (int i = 0; i < count; i += divisor) {
             T vx = node.voxels.get(i);
-            if (!bb.intersectsWithBox(vx)) {
+            if (!bb.intersects(vx)) {
                 throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
             }
             intervals.add(new IntervalBoundary(0, vx.min(ax)));
