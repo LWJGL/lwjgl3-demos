@@ -1,9 +1,9 @@
 package org.lwjgl.demo.opengl.util;
 
-import java.lang.Math;
-import java.nio.*;
 import java.util.*;
-import org.joml.*;
+
+import org.joml.Matrix4d;
+import org.joml.Vector3d;
 
 public class KDTreei<T extends Boundable<T>> {
 
@@ -30,9 +30,6 @@ public class KDTreei<T extends Boundable<T>> {
         public int minX, minY, minZ;
         public int maxX, maxY, maxZ;
 
-        public Box() {
-        }
-
         public Box(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
             this.minX = minX;
             this.minY = minY;
@@ -58,6 +55,7 @@ public class KDTreei<T extends Boundable<T>> {
             return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
 
+        @Override
         public int min(int axis) {
             switch (axis) {
             case 0:
@@ -71,6 +69,7 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
+        @Override
         public int max(int axis) {
             switch (axis) {
             case 0:
@@ -118,11 +117,6 @@ public class KDTreei<T extends Boundable<T>> {
         }
 
         @Override
-        public void extend(int axis) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Box splitLeft(int splitAxis, int splitPos) {
             throw new UnsupportedOperationException();
         }
@@ -138,9 +132,6 @@ public class KDTreei<T extends Boundable<T>> {
         public byte ex, ey, ez;
         public byte paletteIndex;
         public int nindex;
-
-        public Voxel() {
-        }
 
         public Voxel(byte x, byte y, byte z, byte paletteIndex) {
             this.x = x;
@@ -159,6 +150,7 @@ public class KDTreei<T extends Boundable<T>> {
             this.paletteIndex = paletteIndex;
         }
 
+        @Override
         public int min(int axis) {
             switch (axis) {
             case 0:
@@ -172,6 +164,7 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
+        @Override
         public int max(int axis) {
             switch (axis) {
             case 0:
@@ -180,23 +173,6 @@ public class KDTreei<T extends Boundable<T>> {
                 return (y & 0xFF) + 1 + (ey & 0xFF);
             case 2:
                 return (z & 0xFF) + 1 + (ez & 0xFF);
-            default:
-                throw new IllegalArgumentException();
-            }
-        }
-
-        @Override
-        public void extend(int axis) {
-            switch (axis) {
-            case 0:
-                this.ex++;
-                break;
-            case 1:
-                this.ey++;
-                break;
-            case 2:
-                this.ez++;
-                break;
             default:
                 throw new IllegalArgumentException();
             }
@@ -256,7 +232,7 @@ public class KDTreei<T extends Boundable<T>> {
         public int first;
         public int count;
 
-        int isParallelTo(int side) {
+        private int isParallelTo(int side) {
             switch (splitAxis) {
             case 0:
                 return side == SIDE_X_NEG ? -1 : side == SIDE_X_POS ? +1 : 0;
@@ -269,12 +245,12 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
-        public final boolean isLeafNode() {
+        private final boolean isLeafNode() {
             return splitAxis == -1;
         }
 
         @SuppressWarnings("unchecked")
-        protected void processNode(Node<B>[] ropes) {
+        private void processNode(Node<B>[] ropes) {
             if (isLeafNode()) {
                 this.ropes = ropes;
             } else {
@@ -303,7 +279,7 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
-        protected void optimizeRopes() {
+        private void optimizeRopes() {
             for (int i = 0; i < 6; i++) {
                 ropes[i] = optimizeRope(ropes[i], i);
             }
@@ -313,7 +289,7 @@ public class KDTreei<T extends Boundable<T>> {
                 right.optimizeRopes();
         }
 
-        protected Node<B> optimizeRope(Node<B> rope, int side) {
+        private Node<B> optimizeRope(Node<B> rope, int side) {
             if (rope == null) {
                 return rope;
             }
@@ -375,7 +351,7 @@ public class KDTreei<T extends Boundable<T>> {
         return build(voxels, new Node[6], maxDepth);
     }
 
-    public static <T extends Boundable<T>> KDTreei<T> build(List<T> voxels, Node<T>[] neighbors, int maxDepth) {
+    private static <T extends Boundable<T>> KDTreei<T> build(List<T> voxels, Node<T>[] neighbors, int maxDepth) {
         Box b = new Box(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE,
                 Integer.MIN_VALUE);
         for (T v : voxels) {
@@ -391,29 +367,11 @@ public class KDTreei<T extends Boundable<T>> {
         return root;
     }
 
-    public void frustumCull(Matrix4d viewProjection, Vector3d p, int maxDepth, int maxNodes,
-            PriorityQueue<Node<T>> nodes) {
-        root.frustumCull(viewProjection, p, 0, maxDepth, maxNodes, nodes);
-    }
-
     public Node<T> findNode(Vector3d cameraPosition) {
         return root.findNode(cameraPosition);
     }
 
-    public void level(int level, ShortBuffer nodes) {
-        level(root, level, nodes);
-    }
-
-    private void level(Node<T> n, int level, ShortBuffer nodes) {
-        if (level == 0 || n.left == null) {
-            nodes.put((short) n.index);
-        } else {
-            level(n.left, level - 1, nodes);
-            level(n.right, level - 1, nodes);
-        }
-    }
-
-    public void buildTree(List<T> list, Box bbox, Node<T>[] neighbors, int maxDepth) {
+    private void buildTree(List<T> list, Box bbox, Node<T>[] neighbors, int maxDepth) {
         if (root != null)
             root = null;
         root = new Node<T>();
