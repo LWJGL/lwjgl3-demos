@@ -6,6 +6,10 @@ import org.joml.Vector3d;
 
 public class KDTreei<T extends Boundable<T>> {
 
+    private static final int X = 0;
+    private static final int Y = 1;
+    private static final int Z = 2;
+
     public Node<T> root;
     private int maxVoxelCount = 2;
     private float nodeIntersectCosts = 1.0f;
@@ -57,11 +61,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public int min(int axis) {
             switch (axis) {
-            case 0:
+            case X:
                 return minX;
-            case 1:
+            case Y:
                 return minY;
-            case 2:
+            case Z:
                 return minZ;
             default:
                 throw new IllegalArgumentException();
@@ -71,11 +75,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public int max(int axis) {
             switch (axis) {
-            case 0:
+            case X:
                 return maxX;
-            case 1:
+            case Y:
                 return maxY;
-            case 2:
+            case Z:
                 return maxZ;
             default:
                 throw new IllegalArgumentException();
@@ -84,13 +88,13 @@ public class KDTreei<T extends Boundable<T>> {
 
         public void setMax(int splitAxis, int split) {
             switch (splitAxis) {
-            case 0:
+            case X:
                 maxX = split;
                 break;
-            case 1:
+            case Y:
                 maxY = split;
                 break;
-            case 2:
+            case Z:
                 maxZ = split;
                 break;
             }
@@ -98,13 +102,13 @@ public class KDTreei<T extends Boundable<T>> {
 
         public void setMin(int splitAxis, int split) {
             switch (splitAxis) {
-            case 0:
+            case X:
                 minX = split;
                 break;
-            case 1:
+            case Y:
                 minY = split;
                 break;
-            case 2:
+            case Z:
                 minZ = split;
                 break;
             }
@@ -173,11 +177,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public int min(int axis) {
             switch (axis) {
-            case 0:
+            case X:
                 return x & 0xFF;
-            case 1:
+            case Y:
                 return y & 0xFF;
-            case 2:
+            case Z:
                 return z & 0xFF;
             default:
                 throw new IllegalArgumentException();
@@ -187,11 +191,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public int max(int axis) {
             switch (axis) {
-            case 0:
+            case X:
                 return (x & 0xFF) + 1 + (ex & 0xFF);
-            case 1:
+            case Y:
                 return (y & 0xFF) + 1 + (ey & 0xFF);
-            case 2:
+            case Z:
                 return (z & 0xFF) + 1 + (ez & 0xFF);
             default:
                 throw new IllegalArgumentException();
@@ -201,11 +205,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public Voxel splitLeft(int axis, int pos) {
             switch (axis) {
-            case 0:
+            case X:
                 return new Voxel(x, y, z, (byte) (pos - (x & 0xFF) - 1), ey, ez, paletteIndex);
-            case 1:
+            case Y:
                 return new Voxel(x, y, z, ex, (byte) (pos - (y & 0xFF) - 1), ez, paletteIndex);
-            case 2:
+            case Z:
                 return new Voxel(x, y, z, ex, ey, (byte) (pos - (z & 0xFF) - 1), paletteIndex);
             default:
                 throw new IllegalArgumentException();
@@ -215,11 +219,11 @@ public class KDTreei<T extends Boundable<T>> {
         @Override
         public Voxel splitRight(int axis, int pos) {
             switch (axis) {
-            case 0:
+            case X:
                 return new Voxel((byte) pos, y, z, (byte) ((ex & 0xFF) - (pos - (x & 0xFF))), ey, ez, paletteIndex);
-            case 1:
+            case Y:
                 return new Voxel(x, (byte) pos, z, ex, (byte) ((ey & 0xFF) - (pos - (y & 0xFF))), ez, paletteIndex);
-            case 2:
+            case Z:
                 return new Voxel(x, y, (byte) pos, ex, ey, (byte) ((ez & 0xFF) - (pos - (z & 0xFF))), paletteIndex);
             default:
                 throw new IllegalArgumentException();
@@ -228,8 +232,8 @@ public class KDTreei<T extends Boundable<T>> {
 
         @Override
         public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-            return max(0) >= minX && max(1) >= minY && max(2) >= minZ && min(0) <= maxX && min(1) <= maxY
-                    && min(2) <= maxZ;
+            return max(X) >= minX && max(Y) >= minY && max(Z) >= minZ && min(X) <= maxX && min(Y) <= maxY
+                    && min(Z) <= maxZ;
         }
 
         @Override
@@ -260,11 +264,11 @@ public class KDTreei<T extends Boundable<T>> {
 
         private int isParallelTo(int side) {
             switch (splitAxis) {
-            case 0:
+            case X:
                 return side == SIDE_X_NEG ? -1 : side == SIDE_X_POS ? +1 : 0;
-            case 1:
+            case Y:
                 return side == SIDE_Y_NEG ? -1 : side == SIDE_Y_POS ? +1 : 0;
-            case 2:
+            case Z:
                 return side == SIDE_Z_NEG ? -1 : side == SIDE_Z_POS ? +1 : 0;
             default:
                 throw new IllegalArgumentException();
@@ -282,13 +286,13 @@ public class KDTreei<T extends Boundable<T>> {
             } else {
                 int sideLeft;
                 int sideRight;
-                if (splitAxis == 0) {
+                if (splitAxis == X) {
                     sideLeft = SIDE_X_NEG;
                     sideRight = SIDE_X_POS;
-                } else if (splitAxis == 1) {
+                } else if (splitAxis == Y) {
                     sideLeft = SIDE_Y_NEG;
                     sideRight = SIDE_Y_POS;
-                } else if (splitAxis == 2) {
+                } else if (splitAxis == Z) {
                     sideLeft = SIDE_Z_NEG;
                     sideRight = SIDE_Z_POS;
                 } else {
@@ -376,12 +380,12 @@ public class KDTreei<T extends Boundable<T>> {
         Box b = new Box(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE,
                 Integer.MIN_VALUE);
         for (T v : voxels) {
-            b.minX = b.minX < v.min(0) ? b.minX : v.min(0);
-            b.minY = b.minY < v.min(1) ? b.minY : v.min(1);
-            b.minZ = b.minZ < v.min(2) ? b.minZ : v.min(2);
-            b.maxX = b.maxX > v.max(0) ? b.maxX : v.max(0);
-            b.maxY = b.maxY > v.max(1) ? b.maxY : v.max(1);
-            b.maxZ = b.maxZ > v.max(2) ? b.maxZ : v.max(2);
+            b.minX = b.minX < v.min(X) ? b.minX : v.min(X);
+            b.minY = b.minY < v.min(Y) ? b.minY : v.min(Y);
+            b.minZ = b.minZ < v.min(Z) ? b.minZ : v.min(Z);
+            b.maxX = b.maxX > v.max(X) ? b.maxX : v.max(X);
+            b.maxY = b.maxY > v.max(Y) ? b.maxY : v.max(Y);
+            b.maxZ = b.maxZ > v.max(Z) ? b.maxZ : v.max(Z);
         }
         KDTreei<T> root = new KDTreei<T>();
         root.buildTree(voxels, b, neighbors, maxDepth);
@@ -458,13 +462,13 @@ public class KDTreei<T extends Boundable<T>> {
         int box_width;
         int ax;
         if (xw > yw && xw > zw) {
-            ax = 0;
+            ax = X;
             box_width = xw;
         } else if (yw > zw) {
-            ax = 1;
+            ax = Y;
             box_width = yw;
         } else {
-            ax = 2;
+            ax = Z;
             box_width = zw;
         }
         float inv_box_width = 1.0f / box_width;
@@ -474,7 +478,7 @@ public class KDTreei<T extends Boundable<T>> {
         nPrims /= divisor;
         for (int i = 0; i < count; i += divisor) {
             T vx = node.voxels.get(i);
-            if (!bb.intersects(vx.min(0), vx.min(1), vx.min(2), vx.max(0), vx.max(1), vx.max(2))) {
+            if (!bb.intersects(vx.min(X), vx.min(Y), vx.min(Z), vx.max(X), vx.max(Y), vx.max(Z))) {
                 throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
             }
             intervals.add(new IntervalBoundary(0, vx.min(ax)));
