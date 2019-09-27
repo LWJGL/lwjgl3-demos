@@ -111,9 +111,9 @@ public class KDTreei<T extends Boundable<T>> {
         }
 
         @Override
-        public boolean intersects(Boundable<?> vx) {
-            return maxX >= vx.min(0) && maxY >= vx.min(1) && maxZ >= vx.min(2) && minX <= vx.max(0) && minY <= vx.max(1)
-                    && minZ <= vx.max(2);
+        public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+            return maxX >= minX && maxY >= minY && maxZ >= minZ && minX <= maxX && minY <= maxY
+                    && minZ <= maxZ;
         }
 
         @Override
@@ -131,23 +131,43 @@ public class KDTreei<T extends Boundable<T>> {
         public byte x, y, z;
         public byte ex, ey, ez;
         public byte paletteIndex;
+        public byte sides;
         public int nindex;
 
-        public Voxel(byte x, byte y, byte z, byte paletteIndex) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.paletteIndex = paletteIndex;
+        public Voxel(int x, int y, int z, int paletteIndex) {
+            this.x = (byte) x;
+            this.y = (byte) y;
+            this.z = (byte) z;
+            this.paletteIndex = (byte) paletteIndex;
         }
 
-        public Voxel(byte x, byte y, byte z, byte ex, byte ey, byte ez, byte paletteIndex) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.ex = ex;
-            this.ey = ey;
-            this.ez = ez;
-            this.paletteIndex = paletteIndex;
+        public Voxel(int x, int y, int z, int paletteIndex, int sides) {
+            this.x = (byte) x;
+            this.y = (byte) y;
+            this.z = (byte) z;
+            this.paletteIndex = (byte) paletteIndex;
+            this.sides = (byte) sides;
+        }
+
+        public Voxel(int x, int y, int z, int ex, int ey, int ez, int paletteIndex) {
+            this.x = (byte) x;
+            this.y = (byte) y;
+            this.z = (byte) z;
+            this.ex = (byte) ex;
+            this.ey = (byte) ey;
+            this.ez = (byte) ez;
+            this.paletteIndex = (byte) paletteIndex;
+        }
+
+        public Voxel(int x, int y, int z, int ex, int ey, int ez, int paletteIndex, int sides) {
+            this.x = (byte) x;
+            this.y = (byte) y;
+            this.z = (byte) z;
+            this.ex = (byte) ex;
+            this.ey = (byte) ey;
+            this.ez = (byte) ez;
+            this.paletteIndex = (byte) paletteIndex;
+            this.sides = (byte) sides;
         }
 
         @Override
@@ -207,9 +227,9 @@ public class KDTreei<T extends Boundable<T>> {
         }
 
         @Override
-        public boolean intersects(Boundable<?> vx) {
-            return max(0) >= vx.min(0) && max(1) >= vx.min(1) && max(2) >= vx.min(2) && min(0) <= vx.max(0) && min(1) <= vx.max(1)
-                    && min(2) <= vx.max(2);
+        public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+            return max(0) >= minX && max(1) >= minY && max(2) >= minZ && min(0) <= maxX && min(1) <= maxY
+                    && min(2) <= maxZ;
         }
 
         @Override
@@ -330,19 +350,19 @@ public class KDTreei<T extends Boundable<T>> {
             return right.findNode(cameraPosition);
         }
 
-        private void intersects(Box box, List<B> boundables) {
+        private void intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, List<B> boundables) {
             Box b = boundingBox;
-            if (!b.intersects(box))
+            if (!b.intersects(minX, minY, minZ, maxX, maxY, maxZ))
                 return;
             if (isLeafNode()) {
                 for (B voxel : voxels) {
-                    if (!box.intersects(voxel))
+                    if (!voxel.intersects(minX, minY, minZ, maxX, maxY, maxZ))
                         continue;
                     boundables.add(voxel);
                 }
             } else {
-                left.intersects(box, boundables);
-                right.intersects(box, boundables);
+                left.intersects(minX, minY, minZ, maxX, maxY, maxZ, boundables);
+                right.intersects(minX, minY, minZ, maxX, maxY, maxZ, boundables);
             }
         }
     }
@@ -368,8 +388,8 @@ public class KDTreei<T extends Boundable<T>> {
         return root;
     }
 
-    public void intersects(Box box, List<T> boundables) {
-        root.intersects(box, boundables);
+    public void intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, List<T> boundables) {
+        root.intersects(minX, minY, minZ, maxX, maxY, maxZ, boundables);
     }
 
     public Node<T> findNode(Vector3d cameraPosition) {
@@ -454,7 +474,7 @@ public class KDTreei<T extends Boundable<T>> {
         nPrims /= divisor;
         for (int i = 0; i < count; i += divisor) {
             T vx = node.voxels.get(i);
-            if (!bb.intersects(vx)) {
+            if (!bb.intersects(vx.min(0), vx.min(1), vx.min(2), vx.max(0), vx.max(1), vx.max(2))) {
                 throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
             }
             intervals.add(new IntervalBoundary(0, vx.min(ax)));
