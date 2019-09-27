@@ -112,8 +112,8 @@ public class KDTreei<T extends Boundable<T>> {
 
         @Override
         public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-            return maxX >= minX && maxY >= minY && maxZ >= minZ && minX <= maxX && minY <= maxY
-                    && minZ <= maxZ;
+            return this.maxX >= minX && this.maxY >= minY && this.maxZ >= minZ && this.minX <= maxX && this.minY <= maxY
+                    && this.minZ <= maxZ;
         }
 
         @Override
