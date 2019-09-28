@@ -1,15 +1,16 @@
 package org.lwjgl.demo.opengl.util;
 
+import org.joml.AABBf;
+import org.joml.Vector3f;
+import org.lwjgl.demo.opengl.util.KDTreei.Voxel;
+
+import java.util.ArrayList;
+
 import static java.lang.Float.*;
-import static java.lang.Math.*;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static java.util.Collections.*;
-
-import java.util.*;
-
-import org.joml.*;
-import org.lwjgl.demo.opengl.util.KDTreei.Voxel;
+import static java.lang.Math.*;
+import static java.util.Collections.sort;
 
 /**
  * Collision handling for basic primitives such as AABBs and spheres.
@@ -27,34 +28,26 @@ public class Collider {
     private static final int X = 0;
     private static final int Y = 1;
     private static final int Z = 2;
-    public static final byte COLLISION_SIDE_NX = 1 << 0;
-    public static final byte COLLISION_SIDE_PX = 1 << 1;
-    public static final byte COLLISION_SIDE_NY = 1 << 2;
-    public static final byte COLLISION_SIDE_PY = 1 << 3;
-    public static final byte COLLISION_SIDE_NZ = 1 << 4;
-    public static final byte COLLISION_SIDE_PZ = 1 << 5;
 
     /* Scratch/temporary memory */
-    private final List<Voxel> candidates = new ArrayList<>(32);
-    private final List<Collision> collisions = new ArrayList<>(32);
-    private final Vector3f n = new Vector3f();
+    private final ArrayList<Voxel> candidates = new ArrayList<>(32);
+    private final ArrayList<Contact> contacts = new ArrayList<>(32);
     private final Vector3f _tmp0 = new Vector3f();
     private final Vector3f _tmp1 = new Vector3f();
 
-    private static class Collision implements Comparable<Collision> {
-        private final float nx, ny, nz;
-        private final float t;
+    private static class Contact implements Comparable<Contact> {
+        public Vector3f n = new Vector3f();
+        public float t;
+        public Voxel vx;
 
-        private Collision(Vector3f n, float t) {
-            this.nx = n.x;
-            this.ny = n.y;
-            this.nz = n.z;
-            this.t = t;
+        @Override
+        public int compareTo(Contact o) {
+            return compare(t, o.t);
         }
 
         @Override
-        public int compareTo(Collision o) {
-            return compare(t, o.t);
+        public String toString() {
+            return "(" + n + ") @ " + t;
         }
     }
 
@@ -70,123 +63,86 @@ public class Collider {
         handleCollisionAabbAabbsCntd(box, v, delta);
     }
 
-    private void handleCollisionAabbAabbsCntd(AABBf box, Vector3f v, Vector3f delta) {
-        collisions.clear();
-        for (Voxel c : candidates) {
-            float t = intersectAabbAabb(box, v, c, n);
-            if (t < 1.0f)
-                collisions.add(new Collision(n, t));
+    private void removeImplausibleContacts() {
+        for (int i = 0; i < contacts.size(); i++) {
+            Contact c0 = contacts.get(i);
+            int k = c0.n.maxComponent();
+            for (int j = 0; j < contacts.size(); j++) {
+                Contact c1 = contacts.get(j);
+                if (c1.n.get(k) != 0.0f || ((c0.n.get(k) > 0.0f || c1.vx.min(k) != c0.vx.min(k))
+                        && (c0.n.get(k) < 0.0f || c1.vx.max(k) != c0.vx.max(k))))
+                    continue;
+                contacts.remove(j--);
+                if (j < i)
+                    i--;
+            }
         }
-        sort(collisions);
+    }
+
+    private void handleCollisionAabbAabbsCntd(AABBf box, Vector3f v, Vector3f delta) {
+        contacts.clear();
+        for (Voxel c : candidates)
+            intersectAabbAabb(box, v, c);
+        removeImplausibleContacts();
+        sort(contacts);
         delta.zero();
         float elapsedTime = 0.0f;
         float vx = v.x, vy = v.y, vz = v.z;
-        for (Collision collision : collisions) {
-            float t = collision.t - elapsedTime;
+        for (Contact contact : contacts) {
+            float t = contact.t - elapsedTime;
             delta.add(vx * t, vy * t, vz * t);
             elapsedTime += t;
-            if (collision.nx != 0)
+            if (contact.n.get(X) != 0)
                 vx = 0.0f;
-            else if (collision.ny != 0)
+            else if (contact.n.get(Y) != 0)
                 vy = 0.0f;
-            else if (collision.nz != 0)
+            else if (contact.n.get(Z) != 0)
                 vz = 0.0f;
         }
         float trem = 1.0f - elapsedTime;
         delta.add(vx * trem, vy * trem, vz * trem);
     }
 
-    private static float intersectAabbAabb(AABBf box, Vector3f v, Voxel vx, Vector3f n) {
-        float xInvEntry, yInvEntry, zInvEntry;
-        float xInvExit, yInvExit, zInvExit;
-        boolean maskX, maskY, maskZ;
-        float areaX = (min(vx.max(Y), box.maxY) - max(vx.min(Y), box.minY))
-                * (min(vx.max(Z), box.maxZ) - max(vx.min(Z), box.minZ));
-        float areaY = (min(vx.max(X), box.maxX) - max(vx.min(X), box.minX))
-                * (min(vx.max(Z), box.maxZ) - max(vx.min(Z), box.minZ));
-        float areaZ = (min(vx.max(X), box.maxX) - max(vx.min(X), box.minX))
-                * (min(vx.max(Y), box.maxY) - max(vx.min(Y), box.minY));
-        if (v.x > 0.0f) {
-            xInvEntry = vx.min(X) - box.maxX;
-            xInvExit = vx.max(X) - box.minX;
-            maskX = (vx.sides & COLLISION_SIDE_NX) == 0;
-        } else {
-            xInvEntry = vx.max(X) - box.minX;
-            xInvExit = vx.min(X) - box.maxX;
-            maskX = (vx.sides & COLLISION_SIDE_PX) == 0;
-        }
-        if (v.y > 0.0f) {
-            yInvEntry = vx.min(Y) - box.maxY;
-            yInvExit = vx.max(Y) - box.minY;
-            maskY = (vx.sides & COLLISION_SIDE_NY) == 0;
-        } else {
-            yInvEntry = vx.max(Y) - box.minY;
-            yInvExit = vx.min(Y) - box.maxY;
-            maskY = (vx.sides & COLLISION_SIDE_PY) == 0;
-        }
-        if (v.z > 0.0f) {
-            zInvEntry = vx.min(Z) - box.maxZ;
-            zInvExit = vx.max(Z) - box.minZ;
-            maskZ = (vx.sides & COLLISION_SIDE_NZ) == 0;
-        } else {
-            zInvEntry = vx.max(Z) - box.minZ;
-            zInvExit = vx.min(Z) - box.maxZ;
-            maskZ = (vx.sides & COLLISION_SIDE_PZ) == 0;
-        }
-        return intersectAabbAabbCntd(v, n, xInvEntry, yInvEntry, zInvEntry, xInvExit, yInvExit, zInvExit, maskX, maskY,
-                maskZ, areaX, areaY, areaZ);
-    }
-
-    private static float intersectAabbAabbCntd(Vector3f v, Vector3f n, float xInvEntry, float yInvEntry,
-            float zInvEntry, float xInvExit, float yInvExit, float zInvExit, boolean maskX, boolean maskY,
-            boolean maskZ, float areaX, float areaY, float areaZ) {
-        float xEntry = NEGATIVE_INFINITY, yEntry = NEGATIVE_INFINITY, zEntry = NEGATIVE_INFINITY;
-        float xExit = POSITIVE_INFINITY, yExit = POSITIVE_INFINITY, zExit = POSITIVE_INFINITY;
-        if (v.x != 0.0f && maskX) {
-            xEntry = xInvEntry / v.x;
-            xExit = xInvExit / v.x;
-        }
-        if (v.y != 0.0f && maskY) {
-            yEntry = yInvEntry / v.y;
-            yExit = yInvExit / v.y;
-        }
-        if (v.z != 0.0f && maskZ) {
-            zEntry = zInvEntry / v.z;
-            zExit = zInvExit / v.z;
-        }
-        float entryTime = max(max(xEntry, yEntry), zEntry);
-        float exitTime = min(min(xExit, yExit), zExit);
-        if (entryTime > exitTime || xEntry < -1f && yEntry < -1f && zEntry < -1f
-                || xEntry > 1.0f && yEntry > 1.0f && zEntry > 1.0f) {
-            return POSITIVE_INFINITY;
-        } else {
-            if (xEntry > yEntry && xEntry > zEntry && areaX > areaY && areaX > areaZ) {
-                n.set(xInvEntry > 0 ? -1 : 1, 0, 0);
-            } else if (yEntry > zEntry && areaY > areaZ) {
-                n.set(0, yInvEntry > 0 ? -1 : 1, 0);
-            } else if (areaZ > 1E-6f) {
-                n.set(0, 0, zInvEntry > 0 ? -1 : 1);
+    private void intersectAabbAabb(AABBf box, Vector3f v, Voxel vx) {
+        for (int k = 0; k < 3; k++) {
+            float invEntry, invExit;
+            boolean mask;
+            if (v.get(k) > 0.0f) {
+                invEntry = vx.min(k) - box.getMax(k);
+                invExit = vx.max(k) - box.getMin(k);
+                mask = (vx.sides & (1 << k * 2)) == 0;
             } else {
-                return POSITIVE_INFINITY;
+                invEntry = vx.max(k) - box.getMin(k);
+                invExit = vx.min(k) - box.getMax(k);
+                mask = (vx.sides & (1 << k * 2 + 1)) == 0;
             }
-            return entryTime;
+            intersectAabbAabb(vx, v, invEntry, invExit, mask, k);
         }
     }
 
-    private static float intersectSegmentSphere(float ax, float ay, float az, float dx, float dy, float dz, float cx,
-            float cy, float cz, float r) {
+    private void intersectAabbAabb(Voxel vx, Vector3f v, float invEntry, float invExit, boolean mask, int k) {
+        if (v.get(k) != 0.0f && mask) {
+            float entry = invEntry / v.get(k);
+            float exit = invExit / v.get(k);
+            if (entry >= -1.0f && entry < exit) {
+                Contact c = new Contact();
+                contacts.add(c);
+                c.n.setComponent(k, invEntry > 0 ? -1 : 1);
+                c.t = entry;
+                c.vx = vx;
+            }
+        }
+    }
+
+    private static float intersectSegmentSphere(Vector3f a, float dx, float dy, float dz, Vector3f p, float r) {
         float tm = dx * dx + dy * dy + dz * dz;
-        float mx = ax - cx, my = ay - cy, mz = az - cz;
+        float mx = a.x - p.x, my = a.y - p.y, mz = a.z - p.z;
         float c = mx * mx + my * my + mz * mz - r * r;
-        if (tm > 0.0f) {
-            tm = (float) sqrt(tm);
-            float tmi = 1.0f / tm;
-            dx = dx * tmi;
-            dy = dy * tmi;
-            dz = dz * tmi;
-        } else
+        if (tm <= 0.0f)
             return c > 0.0f ? NaN : 0.0f;
-        return intersectSegmentSphereCntd(dx, dy, dz, tm, mx, my, mz, c);
+        tm = (float) sqrt(tm);
+        float tmi = 1.0f / tm;
+        return intersectSegmentSphereCntd(dx * tmi, dy * tmi, dz * tmi, tm, mx, my, mz, c);
     }
 
     private static float intersectSegmentSphereCntd(float dx, float dy, float dz, float tm, float mx, float my,
@@ -201,55 +157,53 @@ public class Collider {
         return t > tm ? NaN : max(0.0f, t / tm);
     }
 
-    private static float intersectSegmentCapsule(float sx0, float sy0, float sz0, float sx1, float sy1, float sz1,
-            float px, float py, float pz, float qx, float qy, float qz, float r) {
-        float dx = qx - px, dy = qy - py, dz = qz - pz;
-        float mx = sx0 - px, my = sy0 - py, mz = sz0 - pz;
-        float nx = sx1 - sx0, ny = sy1 - sy0, nz = sz1 - sz0;
+    private static float intersectSegmentCapsule(Vector3f s0, Vector3f n, Vector3f p, Vector3f q, float r) {
+        float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
+        float mx = s0.x - p.x, my = s0.y - p.y, mz = s0.z - p.z;
+        float nx = n.x, ny = n.y, nz = n.z;
         float md = mx * dx + my * dy + mz * dz;
         float nd = nx * dx + ny * dy + nz * dz;
         if (md < 0.0f && md + nd < 0.0f)
-            return intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, px, py, pz, r);
+            return intersectSegmentSphere(s0, nx, ny, nz, p, r);
         float dd = dx * dx + dy * dy + dz * dz;
         if (md > dd && md + nd > dd)
-            return intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, qx, qy, qz, r);
+            return intersectSegmentSphere(s0, nx, ny, nz, q, r);
         float a = dd * (nx * nx + ny * ny + nz * nz) - nd * nd;
         float c = dd * (mx * mx + my * my + mz * mz - r * r) - md * md;
         if (abs(a) < 1E-6f)
             return c > 0.0f ? NaN
-                    : md < 0.0f ? intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, px, py, pz, r)
-                            : md > dd ? intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, qx, qy, qz, r) : 0.0f;
+                    : md < 0.0f ? intersectSegmentSphere(s0, nx, ny, nz, p, r)
+                            : md > dd ? intersectSegmentSphere(s0, nx, ny, nz, q, r) : 0.0f;
         float b = dd * (mx * nx + my * ny + mz * nz) - nd * md;
         float d = b * b - a * c;
         if (d < 0.0f)
             return NaN;
         float t = (-b - (float) sqrt(d)) / a;
-        return md + t * nd < 0.0f ? intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, px, py, pz, r)
-                : md + t * nd > dd ? intersectSegmentSphere(sx0, sy0, sz0, nx, ny, nz, qx, qy, qz, r)
-                        : t >= 0.0f && t <= 1.0f ? t : NaN;
+        return md + t * nd < 0.0f ? intersectSegmentSphere(s0, nx, ny, nz, p, r)
+                : md + t * nd > dd ? intersectSegmentSphere(s0, nx, ny, nz, q, r) : t >= 0.0f && t <= 1.0f ? t : NaN;
     }
 
-    private static float intersectRayAab(float originX, float originY, float originZ, float dirX, float dirY,
-            float dirZ, float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        float invDirX = 1.0f / dirX, invDirY = 1.0f / dirY, invDirZ = 1.0f / dirZ;
+    private static float intersectRayAab(Vector3f o, Vector3f d, float minX, float minY, float minZ, float maxX,
+            float maxY, float maxZ) {
+        float invDirX = 1.0f / d.x, invDirY = 1.0f / d.y, invDirZ = 1.0f / d.z;
         float tNear, tFar, tymin, tymax;
         if (invDirX >= 0.0f) {
-            tNear = (minX - originX) * invDirX;
-            tFar = (maxX - originX) * invDirX;
+            tNear = (minX - o.x) * invDirX;
+            tFar = (maxX - o.x) * invDirX;
         } else {
-            tNear = (maxX - originX) * invDirX;
-            tFar = (minX - originX) * invDirX;
+            tNear = (maxX - o.x) * invDirX;
+            tFar = (minX - o.x) * invDirX;
         }
         if (invDirY >= 0.0f) {
-            tymin = (minY - originY) * invDirY;
-            tymax = (maxY - originY) * invDirY;
+            tymin = (minY - o.y) * invDirY;
+            tymax = (maxY - o.y) * invDirY;
         } else {
-            tymin = (maxY - originY) * invDirY;
-            tymax = (minY - originY) * invDirY;
+            tymin = (maxY - o.y) * invDirY;
+            tymax = (minY - o.y) * invDirY;
         }
         if (tNear > tymax || tymin > tFar)
             return NaN;
-        return intersectRayAabCntd(originZ, minZ, maxZ, invDirZ, tNear, tFar, tymin, tymax);
+        return intersectRayAabCntd(o.z, minZ, maxZ, invDirZ, tNear, tFar, tymin, tymax);
     }
 
     private static float intersectRayAabCntd(float originZ, float minZ, float maxZ, float invDirZ, float tNear,
@@ -273,9 +227,7 @@ public class Collider {
         tFar = tymax < tFar || isNaN(tFar) ? tymax : tFar;
         tNear = tzmin > tNear ? tzmin : tNear;
         tFar = tzmax < tFar ? tzmax : tFar;
-        if (tNear < tFar && tFar >= 0.0f)
-            return tNear;
-        return NaN;
+        return tNear < tFar && tFar >= 0.0f ? tNear : NaN;
     }
 
     private static enum PointLocation {
@@ -386,7 +338,7 @@ public class Collider {
         }
         float minX = min.x - r, minY = min.y - r, minZ = min.z - r;
         float maxX = max.x + r, maxY = max.y + r, maxZ = max.z + r;
-        float t = intersectRayAab(s.x, s.y, s.z, d.x, d.y, d.z, minX, minY, minZ, maxX, maxY, maxZ);
+        float t = intersectRayAab(s, d, minX, minY, minZ, maxX, maxY, maxZ);
         if (isNaN(t) || t > 1.0f)
             return false;
         return intersectSweptSphereAabbCtnd(s, r, d, min, max, result, t);
@@ -414,8 +366,7 @@ public class Collider {
         if ((m & (m - 1)) == 0)
             return intersectSweptSphereAabbFace(r, min, max, result);
         Vector3f c4 = corner(min, max, v ^ 7, _tmp1);
-        float t = intersectSegmentCapsule(s.x, s.y, s.z, s.x + d.x, s.y + d.y, s.z + d.z, c4.x, c4.y, c4.z, c0.x, c0.y,
-                c0.z, r);
+        float t = intersectSegmentCapsule(s, d, c4, c0, r);
         if (t >= 0.0f && t <= 1.0f)
             return intersectSweptSphereAabbEdge(s, d, result, t, c0, c4);
         return false;
@@ -443,23 +394,13 @@ public class Collider {
 
     private boolean intersectSweptSphereAabbCorner(Vector3f s, float r, Vector3f d, Vector3f min, Vector3f max,
             CollisionResult result, int v, Vector3f c0) {
-        float t;
         float tmin = POSITIVE_INFINITY;
-        Vector3f c1 = corner(min, max, v ^ 1 << X, _tmp1);
-        t = intersectSegmentCapsule(s.x, s.y, s.z, s.x + d.x, s.y + d.y, s.z + d.z, c0.x, c0.y, c0.z, c1.x, c1.y, c1.z,
-                r);
-        if (!isNaN(t))
-            tmin = min(t, tmin);
-        Vector3f c2 = corner(min, max, v ^ 1 << Y, _tmp1);
-        t = intersectSegmentCapsule(s.x, s.y, s.z, s.x + d.x, s.y + d.y, s.z + d.z, c0.x, c0.y, c0.z, c2.x, c2.y, c2.z,
-                r);
-        if (!isNaN(t))
-            tmin = min(t, tmin);
-        Vector3f c3 = corner(min, max, v ^ 1 << Z, _tmp1);
-        t = intersectSegmentCapsule(s.x, s.y, s.z, s.x + d.x, s.y + d.y, s.z + d.z, c0.x, c0.y, c0.z, c3.x, c3.y, c3.z,
-                r);
-        if (!isNaN(t))
-            tmin = min(t, tmin);
+        for (int k = 0; k < 3; k++) {
+            Vector3f c = corner(min, max, v ^ 1 << k, _tmp1);
+            float t = intersectSegmentCapsule(s, d, c0, c, r);
+            if (!isNaN(t))
+                tmin = min(t, tmin);
+        }
         result.point.set(c0);
         result.normal.set(d).mul(tmin).add(s).sub(c0).normalize();
         result.t = tmin;
