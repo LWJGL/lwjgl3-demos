@@ -234,30 +234,13 @@ public class CubeTrace {
             }
         }
         /* Remove voxels that have neighbors at all sides */
+        List<KDTreei.Voxel> voxels = new ArrayList<>();
         for (int z = 0; z < depth; z++) {
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     int idx = idx(x, y, z, width, depth);
-                    int left = idx(x - 1, y, z, width, depth);
-                    int right = idx(x + 1, y, z, width, depth);
-                    int up = idx(x, y + 1, z, width, depth);
-                    int down = idx(x, y - 1, z, width, depth);
-                    int front = idx(x, y, z - 1, width, depth);
-                    int back = idx(x, y, z + 1, width, depth);
-                    if ((field[idx] & 1) == 1 && (x == 0 || (field[left] & 1) == 1)
-                            && (x == width - 1 || (field[right] & 1) == 1) && (y == height - 1 || (field[up] & 1) == 1)
-                            && (y == 0 || (field[down] & 1) == 1) && (z == 0 || (field[front] & 1) == 1)
-                            && (z == depth - 1 || (field[back] & 1) == 1)) {
-                        field[idx] = 1; // <- remember that this once was a filled voxel!
-                    }
-                }
-            }
-        }
-        List<KDTreei.Voxel> voxels = new ArrayList<>();
-        for (short z = 0; z < depth; z++) {
-            for (short y = 0; y < height; y++) {
-                for (short x = 0; x < width; x++) {
-                    int idx = idx(x, y, z, width, depth);
+                    if (field[idx] == 0)
+                        continue;
                     int left = x > 0 && (field[idx(x - 1, y, z, width, depth)] & 1) == 1 ? 1 : 0;
                     int right = x < width - 1 && (field[idx(x + 1, y, z, width, depth)] & 1) == 1 ? 1 : 0;
                     int down = y > 0 && (field[idx(x, y - 1, z, width, depth)] & 1) == 1 ? 1 : 0;
@@ -265,8 +248,8 @@ public class CubeTrace {
                     int back = z > 0 && (field[idx(x, y, z - 1, width, depth)] & 1) == 1 ? 1 : 0;
                     int front = z < depth - 1 && (field[idx(x, y, z + 1, width, depth)] & 1) == 1 ? 1 : 0;
                     int sidesFlag = left | (right << 1) | (down << 2) | (up << 3) | (back << 4) | (front << 5);
-                    if (field[idx] == ~0)
-                        voxels.add(new KDTreei.Voxel((byte) x, (byte) y, (byte) z, (byte) ((sidesFlag << 1) | 1)));
+                    if (sidesFlag != 0x3F)
+                        voxels.add(new KDTreei.Voxel(x, y, z, ((sidesFlag << 1) | 1), sidesFlag));
                 }
             }
         }
@@ -564,7 +547,6 @@ public class CubeTrace {
             if ((frame % averageOver) == 0) {
                 String text = String.format("%.3f", (thisTime - lastAvg) * 1E-6f / averageOver) + " ms.";
                 glfwSetWindowTitle(window, text);
-                System.out.println(text);
                 lastAvg = thisTime;
             }
             lastTime = thisTime;
