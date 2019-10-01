@@ -64,6 +64,7 @@ public class VKUtil {
         long options = shaderc_compile_options_initialize();
         ShadercIncludeResolve resolver;
         ShadercIncludeResultRelease releaser;
+        shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level_performance);
         shaderc_compile_options_set_include_callbacks(options, resolver = new ShadercIncludeResolve() {
             public long invoke(long user_data, long requested_source, int type, long requesting_source, long include_depth) {
                 ShadercIncludeResult res = ShadercIncludeResult.calloc();
