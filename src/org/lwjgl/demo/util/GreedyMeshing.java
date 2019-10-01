@@ -11,24 +11,15 @@ import java.util.List;
 public class GreedyMeshing {
 
     public static class Face {
-        public int x0, y0, z0;
-        public int x1, y1, z1;
-        public int x2, y2, z2;
-        public int x3, y3, z3;
+        public byte u0, v0, u1, v1, p, s;
 
-        public Face(int x0, int y0, int z0, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-            this.x0 = x0;
-            this.y0 = y0;
-            this.z0 = z0;
-            this.x1 = x1;
-            this.y1 = y1;
-            this.z1 = z1;
-            this.x2 = x2;
-            this.y2 = y2;
-            this.z2 = z2;
-            this.x3 = x3;
-            this.y3 = y3;
-            this.z3 = z3;
+        public Face(int u0, int v0, int u1, int v1, int p, int s) {
+            this.u0 = (byte) u0;
+            this.v0 = (byte) v0;
+            this.u1 = (byte) u1;
+            this.v1 = (byte) v1;
+            this.p = (byte) p;
+            this.s = (byte) s;
         }
     }
 
@@ -83,8 +74,8 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidth(dims, u, m, n, i, m[n]);
         int h = determineHeight(dims, u, v, m, n, j, m[n], w);
-        determineFaceRegion(du, dv, x, u, v, m, n, j, i, d, w, h);
-        addFace(faces, du, dv, x);
+        int s = determineFaceRegion(du, dv, x, u, v, m, n, j, i, d, w, h);
+        addFace(faces, du, dv, x, u, v, d, s);
         eraseMask(dims, u, m, n, w, h);
         return w;
     }
@@ -95,7 +86,7 @@ public class GreedyMeshing {
                 m[n + k + l * dims[u]] = 0;
     }
 
-    private static void determineFaceRegion(int[] du, int[] dv, int[] x, int u, int v, int[] m, int n, int j, int i,
+    private static int determineFaceRegion(int[] du, int[] dv, int[] x, int u, int v, int[] m, int n, int j, int i,
             int d, int w, int h) {
         x[u] = i;
         x[v] = j;
@@ -103,10 +94,12 @@ public class GreedyMeshing {
             du[d] = dv[d] = du[v] = dv[u] = 0;
             dv[v] = h;
             du[u] = w;
+            return 0;
         } else {
             du[d] = dv[d] = du[u] = dv[v] = 0;
             du[v] = h;
             dv[u] = w;
+            return 1;
         }
     }
 
@@ -132,9 +125,8 @@ public class GreedyMeshing {
         return h;
     }
 
-    private static void addFace(List<Face> faces, int[] du, int[] dv, int[] x) {
-        faces.add(new Face(x[0], x[1], x[2], x[0] + du[0], x[1] + du[1], x[2] + du[2], x[0] + du[0] + dv[0],
-                x[1] + du[1] + dv[1], x[2] + du[2] + dv[2], x[0] + dv[0], x[1] + dv[1], x[2] + dv[2]));
+    private static void addFace(List<Face> faces, int[] du, int[] dv, int[] x, int u, int v, int d, int s) {
+        faces.add(new Face(x[u], x[v], x[u] + du[u] + dv[u], x[v] + du[v] + dv[v], x[d], (d << 1) + s));
     }
 
 }
