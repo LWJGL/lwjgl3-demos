@@ -5,9 +5,9 @@
 package org.lwjgl.demo.opengl.raytracing.tutorial;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
-import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.demo.util.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -678,9 +678,9 @@ public class Tutorial6_2 {
          * Create program and shader objects for our full-screen quad rendering.
          */
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.vs.glsl",
+        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.vs.glsl",
                 GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.fs.glsl",
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.fs.glsl",
                 GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
@@ -708,9 +708,9 @@ public class Tutorial6_2 {
          * shader type, now being GL_COMPUTE_SHADER.
          */
         int program = glCreateProgram();
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/raytracing.glsl",
+        int cshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/raytracing.glsl",
                 GL_COMPUTE_SHADER);
-        int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/geometry.glsl",
+        int geometry = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/geometry.glsl",
                 GL_COMPUTE_SHADER);
         glAttachShader(program, cshader);
         glAttachShader(program, geometry);

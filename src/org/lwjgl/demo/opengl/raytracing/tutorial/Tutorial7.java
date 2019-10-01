@@ -12,9 +12,8 @@ import org.lwjgl.assimp.AIScene;
 import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.demo.opengl.util.DemoUtils;
-import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
-import org.lwjgl.demo.opengl.util.Member;
-import org.lwjgl.demo.opengl.util.Std430Writer;
+import org.lwjgl.demo.util.DynamicByteBuffer;
+import org.lwjgl.demo.util.Member;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -35,9 +34,9 @@ import java.util.Queue;
 import java.util.zip.ZipInputStream;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.demo.util.Std430Writer.*;
 
 /**
  * This demo shows stackless kd-tree traversal, as presented in the 2007
@@ -570,7 +569,7 @@ public class Tutorial7 {
             gpuNodes.add(gn);
         }
         // Write GPUNode list to ByteBuffer in std430 layout
-        Std430Writer.write(gpuNodes, GPUNode.class, nodesBuffer);
+        write(gpuNodes, GPUNode.class, nodesBuffer);
     }
 
     /**

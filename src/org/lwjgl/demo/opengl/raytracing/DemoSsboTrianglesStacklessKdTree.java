@@ -5,15 +5,9 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
-import org.lwjgl.demo.opengl.util.KDTree;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
-import org.lwjgl.demo.opengl.util.KDTree.Box;
-import org.lwjgl.demo.opengl.util.KDTree.Node;
-import org.lwjgl.demo.opengl.util.KDTree.Triangle;
-import org.lwjgl.demo.opengl.util.Member;
-import org.lwjgl.demo.opengl.util.Std430Writer;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
+import org.lwjgl.demo.util.*;
+import org.lwjgl.demo.util.KDTree.*;
+import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;

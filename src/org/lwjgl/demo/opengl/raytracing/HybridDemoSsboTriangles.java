@@ -5,11 +5,9 @@
 package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.demo.opengl.util.DynamicByteBuffer;
-import org.lwjgl.demo.opengl.util.Std430Writer;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.MeshObject;
+import org.lwjgl.demo.util.*;
+import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
+import org.lwjgl.demo.util.WavefrontMeshLoader.MeshObject;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;

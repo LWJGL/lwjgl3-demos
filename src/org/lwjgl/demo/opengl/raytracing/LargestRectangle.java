@@ -1,14 +1,17 @@
 package org.lwjgl.demo.opengl.raytracing;
 
+import static java.lang.Math.*;
+
 import java.util.Arrays;
 import java.util.List;
 
-import org.lwjgl.demo.opengl.util.KDTreei;
+import org.lwjgl.demo.util.KDTreei;
 
 public class LargestRectangle {
     private static final byte[] a = new byte[256 * 256];
     private static final short[] w = new short[256 * 256];
     private static final short[] d = new short[256 * 256];
+
     public static void merge(byte[] arr, int width, int depth, int layer, int minArea, List<KDTreei.Voxel> voxels) {
         System.arraycopy(arr, width * depth * layer, a, 0, width * depth);
         int maxArea = 0;
@@ -17,7 +20,7 @@ public class LargestRectangle {
             Arrays.fill(d, (short) 0);
             int c0 = 0, r0 = 0, c1 = 0, r1 = 0;
             maxArea = 0;
-            for (int r = 0; r < depth; r++) {
+            for (int r = 0; r < depth; r++)
                 for (int c = 0; c < width; c++) {
                     if (a[r * width + c] != ~0)
                         continue;
@@ -31,7 +34,7 @@ public class LargestRectangle {
                         w[r * width + c] = (short) (w[r * width + c - 1] + 1);
                     int minw = w[r * width + c];
                     for (int dh = 0; dh < d[r * width + c]; dh++) {
-                        minw = Math.min(minw, w[(r - dh) * width + c]);
+                        minw = min(minw, w[(r - dh) * width + c]);
                         int area = (dh + 1) * minw;
                         if (area > maxArea) {
                             maxArea = area;
@@ -42,20 +45,17 @@ public class LargestRectangle {
                         }
                     }
                 }
-            }
             for (int r = r0; r <= r1; r++)
                 for (int c = c0; c <= c1; c++)
                     a[r * width + c] = 1;
             if (maxArea > 0)
-                voxels.add(new KDTreei.Voxel((byte) c0, (byte) layer, (byte) r0, (byte) (c1 - c0), (byte) 0,
-                        (byte) (r1 - r0), (byte) 0));
+                voxels.add(new KDTreei.Voxel(c0, layer, r0, c1 - c0, 0, r1 - r0, 0));
         } while (maxArea >= minArea);
-        for (int r = 0; r < depth; r++) {
+        for (int r = 0; r < depth; r++)
             for (int c = 0; c < width; c++) {
                 if (a[r * width + c] != ~0)
                     continue;
-                voxels.add(new KDTreei.Voxel((byte) c, (byte) layer, (byte) r, (byte) 0));
+                voxels.add(new KDTreei.Voxel(c, layer, r, 0));
             }
-        }
     }
 }

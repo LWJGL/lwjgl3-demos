@@ -1,4 +1,4 @@
-package org.lwjgl.demo.opengl.util;
+package org.lwjgl.demo.util;
 
 import static org.lwjgl.system.MemoryUtil.*;
 

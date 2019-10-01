@@ -1,8 +1,8 @@
-package org.lwjgl.demo.opengl.util;
+package org.lwjgl.demo.util;
 
 import org.joml.AABBf;
 import org.joml.Vector3f;
-import org.lwjgl.demo.opengl.util.KDTreei.Voxel;
+import org.lwjgl.demo.util.KDTreei.Voxel;
 
 import java.util.ArrayList;
 

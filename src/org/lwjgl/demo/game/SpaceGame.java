@@ -6,8 +6,8 @@ package org.lwjgl.demo.game;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader;
-import org.lwjgl.demo.opengl.util.WavefrontMeshLoader.Mesh;
+import org.lwjgl.demo.util.WavefrontMeshLoader;
+import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;

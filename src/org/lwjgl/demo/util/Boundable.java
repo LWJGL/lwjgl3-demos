@@ -1,4 +1,4 @@
-package org.lwjgl.demo.opengl.util;
+package org.lwjgl.demo.util;
 
 public interface Boundable<T> {
     int min(int axis);

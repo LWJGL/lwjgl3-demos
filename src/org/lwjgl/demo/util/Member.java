@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-package org.lwjgl.demo.opengl.util;
+package org.lwjgl.demo.util;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

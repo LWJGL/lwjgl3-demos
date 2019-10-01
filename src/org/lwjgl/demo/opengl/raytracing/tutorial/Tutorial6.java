@@ -5,9 +5,9 @@
 package org.lwjgl.demo.opengl.raytracing.tutorial;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.demo.util.Std430Writer.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,6 +21,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.*;
 import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.demo.util.DynamicByteBuffer;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -722,7 +723,7 @@ public class Tutorial6 {
             gpuNodes.add(gn);
         }
         // Write GPUNode list to ByteBuffer in std430 layout
-        Std430Writer.write(gpuNodes, GPUNode.class, nodesBuffer);
+        write(gpuNodes, GPUNode.class, nodesBuffer);
     }
 
     /**

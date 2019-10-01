@@ -18,6 +18,8 @@ import java.util.*;
 
 import org.joml.*;
 import org.lwjgl.demo.opengl.util.*;
+import org.lwjgl.demo.util.DynamicByteBuffer;
+import org.lwjgl.demo.util.KDTreei;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
