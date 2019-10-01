@@ -710,9 +710,12 @@ public class NvRayTracingExample {
         return ret;
     }
 
+    /**
+     * VkGeometryInstanceNV
+     */
     private static class GeometryInstance {
         Matrix4x3f transform = new Matrix4x3f();
-        int instanceId;
+        int instanceCustomId;
         byte mask;
         int instanceOffset;
         byte flags;
@@ -720,7 +723,7 @@ public class NvRayTracingExample {
 
         ByteBuffer write(ByteBuffer bb) {
             transform.getTransposed(bb);
-            bb.putInt(Float.BYTES * 12, ((int) mask << 24) | instanceId);
+            bb.putInt(Float.BYTES * 12, ((int) mask << 24) | instanceCustomId);
             bb.putInt(Float.BYTES * 12 + 4, ((int) flags << 24) | instanceOffset);
             bb.putLong(Float.BYTES * 12 + 4 + 4, accelerationStructureHandle);
             return bb;
