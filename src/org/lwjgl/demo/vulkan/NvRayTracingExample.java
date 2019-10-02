@@ -709,8 +709,8 @@ public class NvRayTracingExample {
             Geometry geometry) {
         try (MemoryStack stack = stackPush()) {
             VkAccelerationStructureInfoNV pInfo = VkAccelerationStructureInfoNV(stack)
-                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
                     .pGeometries(VkGeometryNV.create(geometry.geometry.address(), 1));
             VkCommandBuffer cmdBuffer = createCommandBuffer();
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -800,6 +800,8 @@ public class NvRayTracingExample {
     private static TopLevelAccelerationStructure createTopLevelAccelerationStructure() {
         try (MemoryStack stack = stackPush()) {
             VkAccelerationStructureInfoNV accelerationStructureInfo = VkAccelerationStructureInfoNV(stack)
+                    .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV)
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
                     .instanceCount(1);
             LongBuffer accelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device, VkAccelerationStructureCreateInfoNV(stack)
