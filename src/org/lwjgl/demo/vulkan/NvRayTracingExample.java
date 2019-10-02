@@ -16,7 +16,6 @@ import org.lwjgl.vulkan.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
@@ -673,11 +672,14 @@ public class NvRayTracingExample {
         AIVector3D.Buffer normals = m.mNormals();
         AllocationAndBuffer vertexBuffer = createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 memByteBuffer(vertices.address(), numVertices * Float.BYTES * 3));
-        ByteBuffer normals4 = memAlloc(numVertices * Float.BYTES * 4);
-        FloatBuffer nf = normals4.asFloatBuffer();
+        ByteBuffer normals4 = memAlloc(numVertices * 4);
+        ByteBuffer ns = normals4.duplicate();
         for (int i = 0; i < numVertices; i++) {
             AIVector3D n = Objects.requireNonNull(normals).get(i);
-            nf.put(n.x()).put(n.y()).put(n.z()).put(0.0f);
+            ns.put((byte) (127.0f * n.x()))
+              .put((byte) (127.0f * n.y()))
+              .put((byte) (127.0f * n.z()))
+              .put((byte) 0);
         }
         AllocationAndBuffer normalBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, normals4);
         memFree(normals4);
