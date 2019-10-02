@@ -10,7 +10,7 @@ layout(location = 0) rayPayloadInNV Payload {
     float t;
 } payload;
 
-hitAttributeNV vec3 attribs;
+hitAttributeNV vec2 attribs;
 
 layout(binding = 4, set = 0) buffer Normals { uint n[]; } normals;
 layout(binding = 5, set = 0) buffer Indices { uint i[]; } indices;
