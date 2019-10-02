@@ -982,7 +982,7 @@ public class NvRayTracingExample {
             LongBuffer pPipelines = stack.mallocLong(1);
             _CHECK_(vkCreateRayTracingPipelinesNV(device, VK_NULL_HANDLE, VkRayTracingPipelineCreateInfoNV(stack)
                             .pStages(pStages)
-                            .maxRecursionDepth(1)
+                            .maxRecursionDepth(0)
                             .pGroups(groups)
                             .layout(pPipelineLayout.get(0)), null, pPipelines),
                     "Failed to create ray tracing pipeline");
