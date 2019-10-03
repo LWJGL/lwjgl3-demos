@@ -604,6 +604,14 @@ public class NvRayTracingExample {
         AllocationAndMemory memory;
         long handle;
 
+        BottomLevelAccelerationStructure(Geometry geometry, long accelerationStructure, AllocationAndMemory memory,
+                long handle) {
+            this.geometry = geometry;
+            this.accelerationStructure = accelerationStructure;
+            this.memory = memory;
+            this.handle = handle;
+        }
+
         void free(boolean includingGeometry) {
             if (includingGeometry)
                 geometry.free();
@@ -613,16 +621,24 @@ public class NvRayTracingExample {
     }
 
     private static class Geometry {
-        AllocationAndBuffer vertexData;
-        AllocationAndBuffer indexData;
-        AllocationAndBuffer normalData;
+        AllocationAndBuffer positions;
+        AllocationAndBuffer normals;
+        AllocationAndBuffer indices;
         VkGeometryNV.Buffer geometry;
 
+        Geometry(AllocationAndBuffer positions, AllocationAndBuffer normals, AllocationAndBuffer indices,
+                VkGeometryNV.Buffer geometry) {
+            this.positions = positions;
+            this.normals = normals;
+            this.indices = indices;
+            this.geometry = geometry;
+        }
+
         void free() {
+            positions.free();
+            normals.free();
+            indices.free();
             geometry.free();
-            vertexData.free();
-            indexData.free();
-            normalData.free();
         }
     }
 
@@ -667,12 +683,7 @@ public class NvRayTracingExample {
                     .indexCount(faceCount * 3)
                     .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
                 .flags(VK_GEOMETRY_OPAQUE_BIT_NV);
-        Geometry ret = new Geometry();
-        ret.geometry = geometry;
-        ret.vertexData = vertexBuffer;
-        ret.normalData = normalBuffer;
-        ret.indexData = indexBuffer;
-        return ret;
+        return new Geometry(vertexBuffer, normalBuffer, indexBuffer, geometry);
     }
 
     /**
@@ -752,12 +763,8 @@ public class NvRayTracingExample {
             waitForFenceAndDestroy(fence);
             vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
             scratchBuffer.free();
-            BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
-            ret.geometry = geometry;
-            ret.accelerationStructure = accelerationStructure.get(0);
-            ret.memory = allocation;
-            ret.handle = accelerationStructureHandle.getLong(0);
-            return ret;
+            return new BottomLevelAccelerationStructure(geometry, accelerationStructure.get(0), allocation,
+                    accelerationStructureHandle.get(0));
         }
     }
 
@@ -804,12 +811,8 @@ public class NvRayTracingExample {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer2);
                 src.free(false);
             });
-            BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
-            ret.geometry = geometry;
-            ret.accelerationStructure = accelerationStructureCompacted.get(0);
-            ret.memory = allocationCompacted;
-            ret.handle = accelerationStructureCompactedHandle.get(0);
-            return ret;
+            return new BottomLevelAccelerationStructure(geometry, accelerationStructureCompacted.get(0),
+                    allocationCompacted, accelerationStructureCompactedHandle.get(0));
         }
     }
 
@@ -946,6 +949,12 @@ public class NvRayTracingExample {
         long descriptorSetLayout;
         long pipeline;
 
+        RayTracingPipeline(long pipelineLayout, long descriptorSetLayout, long pipeline) {
+            this.pipelineLayout = pipelineLayout;
+            this.descriptorSetLayout = descriptorSetLayout;
+            this.pipeline = pipeline;
+        }
+
         void free() {
             vkDestroyPipelineLayout(device, pipelineLayout, null);
             vkDestroyDescriptorSetLayout(device, descriptorSetLayout, null);
@@ -1020,11 +1029,7 @@ public class NvRayTracingExample {
             pStages.forEach(stage -> vkDestroyShaderModule(device, stage.module(), null));
             if (pipeline != null)
                 pipeline.free();
-            RayTracingPipeline ret = new RayTracingPipeline();
-            ret.descriptorSetLayout = pSetLayout.get(0);
-            ret.pipelineLayout = pPipelineLayout.get(0);
-            ret.pipeline = pPipelines.get(0);
-            return ret;
+            return new RayTracingPipeline(pPipelineLayout.get(0), pSetLayout.get(0), pPipelines.get(0));
         }
     }
 
@@ -1124,7 +1129,7 @@ public class NvRayTracingExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
-                                        .buffer(geometry.normalData.buffer)
+                                        .buffer(geometry.normals.buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
                                 .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
@@ -1133,7 +1138,7 @@ public class NvRayTracingExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
-                                        .buffer(geometry.indexData.buffer)
+                                        .buffer(geometry.indices.buffer)
                                         .range(VK_WHOLE_SIZE)));
             }
             vkUpdateDescriptorSets(device, writeDescriptorSet.flip(), null);
