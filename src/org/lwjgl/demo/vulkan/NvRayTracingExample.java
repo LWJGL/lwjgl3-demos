@@ -8,7 +8,8 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4x3f;
 import org.joml.Vector2i;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.assimp.*;
+import org.lwjgl.demo.util.*;
+import org.lwjgl.demo.util.GreedyMeshing.Face;
 import org.lwjgl.glfw.*;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.vma.VmaAllocationInfo;
@@ -21,6 +22,7 @@ import java.nio.LongBuffer;
 import java.util.*;
 
 import static java.lang.Math.*;
+import static org.joml.SimplexNoise.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -55,6 +57,11 @@ public class NvRayTracingExample {
         }
     }
 
+    private static int CHUNK_WIDTH = 32;
+    private static int CHUNK_HEIGHT = 16;
+    private static int CHUNK_DEPTH = 32;
+    private static int CHUNK_REPEAT_X = 8;
+    private static int CHUNK_REPEAT_Z = 8;
     private static long vmaAllocator;
     private static VkInstance instance;
     private static WindowAndCallbacks windowAndCallbacks;
@@ -81,7 +88,10 @@ public class NvRayTracingExample {
     private static long sampler;
     private static long queryPool;
     private static Matrix4f projMatrix = new Matrix4f();
-    private static Matrix4f viewMatrix = new Matrix4f().translation(0, 0, -5).rotateX(0.4f).rotateY(0.1f);
+    private static Matrix4f viewMatrix = new Matrix4f().translation(
+            -CHUNK_WIDTH * CHUNK_REPEAT_X * 0.5f, 
+            -CHUNK_HEIGHT * 1.1f, 
+            -CHUNK_DEPTH * CHUNK_REPEAT_Z * 1.01f);
     private static Matrix4f invProjMatrix = new Matrix4f();
     private static Matrix4f invViewMatrix = new Matrix4f();
     private static boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
@@ -642,48 +652,52 @@ public class NvRayTracingExample {
         }
     }
 
-    private static Geometry createGeometry(MemoryStack stack, String classpathResource) {
-        AIScene scene = loadModel(classpathResource);
-        AIMesh m = AIMesh.create(Objects.requireNonNull(scene.mMeshes()).get(0));
-        int numVertices = m.mNumVertices();
-        AIVector3D.Buffer vertices = m.mVertices();
-        AIVector3D.Buffer normals = m.mNormals();
-        AllocationAndBuffer vertexBuffer = createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                memByteBuffer(vertices.address(), numVertices * Float.BYTES * 3));
-        ByteBuffer normals4 = memAlloc(numVertices * 4);
-        ByteBuffer ns = normals4.duplicate();
-        for (int i = 0; i < numVertices; i++) {
-            AIVector3D n = Objects.requireNonNull(normals).get(i);
-            ns.put((byte) (127.0f * n.x()))
-              .put((byte) (127.0f * n.y()))
-              .put((byte) (127.0f * n.z()))
-              .put((byte) 0);
-        }
-        AllocationAndBuffer normalBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, normals4);
-        memFree(normals4);
-        int faceCount = m.mNumFaces();
-        ByteBuffer bb = memAlloc(faceCount * 3 * Integer.BYTES);
-        IntBuffer elementArrayBufferData = bb.asIntBuffer();
-        AIFace.Buffer facesBuffer = m.mFaces();
-        for (int i = 0; i < faceCount; ++i) {
-            AIFace face = facesBuffer.get(i);
-            elementArrayBufferData.put(face.mIndices());
-        }
-        AllocationAndBuffer indexBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bb);
-        memFree(bb);
+    private static List<Face> createMesh() {
+        int w = CHUNK_WIDTH, h = CHUNK_HEIGHT, d = CHUNK_DEPTH;
+        byte[] ds = new byte[w * h * d];
+        float xzScale = 0.072343f, yScale = 0.13212f;
+        for (int z = 0; z < d; z++)
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++) {
+                    float v = noise(x * xzScale, y * yScale, z * xzScale);
+                    if (v > 0.0f) {
+                        ds[x + y * w + z * w * h] = 1;
+                    }
+                }
+        List<Face> faces = new ArrayList<>();
+        GreedyMeshing gm = new GreedyMeshing(w, h, d);
+        gm.mesh(ds, faces);
+        return faces;
+    }
+
+    private static Geometry createGeometry(MemoryStack stack) {
+        List<Face> faces = createMesh();
+        DynamicByteBuffer positions = new DynamicByteBuffer();
+        DynamicByteBuffer normals = new DynamicByteBuffer();
+        DynamicByteBuffer indices = new DynamicByteBuffer();
+        FaceTriangulator.triangulateFloat(faces, positions, normals, indices);
+        AllocationAndBuffer positionsBuffer = createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                memByteBuffer(positions.addr, positions.pos));
+        positions.free();
+        AllocationAndBuffer normalsBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                memByteBuffer(normals.addr, normals.pos));
+        normals.free();
+        AllocationAndBuffer indicesBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                memByteBuffer(indices.addr, indices.pos));
+        indices.free();
         VkGeometryNV.Buffer geometry = VkGeometryNV(1)
                 .sType(VK_STRUCTURE_TYPE_GEOMETRY_NV)
                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_NV)
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
-                    .vertexData(vertexBuffer.buffer)
-                    .vertexCount(numVertices)
+                    .vertexData(positionsBuffer.buffer)
+                    .vertexCount(faces.size() * 4)
                     .vertexStride(Float.BYTES * 3)
                     .vertexFormat(VK_FORMAT_R32G32B32_SFLOAT)
-                    .indexData(indexBuffer.buffer)
-                    .indexCount(faceCount * 3)
+                    .indexData(indicesBuffer.buffer)
+                    .indexCount(faces.size() * 6)
                     .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
                 .flags(VK_GEOMETRY_OPAQUE_BIT_NV);
-        return new Geometry(vertexBuffer, normalBuffer, indexBuffer, geometry);
+        return new Geometry(positionsBuffer, normalsBuffer, indicesBuffer, geometry);
     }
 
     /**
@@ -855,7 +869,7 @@ public class NvRayTracingExample {
 
     private static TopLevelAccelerationStructure createTopLevelAccelerationStructure() {
         try (MemoryStack stack = stackPush()) {
-            int instanceCount = 5 * 5;
+            int instanceCount = CHUNK_REPEAT_X * CHUNK_REPEAT_Z;
             VkAccelerationStructureInfoNV accelerationStructureInfo = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV)
                     .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV).instanceCount(instanceCount);
@@ -870,12 +884,12 @@ public class NvRayTracingExample {
                             .memory(allocation.memory).memoryOffset(allocation.offset)),
                     "Failed to bind acceleration structure memory");
             ByteBuffer instanceData = stack.malloc(GeometryInstance.SIZEOF * instanceCount);
-            for (int z = 0; z < 5; z++) {
-                for (int x = 0; x < 5; x++) {
+            for (int z = 0; z < CHUNK_REPEAT_X; z++) {
+                for (int x = 0; x < CHUNK_REPEAT_Z; x++) {
                     GeometryInstance inst = new GeometryInstance();
                     inst.accelerationStructureHandle = blas.handle;
                     inst.mask = (byte) 0x1;
-                    inst.transform.translate(x * 2.5f, 0, z * 2.5f);
+                    inst.transform.translate(x * CHUNK_WIDTH, 0, z * CHUNK_DEPTH);
                     inst.write(instanceData);
                 }
             }
@@ -1292,9 +1306,9 @@ public class NvRayTracingExample {
     }
 
     private static void updateCamera(float dt) {
-        float factor = 1.0f;
+        float factor = 5.0f;
         if (keydown[GLFW_KEY_LEFT_SHIFT])
-            factor = 3.0f;
+            factor = 20.0f;
         if (keydown[GLFW_KEY_W]) {
             viewMatrix.translateLocal(0, 0, factor * dt);
         }
@@ -1307,18 +1321,13 @@ public class NvRayTracingExample {
         if (keydown[GLFW_KEY_D]) {
             viewMatrix.translateLocal(-factor * dt, 0, 0);
         }
-        if (keydown[GLFW_KEY_Q]) {
-            viewMatrix.rotateLocalZ(-factor * dt);
-        }
-        if (keydown[GLFW_KEY_E]) {
-            viewMatrix.rotateLocalZ(factor * dt);
-        }
         if (keydown[GLFW_KEY_LEFT_CONTROL]) {
             viewMatrix.translateLocal(0, factor * dt, 0);
         }
         if (keydown[GLFW_KEY_SPACE]) {
             viewMatrix.translateLocal(0, -factor * dt, 0);
         }
+        viewMatrix.withLookAtUp(0, 1, 0);
         projMatrix
                 .scaling(1, -1, 1) // <- Y up
                 .perspective((float) Math.toRadians(60),
@@ -1388,7 +1397,7 @@ public class NvRayTracingExample {
         commandPool = createCommandPool(0);
         commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         rayTracingProperties = initRayTracing();
-        geometry = createGeometry(stack, "org/lwjgl/demo/vulkan/lwjgl3.obj");
+        geometry = createGeometry(stack);
         queryPool = createQueryPool();
         blas = compressBottomLevelAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
         tlas = createTopLevelAccelerationStructure();

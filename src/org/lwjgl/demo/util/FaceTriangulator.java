@@ -14,10 +14,10 @@ public class FaceTriangulator {
                 positions.putFloat(f.p & 0xFF).putFloat(f.u1 & 0xFF).putFloat(f.v0 & 0xFF);
                 positions.putFloat(f.p & 0xFF).putFloat(f.u1 & 0xFF).putFloat(f.v1 & 0xFF);
                 positions.putFloat(f.p & 0xFF).putFloat(f.u0 & 0xFF).putFloat(f.v1 & 0xFF);
-                normals.putByte((byte) (127 * (2 * f.s - 1))).putByte(0).putByte(0).putByte(0);
-                normals.putByte((byte) (127 * (2 * f.s - 1))).putByte(0).putByte(0).putByte(0);
-                normals.putByte((byte) (127 * (2 * f.s - 1))).putByte(0).putByte(0).putByte(0);
-                normals.putByte((byte) (127 * (2 * f.s - 1))).putByte(0).putByte(0).putByte(0);
+                normals.putByte((byte) (127 * (2 * -f.s + 1))).putByte(0).putByte(0).putByte(0);
+                normals.putByte((byte) (127 * (2 * -f.s + 1))).putByte(0).putByte(0).putByte(0);
+                normals.putByte((byte) (127 * (2 * -f.s + 1))).putByte(0).putByte(0).putByte(0);
+                normals.putByte((byte) (127 * (2 * -f.s + 1))).putByte(0).putByte(0).putByte(0);
                 break;
             case 2:
             case 3:
@@ -25,10 +25,10 @@ public class FaceTriangulator {
                 positions.putFloat(f.v0 & 0xFF).putFloat(f.p & 0xFF).putFloat(f.u1 & 0xFF);
                 positions.putFloat(f.v1 & 0xFF).putFloat(f.p & 0xFF).putFloat(f.u1 & 0xFF);
                 positions.putFloat(f.v1 & 0xFF).putFloat(f.p & 0xFF).putFloat(f.u0 & 0xFF);
-                normals.putByte(0).putByte((byte) (127 * (2 * f.s - 5))).putByte(0).putByte(0);
-                normals.putByte(0).putByte((byte) (127 * (2 * f.s - 5))).putByte(0).putByte(0);
-                normals.putByte(0).putByte((byte) (127 * (2 * f.s - 5))).putByte(0).putByte(0);
-                normals.putByte(0).putByte((byte) (127 * (2 * f.s - 5))).putByte(0).putByte(0);
+                normals.putByte(0).putByte((byte) (127 * (2 * -f.s + 5))).putByte(0).putByte(0);
+                normals.putByte(0).putByte((byte) (127 * (2 * -f.s + 5))).putByte(0).putByte(0);
+                normals.putByte(0).putByte((byte) (127 * (2 * -f.s + 5))).putByte(0).putByte(0);
+                normals.putByte(0).putByte((byte) (127 * (2 * -f.s + 5))).putByte(0).putByte(0);
                 break;
             case 4:
             case 5:
@@ -36,10 +36,10 @@ public class FaceTriangulator {
                 positions.putFloat(f.u1 & 0xFF).putFloat(f.v0 & 0xFF).putFloat(f.p & 0xFF);
                 positions.putFloat(f.u1 & 0xFF).putFloat(f.v1 & 0xFF).putFloat(f.p & 0xFF);
                 positions.putFloat(f.u0 & 0xFF).putFloat(f.v1 & 0xFF).putFloat(f.p & 0xFF);
-                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * f.s - 9))).putByte(0);
-                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * f.s - 9))).putByte(0);
-                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * f.s - 9))).putByte(0);
-                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * f.s - 9))).putByte(0);
+                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * -f.s + 9))).putByte(0);
+                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * -f.s + 9))).putByte(0);
+                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * -f.s + 9))).putByte(0);
+                normals.putByte(0).putByte(0).putByte((byte) (127 * (2 * -f.s + 9))).putByte(0);
                 break;
             }
             if ((f.s % 2) == 0) {
