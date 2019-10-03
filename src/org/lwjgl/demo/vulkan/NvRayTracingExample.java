@@ -582,11 +582,10 @@ public class NvRayTracingExample {
                         VkBufferCreateInfo(stack).size(data.remaining()).usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                         VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_CPU_ONLY), pBufferStage, pAllocationStage,
                         null), "Failed to allocate stage buffer");
-                long allocation = pAllocationStage.get(0);
                 PointerBuffer pData = stack.mallocPointer(1);
-                _CHECK_(vmaMapMemory(vmaAllocator, allocation, pData), "Failed to map memory");
+                _CHECK_(vmaMapMemory(vmaAllocator, pAllocationStage.get(0), pData), "Failed to map memory");
                 memCopy(memAddress(data), pData.get(0), data.remaining());
-                vmaUnmapMemory(vmaAllocator, allocation);
+                vmaUnmapMemory(vmaAllocator, pAllocationStage.get(0));
                 VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
                 vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), pBuffer.get(0),
                         VkBufferCopy(stack, 1).size(data.remaining()));
@@ -712,7 +711,10 @@ public class NvRayTracingExample {
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
-                    accelerationStructureMemoryUploadBarrier(stack), null, null);
+                    VkMemoryBarrier(stack).srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+                                    | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
+                    null, null);
             LongBuffer accelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device, VkAccelerationStructureCreateInfoNV(stack)
                             .info(pInfo), null, accelerationStructure),
@@ -742,7 +744,11 @@ public class NvRayTracingExample {
                     scratchBuffer.buffer,
                     0);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, accelerationStructureBuildBarrier(stack),
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
+                    VkMemoryBarrier(stack)
+                            .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+                                    | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
                     null, null);
             long fence = submitCommandBuffer(cmdBuffer, true, null);
             waitForFenceAndDestroy(fence);
@@ -807,18 +813,6 @@ public class NvRayTracingExample {
             ret.handle = accelerationStructureCompactedHandle.get(0);
             return ret;
         }
-    }
-
-    private static VkMemoryBarrier.Buffer accelerationStructureBuildBarrier(MemoryStack stack) {
-        return VkMemoryBarrier(stack)
-                .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
-                .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV);
-    }
-
-    private static VkMemoryBarrier.Buffer accelerationStructureMemoryUploadBarrier(MemoryStack stack) {
-        return VkMemoryBarrier(stack)
-                .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
-                .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV);
     }
 
     private static VkMemoryRequirements memoryRequirements(MemoryStack s, long accelerationStructure, int requirementType) {
@@ -889,15 +883,22 @@ public class NvRayTracingExample {
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
-                    accelerationStructureMemoryUploadBarrier(stack), null, null);
+                    VkMemoryBarrier(stack).srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+                                    | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
+                    null, null);
             AllocationAndBuffer scratchBuffer = createRayTracingBuffer(
                     memoryRequirements(stack, accelerationStructure.get(0),
                             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV).size());
             vkCmdBuildAccelerationStructureNV(cmdBuffer, accelerationStructureInfo, instanceMemory.buffer, 0, false,
                     accelerationStructure.get(0), VK_NULL_HANDLE, scratchBuffer.buffer, 0);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, accelerationStructureBuildBarrier(stack), null,
-                    null);
+                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0,
+                    VkMemoryBarrier(stack)
+                            .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+                                    | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
+                    null, null);
             submitCommandBuffer(cmdBuffer, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
                 instanceMemory.free();
