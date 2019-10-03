@@ -68,16 +68,16 @@ public class NvRayTracingExample {
     private static Long commandPool, commandPoolTransient;
     private static BottomLevelAccelerationStructure blas;
     private static TopLevelAccelerationStructure tlas;
-    private static AllocationAndBuffer ubo;
+    private static AllocationAndBuffer[] ubos;
     private static RayTracingPipeline pipeline;
     private static AllocationAndBuffer shaderBindingTable;
     private static DescriptorSets descriptorSets;
     private static RayTracingProperties rayTracingProperties;
     private static VkCommandBuffer[] commandBuffers;
     private static Geometry geometry;
-    private static long[] imageAcquireSemaphore;
-    private static long[] renderCompleteSemaphore;
-    private static long[] renderFence;
+    private static long[] imageAcquireSemaphores;
+    private static long[] renderCompleteSemaphores;
+    private static long[] renderFences;
     private static long sampler;
     private static long queryPool;
     private static Matrix4f projMatrix = new Matrix4f();
@@ -1115,7 +1115,7 @@ public class NvRayTracingExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
-                                        .buffer(ubo.buffer)
+                                        .buffer(ubos[idx].buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
                                 .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
@@ -1268,17 +1268,20 @@ public class NvRayTracingExample {
         return new WindowAndCallbacks(window, keyCallback, cpCallback, mbCallback);
     }
 
-    private static AllocationAndBuffer createMappedUniformBufferObject() {
+    private static AllocationAndBuffer[] createMappedUniformBufferObject() {
+        AllocationAndBuffer[] ret = new AllocationAndBuffer[swapchain.images.length];
         try (MemoryStack stack = stackPush()) {
-            LongBuffer pBuffer = stack.mallocLong(1);
-            PointerBuffer pAllocation = stack.mallocPointer(1);
-            _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo(stack)
-                            .size(Float.BYTES * 16 * 2)
-                            .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), VmaAllocationCreateInfo(stack)
-                            .usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, null),
-                    "Failed to allocate buffer");
-            AllocationAndBuffer ret = new AllocationAndBuffer(pAllocation.get(0), pBuffer.get(0));
-            ret.map();
+            for (int i = 0; i < ret.length; i++) {
+                LongBuffer pBuffer = stack.mallocLong(1);
+                PointerBuffer pAllocation = stack.mallocPointer(1);
+                _CHECK_(vmaCreateBuffer(vmaAllocator,
+                        VkBufferCreateInfo(stack).size(Float.BYTES * 16 * 2).usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+                        VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, null),
+                        "Failed to allocate buffer");
+                AllocationAndBuffer a = new AllocationAndBuffer(pAllocation.get(0), pBuffer.get(0));
+                a.map();
+                ret[i] = a;
+            }
             return ret;
         }
     }
@@ -1317,13 +1320,13 @@ public class NvRayTracingExample {
                         (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 100.0f);
     }
 
-    private static void updateUniformBufferObject() {
+    private static void updateUniformBufferObject(int idx) {
         projMatrix.invert(invProjMatrix);
         viewMatrix.invert(invViewMatrix);
-        ByteBuffer bb = memByteBuffer(ubo.mapped, Float.BYTES * 16 * 2);
+        ByteBuffer bb = memByteBuffer(ubos[idx].mapped, Float.BYTES * 16 * 2);
         invProjMatrix.get(0, bb);
         invViewMatrix.get(Float.BYTES * 16, bb);
-        ubo.flushMapped(0, Float.BYTES * 16 * 2);
+        ubos[idx].flushMapped(0, Float.BYTES * 16 * 2);
     }
 
     private static long createSampler() {
@@ -1346,22 +1349,22 @@ public class NvRayTracingExample {
     }
 
     private static void createSyncObjects() {
-        imageAcquireSemaphore = new long[swapchain.images.length];
-        renderCompleteSemaphore = new long[swapchain.images.length];
-        renderFence = new long[swapchain.images.length];
+        imageAcquireSemaphores = new long[swapchain.images.length];
+        renderCompleteSemaphores = new long[swapchain.images.length];
+        renderFences = new long[swapchain.images.length];
         for (int i = 0; i < swapchain.images.length; i++) {
             try (MemoryStack stack = stackPush()) {
                 LongBuffer pSemaphore = stack.mallocLong(1);
                 _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
                         "Failed to create semaphore");
-                imageAcquireSemaphore[i] = pSemaphore.get(0);
+                imageAcquireSemaphores[i] = pSemaphore.get(0);
                 _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
                         "Failed to create semaphore");
-                renderCompleteSemaphore[i] = pSemaphore.get(0);
+                renderCompleteSemaphores[i] = pSemaphore.get(0);
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack).flags(VK_FENCE_CREATE_SIGNALED_BIT), null,
                         pFence), "Failed to create fence");
-                renderFence[i] = pFence.get(0);
+                renderFences[i] = pFence.get(0);
             }
         }
     }
@@ -1384,7 +1387,7 @@ public class NvRayTracingExample {
         queryPool = createQueryPool();
         blas = compressBottomLevelAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
         tlas = createTopLevelAccelerationStructure();
-        ubo = createMappedUniformBufferObject();
+        ubos = createMappedUniformBufferObject();
         pipeline = createRayTracingPipeline();
         shaderBindingTable = createShaderBindingTable();
         sampler = createSampler();
@@ -1396,14 +1399,14 @@ public class NvRayTracingExample {
     private static void cleanup() {
         _CHECK_(vkDeviceWaitIdle(device), "Failed to wait for device idle");
         for (int i = 0; i < swapchain.images.length; i++) {
-            vkDestroySemaphore(device, imageAcquireSemaphore[i], null);
-            vkDestroySemaphore(device, renderCompleteSemaphore[i], null);
-            vkDestroyFence(device, renderFence[i], null);
+            vkDestroySemaphore(device, imageAcquireSemaphores[i], null);
+            vkDestroySemaphore(device, renderCompleteSemaphores[i], null);
+            vkDestroyFence(device, renderFences[i], null);
+            ubos[i].free();
         }
         vkDestroySampler(device, sampler, null);
         freeRenderCommandBuffers();
         descriptorSets.free();
-        ubo.free();
         shaderBindingTable.free();
         pipeline.free();
         vkDestroyQueryPool(device, queryPool, null);
@@ -1457,13 +1460,13 @@ public class NvRayTracingExample {
         try (MemoryStack stack = stackPush()) {
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
                     .pCommandBuffers(stack.pointers(commandBuffers[imageIndex]))
-                    .pSignalSemaphores(stack.longs(renderCompleteSemaphore[idx]))
-                    .pWaitSemaphores(stack.longs(imageAcquireSemaphore[idx]))
+                    .pSignalSemaphores(stack.longs(renderCompleteSemaphores[idx]))
+                    .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     .waitSemaphoreCount(1)
-                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), renderFence[idx]), "Failed to submit queue");
+                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), renderFences[idx]), "Failed to submit queue");
             _CHECK_(vkQueuePresentKHR(queue, VkPresentInfoKHR(stack)
                     .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
-                    .pWaitSemaphores(stack.longs(renderCompleteSemaphore[idx]))
+                    .pWaitSemaphores(stack.longs(renderCompleteSemaphores[idx]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
                     .pImageIndices(stack.ints(imageIndex))), "Failed to present image");
@@ -1486,14 +1489,14 @@ public class NvRayTracingExample {
                 if (!isWindowRenderable()) {
                     continue;
                 }
-                vkWaitForFences(device, renderFence[idx], true, Long.MAX_VALUE);
-                vkResetFences(device, renderFence[idx]);
+                vkWaitForFences(device, renderFences[idx], true, Long.MAX_VALUE);
+                vkResetFences(device, renderFences[idx]);
                 if (windowSizeChanged()) {
                     vkQueueWaitIdle(queue);
                     reallocateOnResize();
                 }
-                updateUniformBufferObject();
-                _CHECK_(vkAcquireNextImageKHR(device, swapchain.swapchain, -1L, imageAcquireSemaphore[idx], VK_NULL_HANDLE,
+                updateUniformBufferObject(idx);
+                _CHECK_(vkAcquireNextImageKHR(device, swapchain.swapchain, -1L, imageAcquireSemaphores[idx], VK_NULL_HANDLE,
                         pImageIndex), "Failed to acquire image");
                 submitAndPresent(pImageIndex.get(0), idx);
                 processFinishedFences();
