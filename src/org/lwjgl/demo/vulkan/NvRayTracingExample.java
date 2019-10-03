@@ -82,6 +82,7 @@ public class NvRayTracingExample {
     private static long[] renderCompleteSemaphore;
     private static long[] renderFence;
     private static long sampler;
+    private static long queryPool;
     private static Matrix4f projMatrix = new Matrix4f();
     private static Matrix4f viewMatrix = new Matrix4f().translation(0, 0, -5).rotateX(0.4f).rotateY(0.1f);
     private static Matrix4f invProjMatrix = new Matrix4f();
@@ -480,25 +481,19 @@ public class NvRayTracingExample {
         }
     }
 
-    private static void submitCommandBuffer(VkCommandBuffer commandBuffer, boolean endCommandBuffer, Runnable afterComplete) {
-        if (commandBuffer == null || commandBuffer.address() == NULL)
-            return;
+    private static long submitCommandBuffer(VkCommandBuffer commandBuffer, boolean endCommandBuffer, Runnable afterComplete) {
         if (endCommandBuffer)
             _CHECK_(vkEndCommandBuffer(commandBuffer), "Failed to end command buffer");
         try (MemoryStack stack = stackPush()) {
-            if (afterComplete != null) {
-                LongBuffer pFence = stack.mallocLong(1);
-                _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack), null, pFence), "Failed to create fence");
-                _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
-                        .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
-                        "Failed to submit command buffer");
-                long fence = pFence.get(0);
+            LongBuffer pFence = stack.mallocLong(1);
+            _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack), null, pFence), "Failed to create fence");
+            _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
+                    .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
+                    "Failed to submit command buffer");
+            long fence = pFence.get(0);
+            if (afterComplete != null)
                 waitingFenceActions.put(fence, afterComplete);
-            } else {
-                _CHECK_(vkQueueSubmit(queue, VkSubmitInfo(stack)
-                        .pCommandBuffers(stack.pointers(commandBuffer)), VK_NULL_HANDLE),
-                        "Failed to submit command buffer");
-            }
+            return fence;
         }
     }
 
@@ -615,8 +610,9 @@ public class NvRayTracingExample {
         AllocationAndMemory memory;
         long handle;
 
-        void free() {
-            geometry.free();
+        void free(boolean includingGeometry) {
+            if (includingGeometry)
+                geometry.free();
             vmaFreeMemory(vmaAllocator, memory.allocation);
             vkDestroyAccelerationStructureNV(device, accelerationStructure, null);
         }
@@ -710,7 +706,8 @@ public class NvRayTracingExample {
         try (MemoryStack stack = stackPush()) {
             VkAccelerationStructureInfoNV pInfo = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
-                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV |
+                           VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV)
                     .pGeometries(VkGeometryNV.create(geometry.geometry.address(), 1));
             VkCommandBuffer cmdBuffer = createCommandBuffer();
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -720,8 +717,9 @@ public class NvRayTracingExample {
             _CHECK_(vkCreateAccelerationStructureNV(device, VkAccelerationStructureCreateInfoNV(stack)
                             .info(pInfo), null, accelerationStructure),
                     "Failed to create acceleration structure");
-            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements(stack, accelerationStructure.get(0),
-                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV));
+            VkMemoryRequirements memoryRequirements = memoryRequirements(stack, accelerationStructure.get(0),
+                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
+            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements);
             _CHECK_(vkBindAccelerationStructureMemoryNV(device, VkBindAccelerationStructureMemoryInfoNV(stack)
                             .accelerationStructure(accelerationStructure.get(0))
                             .memory(allocation.memory)
@@ -746,15 +744,70 @@ public class NvRayTracingExample {
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, accelerationStructureBuildBarrier(stack),
                     null, null);
-            submitCommandBuffer(cmdBuffer, true, () -> {
-                vkFreeCommandBuffers(device, commandPool, cmdBuffer);
-                scratchBuffer.free();
-            });
+            long fence = submitCommandBuffer(cmdBuffer, true, null);
+            waitForFenceAndDestroy(fence);
+            vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+            scratchBuffer.free();
             BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
             ret.geometry = geometry;
             ret.accelerationStructure = accelerationStructure.get(0);
             ret.memory = allocation;
             ret.handle = accelerationStructureHandle.getLong(0);
+            return ret;
+        }
+    }
+
+    private static void waitForFenceAndDestroy(long fence) {
+        _CHECK_(vkWaitForFences(device, fence, true, -1), "Failed to wait for fence");
+        vkDestroyFence(device, fence, null);
+    }
+
+    private static BottomLevelAccelerationStructure compressBottomLevelAccelerationStructure(
+            BottomLevelAccelerationStructure src) {
+        try (MemoryStack stack = stackPush()) {
+            VkCommandBuffer cmdBuffer = createCommandBuffer();
+            vkCmdWriteAccelerationStructuresPropertiesNV(cmdBuffer, stack.longs(src.accelerationStructure),
+                    VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV, queryPool, 0);
+            long fence = submitCommandBuffer(cmdBuffer, true, null);
+            waitForFenceAndDestroy(fence);
+            vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+            LongBuffer pData = stack.mallocLong(1);
+            vkGetQueryPoolResults(device, queryPool, 0, 1, pData, Long.BYTES,
+                    VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+            long compactedSize = pData.get(0);
+            VkMemoryRequirements memoryRequirementsCompacted = VkMemoryRequirements.callocStack(stack);
+            memPutInt(memoryRequirementsCompacted.address() + VkMemoryRequirements.MEMORYTYPEBITS,
+                    src.memory.memoryTypeBits);
+            memPutLong(memoryRequirementsCompacted.address() + VkMemoryRequirements.SIZE, compactedSize);
+            AllocationAndMemory allocationCompacted = allocateDeviceMemory(memoryRequirementsCompacted);
+            VkAccelerationStructureInfoNV pInfoCompacted = VkAccelerationStructureInfoNV(stack)
+                    .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
+                    .pGeometries(VkGeometryNV.create(geometry.geometry.address(), 1));
+            LongBuffer accelerationStructureCompacted = stack.mallocLong(1);
+            _CHECK_(vkCreateAccelerationStructureNV(device,
+                    VkAccelerationStructureCreateInfoNV(stack).info(pInfoCompacted), null,
+                    accelerationStructureCompacted), "Failed to create acceleration structure");
+            _CHECK_(vkBindAccelerationStructureMemoryNV(device,
+                    VkBindAccelerationStructureMemoryInfoNV(stack)
+                            .accelerationStructure(accelerationStructureCompacted.get(0))
+                            .memory(allocationCompacted.memory).memoryOffset(allocationCompacted.offset)),
+                    "Failed to bind acceleration structure memory");
+            LongBuffer accelerationStructureCompactedHandle = stack.mallocLong(1);
+            _CHECK_(vkGetAccelerationStructureHandleNV(device, accelerationStructureCompacted.get(0),
+                    accelerationStructureCompactedHandle), "Failed to get acceleration structure handle");
+            VkCommandBuffer cmdBuffer2 = createCommandBuffer();
+            vkCmdCopyAccelerationStructureNV(cmdBuffer2, accelerationStructureCompacted.get(0),
+                    src.accelerationStructure, VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV);
+            long fence2 = submitCommandBuffer(cmdBuffer2, true, null);
+            waitForFenceAndDestroy(fence2);
+            vkFreeCommandBuffers(device, commandPool, cmdBuffer2);
+            BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
+            ret.geometry = geometry;
+            ret.accelerationStructure = accelerationStructureCompacted.get(0);
+            ret.memory = allocationCompacted;
+            ret.handle = accelerationStructureCompactedHandle.get(0);
+            src.free(false);
             return ret;
         }
     }
@@ -794,6 +847,17 @@ public class NvRayTracingExample {
         void free() {
             vmaFreeMemory(vmaAllocator, memory.allocation);
             vkDestroyAccelerationStructureNV(device, accelerationStructure, null);
+        }
+    }
+
+    private static long createQueryPool() {
+        try (MemoryStack stack = stackPush()) {
+            LongBuffer pQueryPool = stack.mallocLong(1);
+            _CHECK_(vkCreateQueryPool(device,
+                    VkQueryPoolCreateInfo(stack).queryCount(1)
+                            .queryType(VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV),
+                    null, pQueryPool), "Failed to create query pool");
+            return pQueryPool.get(0);
         }
     }
 
@@ -852,11 +916,13 @@ public class NvRayTracingExample {
         long allocation;
         long memory;
         long offset;
+        int memoryTypeBits;
 
-        AllocationAndMemory(long allocation, long memory, long offset) {
+        AllocationAndMemory(long allocation, long memory, long offset, int memoryTypeBits) {
             this.allocation = allocation;
             this.memory = memory;
             this.offset = offset;
+            this.memoryTypeBits = memoryTypeBits;
         }
     }
 
@@ -866,7 +932,7 @@ public class NvRayTracingExample {
             VmaAllocationInfo pAllocationInfo = VmaAllocationInfo(stack);
             _CHECK_(vmaAllocateMemory(vmaAllocator, memoryRequirements, VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_GPU_ONLY),
                     pAllocation, pAllocationInfo), "Failed to allocate memory");
-            return new AllocationAndMemory(pAllocation.get(0), pAllocationInfo.deviceMemory(), pAllocationInfo.offset());
+            return new AllocationAndMemory(pAllocation.get(0), pAllocationInfo.deviceMemory(), pAllocationInfo.offset(), memoryRequirements.memoryTypeBits());
         }
     }
 
@@ -1417,7 +1483,8 @@ public class NvRayTracingExample {
         commandPool = createCommandPool();
         rayTracingProperties = initRayTracing();
         geometry = createGeometry(stack, "org/lwjgl/demo/vulkan/lwjgl3.obj");
-        blas = createBottomLevelAccelerationStructure(geometry);
+        queryPool = createQueryPool();
+        blas = compressBottomLevelAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
         tlas = createTopLevelAccelerationStructure();
         ubo = createMappedUniformBufferObject();
         environmentTexture = createEnvironmentMap();
@@ -1443,8 +1510,9 @@ public class NvRayTracingExample {
         ubo.free();
         shaderBindingTable.free();
         pipeline.free();
+        vkDestroyQueryPool(device, queryPool, null);
         tlas.free();
-        blas.free();
+        blas.free(true);
         swapchain.free();
         vkDestroyCommandPool(device, commandPool, null);
         vmaDestroyAllocator(vmaAllocator);
