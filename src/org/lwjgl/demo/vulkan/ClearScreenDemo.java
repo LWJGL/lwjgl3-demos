@@ -77,8 +77,6 @@ public class ClearScreenDemo {
         // Here we say what the name of our application is and which Vulkan version we are targetting (having this is optional)
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                .pApplicationName(memUTF8("GLFW Vulkan Demo"))
-                .pEngineName(memUTF8(""))
                 .apiVersion(VK_API_VERSION_1_0);
 
         // We also need to tell Vulkan which extensions we would like to use.

@@ -134,8 +134,6 @@ public class NvRayTracingExample {
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo(stack)
                     .pApplicationInfo(VkApplicationInfo(stack)
-                            .pApplicationName(stack.UTF8("Vulkan Nv Raytracing Demo"))
-                            .pEngineName(stack.UTF8("LWJGL 3 Demos"))
                             .apiVersion(VK_API_VERSION_1_0))
                     .ppEnabledExtensionNames(ppEnabledExtensionNames)
                     .ppEnabledLayerNames(enabledLayers);

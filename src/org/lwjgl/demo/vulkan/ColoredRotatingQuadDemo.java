@@ -111,8 +111,6 @@ public class ColoredRotatingQuadDemo {
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                .pApplicationName(memUTF8("GLFW Vulkan Demo"))
-                .pEngineName(memUTF8(""))
                 .apiVersion(VK_API_VERSION_1_0);
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
