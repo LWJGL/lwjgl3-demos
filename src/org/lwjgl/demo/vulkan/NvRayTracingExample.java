@@ -773,14 +773,11 @@ public class NvRayTracingExample {
             long fence = submitCommandBuffer(cmdBuffer, true, null);
             waitForFenceAndDestroy(fence);
             vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
-            LongBuffer pData = stack.mallocLong(1);
-            vkGetQueryPoolResults(device, queryPool, 0, 1, pData, Long.BYTES,
+            LongBuffer compactedSize = stack.mallocLong(1);
+            vkGetQueryPoolResults(device, queryPool, 0, 1, compactedSize, Long.BYTES,
                     VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-            long compactedSize = pData.get(0);
-            VkMemoryRequirements memoryRequirementsCompacted = VkMemoryRequirements.callocStack(stack);
-            memPutInt(memoryRequirementsCompacted.address() + VkMemoryRequirements.MEMORYTYPEBITS,
-                    src.memory.memoryTypeBits);
-            memPutLong(memoryRequirementsCompacted.address() + VkMemoryRequirements.SIZE, compactedSize);
+            VkMemoryRequirements memoryRequirementsCompacted = src.memory.memoryRequirementsOfSize(stack,
+                    compactedSize.get(0));
             AllocationAndMemory allocationCompacted = allocateDeviceMemory(memoryRequirementsCompacted);
             VkAccelerationStructureInfoNV pInfoCompacted = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
@@ -918,13 +915,23 @@ public class NvRayTracingExample {
         long allocation;
         long memory;
         long offset;
+        long alignment;
         int memoryTypeBits;
 
-        AllocationAndMemory(long allocation, long memory, long offset, int memoryTypeBits) {
+        AllocationAndMemory(long allocation, long memory, long offset, long alignment, int memoryTypeBits) {
             this.allocation = allocation;
             this.memory = memory;
             this.offset = offset;
+            this.alignment = alignment;
             this.memoryTypeBits = memoryTypeBits;
+        }
+
+        VkMemoryRequirements memoryRequirementsOfSize(MemoryStack stack, long size) {
+            VkMemoryRequirements res = VkMemoryRequirements.mallocStack(stack);
+            memPutLong(res.address() + VkMemoryRequirements.SIZE, size);
+            memPutLong(res.address() + VkMemoryRequirements.ALIGNMENT, alignment);
+            memPutInt(res.address() + VkMemoryRequirements.MEMORYTYPEBITS, memoryTypeBits);
+            return res;
         }
     }
 
@@ -934,7 +941,8 @@ public class NvRayTracingExample {
             VmaAllocationInfo pAllocationInfo = VmaAllocationInfo(stack);
             _CHECK_(vmaAllocateMemory(vmaAllocator, memoryRequirements, VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_GPU_ONLY),
                     pAllocation, pAllocationInfo), "Failed to allocate memory");
-            return new AllocationAndMemory(pAllocation.get(0), pAllocationInfo.deviceMemory(), pAllocationInfo.offset(), memoryRequirements.memoryTypeBits());
+            return new AllocationAndMemory(pAllocation.get(0), pAllocationInfo.deviceMemory(), pAllocationInfo.offset(),
+                    memoryRequirements.alignment(), memoryRequirements.memoryTypeBits());
         }
     }
 
