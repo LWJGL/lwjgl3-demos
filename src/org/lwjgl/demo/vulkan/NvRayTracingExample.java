@@ -801,15 +801,15 @@ public class NvRayTracingExample {
             VkCommandBuffer cmdBuffer2 = createCommandBuffer();
             vkCmdCopyAccelerationStructureNV(cmdBuffer2, accelerationStructureCompacted.get(0),
                     src.accelerationStructure, VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV);
-            long fence2 = submitCommandBuffer(cmdBuffer2, true, null);
-            waitForFenceAndDestroy(fence2);
-            vkFreeCommandBuffers(device, commandPool, cmdBuffer2);
+            submitCommandBuffer(cmdBuffer2, true, () -> {
+                vkFreeCommandBuffers(device, commandPool, cmdBuffer2);
+                src.free(false);
+            });
             BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
             ret.geometry = geometry;
             ret.accelerationStructure = accelerationStructureCompacted.get(0);
             ret.memory = allocationCompacted;
             ret.handle = accelerationStructureCompactedHandle.get(0);
-            src.free(false);
             return ret;
         }
     }
