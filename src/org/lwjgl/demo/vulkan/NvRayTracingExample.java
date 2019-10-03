@@ -622,9 +622,10 @@ public class NvRayTracingExample {
         AllocationAndBuffer vertexData;
         AllocationAndBuffer indexData;
         AllocationAndBuffer normalData;
-        @StackAllocated VkGeometryNV geometry;
+        VkGeometryNV.Buffer geometry;
 
         void free() {
+            geometry.free();
             vertexData.free();
             indexData.free();
             normalData.free();
@@ -660,7 +661,8 @@ public class NvRayTracingExample {
         }
         AllocationAndBuffer indexBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bb);
         memFree(bb);
-        VkGeometryNV geometry = VkGeometryNV(stack)
+        VkGeometryNV.Buffer geometry = VkGeometryNV.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_GEOMETRY_NV)
                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_NV)
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(vertexBuffer.buffer)
@@ -708,7 +710,7 @@ public class NvRayTracingExample {
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
                     .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV |
                            VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV)
-                    .pGeometries(VkGeometryNV.create(geometry.geometry.address(), 1));
+                    .pGeometries(geometry.geometry);
             VkCommandBuffer cmdBuffer = createCommandBuffer();
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
@@ -783,7 +785,7 @@ public class NvRayTracingExample {
             VkAccelerationStructureInfoNV pInfoCompacted = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
                     .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
-                    .pGeometries(VkGeometryNV.create(geometry.geometry.address(), 1));
+                    .pGeometries(geometry.geometry);
             LongBuffer accelerationStructureCompacted = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device,
                     VkAccelerationStructureCreateInfoNV(stack).info(pInfoCompacted), null,
