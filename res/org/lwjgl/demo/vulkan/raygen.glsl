@@ -12,8 +12,6 @@ layout(binding = 2, set = 0) uniform CameraProperties
 	mat4 projInverse;
 	mat4 viewInverse;
 } cam;
-layout(binding = 3, set = 0) uniform samplerCube tex;
-
 layout(location = 0) rayPayloadNV Payload {
 	vec3 normal;
 	float t;

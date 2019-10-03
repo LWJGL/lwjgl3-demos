@@ -21,12 +21,10 @@ import java.nio.LongBuffer;
 import java.util.*;
 
 import static java.lang.Math.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFWVulkan.*;
-import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
@@ -71,7 +69,6 @@ public class NvRayTracingExample {
     private static BottomLevelAccelerationStructure blas;
     private static TopLevelAccelerationStructure tlas;
     private static AllocationAndBuffer ubo;
-    private static EnvironmentTexture environmentTexture;
     private static RayTracingPipeline pipeline;
     private static AllocationAndBuffer shaderBindingTable;
     private static DescriptorSets descriptorSets;
@@ -959,7 +956,7 @@ public class NvRayTracingExample {
     }
 
     private static RayTracingPipeline createRayTracingPipeline() throws IOException {
-        int numDescriptors = 6;
+        int numDescriptors = 5;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pSetLayout = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorSetLayout(device, VkDescriptorSetLayoutCreateInfo(stack)
@@ -981,16 +978,11 @@ public class NvRayTracingExample {
                                         .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
                                 .apply(dslb -> dslb
                                         .binding(3)
-                                        .descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-                                        .descriptorCount(1)
-                                        .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
-                                .apply(dslb -> dslb
-                                        .binding(4)
                                         .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                         .descriptorCount(1)
                                         .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV))
                                 .apply(dslb -> dslb
-                                        .binding(5)
+                                        .binding(4)
                                         .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                         .descriptorCount(1)
                                         .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV))
@@ -1066,23 +1058,12 @@ public class NvRayTracingExample {
         return ret;
     }
 
-    private static class EnvironmentTexture {
-        long image;
-        long allocation;
-        long imageView;
-
-        void free() {
-            vmaDestroyImage(vmaAllocator, image, allocation);
-            vkDestroyImageView(device, imageView, null);
-        }
-    }
-
     private static DescriptorSets createDescriptorSets() {
         if (descriptorSets != null) {
             descriptorSets.free();
         }
         int numSets = swapchain.imageViews.length;
-        int numDescriptors = 6;
+        int numDescriptors = 5;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pDescriptorPool = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo(stack)
@@ -1093,11 +1074,9 @@ public class NvRayTracingExample {
                                             .descriptorCount(numSets))
                                     .apply(2, dps -> dps.type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                                             .descriptorCount(numSets))
-                                    .apply(3, dps -> dps.type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                                    .apply(3, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                             .descriptorCount(numSets))
                                     .apply(4, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                                            .descriptorCount(numSets))
-                                    .apply(5, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                             .descriptorCount(numSets)))
                             .maxSets(numSets), null, pDescriptorPool),
                     "Failed to create descriptor pool");
@@ -1142,18 +1121,8 @@ public class NvRayTracingExample {
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
                                 .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
-                                .descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-                                .dstBinding(3)
-                                .dstSet(pDescriptorSets.get(idx))
-                                .descriptorCount(1)
-                                .pImageInfo(VkDescriptorImageInfo(stack, 1)
-                                        .sampler(sampler)
-                                        .imageView(environmentTexture.imageView)
-                                        .imageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)))
-                        .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                                .dstBinding(4)
+                                .dstBinding(3)
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
@@ -1162,7 +1131,7 @@ public class NvRayTracingExample {
                         .apply(wds -> wds
                                 .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                                .dstBinding(5)
+                                .dstBinding(4)
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
@@ -1378,86 +1347,6 @@ public class NvRayTracingExample {
         }
     }
 
-    private static EnvironmentTexture createEnvironmentMap() throws IOException {
-        try (MemoryStack stack = stackPush()) {
-            ByteBuffer imageBuffer;
-            IntBuffer w = stack.mallocInt(1);
-            IntBuffer h = stack.mallocInt(1);
-            IntBuffer comp = stack.mallocInt(1);
-            String[] names = { "right", "left", "top", "bottom", "front", "back" };
-            ByteBuffer[] images = new ByteBuffer[6];
-            for (int i = 0; i < 6; i++) {
-                imageBuffer = ioResourceToByteBuffer("org/lwjgl/demo/space_" + names[i] + (i+1) + ".jpg", 8 * 1024);
-                images[i] = stbi_load_from_memory(imageBuffer, w, h, comp, 4);
-                if (images[i] == null) {
-                    throw new IOException("Failed to load image: " + stbi_failure_reason());
-                }
-            }
-            int imageSize = w.get(0) * h.get(0) * 4 * 6;
-            int layerSize = imageSize / 6;
-            LongBuffer pImage = stack.mallocLong(1);
-            PointerBuffer pBufferAllocation = stack.mallocPointer(1);
-            LongBuffer pBuffer = stack.mallocLong(1);
-            _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo(stack).size(imageSize).usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
-                    VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_CPU_ONLY), pBuffer, pBufferAllocation, null),
-                    "Failed to create stage buffer");
-            PointerBuffer map = stack.mallocPointer(1);
-            _CHECK_(vmaMapMemory(vmaAllocator, pBufferAllocation.get(0), map), "Failed to map buffer");
-            for (int i = 0; i < 6; i++) {
-                memCopy(memAddressSafe(images[i]), map.get(0) + layerSize * i, layerSize);
-                stbi_image_free(images[i]);
-            }
-            vmaUnmapMemory(vmaAllocator, pBufferAllocation.get(0));
-            PointerBuffer pImageAllocation = stack.mallocPointer(1);
-            _CHECK_(vmaCreateImage(vmaAllocator, VkImageCreateInfo(stack)
-                            .imageType(VK_IMAGE_TYPE_2D)
-                            .format(VK_FORMAT_R8G8B8A8_UNORM)
-                            .mipLevels(1)
-                            .samples(VK_SAMPLE_COUNT_1_BIT)
-                            .tiling(VK_IMAGE_TILING_OPTIMAL)
-                            .sharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                            .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-                            .extent(e -> e.width(w.get(0)).height(h.get(0)).depth(1))
-                            .usage(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
-                            .arrayLayers(6)
-                            .flags(VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT),
-                    VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_GPU_ONLY), pImage, pImageAllocation, null),
-                    "Failed to create image");
-            LongBuffer pView = stack.mallocLong(1);
-            _CHECK_(vkCreateImageView(device, VkImageViewCreateInfo(stack)
-                    .viewType(VK_IMAGE_VIEW_TYPE_CUBE)
-                    .format(VK_FORMAT_R8G8B8A8_UNORM)
-                    .components(VkComponentMapping(stack)
-                            .r(VK_COMPONENT_SWIZZLE_IDENTITY)
-                            .g(VK_COMPONENT_SWIZZLE_IDENTITY)
-                            .b(VK_COMPONENT_SWIZZLE_IDENTITY)
-                            .a(VK_COMPONENT_SWIZZLE_IDENTITY))
-                    .subresourceRange(VkImageSubresourceRange(stack)
-                            .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(6).levelCount(1))
-                    .image(pImage.get(0)), null, pView), "Failed to create image view");
-            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
-            transitionImageLayout(cmdBuffer, pImage.get(0), VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 6);
-            vkCmdCopyBufferToImage(cmdBuffer, pBuffer.get(0), pImage.get(0), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VkBufferImageCopy(stack)
-                    .imageSubresource(isl -> isl.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                       .layerCount(6)).imageExtent(e -> e.width(w.get(0)).height(h.get(0)).depth(1)));
-            transitionImageLayout(cmdBuffer, pImage.get(0), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 6);
-            long buffer = pBuffer.get(0);
-            long bufferAllocation = pBufferAllocation.get(0);
-            submitCommandBuffer(cmdBuffer, true, () -> {
-                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
-                vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation);
-            });
-            EnvironmentTexture ret = new EnvironmentTexture();
-            ret.image = pImage.get(0);
-            ret.allocation = pImageAllocation.get(0);
-            ret.imageView = pView.get(0);
-            return ret;
-        }
-    }
-
     private static void createSyncObjects() {
         imageAcquireSemaphore = new long[swapchain.images.length];
         renderCompleteSemaphore = new long[swapchain.images.length];
@@ -1498,7 +1387,6 @@ public class NvRayTracingExample {
         blas = compressBottomLevelAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
         tlas = createTopLevelAccelerationStructure();
         ubo = createMappedUniformBufferObject();
-        environmentTexture = createEnvironmentMap();
         pipeline = createRayTracingPipeline();
         shaderBindingTable = createShaderBindingTable();
         sampler = createSampler();
@@ -1515,7 +1403,6 @@ public class NvRayTracingExample {
             vkDestroyFence(device, renderFence[i], null);
         }
         vkDestroySampler(device, sampler, null);
-        environmentTexture.free();
         freeRenderCommandBuffers();
         descriptorSets.free();
         ubo.free();
