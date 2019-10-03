@@ -693,9 +693,10 @@ public class NvRayTracingExample {
 
         ByteBuffer write(ByteBuffer bb) {
             transform.getTransposed(bb);
-            bb.putInt(Float.BYTES * 4 * 3, ((int) mask << 24) | instanceCustomId);
-            bb.putInt(Float.BYTES * 4 * 3 + Integer.BYTES, ((int) flags << 24) | instanceOffset);
-            bb.putLong(Float.BYTES * 4 * 3 + Integer.BYTES + Integer.BYTES, accelerationStructureHandle);
+            bb.position(bb.position() + Float.BYTES * 4 * 3);
+            bb.putInt(((int) mask << 24) | instanceCustomId);
+            bb.putInt(((int) flags << 24) | instanceOffset);
+            bb.putLong(accelerationStructureHandle);
             return bb;
         }
     }
@@ -859,26 +860,32 @@ public class NvRayTracingExample {
 
     private static TopLevelAccelerationStructure createTopLevelAccelerationStructure() {
         try (MemoryStack stack = stackPush()) {
+            int instanceCount = 5 * 5;
             VkAccelerationStructureInfoNV accelerationStructureInfo = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV)
-                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
-                    .instanceCount(1);
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV).instanceCount(instanceCount);
             LongBuffer accelerationStructure = stack.mallocLong(1);
-            _CHECK_(vkCreateAccelerationStructureNV(device, VkAccelerationStructureCreateInfoNV(stack)
-                            .info(accelerationStructureInfo), null, accelerationStructure),
-                    "Failed to create acceleration structure");
-            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements(stack, accelerationStructure.get(0),
-                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV));
-            _CHECK_(vkBindAccelerationStructureMemoryNV(device, VkBindAccelerationStructureMemoryInfoNV(stack)
-                            .accelerationStructure(accelerationStructure.get(0))
-                            .memory(allocation.memory)
-                            .memoryOffset(allocation.offset)),
+            _CHECK_(vkCreateAccelerationStructureNV(device,
+                    VkAccelerationStructureCreateInfoNV(stack).info(accelerationStructureInfo), null,
+                    accelerationStructure), "Failed to create acceleration structure");
+            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements(stack,
+                    accelerationStructure.get(0), VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV));
+            _CHECK_(vkBindAccelerationStructureMemoryNV(device,
+                    VkBindAccelerationStructureMemoryInfoNV(stack).accelerationStructure(accelerationStructure.get(0))
+                            .memory(allocation.memory).memoryOffset(allocation.offset)),
                     "Failed to bind acceleration structure memory");
-            GeometryInstance instance = new GeometryInstance();
-            instance.accelerationStructureHandle = blas.handle;
-            instance.mask = (byte) 0xFF;
-            AllocationAndBuffer instanceMemory = createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
-                            instance.write(stack.malloc(GeometryInstance.SIZEOF)));
+            ByteBuffer instanceData = stack.malloc(GeometryInstance.SIZEOF * instanceCount);
+            for (int z = 0; z < 5; z++) {
+                for (int x = 0; x < 5; x++) {
+                    GeometryInstance inst = new GeometryInstance();
+                    inst.accelerationStructureHandle = blas.handle;
+                    inst.mask = (byte) 0x1;
+                    inst.transform.translate(x * 2.5f, 0, z * 2.5f);
+                    inst.write(instanceData);
+                }
+            }
+            instanceData.flip();
+            AllocationAndBuffer instanceMemory = createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, instanceData);
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
@@ -886,16 +893,8 @@ public class NvRayTracingExample {
             AllocationAndBuffer scratchBuffer = createRayTracingBuffer(
                     memoryRequirements(stack, accelerationStructure.get(0),
                             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV).size());
-            vkCmdBuildAccelerationStructureNV(
-                    cmdBuffer,
-                    accelerationStructureInfo,
-                    instanceMemory.buffer,
-                    0,
-                    false,
-                    accelerationStructure.get(0),
-                    VK_NULL_HANDLE,
-                    scratchBuffer.buffer,
-                    0);
+            vkCmdBuildAccelerationStructureNV(cmdBuffer, accelerationStructureInfo, instanceMemory.buffer, 0, false,
+                    accelerationStructure.get(0), VK_NULL_HANDLE, scratchBuffer.buffer, 0);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
                     VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, accelerationStructureBuildBarrier(stack), null,
                     null);
