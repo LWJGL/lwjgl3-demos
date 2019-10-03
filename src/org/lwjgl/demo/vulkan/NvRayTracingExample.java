@@ -670,6 +670,13 @@ public class NvRayTracingExample {
         return faces;
     }
 
+    // Just a proxy class for 16-bit floating-point numbers
+    // to not use Short.BYTES when we actually do mean a 16-bit
+    // floating-point number and not a short.
+    private static final class Float16 {
+        static final int BYTES = 2;
+    }
+
     private static Geometry createGeometry(MemoryStack stack) {
         List<Face> faces = createMesh();
         DynamicByteBuffer positions = new DynamicByteBuffer();
@@ -691,8 +698,8 @@ public class NvRayTracingExample {
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
                     .vertexCount(faces.size() * 4)
-                    .vertexStride(Float.BYTES * 3)
-                    .vertexFormat(VK_FORMAT_R32G32B32_SFLOAT)
+                    .vertexStride(Float16.BYTES * 3)
+                    .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)
                     .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
