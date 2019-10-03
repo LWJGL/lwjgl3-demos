@@ -655,7 +655,7 @@ public class NvRayTracingExample {
         }
         AllocationAndBuffer indexBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bb);
         memFree(bb);
-        VkGeometryNV.Buffer geometry = VkGeometryNV.calloc(1)
+        VkGeometryNV.Buffer geometry = VkGeometryNV(1)
                 .sType(VK_STRUCTURE_TYPE_GEOMETRY_NV)
                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_NV)
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)

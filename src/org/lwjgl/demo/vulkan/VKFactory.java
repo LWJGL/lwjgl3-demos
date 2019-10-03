@@ -353,4 +353,8 @@ public class VKFactory {
         return VkQueryPoolCreateInfo.callocStack(stack).sType(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
     }
 
+    static VkGeometryNV.Buffer VkGeometryNV(int count) {
+        return VkGeometryNV.calloc(count);
+    }
+
 }
