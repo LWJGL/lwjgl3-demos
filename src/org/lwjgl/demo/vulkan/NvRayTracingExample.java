@@ -67,7 +67,7 @@ public class NvRayTracingExample {
     private static VkDevice device;
     private static VkQueue queue;
     private static Swapchain swapchain;
-    private static Long commandPool;
+    private static Long commandPool, commandPoolTransient;
     private static BottomLevelAccelerationStructure blas;
     private static TopLevelAccelerationStructure tlas;
     private static AllocationAndBuffer ubo;
@@ -455,12 +455,12 @@ public class NvRayTracingExample {
         }
     }
 
-    private static long createCommandPool() {
+    private static long createCommandPool(int flags) {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pCmdPool = stack.mallocLong(1);
             _CHECK_(vkCreateCommandPool(device, VkCommandPoolCreateInfo(stack)
                     .queueFamilyIndex(queueFamily)
-                    .flags(0), null, pCmdPool), "Failed to create command pool");
+                    .flags(flags), null, pCmdPool), "Failed to create command pool");
             return pCmdPool.get(0);
         }
     }
@@ -497,7 +497,7 @@ public class NvRayTracingExample {
         }
     }
 
-    private static void freeCommandBuffers() {
+    private static void freeRenderCommandBuffers() {
         try (MemoryStack stack = stackPush()) {
             vkFreeCommandBuffers(device, commandPool, stack.pointers(commandBuffers));
         }
@@ -515,12 +515,12 @@ public class NvRayTracingExample {
         }
     }
 
-    private static VkCommandBuffer createCommandBuffer() {
+    private static VkCommandBuffer createCommandBuffer(long pool) {
         try (MemoryStack stack = stackPush()) {
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
             _CHECK_(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo(stack)
                     .commandBufferCount(1)
-                    .commandPool(commandPool)
+                    .commandPool(pool)
                     .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY), pCommandBuffer), "Failed to create command buffer");
             VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
             _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo(stack)), "Failed to begin command buffer");
@@ -590,13 +590,13 @@ public class NvRayTracingExample {
                 _CHECK_(vmaMapMemory(vmaAllocator, allocation, pData), "Failed to map memory");
                 memCopy(memAddress(data), pData.get(0), data.remaining());
                 vmaUnmapMemory(vmaAllocator, allocation);
-                VkCommandBuffer cmdBuffer = createCommandBuffer();
+                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
                 vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), pBuffer.get(0),
                         VkBufferCopy(stack, 1).size(data.remaining()));
                 long bufferStage = pBufferStage.get(0);
                 long allocationStage = pAllocationStage.get(0);
                 submitCommandBuffer(cmdBuffer, true, () -> {
-                    vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+                    vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
                     vmaDestroyBuffer(vmaAllocator, bufferStage, allocationStage);
                 });
             }
@@ -711,7 +711,7 @@ public class NvRayTracingExample {
                     .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV |
                            VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV)
                     .pGeometries(geometry.geometry);
-            VkCommandBuffer cmdBuffer = createCommandBuffer();
+            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
                     accelerationStructureMemoryUploadBarrier(stack), null, null);
@@ -748,7 +748,7 @@ public class NvRayTracingExample {
                     null, null);
             long fence = submitCommandBuffer(cmdBuffer, true, null);
             waitForFenceAndDestroy(fence);
-            vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
             scratchBuffer.free();
             BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
             ret.geometry = geometry;
@@ -767,12 +767,12 @@ public class NvRayTracingExample {
     private static BottomLevelAccelerationStructure compressBottomLevelAccelerationStructure(
             BottomLevelAccelerationStructure src) {
         try (MemoryStack stack = stackPush()) {
-            VkCommandBuffer cmdBuffer = createCommandBuffer();
+            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdWriteAccelerationStructuresPropertiesNV(cmdBuffer, stack.longs(src.accelerationStructure),
                     VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV, queryPool, 0);
             long fence = submitCommandBuffer(cmdBuffer, true, null);
             waitForFenceAndDestroy(fence);
-            vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
             LongBuffer pData = stack.mallocLong(1);
             vkGetQueryPoolResults(device, queryPool, 0, 1, pData, Long.BYTES,
                     VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
@@ -798,11 +798,11 @@ public class NvRayTracingExample {
             LongBuffer accelerationStructureCompactedHandle = stack.mallocLong(1);
             _CHECK_(vkGetAccelerationStructureHandleNV(device, accelerationStructureCompacted.get(0),
                     accelerationStructureCompactedHandle), "Failed to get acceleration structure handle");
-            VkCommandBuffer cmdBuffer2 = createCommandBuffer();
+            VkCommandBuffer cmdBuffer2 = createCommandBuffer(commandPoolTransient);
             vkCmdCopyAccelerationStructureNV(cmdBuffer2, accelerationStructureCompacted.get(0),
                     src.accelerationStructure, VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV);
             submitCommandBuffer(cmdBuffer2, true, () -> {
-                vkFreeCommandBuffers(device, commandPool, cmdBuffer2);
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer2);
                 src.free(false);
             });
             BottomLevelAccelerationStructure ret = new BottomLevelAccelerationStructure();
@@ -885,7 +885,7 @@ public class NvRayTracingExample {
             instance.mask = (byte) 0xFF;
             AllocationAndBuffer instanceMemory = createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
                             instance.write(stack.malloc(GeometryInstance.SIZEOF)));
-            VkCommandBuffer cmdBuffer = createCommandBuffer();
+            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
                     accelerationStructureMemoryUploadBarrier(stack), null, null);
@@ -906,7 +906,7 @@ public class NvRayTracingExample {
                     VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, accelerationStructureBuildBarrier(stack), null,
                     null);
             submitCommandBuffer(cmdBuffer, true, () -> {
-                vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
                 instanceMemory.free();
                 scratchBuffer.free();
             });
@@ -1181,12 +1181,12 @@ public class NvRayTracingExample {
 
     private static VkCommandBuffer[] createRayTracingCommandBuffers() {
         if (commandBuffers != null) {
-            freeCommandBuffers();
+            freeRenderCommandBuffers();
         }
         int count = swapchain.imageViews.length;
         VkCommandBuffer[] buffers = new VkCommandBuffer[count];
         for (int i = 0; i < count; i++) {
-            VkCommandBuffer cmdBuf = createCommandBuffer();
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool);
             transitionImageLayout(cmdBuf, swapchain.images[i], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV);
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline.pipeline);
@@ -1427,7 +1427,7 @@ public class NvRayTracingExample {
                     .subresourceRange(VkImageSubresourceRange(stack)
                             .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(6).levelCount(1))
                     .image(pImage.get(0)), null, pView), "Failed to create image view");
-            VkCommandBuffer cmdBuffer = createCommandBuffer();
+            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             transitionImageLayout(cmdBuffer, pImage.get(0), VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 6);
             vkCmdCopyBufferToImage(cmdBuffer, pBuffer.get(0), pImage.get(0), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -1439,7 +1439,7 @@ public class NvRayTracingExample {
             long buffer = pBuffer.get(0);
             long bufferAllocation = pBufferAllocation.get(0);
             submitCommandBuffer(cmdBuffer, true, () -> {
-                vkFreeCommandBuffers(device, commandPool, cmdBuffer);
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
                 vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation);
             });
             EnvironmentTexture ret = new EnvironmentTexture();
@@ -1482,7 +1482,8 @@ public class NvRayTracingExample {
         vmaAllocator = createAllocator();
         queue = retrieveQueue();
         swapchain = createSwapChain();
-        commandPool = createCommandPool();
+        commandPool = createCommandPool(0);
+        commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         rayTracingProperties = initRayTracing();
         geometry = createGeometry(stack, "org/lwjgl/demo/vulkan/lwjgl3.obj");
         queryPool = createQueryPool();
@@ -1507,7 +1508,7 @@ public class NvRayTracingExample {
         }
         vkDestroySampler(device, sampler, null);
         environmentTexture.free();
-        freeCommandBuffers();
+        freeRenderCommandBuffers();
         descriptorSets.free();
         ubo.free();
         shaderBindingTable.free();
@@ -1517,6 +1518,7 @@ public class NvRayTracingExample {
         blas.free(true);
         swapchain.free();
         vkDestroyCommandPool(device, commandPool, null);
+        vkDestroyCommandPool(device, commandPoolTransient, null);
         vmaDestroyAllocator(vmaAllocator);
         vkDestroyDevice(device, null);
         if (debugCallbackHandle != null) {
