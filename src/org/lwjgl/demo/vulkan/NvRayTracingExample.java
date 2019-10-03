@@ -573,6 +573,9 @@ public class NvRayTracingExample {
     private static AllocationAndBuffer createRayTracingBuffer(long size) {
         return createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, size, null);
     }
+    private static AllocationAndBuffer createRayTracingBuffer(ByteBuffer data) {
+        return createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, data.remaining(), data);
+    }
 
     private static AllocationAndBuffer createBuffer(int usageFlags, long size, ByteBuffer data) {
         try (MemoryStack stack = stackPush()) {
@@ -683,8 +686,7 @@ public class NvRayTracingExample {
         DynamicByteBuffer normals = new DynamicByteBuffer();
         DynamicByteBuffer indices = new DynamicByteBuffer();
         FaceTriangulator.triangulateFloat(faces, positions, normals, indices);
-        AllocationAndBuffer positionsBuffer = createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                memByteBuffer(positions.addr, positions.pos));
+        AllocationAndBuffer positionsBuffer = createRayTracingBuffer(memByteBuffer(positions.addr, positions.pos));
         positions.free();
         AllocationAndBuffer normalsBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                 memByteBuffer(normals.addr, normals.pos));
