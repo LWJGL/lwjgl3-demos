@@ -172,7 +172,9 @@ public class VKFactory {
     }
 
     static VkPipelineShaderStageCreateInfo.Buffer VkPipelineShaderStageCreateInfo(MemoryStack stack, int count) {
-        return VkPipelineShaderStageCreateInfo.callocStack(count, stack);
+        VkPipelineShaderStageCreateInfo.Buffer ret = VkPipelineShaderStageCreateInfo.callocStack(count, stack);
+        ret.forEach(sci -> sci.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO));
+        return ret;
     }
 
     static VkDescriptorSetLayoutBinding.Buffer VkDescriptorSetLayoutBinding(MemoryStack stack, int count) {

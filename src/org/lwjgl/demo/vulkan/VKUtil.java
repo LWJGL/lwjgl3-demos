@@ -139,10 +139,9 @@ public class VKUtil {
                         .pCode(shaderCode)
                         .flags(0), null, pShaderModule),
                 "Failed to create shader module");
-        info.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
-                .stage(stage)
-                .pSpecializationInfo(specInfo)
-                .module(pShaderModule.get(0)).pName(stack.UTF8("main"));
+        info.stage(stage)
+            .pSpecializationInfo(specInfo)
+            .module(pShaderModule.get(0)).pName(stack.UTF8("main"));
     }
 
     /**

@@ -72,7 +72,7 @@ public class DynamicByteBuffer {
     public DynamicByteBuffer putByte(int v) {
         if (v > 255)
             throw new IllegalArgumentException();
-        if (cap - pos < 2)
+        if (cap - pos < 1)
             grow();
         memPutByte(addr + pos, (byte) (v & 0xFF));
         pos++;

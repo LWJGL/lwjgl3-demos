@@ -23,6 +23,7 @@ import java.util.*;
 
 import static java.lang.Math.*;
 import static org.joml.SimplexNoise.*;
+import static org.lwjgl.demo.util.FaceTriangulator.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -741,7 +742,7 @@ public class NvRayTracingExample {
         DynamicByteBuffer positions = new DynamicByteBuffer();
         DynamicByteBuffer normals = new DynamicByteBuffer();
         DynamicByteBuffer indices = new DynamicByteBuffer();
-        FaceTriangulator.triangulateFloat(faces, positions, normals, indices);
+        triangulate_Vf16_Iu16(faces, positions, normals, indices);
         AllocationAndBuffer positionsBuffer = createRayTracingBuffer(memByteBuffer(positions.addr, positions.pos));
         positions.free();
         AllocationAndBuffer normalsBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
@@ -759,7 +760,7 @@ public class NvRayTracingExample {
                     .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)
-                    .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
+                    .indexType(VK_INDEX_TYPE_UINT16)).aabbs(VKFactory::VkGeometryAABBNV))
                 .flags(VK_GEOMETRY_OPAQUE_BIT_NV);
         return new Geometry(positionsBuffer, normalsBuffer, indicesBuffer, geometry);
     }

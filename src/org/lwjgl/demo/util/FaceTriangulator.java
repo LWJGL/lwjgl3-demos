@@ -20,7 +20,7 @@ public class FaceTriangulator {
         return (side & 1) != 0;
     }
 
-    public static void triangulateFloat(Iterable<Face> faces, DynamicByteBuffer positions, DynamicByteBuffer normals,
+    public static void triangulate_Vf16_Iu16(Iterable<Face> faces, DynamicByteBuffer positions, DynamicByteBuffer normals,
             DynamicByteBuffer indices) {
         int i = 0;
         for (Face f : faces) {
@@ -60,11 +60,11 @@ public class FaceTriangulator {
                 break;
             }
             if (isPositiveSide(f.s)) {
-                indices.putInt(i << 2).putInt((i << 2) + 1).putInt((i << 2) + 2);
-                indices.putInt((i << 2) + 2).putInt((i << 2) + 3).putInt(i << 2);
+                indices.putShort(i << 2).putShort((i << 2) + 1).putShort((i << 2) + 2);
+                indices.putShort((i << 2) + 2).putShort((i << 2) + 3).putShort(i << 2);
             } else {
-                indices.putInt(i << 2).putInt((i << 2) + 3).putInt((i << 2) + 2);
-                indices.putInt((i << 2) + 2).putInt((i << 2) + 1).putInt(i << 2);
+                indices.putShort(i << 2).putShort((i << 2) + 3).putShort((i << 2) + 2);
+                indices.putShort((i << 2) + 2).putShort((i << 2) + 1).putShort(i << 2);
             }
             i++;
         }
