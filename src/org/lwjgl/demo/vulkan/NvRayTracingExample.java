@@ -611,25 +611,81 @@ public class NvRayTracingExample {
         }
     }
 
-    private static class BottomLevelAccelerationStructure {
-        Geometry geometry;
+    private static abstract class AccelerationStructure<T extends AccelerationStructure<T>> {
         long accelerationStructure;
         AllocationAndMemory memory;
-        long handle;
+        int type;
 
-        BottomLevelAccelerationStructure(Geometry geometry, long accelerationStructure, AllocationAndMemory memory,
-                long handle) {
-            this.geometry = geometry;
+        AccelerationStructure(int type, long accelerationStructure, AllocationAndMemory memory) {
+            this.type = type;
             this.accelerationStructure = accelerationStructure;
             this.memory = memory;
+        }
+
+        void free() {
+            vmaFreeMemory(vmaAllocator, memory.allocation);
+            vkDestroyAccelerationStructureNV(device, accelerationStructure, null);
+        }
+
+        VkAccelerationStructureInfoNV accelerationStructureInfo(MemoryStack stack) {
+            return VkAccelerationStructureInfoNV(stack)
+                    .type(type)
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV);
+        }
+
+        abstract T createSame(long accelerationStructure, AllocationAndMemory memory);
+    }
+
+    private static class BottomLevelAccelerationStructure extends AccelerationStructure<BottomLevelAccelerationStructure> {
+        Geometry geometry;
+        long handle;
+
+        BottomLevelAccelerationStructure(long accelerationStructure, AllocationAndMemory memory,
+                long handle, Geometry geometry) {
+            super(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV, accelerationStructure, memory);
             this.handle = handle;
+            this.geometry = geometry;
         }
 
         void free(boolean includingGeometry) {
+            super.free();
             if (includingGeometry)
                 geometry.free();
-            vmaFreeMemory(vmaAllocator, memory.allocation);
-            vkDestroyAccelerationStructureNV(device, accelerationStructure, null);
+        }
+
+        @Override
+        VkAccelerationStructureInfoNV accelerationStructureInfo(MemoryStack stack) {
+            return super.accelerationStructureInfo(stack)
+                        .pGeometries(geometry.geometry);
+        }
+
+        @Override
+        BottomLevelAccelerationStructure createSame(long accelerationStructure, AllocationAndMemory memory) {
+            try (MemoryStack stack = stackPush()) {
+                LongBuffer acHandle = stack.mallocLong(1);
+                _CHECK_(vkGetAccelerationStructureHandleNV(device, accelerationStructure, acHandle),
+                        "Failed to get acceleration structure handle");
+                return new BottomLevelAccelerationStructure(accelerationStructure, memory, acHandle.get(0), geometry);
+            }
+        }
+    }
+
+    private static class TopLevelAccelerationStructure extends AccelerationStructure<TopLevelAccelerationStructure> {
+        int instanceCount;
+
+        TopLevelAccelerationStructure(long accelerationStructure, AllocationAndMemory memory, int instanceCount) {
+            super(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV, accelerationStructure, memory);
+            this.instanceCount = instanceCount;
+        }
+
+        @Override
+        VkAccelerationStructureInfoNV accelerationStructureInfo(MemoryStack stack) {
+            return super.accelerationStructureInfo(stack).instanceCount(instanceCount);
+        }
+
+        @Override
+        TopLevelAccelerationStructure createSame(long accelerationStructure, AllocationAndMemory memory) {
+            return new TopLevelAccelerationStructure(accelerationStructure, memory, instanceCount);
         }
     }
 
@@ -750,9 +806,8 @@ public class NvRayTracingExample {
             _CHECK_(vkCreateAccelerationStructureNV(device, VkAccelerationStructureCreateInfoNV(stack)
                             .info(pInfo), null, accelerationStructure),
                     "Failed to create acceleration structure");
-            VkMemoryRequirements memoryRequirements = memoryRequirements(stack, accelerationStructure.get(0),
-                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements);
+            AllocationAndMemory allocation = allocateDeviceMemory(memoryRequirements(stack, accelerationStructure.get(0),
+                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV));
             _CHECK_(vkBindAccelerationStructureMemoryNV(device, VkBindAccelerationStructureMemoryInfoNV(stack)
                             .accelerationStructure(accelerationStructure.get(0))
                             .memory(allocation.memory)
@@ -785,8 +840,8 @@ public class NvRayTracingExample {
             waitForFenceAndDestroy(fence);
             vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
             scratchBuffer.free();
-            return new BottomLevelAccelerationStructure(geometry, accelerationStructure.get(0), allocation,
-                    accelerationStructureHandle.get(0));
+            return new BottomLevelAccelerationStructure(accelerationStructure.get(0), allocation,
+                    accelerationStructureHandle.get(0), geometry);
         }
     }
 
@@ -795,9 +850,9 @@ public class NvRayTracingExample {
         vkDestroyFence(device, fence, null);
     }
 
-    private static BottomLevelAccelerationStructure compressBottomLevelAccelerationStructure(
-            BottomLevelAccelerationStructure src) {
+    private static <T extends AccelerationStructure<T>> T compressAccelerationStructure(T src) {
         try (MemoryStack stack = stackPush()) {
+            VkAccelerationStructureInfoNV pInfoCompacted = src.accelerationStructureInfo(stack);
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             vkCmdWriteAccelerationStructuresPropertiesNV(cmdBuffer, stack.longs(src.accelerationStructure),
                     VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV, queryPool, 0);
@@ -810,10 +865,6 @@ public class NvRayTracingExample {
             VkMemoryRequirements memoryRequirementsCompacted = src.memory.memoryRequirementsOfSize(stack,
                     compactedSize.get(0));
             AllocationAndMemory allocationCompacted = allocateDeviceMemory(memoryRequirementsCompacted);
-            VkAccelerationStructureInfoNV pInfoCompacted = VkAccelerationStructureInfoNV(stack)
-                    .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV)
-                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV)
-                    .pGeometries(geometry.geometry);
             LongBuffer accelerationStructureCompacted = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device,
                     VkAccelerationStructureCreateInfoNV(stack).info(pInfoCompacted), null,
@@ -831,10 +882,9 @@ public class NvRayTracingExample {
                     src.accelerationStructure, VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV);
             submitCommandBuffer(cmdBuffer2, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer2);
-                src.free(false);
+                src.free();
             });
-            return new BottomLevelAccelerationStructure(geometry, accelerationStructureCompacted.get(0),
-                    allocationCompacted, accelerationStructureCompactedHandle.get(0));
+            return src.createSame(accelerationStructureCompacted.get(0), allocationCompacted);
         }
     }
 
@@ -846,21 +896,6 @@ public class NvRayTracingExample {
                     .type(requirementType)
                     .accelerationStructure(accelerationStructure), memoryRequirements2);
             return memoryRequirements2.memoryRequirements();
-        }
-    }
-
-    private static class TopLevelAccelerationStructure {
-        AllocationAndMemory memory;
-        long accelerationStructure;
-
-        TopLevelAccelerationStructure(AllocationAndMemory memory, long accelerationStructure) {
-            this.memory = memory;
-            this.accelerationStructure = accelerationStructure;
-        }
-
-        void free() {
-            vmaFreeMemory(vmaAllocator, memory.allocation);
-            vkDestroyAccelerationStructureNV(device, accelerationStructure, null);
         }
     }
 
@@ -880,7 +915,8 @@ public class NvRayTracingExample {
             int instanceCount = CHUNK_REPEAT_X * CHUNK_REPEAT_Z;
             VkAccelerationStructureInfoNV accelerationStructureInfo = VkAccelerationStructureInfoNV(stack)
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV)
-                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV).instanceCount(instanceCount);
+                    .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV |
+                           VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV).instanceCount(instanceCount);
             LongBuffer accelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device,
                     VkAccelerationStructureCreateInfoNV(stack).info(accelerationStructureInfo), null,
@@ -922,12 +958,12 @@ public class NvRayTracingExample {
                                     | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
                             .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
                     null, null);
-            submitCommandBuffer(cmdBuffer, true, () -> {
-                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
-                instanceMemory.free();
-                scratchBuffer.free();
-            });
-            return new TopLevelAccelerationStructure(allocation, accelerationStructure.get(0));
+            long fence = submitCommandBuffer(cmdBuffer, true, null);
+            waitForFenceAndDestroy(fence);
+            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
+            scratchBuffer.free();
+            instanceMemory.free();
+            return new TopLevelAccelerationStructure(accelerationStructure.get(0), allocation, instanceCount);
         }
     }
 
@@ -1402,8 +1438,8 @@ public class NvRayTracingExample {
         rayTracingProperties = initRayTracing();
         geometry = createGeometry(stack);
         queryPool = createQueryPool();
-        blas = compressBottomLevelAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
-        tlas = createTopLevelAccelerationStructure();
+        blas = compressAccelerationStructure(createBottomLevelAccelerationStructure(geometry));
+        tlas = compressAccelerationStructure(createTopLevelAccelerationStructure());
         ubos = createMappedUniformBufferObject();
         pipeline = createRayTracingPipeline();
         shaderBindingTable = createShaderBindingTable();
