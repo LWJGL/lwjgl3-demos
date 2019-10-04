@@ -893,8 +893,8 @@ public class NvRayTracingExample {
                             .memory(allocation.memory).memoryOffset(allocation.offset)),
                     "Failed to bind acceleration structure memory");
             ByteBuffer instanceData = stack.malloc(GeometryInstance.SIZEOF * instanceCount);
-            for (int z = 0; z < CHUNK_REPEAT_X; z++) {
-                for (int x = 0; x < CHUNK_REPEAT_Z; x++) {
+            for (int z = 0; z < CHUNK_REPEAT_Z; z++) {
+                for (int x = 0; x < CHUNK_REPEAT_X; x++) {
                     GeometryInstance inst = new GeometryInstance();
                     inst.accelerationStructureHandle = blas.handle;
                     inst.mask = (byte) 0x1;
