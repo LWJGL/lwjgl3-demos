@@ -10,6 +10,7 @@ import org.lwjgl.util.vma.VmaAllocationInfo;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
 import org.lwjgl.vulkan.*;
+import org.lwjgl.vulkan.VkWriteDescriptorSet.Buffer;
 
 import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
@@ -264,7 +265,9 @@ public class VKFactory {
     }
 
     static VkWriteDescriptorSet.Buffer VkWriteDescriptorSet(MemoryStack stack, int count) {
-        return VkWriteDescriptorSet.callocStack(count, stack);
+        Buffer ret = VkWriteDescriptorSet.callocStack(count, stack);
+        ret.forEach(wds -> wds.sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET));
+        return ret;
     }
 
     static VkPipelineShaderStageCreateInfo VkPipelineShaderStageCreateInfo(MemoryStack stack) {
@@ -354,7 +357,7 @@ public class VKFactory {
     }
 
     static VkGeometryNV.Buffer VkGeometryNV(int count) {
-        return VkGeometryNV.calloc(count);
+        return VkGeometryNV.calloc(count).sType(VK_STRUCTURE_TYPE_GEOMETRY_NV);
     }
 
 }

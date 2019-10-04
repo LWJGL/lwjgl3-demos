@@ -695,7 +695,6 @@ public class NvRayTracingExample {
                 memByteBuffer(indices.addr, indices.pos));
         indices.free();
         VkGeometryNV.Buffer geometry = VkGeometryNV(1)
-                .sType(VK_STRUCTURE_TYPE_GEOMETRY_NV)
                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_NV)
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
@@ -1119,7 +1118,6 @@ public class NvRayTracingExample {
                 final int idx = i;
                 writeDescriptorSet
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV)
                                 .dstBinding(0)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1128,7 +1126,6 @@ public class NvRayTracingExample {
                                         .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
                                         .address()))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
                                 .dstBinding(1)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1137,7 +1134,6 @@ public class NvRayTracingExample {
                                         .imageView(swapchain.imageViews[idx])
                                         .imageLayout(VK_IMAGE_LAYOUT_GENERAL)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                                 .dstBinding(2)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1146,7 +1142,6 @@ public class NvRayTracingExample {
                                         .buffer(ubos[idx].buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                 .dstBinding(3)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1155,7 +1150,6 @@ public class NvRayTracingExample {
                                         .buffer(geometry.normals.buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                 .dstBinding(4)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1488,7 +1482,6 @@ public class NvRayTracingExample {
                     .waitSemaphoreCount(1)
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV)), renderFences[idx]), "Failed to submit queue");
             _CHECK_(vkQueuePresentKHR(queue, VkPresentInfoKHR(stack)
-                    .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
                     .pWaitSemaphores(stack.longs(renderCompleteSemaphores[idx]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
