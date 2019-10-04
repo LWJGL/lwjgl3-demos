@@ -17,6 +17,13 @@ import java.util.List;
  */
 public class GreedyMeshing {
     public static class Face {
+        public static final byte SIDE_NX = 0;
+        public static final byte SIDE_PX = 1;
+        public static final byte SIDE_NY = 2;
+        public static final byte SIDE_PY = 3;
+        public static final byte SIDE_NZ = 4;
+        public static final byte SIDE_PZ = 5;
+
         public byte u0, v0, u1, v1, p, s;
 
         public Face(int u0, int v0, int u1, int v1, int p, int s) {
@@ -113,12 +120,12 @@ public class GreedyMeshing {
             du[d] = dv[d] = du[v] = dv[u] = 0;
             dv[v] = h;
             du[u] = w;
-            return 0;
+            return 1;
         } else {
             du[d] = dv[d] = du[u] = dv[v] = 0;
             du[v] = h;
             dv[u] = w;
-            return 1;
+            return 0;
         }
     }
 
