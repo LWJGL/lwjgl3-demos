@@ -86,7 +86,6 @@ public class NvRayTracingExample {
     private static long[] imageAcquireSemaphores;
     private static long[] renderCompleteSemaphores;
     private static long[] renderFences;
-    private static long sampler;
     private static long queryPool;
     private static Matrix4f projMatrix = new Matrix4f();
     private static Matrix4f viewMatrix = new Matrix4f().translation(
@@ -1121,9 +1120,6 @@ public class NvRayTracingExample {
     }
 
     private static DescriptorSets createDescriptorSets() {
-        if (descriptorSets != null) {
-            descriptorSets.free();
-        }
         int numSets = swapchain.imageViews.length;
         int numDescriptors = 5;
         try (MemoryStack stack = stackPush()) {
@@ -1383,25 +1379,6 @@ public class NvRayTracingExample {
         ubos[idx].flushMapped(0, Float.BYTES * 16 * 2);
     }
 
-    private static long createSampler() {
-        try (MemoryStack stack = stackPush()) {
-            LongBuffer pSampler = stack.mallocLong(1);
-            _CHECK_(vkCreateSampler(device, VkSamplerCreateInfo(stack)
-                            .magFilter(VK_FILTER_LINEAR)
-                            .minFilter(VK_FILTER_LINEAR)
-                            .mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR)
-                            .addressModeU(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-                            .addressModeV(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-                            .addressModeW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-                            .compareOp(VK_COMPARE_OP_NEVER)
-                            .maxLod(1)
-                            .borderColor(VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)
-                            .maxAnisotropy(1.0f), null, pSampler),
-                    "Failed to create sampler");
-            return pSampler.get(0);
-        }
-    }
-
     private static void createSyncObjects() {
         imageAcquireSemaphores = new long[swapchain.images.length];
         renderCompleteSemaphores = new long[swapchain.images.length];
@@ -1444,7 +1421,6 @@ public class NvRayTracingExample {
         ubos = createMappedUniformBufferObject();
         pipeline = createRayTracingPipeline();
         shaderBindingTable = createShaderBindingTable();
-        sampler = createSampler();
         descriptorSets = createDescriptorSets();
         commandBuffers = createRayTracingCommandBuffers();
         createSyncObjects();
@@ -1458,7 +1434,6 @@ public class NvRayTracingExample {
             vkDestroyFence(device, renderFences[i], null);
             ubos[i].free();
         }
-        vkDestroySampler(device, sampler, null);
         freeRenderCommandBuffers();
         descriptorSets.free();
         shaderBindingTable.free();
@@ -1481,8 +1456,6 @@ public class NvRayTracingExample {
 
     private static void reallocateOnResize() {
         swapchain = createSwapChain();
-        shaderBindingTable = createShaderBindingTable();
-        descriptorSets = createDescriptorSets();
         commandBuffers = createRayTracingCommandBuffers();
     }
 
