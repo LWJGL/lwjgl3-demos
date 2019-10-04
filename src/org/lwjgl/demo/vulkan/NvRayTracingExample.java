@@ -1233,7 +1233,7 @@ public class NvRayTracingExample {
                     swapchain.width, swapchain.height, 1);
             transitionImageLayout(cmdBuf, swapchain.images[i], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-            vkEndCommandBuffer(cmdBuf);
+            _CHECK_(vkEndCommandBuffer(cmdBuf), "Failed to end command buffer");
             buffers[i] = cmdBuf;
         }
         return buffers;
