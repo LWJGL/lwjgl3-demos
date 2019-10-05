@@ -242,7 +242,7 @@ public class NvRayTracingExample {
                     pProperties),
                     "Failed to enumerate device extensions");
             assertAvailable(pProperties, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-            assertAvailable(pProperties, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            assertAvailable(pProperties, VK_NV_RAY_TRACING_EXTENSION_NAME);
             assertAvailable(pProperties, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
             PointerBuffer extensions = stack.mallocPointer(3 + 1);
             extensions.put(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
