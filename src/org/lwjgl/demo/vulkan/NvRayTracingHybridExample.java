@@ -648,21 +648,19 @@ public class NvRayTracingHybridExample {
         }
     }
 
-    private static void freeRayTracingCommandBuffers() {
+    private static void freeCommandBuffers() {
         try (MemoryStack stack = stackPush()) {
-            vkFreeCommandBuffers(device, commandPool, stack.pointers(rayTracingCommandBuffers));
-        }
-    }
-
-    private static void freeRasterCommandBuffers() {
-        try (MemoryStack stack = stackPush()) {
-            vkFreeCommandBuffers(device, commandPool, stack.pointers(rasterCommandBuffers));
-        }
-    }
-
-    private static void freePresentCommandBuffers() {
-        try (MemoryStack stack = stackPush()) {
-            vkFreeCommandBuffers(device, commandPool, stack.pointers(presentCommandBuffers));
+            PointerBuffer pCommandBuffers = stack.mallocPointer(
+                    rasterCommandBuffers.length +
+                    rayTracingCommandBuffers.length + 
+                    presentCommandBuffers.length);
+            for (VkCommandBuffer cb : rasterCommandBuffers)
+                pCommandBuffers.put(cb);
+            for (VkCommandBuffer cb : rayTracingCommandBuffers)
+                pCommandBuffers.put(cb);
+            for (VkCommandBuffer cb : presentCommandBuffers)
+                pCommandBuffers.put(cb);
+            vkFreeCommandBuffers(device, commandPool, pCommandBuffers.flip());
         }
     }
 
@@ -680,14 +678,29 @@ public class NvRayTracingHybridExample {
 
     private static VkCommandBuffer createCommandBuffer(long pool) {
         try (MemoryStack stack = stackPush()) {
-            PointerBuffer pCommandBuffer = stack.mallocPointer(1);
+            PointerBuffer pCommandBuffers = stack.mallocPointer(1);
             _CHECK_(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo(stack)
                     .commandBufferCount(1)
                     .commandPool(pool)
-                    .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY), pCommandBuffer), "Failed to create command buffer");
-            VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
-            _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo(stack)), "Failed to begin command buffer");
+                    .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY), pCommandBuffers), "Failed to create command buffers");
+            VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffers.get(0), device);
+            _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo(stack)), "Failed to begin command buffers");
             return cmdBuffer;
+        }
+    }
+    private static VkCommandBuffer[] createCommandBuffers(long pool, int count) {
+        try (MemoryStack stack = stackPush()) {
+            PointerBuffer pCommandBuffers = stack.mallocPointer(count);
+            _CHECK_(vkAllocateCommandBuffers(device, VkCommandBufferAllocateInfo(stack)
+                    .commandBufferCount(count)
+                    .commandPool(pool)
+                    .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY), pCommandBuffers), "Failed to create command buffers");
+            VkCommandBuffer[] cmdBuffers = new VkCommandBuffer[count];
+            for (int i = 0; i < count; i++) {
+                cmdBuffers[i] = new VkCommandBuffer(pCommandBuffers.get(i), device);
+                _CHECK_(vkBeginCommandBuffer(cmdBuffers[i], VkCommandBufferBeginInfo(stack)), "Failed to begin command buffers");
+            }
+            return cmdBuffers;
         }
     }
 
@@ -1039,9 +1052,6 @@ public class NvRayTracingHybridExample {
     }
 
     private static VkCommandBuffer[] createRasterCommandBuffers() {
-        if (rasterCommandBuffers != null) {
-            freeRasterCommandBuffers();
-        }
         try (MemoryStack stack = stackPush()) {
             VkClearValue.Buffer clearValues = VkClearValue(stack, 2);
             clearValues.apply(0, v -> v.color().float32(0, 100 / 255.0f).float32(1, 149 / 255.0f).float32(2, 237 / 255.0f).float32(3, 1.0f))
@@ -1049,13 +1059,13 @@ public class NvRayTracingHybridExample {
             VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo(stack).renderPass(renderPass)
                     .pClearValues(clearValues)
                     .renderArea(a -> a.extent().set(swapchain.width, swapchain.height));
-            VkCommandBuffer[] cmdBuffers = new VkCommandBuffer[swapchain.images.length];
+            VkCommandBuffer[] cmdBuffers = createCommandBuffers(commandPool, swapchain.images.length);
             VkViewport.Buffer viewport = VkViewport(stack, 1).height(swapchain.height).width(swapchain.width)
                     .minDepth(0.0f).maxDepth(1.0f);
             VkRect2D.Buffer scissor = VkRect2D(stack, 1).extent(e -> e.set(swapchain.width, swapchain.height));
             for (int i = 0; i < swapchain.images.length; i++) {
                 renderPassBeginInfo.framebuffer(framebuffers[i]);
-                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPool);
+                VkCommandBuffer cmdBuffer = cmdBuffers[i];
                 vkCmdBeginRenderPass(cmdBuffer, renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                 vkCmdSetViewport(cmdBuffer, 0, viewport);
                 vkCmdSetScissor(cmdBuffer, 0, scissor);
@@ -1067,20 +1077,16 @@ public class NvRayTracingHybridExample {
                 vkCmdDrawIndexed(cmdBuffer, geometry.indexCount, 1, 0, 0, 0);
                 vkCmdEndRenderPass(cmdBuffer);
                 _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
-                cmdBuffers[i] = cmdBuffer;
             }
             return cmdBuffers;
         }
     }
 
     private static VkCommandBuffer[] createPresentCommandBuffers() {
-        if (presentCommandBuffers != null) {
-            freePresentCommandBuffers();
-        }
         try (MemoryStack stack = stackPush()) {
-            VkCommandBuffer[] cmdBuffers = new VkCommandBuffer[swapchain.images.length];
+            VkCommandBuffer[] cmdBuffers = createCommandBuffers(commandPool, swapchain.images.length);
             for (int i = 0; i < swapchain.images.length; i++) {
-                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPool);
+                VkCommandBuffer cmdBuffer = cmdBuffers[i];
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, null, null,
                         VkImageMemoryBarrier(stack)
@@ -1142,7 +1148,6 @@ public class NvRayTracingHybridExample {
                                     r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
                                 }));
                 _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
-                cmdBuffers[i] = cmdBuffer;
             }
             return cmdBuffers;
         }
@@ -1687,12 +1692,9 @@ public class NvRayTracingHybridExample {
     }
 
     private static VkCommandBuffer[] createRayTracingCommandBuffers() {
-        if (rayTracingCommandBuffers != null) {
-            freeRayTracingCommandBuffers();
-        }
-        VkCommandBuffer[] buffers = new VkCommandBuffer[swapchain.images.length];
+        VkCommandBuffer[] cmdBuffers = createCommandBuffers(commandPool, swapchain.images.length);
         for (int i = 0; i < swapchain.images.length; i++) {
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool);
+            VkCommandBuffer cmdBuf = cmdBuffers[i];
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, rayTracingPipeline.pipeline);
             try (MemoryStack stack = stackPush()) {
                 vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
@@ -1706,9 +1708,8 @@ public class NvRayTracingHybridExample {
                     VK_NULL_HANDLE, 0, 0,
                     swapchain.width, swapchain.height, 1);
             _CHECK_(vkEndCommandBuffer(cmdBuf), "Failed to end command buffer");
-            buffers[i] = cmdBuf;
         }
-        return buffers;
+        return cmdBuffers;
     }
 
     private static PointerBuffer initGlfw() throws AssertionError {
@@ -1928,8 +1929,7 @@ public class NvRayTracingHybridExample {
             normalImages[i].free();
             rayTracingImages[i].free();
         }
-        freeRayTracingCommandBuffers();
-        freeRasterCommandBuffers();
+        freeCommandBuffers();
         rayTracingDescriptorSets.free();
         rayTracingShaderBindingTable.free();
         rayTracingPipeline.free();
@@ -1963,6 +1963,7 @@ public class NvRayTracingHybridExample {
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
         rasterDescriptorSets = createRasterDescriptorSets();
         framebuffers = createFramebuffers();
+        freeCommandBuffers();
         rasterCommandBuffers = createRasterCommandBuffers();
         rayTracingCommandBuffers = createRayTracingCommandBuffers();
         presentCommandBuffers = createPresentCommandBuffers();
