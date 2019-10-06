@@ -22,7 +22,6 @@ import java.nio.LongBuffer;
 import java.util.*;
 
 import static java.lang.Math.*;
-import static java.util.Arrays.*;
 import static org.joml.SimplexNoise.*;
 import static org.lwjgl.demo.util.FaceTriangulator.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
@@ -1150,6 +1149,9 @@ public class NvRayTracingHybridExample {
     }
 
     private static long[] createFramebuffers() {
+        if (framebuffers != null) {
+            Arrays.stream(framebuffers).forEach(f -> vkDestroyFramebuffer(device, f, null));
+        }
         try (MemoryStack stack = stackPush()) {
             LongBuffer pAttachments = stack.mallocLong(2);
             VkFramebufferCreateInfo fci = VkFramebufferCreateInfo(stack)
@@ -1958,7 +1960,6 @@ public class NvRayTracingHybridExample {
         depthStencil = createDepthStencil();
         normalImages = createNormalImages();
         rayTracingImages = createRayTracingImages();
-        stream(framebuffers).forEach(fb -> vkDestroyFramebuffer(device, fb, null));
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
         rasterDescriptorSets = createRasterDescriptorSets();
         framebuffers = createFramebuffers();
