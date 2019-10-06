@@ -1219,8 +1219,20 @@ public class NvRayTracingExample {
         VkCommandBuffer[] buffers = new VkCommandBuffer[count];
         for (int i = 0; i < count; i++) {
             VkCommandBuffer cmdBuf = createCommandBuffer(commandPool);
-            transitionImageLayout(cmdBuf, swapchain.images[i], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV);
+            try (MemoryStack stack = stackPush()) {
+                vkCmdPipelineBarrier(cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,0,
+                        null,null, VkImageMemoryBarrier(stack)
+                                .srcAccessMask(0)
+                                .dstAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
+                                .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                                .newLayout(VK_IMAGE_LAYOUT_GENERAL)
+                                .image(swapchain.images[i])
+                                .subresourceRange(r -> {
+                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                                            .layerCount(1)
+                                            .levelCount(1);
+                                }));
+            }
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline.pipeline);
             try (MemoryStack stack = stackPush()) {
                 vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
@@ -1233,8 +1245,20 @@ public class NvRayTracingExample {
                     shaderBindingTable.buffer, stride * 2, stride,
                     VK_NULL_HANDLE, 0, 0,
                     swapchain.width, swapchain.height, 1);
-            transitionImageLayout(cmdBuf, swapchain.images[i], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+            try (MemoryStack stack = stackPush()) {
+                vkCmdPipelineBarrier(cmdBuf, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,0,
+                        null,null, VkImageMemoryBarrier(stack)
+                                .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
+                                .dstAccessMask(0)
+                                .oldLayout(VK_IMAGE_LAYOUT_GENERAL)
+                                .newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+                                .image(swapchain.images[i])
+                                .subresourceRange(r -> {
+                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                                            .layerCount(1)
+                                            .levelCount(1);
+                                }));
+            }
             _CHECK_(vkEndCommandBuffer(cmdBuf), "Failed to end command buffer");
             buffers[i] = cmdBuf;
         }

@@ -10,7 +10,6 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.shaderc.ShadercIncludeResolve;
 import org.lwjgl.util.shaderc.ShadercIncludeResult;
 import org.lwjgl.util.shaderc.ShadercIncludeResultRelease;
-import org.lwjgl.vulkan.VkCommandBuffer;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkSpecializationInfo;
@@ -25,7 +24,6 @@ import static org.lwjgl.BufferUtils.*;
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
-import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.shaderc.Shaderc.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
@@ -110,26 +108,6 @@ public class VKUtil {
             throw new AssertionError(msg + ": " + translateVulkanResult(ret));
     }
 
-
-    public static void transitionImageLayout(VkCommandBuffer cmdbuffer, long image,
-                                             int oldImageLayout, int newImageLayout, int srcStageMask, int dstStageMask) {
-        transitionImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, srcStageMask, dstStageMask, 1);
-    }
-    public static void transitionImageLayout(VkCommandBuffer cmdbuffer, long image,
-            int oldImageLayout, int newImageLayout, int srcStageMask, int dstStageMask, int layerCount) {
-        try (MemoryStack stack = stackPush()) {
-            vkCmdPipelineBarrier(cmdbuffer, srcStageMask, dstStageMask,0,
-                    null,null, VkImageMemoryBarrier(stack)
-                            .oldLayout(oldImageLayout)
-                            .newLayout(newImageLayout)
-                            .image(image)
-                            .subresourceRange(r -> {
-                                r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-                                        .layerCount(layerCount)
-                                        .levelCount(1);
-                            }));
-        }
-    }
 
     public static void loadShader(VkPipelineShaderStageCreateInfo info, VkSpecializationInfo specInfo,
                                   MemoryStack stack, VkDevice device, String classPath, int stage) throws IOException {
