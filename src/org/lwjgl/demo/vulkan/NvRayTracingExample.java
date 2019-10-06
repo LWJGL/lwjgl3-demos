@@ -1120,6 +1120,8 @@ public class NvRayTracingExample {
     }
 
     private static DescriptorSets createDescriptorSets() {
+        if (descriptorSets != null)
+            descriptorSets.free();
         int numSets = swapchain.imageViews.length;
         int numDescriptors = 5;
         try (MemoryStack stack = stackPush()) {
@@ -1456,6 +1458,7 @@ public class NvRayTracingExample {
 
     private static void reallocateOnResize() {
         swapchain = createSwapChain();
+        descriptorSets = createDescriptorSets();
         commandBuffers = createRayTracingCommandBuffers();
     }
 

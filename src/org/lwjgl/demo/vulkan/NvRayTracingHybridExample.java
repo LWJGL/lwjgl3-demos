@@ -1964,6 +1964,8 @@ public class NvRayTracingHybridExample {
         normalImages = createNormalImages();
         rayTracingImages = createRayTracingImages();
         stream(framebuffers).forEach(fb -> vkDestroyFramebuffer(device, fb, null));
+        rayTracingDescriptorSets = createRayTracingDescriptorSets();
+        rasterDescriptorSets = createRasterDescriptorSets();
         framebuffers = createFramebuffers();
         rasterCommandBuffers = createRasterCommandBuffers();
         rayTracingCommandBuffers = createRayTracingCommandBuffers();
