@@ -12,7 +12,7 @@ layout(binding = 2, set = 0) uniform CameraProperties
   mat4 projInverse;
   mat4 viewInverse;
 } cam;
-layout(binding = 5, set = 0, rgba8) uniform image2D normalImage;
+layout(binding = 5, set = 0, rg8) uniform image2D normalImage;
 layout(binding = 6, set = 0) uniform sampler2D depthImage;
 layout(location = 0) rayPayloadNV Payload {
   vec3 normal;
@@ -49,7 +49,9 @@ void main() {
     return;
   }
   vec3 o = cam.viewInverse[3].xyz + direction * nci.z / nci.w;
-  vec3 n = imageLoad(normalImage, px).xyz;
+  vec2 nv = imageLoad(normalImage, px).xy;
+  vec3 nr = vec3(nv, sqrt(max(0.0, 1.0 - dot(nv, nv))));
+  vec3 n = (cam.viewInverse * vec4(nr, 0.0)).xyz;
   vec3 col = vec3(0.0);
   vec3 att = vec3(1.0);
   for (int i = 0; i < BOUNCES; i++) {

@@ -73,7 +73,7 @@ public class NvRayTracingHybridExample {
     private static VkDevice device;
     private static VkQueue queue;
     private static Swapchain swapchain;
-    private static AllocationAndImage[] depthStencil;
+    private static AllocationAndImage[] depthStencilImages;
     private static AllocationAndImage[] normalImages;
     private static AllocationAndImage[] rayTracingImages;
     private static long sampler;
@@ -487,7 +487,7 @@ public class NvRayTracingHybridExample {
     }
 
     private static AllocationAndImage[] createNormalImages() {
-        return createColorImages(normalImages, VK_FORMAT_R8G8B8A8_SNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        return createColorImages(normalImages, VK_FORMAT_R8G8_SNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
     }
 
@@ -567,9 +567,9 @@ public class NvRayTracingHybridExample {
         }
     }
 
-    private static AllocationAndImage[] createDepthStencil() {
-        if (depthStencil != null) {
-            Arrays.stream(depthStencil).forEach(AllocationAndImage::free);
+    private static AllocationAndImage[] createDepthStencilImages() {
+        if (depthStencilImages != null) {
+            Arrays.stream(depthStencilImages).forEach(AllocationAndImage::free);
         }
         try (MemoryStack stack = stackPush()) {
             VkImageCreateInfo imageCreateInfo = VkImageCreateInfo(stack)
@@ -1016,7 +1016,7 @@ public class NvRayTracingHybridExample {
         try (MemoryStack stack = stackPush()) {
             VkAttachmentDescription.Buffer attachments = VkAttachmentDescription(stack, 2)
                     .apply(0, d -> d
-                            .format(VK_FORMAT_R8G8B8A8_SNORM)
+                            .format(VK_FORMAT_R8G8_SNORM)
                             .samples(VK_SAMPLE_COUNT_1_BIT)
                             .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
                             .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
@@ -1168,7 +1168,7 @@ public class NvRayTracingHybridExample {
             long[] framebuffers = new long[swapchain.images.length];
             LongBuffer pFramebuffer = stack.mallocLong(1);
             for (int i = 0; i < swapchain.images.length; i++) {
-                pAttachments.put(0, normalImages[i].imageView).put(1, depthStencil[i].imageView);
+                pAttachments.put(0, normalImages[i].imageView).put(1, depthStencilImages[i].imageView);
                 _CHECK_(vkCreateFramebuffer(device, fci, null, pFramebuffer), "Failed to create framebuffer");
                 framebuffers[i] = pFramebuffer.get(0);
             }
@@ -1629,7 +1629,7 @@ public class NvRayTracingHybridExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pImageInfo(VkDescriptorImageInfo(stack, 1)
-                                        .imageView(depthStencil[idx].imageView)
+                                        .imageView(depthStencilImages[idx].imageView)
                                         .sampler(sampler)
                                         .imageLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)));
             }
@@ -1854,9 +1854,10 @@ public class NvRayTracingHybridExample {
     }
 
     private static void updateRasterUniformBufferObject(int idx) {
-        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * 16);
+        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * (16 + 16));
         viewProjMatrix.get(0, bb);
-        rasterUbos[idx].flushMapped(0, Float.BYTES * 16);
+        viewMatrix.get(Float.BYTES * 16, bb);
+        rasterUbos[idx].flushMapped(0, Float.BYTES * (16 + 16));
     }
 
     private static void createSyncObjects() {
@@ -1891,7 +1892,7 @@ public class NvRayTracingHybridExample {
         vmaAllocator = createAllocator();
         queue = retrieveQueue();
         swapchain = createSwapChain();
-        depthStencil = createDepthStencil();
+        depthStencilImages = createDepthStencilImages();
         commandPool = createCommandPool(0);
         commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         normalImages = createNormalImages();
@@ -1906,7 +1907,7 @@ public class NvRayTracingHybridExample {
         tlas = compressAccelerationStructure(createTopLevelAccelerationStructure());
         rayTracingUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
         rayTracingPipeline = createRayTracingPipeline();
-        rasterUbos = createUniformBufferObjects(Float.BYTES * 16);
+        rasterUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
         rasterPipeline = createRasterPipeline();
         rayTracingShaderBindingTable = createRayTracingShaderBindingTable();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
@@ -1925,7 +1926,7 @@ public class NvRayTracingHybridExample {
             vkDestroyFence(device, renderFences[i], null);
             rayTracingUbos[i].free();
             rasterUbos[i].free();
-            depthStencil[i].free();
+            depthStencilImages[i].free();
             normalImages[i].free();
             rayTracingImages[i].free();
         }
@@ -1957,7 +1958,7 @@ public class NvRayTracingHybridExample {
 
     private static void recreateOnResize() {
         swapchain = createSwapChain();
-        depthStencil = createDepthStencil();
+        depthStencilImages = createDepthStencilImages();
         normalImages = createNormalImages();
         rayTracingImages = createRayTracingImages();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
