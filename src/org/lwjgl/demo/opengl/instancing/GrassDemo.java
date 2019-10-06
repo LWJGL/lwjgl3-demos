@@ -5,6 +5,7 @@
 package org.lwjgl.demo.opengl.instancing;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL.*;
 import static org.lwjgl.opengl.GL11.*;

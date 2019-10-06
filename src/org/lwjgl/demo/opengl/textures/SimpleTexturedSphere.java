@@ -5,6 +5,7 @@
 package org.lwjgl.demo.opengl.textures;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL32C.*;
 import static org.lwjgl.stb.STBImage.*;

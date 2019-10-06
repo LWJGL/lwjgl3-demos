@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.opengl.raytracing;
 
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.opengl.NVDrawTexture.*;
@@ -18,8 +19,7 @@ import java.util.*;
 
 import org.joml.*;
 import org.lwjgl.demo.opengl.util.*;
-import org.lwjgl.demo.util.DynamicByteBuffer;
-import org.lwjgl.demo.util.KDTreei;
+import org.lwjgl.demo.util.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -187,7 +187,7 @@ public class CubeTrace {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             ByteBuffer data;
-            data = stbi_load_from_memory(DemoUtils.ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/cubetrace/grass_high.png", 1024), width,
+            data = stbi_load_from_memory(ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/cubetrace/grass_high.png", 1024), width,
                     height, components, 4);
             int w = width.get(0), h = height.get(0);
             glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGBA8, w, h);

@@ -19,6 +19,7 @@ import java.nio.IntBuffer;
 import java.util.*;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL33C.*;
 import static org.lwjgl.system.MemoryUtil.*;

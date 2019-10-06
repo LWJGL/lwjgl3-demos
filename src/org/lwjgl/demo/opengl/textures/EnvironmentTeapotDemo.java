@@ -25,7 +25,7 @@ import static org.lwjgl.opengl.ARBShaderObjects.*;
 import static org.lwjgl.opengl.ARBVertexShader.*;
 import static org.lwjgl.opengl.ARBVertexBufferObject.*;
 import static org.lwjgl.opengl.ARBFragmentShader.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.stb.STBImage.*;

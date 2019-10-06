@@ -23,7 +23,7 @@ import java.util.List;
 
 import static org.lwjgl.BufferUtils.*;
 import static org.lwjgl.assimp.Assimp.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.demo.vulkan.VKFactory.*;
 import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;

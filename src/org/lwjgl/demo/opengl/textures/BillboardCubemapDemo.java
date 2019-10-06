@@ -27,7 +27,7 @@ import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.opengl.ARBSeamlessCubeMap.*;
 import static org.lwjgl.opengl.ARBTextureCubeMap.*;
 import static org.lwjgl.opengl.EXTTextureFilterAnisotropic.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.stb.STBImage.*;

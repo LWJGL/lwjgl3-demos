@@ -19,7 +19,7 @@ import org.lwjgl.system.*;
 public class SequencePTX {
     private static void check(int err) {
         if (err != 0)
-            throw new AssertionError("Error code: " + err);
+            throw new AssertionError("Error \n code: " + err);
     }
 
     private static void run(int N, MemoryStack s) {

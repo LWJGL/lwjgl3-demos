@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.assimp.Assimp.*;
-import static org.lwjgl.demo.opengl.util.DemoUtils.*;
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.opengl.ARBShaderObjects.*;

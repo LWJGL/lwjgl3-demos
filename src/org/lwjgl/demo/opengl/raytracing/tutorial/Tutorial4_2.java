@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
+import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.opengl.GL43C.*;
@@ -422,7 +423,7 @@ public class Tutorial4_2 {
             blueNoiseTex = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, blueNoiseTex);
             ByteBuffer data;
-            data = stbi_load_from_memory(DemoUtils.ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_2/blueNoise.png", 1024), width,
+            data = stbi_load_from_memory(ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_2/blueNoise.png", 1024), width,
                     height, components, 3);
             int w = width.get(0), h = height.get(0);
             glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGB8, w, h);
