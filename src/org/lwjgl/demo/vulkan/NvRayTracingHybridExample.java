@@ -74,9 +74,9 @@ public class NvRayTracingHybridExample {
     private static VkDevice device;
     private static VkQueue queue;
     private static Swapchain swapchain;
-    private static Images depthStencil;
-    private static Images normalImages;
-    private static Images rayTracingImages;
+    private static AllocationAndImage[] depthStencil;
+    private static AllocationAndImage[] normalImages;
+    private static AllocationAndImage[] rayTracingImages;
     private static long sampler;
     private static Long commandPool, commandPoolTransient;
     private static long renderPass;
@@ -428,24 +428,9 @@ public class NvRayTracingHybridExample {
         }
     }
 
-    private static class Images {
-        AllocationAndImage[] allocations;
-        long[] views;
-
-        Images(AllocationAndImage[] allocations, long[] views) {
-            this.allocations = allocations;
-            this.views = views;
-        }
-
-        void free() {
-            Arrays.stream(allocations).forEach(AllocationAndImage::free);
-            Arrays.stream(views).forEach(v -> vkDestroyImageView(device, v, null));
-        }
-    }
-
-    private static Images createColorImages(Images old, int format, int usage, int dstImageLayout, int dstStageMask, int dstAccessMask) {
+    private static AllocationAndImage[] createColorImages(AllocationAndImage[] old, int format, int usage, int dstImageLayout, int dstStageMask, int dstAccessMask) {
         if (old != null) {
-            old.free();
+            Arrays.stream(old).forEach(AllocationAndImage::free);
         }
         try (MemoryStack stack = stackPush()) {
             VkImageCreateInfo imageCreateInfo = VkImageCreateInfo(stack)
@@ -467,7 +452,6 @@ public class NvRayTracingHybridExample {
             LongBuffer pImage = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
             AllocationAndImage[] allocations = new AllocationAndImage[swapchain.images.length];
-            long[] imageViews = new long[swapchain.images.length];
             LongBuffer pImageView = stack.mallocLong(1);
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
             for (int i = 0; i < swapchain.images.length; i++) {
@@ -477,8 +461,7 @@ public class NvRayTracingHybridExample {
                 imageViewCreateInfo.image(pImage.get(0));
                 _CHECK_(vkCreateImageView(device, imageViewCreateInfo, null, pImageView),
                         "Failed to create image view");
-                allocations[i] = new AllocationAndImage(pAllocation.get(0), pImage.get(0));
-                imageViews[i] = pImageView.get(0);
+                allocations[i] = new AllocationAndImage(pAllocation.get(0), pImage.get(0), pImageView.get(0), format);
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, dstStageMask,0,
                         null,null, VkImageMemoryBarrier(stack)
                                 .srcAccessMask(0)
@@ -495,16 +478,16 @@ public class NvRayTracingHybridExample {
             submitCommandBuffer(cmdBuffer, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
             });
-            return new Images(allocations, imageViews);
+            return allocations;
         }
     }
 
-    private static Images createRayTracingImages() {
+    private static AllocationAndImage[] createRayTracingImages() {
         return createColorImages(rayTracingImages, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                 VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, VK_ACCESS_SHADER_WRITE_BIT);
     }
 
-    private static Images createNormalImages() {
+    private static AllocationAndImage[] createNormalImages() {
         return createColorImages(normalImages, VK_FORMAT_R8G8B8A8_SNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
     }
@@ -569,20 +552,25 @@ public class NvRayTracingHybridExample {
     private static class AllocationAndImage {
         long allocation;
         long image;
+        long imageView;
+        int format;
 
-        AllocationAndImage(long allocation, long image) {
+        AllocationAndImage(long allocation, long image, long imageView, int format) {
             this.allocation = allocation;
             this.image = image;
+            this.imageView = imageView;
+            this.format = format;
         }
 
         void free() {
             vmaDestroyImage(vmaAllocator, image, allocation);
+            vkDestroyImageView(device, imageView, null);
         }
     }
 
-    private static Images createDepthStencil() {
+    private static AllocationAndImage[] createDepthStencil() {
         if (depthStencil != null) {
-            depthStencil.free();
+            Arrays.stream(depthStencil).forEach(AllocationAndImage::free);
         }
         try (MemoryStack stack = stackPush()) {
             VkImageCreateInfo imageCreateInfo = VkImageCreateInfo(stack)
@@ -604,7 +592,6 @@ public class NvRayTracingHybridExample {
             LongBuffer pDepthStencilImage = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
             AllocationAndImage[] allocations = new AllocationAndImage[swapchain.images.length];
-            long[] imageViews = new long[swapchain.images.length];
             LongBuffer pDepthStencilView = stack.mallocLong(1);
             for (int i = 0; i < swapchain.images.length; i++) {
                 _CHECK_(vmaCreateImage(vmaAllocator, imageCreateInfo,
@@ -613,10 +600,10 @@ public class NvRayTracingHybridExample {
                 depthStencilViewCreateInfo.image(pDepthStencilImage.get(0));
                 _CHECK_(vkCreateImageView(device, depthStencilViewCreateInfo, null, pDepthStencilView),
                         "Failed to create image view for depth stencil image");
-                allocations[i] = new AllocationAndImage(pAllocation.get(0), pDepthStencilImage.get(0));
-                imageViews[i] = pDepthStencilView.get(0);
+                allocations[i] = new AllocationAndImage(pAllocation.get(0), pDepthStencilImage.get(0), 
+                        pDepthStencilView.get(0), swapchain.surfaceFormat.depthFormat);
             }
-            return new Images(allocations, imageViews);
+            return allocations;
         }
     }
 
@@ -1102,7 +1089,7 @@ public class NvRayTracingHybridExample {
                                 .dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT)
                                 .oldLayout(VK_IMAGE_LAYOUT_GENERAL)
                                 .newLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-                                .image(rayTracingImages.allocations[i].image)
+                                .image(rayTracingImages[i].image)
                                 .subresourceRange(r -> {
                                     r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
                                 }));
@@ -1117,14 +1104,22 @@ public class NvRayTracingHybridExample {
                                 .subresourceRange(r -> {
                                     r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
                                 }));
-                vkCmdBlitImage(cmdBuffer, rayTracingImages.allocations[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        swapchain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        VkImageBlit(stack, 1)
-                                .dstOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
-                                .srcOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
-                                .dstSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1))
-                                .srcSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1)),
-                        VK_FILTER_NEAREST);
+                if (swapchain.surfaceFormat.colorFormat == rayTracingImages[i].format) {
+                    vkCmdCopyImage(cmdBuffer, rayTracingImages[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+                            swapchain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageCopy(stack, 1)
+                            .dstSubresource(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1))
+                            .extent(e -> e.set(swapchain.width, swapchain.height, 1))
+                            .srcSubresource(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1)));
+                } else {
+                    vkCmdBlitImage(cmdBuffer, rayTracingImages[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                            swapchain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VkImageBlit(stack, 1)
+                                    .dstOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
+                                    .srcOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
+                                    .dstSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1))
+                                    .srcSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1)),
+                            VK_FILTER_NEAREST);
+                }
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, null, null,
                         VkImageMemoryBarrier(stack)
@@ -1132,7 +1127,7 @@ public class NvRayTracingHybridExample {
                                 .dstAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
                                 .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
                                 .newLayout(VK_IMAGE_LAYOUT_GENERAL)
-                                .image(rayTracingImages.allocations[i].image)
+                                .image(rayTracingImages[i].image)
                                 .subresourceRange(r -> {
                                     r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
                                 }));
@@ -1166,7 +1161,7 @@ public class NvRayTracingHybridExample {
             long[] framebuffers = new long[swapchain.images.length];
             LongBuffer pFramebuffer = stack.mallocLong(1);
             for (int i = 0; i < swapchain.images.length; i++) {
-                pAttachments.put(0, normalImages.views[i]).put(1, depthStencil.views[i]);
+                pAttachments.put(0, normalImages[i].imageView).put(1, depthStencil[i].imageView);
                 _CHECK_(vkCreateFramebuffer(device, fci, null, pFramebuffer), "Failed to create framebuffer");
                 framebuffers[i] = pFramebuffer.get(0);
             }
@@ -1587,7 +1582,7 @@ public class NvRayTracingHybridExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pImageInfo(VkDescriptorImageInfo(stack, 1)
-                                        .imageView(rayTracingImages.views[idx])
+                                        .imageView(rayTracingImages[idx].imageView)
                                         .imageLayout(VK_IMAGE_LAYOUT_GENERAL)))
                         .apply(wds -> wds
                                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
@@ -1619,7 +1614,7 @@ public class NvRayTracingHybridExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pImageInfo(VkDescriptorImageInfo(stack, 1)
-                                        .imageView(normalImages.views[idx])
+                                        .imageView(normalImages[idx].imageView)
                                         .imageLayout(VK_IMAGE_LAYOUT_GENERAL)))
                         .apply(wds -> wds
                                 .descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
@@ -1627,7 +1622,7 @@ public class NvRayTracingHybridExample {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pImageInfo(VkDescriptorImageInfo(stack, 1)
-                                        .imageView(depthStencil.views[idx])
+                                        .imageView(depthStencil[idx].imageView)
                                         .sampler(sampler)
                                         .imageLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)));
             }
@@ -1927,6 +1922,9 @@ public class NvRayTracingHybridExample {
             vkDestroyFence(device, renderFences[i], null);
             rayTracingUbos[i].free();
             rasterUbos[i].free();
+            depthStencil[i].free();
+            normalImages[i].free();
+            rayTracingImages[i].free();
         }
         freeRayTracingCommandBuffers();
         freeRasterCommandBuffers();
@@ -1939,9 +1937,6 @@ public class NvRayTracingHybridExample {
         tlas.free();
         blas.free(true);
         vkDestroySampler(device, sampler, null);
-        depthStencil.free();
-        normalImages.free();
-        rayTracingImages.free();
         swapchain.free();
         for (long framebuffer : framebuffers)
             vkDestroyFramebuffer(device, framebuffer, null);
