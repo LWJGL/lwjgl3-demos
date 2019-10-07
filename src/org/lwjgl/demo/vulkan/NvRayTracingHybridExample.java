@@ -48,7 +48,7 @@ import static org.lwjgl.vulkan.VK10.*;
  * @author Kai Burjack
  */
 public class NvRayTracingHybridExample {
-    private static boolean debug = true;
+    private static boolean debug = System.getProperty("NDEBUG") == null;
 
     static {
         if (debug) {
@@ -60,6 +60,8 @@ public class NvRayTracingHybridExample {
         }
     }
 
+    private static int INITIAL_WINDOW_WIDTH = 800;
+    private static int INITIAL_WINDOW_HEIGHT = 600;
     private static int CHUNK_WIDTH = 128;
     private static int CHUNK_HEIGHT = 32;
     private static int CHUNK_DEPTH = 128;
@@ -429,7 +431,8 @@ public class NvRayTracingHybridExample {
 
     private static AllocationAndImage[] createColorImages(AllocationAndImage[] old, int format, int usage, int dstImageLayout, int dstStageMask, int dstAccessMask) {
         if (old != null) {
-            Arrays.stream(old).forEach(AllocationAndImage::free);
+            for (AllocationAndImage aai : old)
+                aai.free();
         }
         try (MemoryStack stack = stackPush()) {
             VkImageCreateInfo imageCreateInfo = VkImageCreateInfo(stack)
@@ -468,11 +471,10 @@ public class NvRayTracingHybridExample {
                                 .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
                                 .newLayout(dstImageLayout)
                                 .image(pImage.get(0))
-                                .subresourceRange(r1 -> {
+                                .subresourceRange(r1 -> 
                                     r1.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
                                             .layerCount(1)
-                                            .levelCount(1);
-                                }));
+                                            .levelCount(1)));
             }
             submitCommandBuffer(cmdBuffer, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
@@ -514,8 +516,8 @@ public class NvRayTracingHybridExample {
         VkExtent2D extent = surfCaps.currentExtent();
         Vector2i ret = new Vector2i(extent.width(), extent.height());
         if (extent.width() == -1) {
-            ret.set(max(min(1280, surfCaps.maxImageExtent().width()), surfCaps.minImageExtent().width()),
-                    max(min(720, surfCaps.maxImageExtent().height()), surfCaps.minImageExtent().height()));
+            ret.set(max(min(INITIAL_WINDOW_WIDTH, surfCaps.maxImageExtent().width()), surfCaps.minImageExtent().width()),
+                    max(min(INITIAL_WINDOW_HEIGHT, surfCaps.maxImageExtent().height()), surfCaps.minImageExtent().height()));
         }
         return ret;
     }
@@ -569,7 +571,8 @@ public class NvRayTracingHybridExample {
 
     private static AllocationAndImage[] createDepthStencilImages() {
         if (depthStencilImages != null) {
-            Arrays.stream(depthStencilImages).forEach(AllocationAndImage::free);
+            for (AllocationAndImage aai : depthStencilImages)
+                aai.free();
         }
         try (MemoryStack stack = stackPush()) {
             VkImageCreateInfo imageCreateInfo = VkImageCreateInfo(stack)
@@ -580,7 +583,7 @@ public class NvRayTracingHybridExample {
                     .samples(VK_SAMPLE_COUNT_1_BIT)
                     .tiling(VK_IMAGE_TILING_OPTIMAL)
                     .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
-                    .extent(e -> e.width(swapchain.width).height(swapchain.height).depth(1));
+                    .extent(e -> e.set(swapchain.width, swapchain.height, 1));
             VkImageViewCreateInfo depthStencilViewCreateInfo = VkImageViewCreateInfo(stack)
                     .viewType(VK_IMAGE_VIEW_TYPE_2D)
                     .format(swapchain.surfaceFormat.depthFormat)
@@ -750,9 +753,11 @@ public class NvRayTracingHybridExample {
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
             _CHECK_(vmaCreateBuffer(vmaAllocator,
-                    VkBufferCreateInfo(stack).size(size)
-                            .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
-                    VmaAllocationCreateInfo(stack).usage(VMA_MEMORY_USAGE_GPU_ONLY), pBuffer, pAllocation, null),
+                    VkBufferCreateInfo(stack)
+                        .size(size)
+                        .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
+                    VmaAllocationCreateInfo(stack)
+                        .usage(VMA_MEMORY_USAGE_GPU_ONLY), pBuffer, pAllocation, null),
                     "Failed to allocate buffer");
             if (data != null) {
                 LongBuffer pBufferStage = stack.mallocLong(1);
@@ -960,8 +965,7 @@ public class NvRayTracingHybridExample {
                     .back(stencil -> stencil
                             .failOp(VK_STENCIL_OP_KEEP)
                             .passOp(VK_STENCIL_OP_KEEP)
-                            .compareOp(VK_COMPARE_OP_ALWAYS)
-            );
+                            .compareOp(VK_COMPARE_OP_ALWAYS));
             pDepthStencilState.front(pDepthStencilState.back());
             VkPipelineMultisampleStateCreateInfo pMultisampleState = VkPipelineMultisampleStateCreateInfo(stack)
                     .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
@@ -1014,37 +1018,35 @@ public class NvRayTracingHybridExample {
 
     private static long createRasterRenderPass() {
         try (MemoryStack stack = stackPush()) {
-            VkAttachmentDescription.Buffer attachments = VkAttachmentDescription(stack, 2)
-                    .apply(0, d -> d
-                            .format(VK_FORMAT_R8G8_SNORM)
-                            .samples(VK_SAMPLE_COUNT_1_BIT)
-                            .loadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-                            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
-                            .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-                            .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                            .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-                            .finalLayout(VK_IMAGE_LAYOUT_GENERAL))
-                    .apply(1, d -> d
-                            .format(swapchain.surfaceFormat.depthFormat)
-                            .samples(VK_SAMPLE_COUNT_1_BIT)
-                            .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
-                            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
-                            .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-                            .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                            .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-                            .finalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL));
-            VkAttachmentReference.Buffer colorReference = VkAttachmentReference(stack, 1)
-                    .attachment(0).layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            VkAttachmentReference depthReference = VkAttachmentReference(stack)
-                    .attachment(1).layout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-            VkSubpassDescription.Buffer subpass = VkSubpassDescription(stack, 1)
-                    .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
-                    .colorAttachmentCount(colorReference.remaining())
-                    .pColorAttachments(colorReference)
-                    .pDepthStencilAttachment(depthReference);
             VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo(stack)
-                    .pAttachments(attachments)
-                    .pSubpasses(subpass);
+                    .pAttachments(VkAttachmentDescription(stack, 2)
+                            .apply(0, d -> d
+                                    .format(VK_FORMAT_R8G8_SNORM)
+                                    .samples(VK_SAMPLE_COUNT_1_BIT)
+                                    .loadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+                                    .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+                                    .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+                                    .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+                                    .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                                    .finalLayout(VK_IMAGE_LAYOUT_GENERAL))
+                            .apply(1, d -> d
+                                    .format(swapchain.surfaceFormat.depthFormat)
+                                    .samples(VK_SAMPLE_COUNT_1_BIT)
+                                    .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
+                                    .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+                                    .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+                                    .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+                                    .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                                    .finalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)))
+                    .pSubpasses(VkSubpassDescription(stack, 1)
+                            .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
+                            .colorAttachmentCount(1)
+                            .pColorAttachments(VkAttachmentReference(stack, 1)
+                                    .attachment(0)
+                                    .layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL))
+                            .pDepthStencilAttachment(VkAttachmentReference(stack)
+                                    .attachment(1)
+                                    .layout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)));
             LongBuffer pRenderPass = stack.mallocLong(1);
             _CHECK_(vkCreateRenderPass(device, renderPassInfo, null, pRenderPass), "Failed to create render pass");
             return pRenderPass.get(0);
@@ -1054,7 +1056,7 @@ public class NvRayTracingHybridExample {
     private static VkCommandBuffer[] createRasterCommandBuffers() {
         try (MemoryStack stack = stackPush()) {
             VkClearValue.Buffer clearValues = VkClearValue(stack, 2);
-            clearValues.apply(0, v -> v.color().float32(0, 100 / 255.0f).float32(1, 149 / 255.0f).float32(2, 237 / 255.0f).float32(3, 1.0f))
+            clearValues.apply(0, v -> v.color().uint32(0, 0).uint32(1, 0).uint32(2, 0).uint32(3, 0))
                        .apply(1, v -> v.depthStencil().depth(1.0f).stencil(0));
             VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo(stack).renderPass(renderPass)
                     .pClearValues(clearValues)
@@ -1095,9 +1097,7 @@ public class NvRayTracingHybridExample {
                                 .oldLayout(VK_IMAGE_LAYOUT_GENERAL)
                                 .newLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
                                 .image(rayTracingImages[i].image)
-                                .subresourceRange(r -> {
-                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
-                                }));
+                                .subresourceRange(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1)));
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, null, null,
                         VkImageMemoryBarrier(stack)
@@ -1106,9 +1106,7 @@ public class NvRayTracingHybridExample {
                                 .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
                                 .newLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
                                 .image(swapchain.images[i])
-                                .subresourceRange(r -> {
-                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
-                                }));
+                                .subresourceRange(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1)));
                 if (swapchain.surfaceFormat.colorFormat == rayTracingImages[i].format) {
                     vkCmdCopyImage(cmdBuffer, rayTracingImages[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
                             swapchain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageCopy(stack, 1)
@@ -1119,8 +1117,8 @@ public class NvRayTracingHybridExample {
                     vkCmdBlitImage(cmdBuffer, rayTracingImages[i].image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                             swapchain.images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             VkImageBlit(stack, 1)
-                                    .dstOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
-                                    .srcOffsets(off -> off.apply(1, o -> o.x(swapchain.width).y(swapchain.height).z(1)))
+                                    .dstOffsets(off -> off.apply(1, o -> o.set(swapchain.width, swapchain.height, 1)))
+                                    .srcOffsets(off -> off.apply(1, o -> o.set(swapchain.width, swapchain.height, 1)))
                                     .dstSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1))
                                     .srcSubresource(sr -> sr.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1)),
                             VK_FILTER_NEAREST);
@@ -1133,9 +1131,7 @@ public class NvRayTracingHybridExample {
                                 .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
                                 .newLayout(VK_IMAGE_LAYOUT_GENERAL)
                                 .image(rayTracingImages[i].image)
-                                .subresourceRange(r -> {
-                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
-                                }));
+                                .subresourceRange(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1)));
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
                         null, null,
                         VkImageMemoryBarrier(stack)
@@ -1144,9 +1140,7 @@ public class NvRayTracingHybridExample {
                                 .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
                                 .newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
                                 .image(swapchain.images[i])
-                                .subresourceRange(r -> {
-                                    r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1);
-                                }));
+                                .subresourceRange(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1)));
                 _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
             }
             return cmdBuffers;
@@ -1155,7 +1149,8 @@ public class NvRayTracingHybridExample {
 
     private static long[] createFramebuffers() {
         if (framebuffers != null) {
-            Arrays.stream(framebuffers).forEach(f -> vkDestroyFramebuffer(device, f, null));
+            for (long framebuffer : framebuffers)
+                vkDestroyFramebuffer(device, framebuffer, null);
         }
         try (MemoryStack stack = stackPush()) {
             LongBuffer pAttachments = stack.mallocLong(2);
@@ -1247,10 +1242,10 @@ public class NvRayTracingHybridExample {
                             .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
                             .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
                     null, null);
-            long fence = submitCommandBuffer(cmdBuffer, true, null);
-            waitForFenceAndDestroy(fence);
-            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
-            scratchBuffer.free();
+            submitCommandBuffer(cmdBuffer, true, () -> {
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
+                scratchBuffer.free();
+            });
             return new BottomLevelAccelerationStructure(accelerationStructure.get(0), allocation,
                     accelerationStructureHandle.get(0), geometry);
         }
@@ -1276,8 +1271,8 @@ public class NvRayTracingHybridExample {
             VkMemoryRequirements memoryRequirementsCompacted = src.memory.memoryRequirementsOfSize(stack,
                     compactedSize.get(0));
             AllocationAndMemory allocationCompacted = allocateDeviceMemory(memoryRequirementsCompacted);
-            System.out.println(String.format("Compacting from %.2f KB down to %.2f KB", src.memory.size / 1024.0,
-                    allocationCompacted.size / 1024.0));
+            System.out.println(String.format("Compacting %s from %.2f KB down to %.2f KB", src.getClass().getSimpleName(), 
+                    src.memory.size / 1024.0, allocationCompacted.size / 1024.0));
             LongBuffer accelerationStructureCompacted = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureNV(device,
                     VkAccelerationStructureCreateInfoNV(stack).info(pInfoCompacted), null,
@@ -1293,6 +1288,13 @@ public class NvRayTracingHybridExample {
             VkCommandBuffer cmdBuffer2 = createCommandBuffer(commandPoolTransient);
             vkCmdCopyAccelerationStructureNV(cmdBuffer2, accelerationStructureCompacted.get(0),
                     src.accelerationStructure, VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV);
+            vkCmdPipelineBarrier(cmdBuffer,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0,
+                    VkMemoryBarrier(stack)
+                            .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
+                    null, null);
             submitCommandBuffer(cmdBuffer2, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer2);
                 src.free();
@@ -1337,7 +1339,8 @@ public class NvRayTracingHybridExample {
                     accelerationStructure.get(0), VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV));
             _CHECK_(vkBindAccelerationStructureMemoryNV(device,
                     VkBindAccelerationStructureMemoryInfoNV(stack).accelerationStructure(accelerationStructure.get(0))
-                            .memory(allocation.memory).memoryOffset(allocation.offset)),
+                            .memory(allocation.memory)
+                            .memoryOffset(allocation.offset)),
                     "Failed to bind acceleration structure memory");
             ByteBuffer instanceData = stack.malloc(GeometryInstance.SIZEOF);
             GeometryInstance inst = new GeometryInstance();
@@ -1347,11 +1350,14 @@ public class NvRayTracingHybridExample {
             instanceData.flip();
             AllocationAndBuffer instanceMemory = createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, instanceData);
             VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
-            vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            // Barrier for previous bottom-level acceleration structure building/compression
+            // as well as for transfer of GeometryInstance for top-level acceleration structure
+            vkCmdPipelineBarrier(cmdBuffer,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV | VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
                     VkMemoryBarrier(stack)
-                            .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
-                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
+                            .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_TRANSFER_WRITE_BIT)
+                            .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
                     null, null);
             AllocationAndBuffer scratchBuffer = createRayTracingBuffer(
                     memoryRequirements(stack, accelerationStructure.get(0),
@@ -1359,16 +1365,16 @@ public class NvRayTracingHybridExample {
             vkCmdBuildAccelerationStructureNV(cmdBuffer, accelerationStructureInfo, instanceMemory.buffer, 0, false,
                     accelerationStructure.get(0), VK_NULL_HANDLE, scratchBuffer.buffer, 0);
             vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0,
                     VkMemoryBarrier(stack)
                             .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV)
                             .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV),
                     null, null);
-            long fence = submitCommandBuffer(cmdBuffer, true, null);
-            waitForFenceAndDestroy(fence);
-            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
-            scratchBuffer.free();
-            instanceMemory.free();
+            submitCommandBuffer(cmdBuffer, true, () -> {
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
+                scratchBuffer.free();
+                instanceMemory.free();
+            });
             return new TopLevelAccelerationStructure(accelerationStructure.get(0), allocation, 1);
         }
     }
@@ -1481,11 +1487,6 @@ public class NvRayTracingHybridExample {
             loadModule(stack, pStages.get(1), "raymiss.glsl", VK_SHADER_STAGE_MISS_BIT_NV);
             loadModule(stack, pStages.get(2), "closesthit.glsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
             VkRayTracingShaderGroupCreateInfoNV.Buffer groups = VkRayTracingShaderGroupCreateInfoNV(3, stack);
-            groups.forEach(g -> g
-                    .generalShader(VK_SHADER_UNUSED_NV)
-                    .closestHitShader(VK_SHADER_UNUSED_NV)
-                    .anyHitShader(VK_SHADER_UNUSED_NV)
-                    .intersectionShader(VK_SHADER_UNUSED_NV));
             groups.apply(0, g ->
                         g.type(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV)
                          .generalShader(0))
@@ -1758,7 +1759,7 @@ public class NvRayTracingHybridExample {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        long window = glfwCreateWindow(800, 600, "Hybrid Ray Tracing", NULL, NULL);
+        long window = glfwCreateWindow(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, "Hybrid Ray Tracing", NULL, NULL);
         GLFWKeyCallback keyCallback = new GLFWKeyCallback() {
             public void invoke(long window, int key, int scancode, int action, int mods) {
                 if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)

@@ -170,7 +170,11 @@ public class VKFactory {
 
     static VkRayTracingShaderGroupCreateInfoNV.Buffer VkRayTracingShaderGroupCreateInfoNV(int size, MemoryStack stack) {
         VkRayTracingShaderGroupCreateInfoNV.Buffer buf = VkRayTracingShaderGroupCreateInfoNV.callocStack(size, stack);
-        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV));
+        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV)
+                .anyHitShader(VK_SHADER_UNUSED_NV)
+                .closestHitShader(VK_SHADER_UNUSED_NV)
+                .generalShader(VK_SHADER_UNUSED_NV)
+                .intersectionShader(VK_SHADER_UNUSED_NV));
         return buf;
     }
 
