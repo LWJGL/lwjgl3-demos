@@ -5,6 +5,24 @@
 vec3 ortho(vec3 v) {
   return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), abs(v.x) < abs(v.z) ? 1.0 : 0.0));
 }
+uint hash2(uint x, uint y) {
+  x += x >> 11;
+  x ^= x << 7;
+  x += y;
+  x ^= x << 6;
+  x += x >> 15;
+  x ^= x << 5;
+  x += x >> 12;
+  x ^= x << 9;
+  return x;
+}
+float random2(vec2 f) {
+  uint mantissaMask = 0x007FFFFFu;
+  uint one = 0x3F800000u;
+  uvec2 u = floatBitsToUint(f);
+  uint h = hash2(u.x, u.y);
+  return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
+}
 uint hash3(uint x, uint y, uint z) {
   x += x >> 11;
   x ^= x << 7;
