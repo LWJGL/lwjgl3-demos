@@ -45,7 +45,7 @@ void main() {
   off = px / bns;
   vec2 tx = pc / vec2(gl_LaunchSizeNV.xy);
   vec2 nc = tx * 2.0 - vec2(1.0);
-  float invz = textureLod(depthImage, tx, 0.0).r;
+  float invz = 1.0 - textureLod(depthImage, tx, 0.0).r;
   vec4 nci = cam.projInverse * vec4(nc, invz, 1.0);
   vec3 direction = (cam.viewInverse * vec4(nci.xyz / nci.z, 0.0)).xyz;
   if (invz == 1.0) {

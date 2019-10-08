@@ -1046,7 +1046,7 @@ public class NvRayTracingHybridExample {
             VkPipelineDepthStencilStateCreateInfo pDepthStencilState = VkPipelineDepthStencilStateCreateInfo(stack)
                     .depthTestEnable(true)
                     .depthWriteEnable(true)
-                    .depthCompareOp(VK_COMPARE_OP_LESS)
+                    .depthCompareOp(VK_COMPARE_OP_GREATER)
                     .back(stencil -> stencil
                             .failOp(VK_STENCIL_OP_KEEP)
                             .passOp(VK_STENCIL_OP_KEEP)
@@ -1142,13 +1142,13 @@ public class NvRayTracingHybridExample {
         try (MemoryStack stack = stackPush()) {
             VkClearValue.Buffer clearValues = VkClearValue(stack, 2);
             clearValues.apply(0, v -> v.color().uint32(0, 0).uint32(1, 0).uint32(2, 0).uint32(3, 0))
-                       .apply(1, v -> v.depthStencil().depth(1.0f).stencil(0));
+                       .apply(1, v -> v.depthStencil().depth(0.0f).stencil(0));
             VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo(stack).renderPass(renderPass)
                     .pClearValues(clearValues)
                     .renderArea(a -> a.extent().set(swapchain.width, swapchain.height));
             VkCommandBuffer[] cmdBuffers = createCommandBuffers(commandPool, swapchain.images.length);
             VkViewport.Buffer viewport = VkViewport(stack, 1).height(swapchain.height).width(swapchain.width)
-                    .minDepth(0.0f).maxDepth(1.0f);
+                    .minDepth(1.0f).maxDepth(0.0f);
             VkRect2D.Buffer scissor = VkRect2D(stack, 1).extent(e -> e.set(swapchain.width, swapchain.height));
             for (int i = 0; i < swapchain.images.length; i++) {
                 renderPassBeginInfo.framebuffer(framebuffers[i]);
