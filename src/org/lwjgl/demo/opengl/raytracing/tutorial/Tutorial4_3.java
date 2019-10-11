@@ -53,7 +53,7 @@ public class Tutorial4_3 {
     /**
      * The sobol sequence and scramble buffers.
      */
-    private int sobolBuffer, scrambleBuffer;
+    private int sobolBuffer, scrambleBuffer, rankingBuffer;
     /**
      * A VAO simply holding a VBO for rendering a simple quad.
      */
@@ -410,13 +410,17 @@ public class Tutorial4_3 {
 
     private void createSSBOs() throws IOException {
         try (MemoryStack frame = MemoryStack.stackPush()) {
-            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_3/sobol_256_256.data", 1024);
+            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_3/sobol_256_256_4spp.data", 1024);
             sobolBuffer = glGenBuffers();
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, sobolBuffer);
             glBufferData(GL_SHADER_STORAGE_BUFFER, data, GL_STATIC_DRAW);
-            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_3/scramble_128_128_8.data", 1024);
+            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_3/scramble_128_128_8_4spp.data", 1024);
             scrambleBuffer = glGenBuffers();
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, scrambleBuffer);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, data, GL_STATIC_DRAW);
+            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_3/ranking_128_128_8_4spp.data", 1024);
+            rankingBuffer = glGenBuffers();
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, rankingBuffer);
             glBufferData(GL_SHADER_STORAGE_BUFFER, data, GL_STATIC_DRAW);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         }
@@ -631,6 +635,7 @@ public class Tutorial4_3 {
          */
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sobolBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scrambleBuffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rankingBuffer);
 
         /*
          * Compute appropriate global work size dimensions.

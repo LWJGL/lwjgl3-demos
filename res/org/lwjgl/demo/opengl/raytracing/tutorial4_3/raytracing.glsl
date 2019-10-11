@@ -19,11 +19,14 @@ uniform bool useBlueNoise;
 uniform float phongExponent;
 uniform float specularFactor;
 
-layout(std430, binding = 0) readonly buffer SobolTex {
+layout(std430, binding = 0) readonly buffer SobolBuffer {
   uint8_t[] sobols;
 };
-layout(std430, binding = 1) readonly buffer ScrambleTex {
+layout(std430, binding = 1) readonly buffer ScrambleBuffer {
   uint8_t[] scrambles;
+};
+layout(std430, binding = 2) readonly buffer RankingBuffer {
+  uint8_t[] rankings;
 };
 
 #define PI 3.14159265359
@@ -38,6 +41,7 @@ layout(std430, binding = 1) readonly buffer ScrambleTex {
 #define LIGHT_INTENSITY 80.0
 #define PROBABILITY_OF_LIGHT_SAMPLE 0.6
 
+uint hash2(uint x, uint y);
 float random3(vec3 f);
 float random2(vec2 f);
 vec4 randomHemisphereDirection(vec3 n, vec2 rand);
@@ -145,21 +149,22 @@ vec3 normalForBox(vec3 hit, const box b) {
 }
 
 float sampleBlueNoise(uint sampleIndex, uint sampleDimension) {
-  uint xoff = uint(random2(vec2(sampleIndex, frameIndex + px.x/128)) * 255.0);
-  uint yoff = uint(random2(vec2(sampleIndex+13, frameIndex + px.y/128)) * 255.0);
+  uint xoff = hash2(frameIndex, ((px.y>>7)<<4) ^ (px.x>>7)) & 255;
+  uint yoff = hash2(frameIndex, ((px.x>>7)<<4) ^ (px.y>>7)) & 255;
   ivec2 pxo = (px + ivec2(xoff, yoff)) & 127;
   sampleIndex = sampleIndex & 255;
   sampleDimension = sampleDimension & 255;
-  uint value = sobols[sampleDimension + (sampleIndex << 8)];
+  uint rankedSampleIndex = sampleIndex ^ rankings[sampleDimension + ((pxo.x + (pxo.y<<7))<<3)];
+  uint value = sobols[sampleDimension + (rankedSampleIndex << 8)];
   value ^= scrambles[(sampleDimension & 7) + ((pxo.x + (pxo.y<<7))<<3)];
   return (0.5 + float(value)) / 256.0;
 }
 
 vec3 randBlueNoise(int s) {
   return vec3(
-    sampleBlueNoise(s, 0),
-    sampleBlueNoise(s, 1),
-    sampleBlueNoise(s, 2)
+    sampleBlueNoise(frameIndex, 3*s),
+    sampleBlueNoise(frameIndex, 3*s+1),
+    sampleBlueNoise(frameIndex, 3*s+2)
   );
 }
 vec3 randWhiteNoise(int s) {
