@@ -104,13 +104,13 @@ public class NvRayTracingHybridExample {
     private static long[] renderFences;
     private static long queryPool;
     private static Matrix4f projMatrix = new Matrix4f();
-    private static Matrix4f viewMatrix = new Matrix4f().rotateX(0.3f).rotateY(-0.3f).translate(
+    private static Matrix4x3f viewMatrix = new Matrix4x3f().rotateX(0.3f).rotateY(-0.3f).translate(
             -CHUNK_WIDTH * 0.8f, 
             -CHUNK_HEIGHT * 1.1f, 
             -CHUNK_DEPTH * 1.01f);
     private static Matrix4f viewProjMatrix = new Matrix4f();
     private static Matrix4f invProjMatrix = new Matrix4f();
-    private static Matrix4f invViewMatrix = new Matrix4f();
+    private static Matrix4x3f invViewMatrix = new Matrix4x3f();
     private static boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private static float mouseX, mouseY;
     private static boolean mouseDown;
@@ -1951,15 +1951,15 @@ public class NvRayTracingHybridExample {
         viewMatrix.invert(invViewMatrix);
         ByteBuffer bb = memByteBuffer(rayTracingUbos[idx].mapped, Float.BYTES * 16 * 2);
         invProjMatrix.get(0, bb);
-        invViewMatrix.get(Float.BYTES * 16, bb);
+        invViewMatrix.get4x4(Float.BYTES * 16, bb);
         rayTracingUbos[idx].flushMapped(0, Float.BYTES * 16 * 2);
     }
 
     private static void updateRasterUniformBufferObject(int idx) {
-        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * (16 + 16));
+        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * (16 + 12));
         viewProjMatrix.get(0, bb);
-        viewMatrix.get(Float.BYTES * 16, bb);
-        rasterUbos[idx].flushMapped(0, Float.BYTES * (16 + 16));
+        viewMatrix.get3x4(Float.BYTES * 16, bb);
+        rasterUbos[idx].flushMapped(0, Float.BYTES * (16 + 12));
     }
 
     private static void createSyncObjects() {
@@ -2010,7 +2010,7 @@ public class NvRayTracingHybridExample {
         tlas = compressAccelerationStructure(createTopLevelAccelerationStructure());
         rayTracingUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
         rayTracingPipeline = createRayTracingPipeline();
-        rasterUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
+        rasterUbos = createUniformBufferObjects(Float.BYTES * (16 + 12));
         rasterPipeline = createRasterPipeline();
         rayTracingShaderBindingTable = createRayTracingShaderBindingTable();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
