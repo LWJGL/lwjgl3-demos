@@ -148,23 +148,24 @@ vec3 normalForBox(vec3 hit, const box b) {
     return vec3(0.0, 0.0, 1.0);
 }
 
-float sampleBlueNoise(uint sampleIndex, uint sampleDimension) {
+float sampleBlueNoise(uint sampleDimension) {
   uint xoff = hash2(frameIndex, ((px.y>>7)<<4) ^ (px.x>>7)) & 255;
   uint yoff = hash2(frameIndex, ((px.x>>7)<<4) ^ (px.y>>7)) & 255;
-  ivec2 pxo = (px + ivec2(xoff, yoff)) & 127;
-  sampleIndex = sampleIndex & 255;
+  uvec2 pxo = (px + ivec2(xoff, yoff)) & 127;
+  uint sampleIndex = frameIndex & 255;
   sampleDimension = sampleDimension & 255;
-  uint rankedSampleIndex = sampleIndex ^ rankings[sampleDimension + ((pxo.x + (pxo.y<<7))<<3)];
+  uint pxv = (pxo.x + (pxo.y<<7))<<3;
+  uint rankedSampleIndex = sampleIndex ^ rankings[sampleDimension + pxv];
   uint value = sobols[sampleDimension + (rankedSampleIndex << 8)];
-  value ^= scrambles[(sampleDimension & 7) + ((pxo.x + (pxo.y<<7))<<3)];
+  value ^= scrambles[(sampleDimension & 7) + pxv];
   return (0.5 + float(value)) / 256.0;
 }
 
-vec3 randBlueNoise(int s) {
+vec3 randBlueNoise(uint s) {
   return vec3(
-    sampleBlueNoise(frameIndex, 3*s),
-    sampleBlueNoise(frameIndex, 3*s+1),
-    sampleBlueNoise(frameIndex, 3*s+2)
+    sampleBlueNoise(3*s),
+    sampleBlueNoise(3*s+1),
+    sampleBlueNoise(3*s+2)
   );
 }
 vec3 randWhiteNoise(int s) {
