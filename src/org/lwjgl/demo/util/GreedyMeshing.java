@@ -42,11 +42,11 @@ public class GreedyMeshing {
     private final short[] dims;
 
     public GreedyMeshing(int dx, int dy, int dz) {
-        if (dx < 1 || dx > 255)
+        if (dx < 1 || dx > 256)
             throw new IllegalArgumentException("dx");
-        if (dy < 1 || dy > 255)
+        if (dy < 1 || dy > 256)
             throw new IllegalArgumentException("dy");
-        if (dz < 1 || dz > 255)
+        if (dz < 1 || dz > 256)
             throw new IllegalArgumentException("dz");
         this.dx = (short) dx;
         this.dy = (short) dy;
@@ -64,24 +64,24 @@ public class GreedyMeshing {
             Arrays.fill(q, (byte) 0);
             q[d] = 1;
             for (x[d] = -1; x[d] < dims[d];) {
-                generateMask(vs, d, u, v, m);
+                generateMask(vs, d, u, v);
                 x[d]++;
-                mergeAndGenerateFaces(faces, u, v, m, d);
+                mergeAndGenerateFaces(faces, u, v, d);
             }
         }
     }
 
-    private void generateMask(byte[] vs, byte d, short u, short v, short[] m) {
+    private void generateMask(byte[] vs, byte d, short u, short v) {
         int n = 0;
         for (x[v] = 0; x[v] < dims[v]; x[v]++)
             for (x[u] = 0; x[u] < dims[u]; x[u]++, n++)
-                generateMask(vs, d, m, n);
+                generateMask(vs, d, n);
     }
 
-    private void generateMask(byte[] vs, byte d, short[] m, int n) {
+    private void generateMask(byte[] vs, byte d, int n) {
         short a = x[d] >= 0 ? at(vs, x[0], x[1], x[2]) : 0;
         short b = x[d] < dims[d] - 1 ? at(vs, x[0] + q[0], x[1] + q[1], x[2] + q[2]) : 0;
-        if (a == b)
+        if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
             m[n] = a;
@@ -89,31 +89,30 @@ public class GreedyMeshing {
             m[n] = (short) -b;
     }
 
-    private void mergeAndGenerateFaces(List<Face> faces, short u, short v, short[] m, byte d) {
+    private void mergeAndGenerateFaces(List<Face> faces, short u, short v, byte d) {
         for (short j = 0, n = 0; j < dims[v]; ++j)
             for (short i = 0, incr; i < dims[u]; i += incr, n += incr)
-                incr = mergeAndGenerateFace(faces, u, v, m, n, j, i, d);
+                incr = mergeAndGenerateFace(faces, u, v, n, j, i, d);
     }
 
-    private short mergeAndGenerateFace(List<Face> faces, short u, short v, short[] m, short n, short j, short i,
-            byte d) {
+    private short mergeAndGenerateFace(List<Face> faces, short u, short v, short n, short j, short i, byte d) {
         if (m[n] == 0)
             return 1;
-        short w = determineWidth(u, m, n, i, m[n]);
-        short h = determineHeight(u, v, m, n, j, m[n], w);
-        byte s = determineFaceRegion(u, v, m, n, j, i, d, w, h);
+        short w = determineWidth(u, n, i, m[n]);
+        short h = determineHeight(u, v, n, j, m[n], w);
+        byte s = determineFaceRegion(u, v, n, j, i, d, w, h);
         addFace(faces, u, v, d, s);
-        eraseMask(u, m, n, w, h);
+        eraseMask(u, n, w, h);
         return w;
     }
 
-    private void eraseMask(short u, short[] m, short n, short w, short h) {
+    private void eraseMask(short u, short n, short w, short h) {
         for (short l = 0; l < h; l++)
             for (short k = 0; k < w; k++)
                 m[n + k + l * dims[u]] = 0;
     }
 
-    private byte determineFaceRegion(short u, short v, short[] m, short n, short j, short i, byte d, short w, short h) {
+    private byte determineFaceRegion(short u, short v, short n, short j, short i, byte d, short w, short h) {
         x[u] = i;
         x[v] = j;
         if (m[n] > 0) {
@@ -129,14 +128,14 @@ public class GreedyMeshing {
         }
     }
 
-    private short determineWidth(short u, short[] m, short n, short i, short c) {
+    private short determineWidth(short u, short n, short i, short c) {
         short w = 1;
         while (n + w < m.length && i + w < dims[u] && c == m[n + w])
             w++;
         return w;
     }
 
-    private short determineHeight(short u, short v, short[] m, short n, short j, short c, short w) {
+    private short determineHeight(short u, short v, short n, short j, short c, short w) {
         short h;
         boolean done = false;
         for (h = 1; j + h < dims[v]; h++) {
