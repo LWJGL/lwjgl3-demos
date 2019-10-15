@@ -13,6 +13,7 @@ import org.lwjgl.vulkan.*;
 import org.lwjgl.vulkan.VkWriteDescriptorSet.Buffer;
 
 import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHR8bitStorage.*;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -50,6 +51,10 @@ public class VKFactory {
 
     static VkDeviceQueueCreateInfo.Buffer VkDeviceQueueCreateInfo(MemoryStack stack) {
         return VkDeviceQueueCreateInfo.callocStack(1, stack).sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+    }
+    
+    static VkPhysicalDevice8BitStorageFeaturesKHR VkPhysicalDevice8BitStorageFeaturesKHR(MemoryStack stack) {
+        return VkPhysicalDevice8BitStorageFeaturesKHR.callocStack(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR);
     }
 
     static VkPhysicalDeviceProperties2 VkPhysicalDeviceProperties2(MemoryStack stack) {
@@ -230,6 +235,10 @@ public class VKFactory {
 
     static VkPhysicalDeviceFeatures VkPhysicalDeviceFeatures(MemoryStack stack) {
         return VkPhysicalDeviceFeatures.callocStack(stack);
+    }
+
+    static VkPhysicalDeviceFeatures2 VkPhysicalDeviceFeatures2(MemoryStack stack) {
+        return VkPhysicalDeviceFeatures2.callocStack(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR);
     }
 
     static VkPhysicalDeviceProperties VkPhysicalDeviceProperties(MemoryStack stack) {

@@ -12,6 +12,7 @@ import org.lwjgl.demo.util.*;
 import org.lwjgl.demo.util.GreedyMeshing.Face;
 import org.lwjgl.glfw.*;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.vma.VmaAllocationInfo;
 import org.lwjgl.vulkan.*;
 
@@ -34,9 +35,11 @@ import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHR8bitStorage.*;
 import static org.lwjgl.vulkan.KHRDedicatedAllocation.*;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
+import static org.lwjgl.vulkan.KHRStorageBufferStorageClass.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.NVRayTracing.*;
@@ -89,6 +92,7 @@ public class NvRayTracingHybridExample {
     private static TopLevelAccelerationStructure tlas;
     private static AllocationAndBuffer[] rayTracingUbos;
     private static AllocationAndBuffer[] rasterUbos;
+    private static AllocationAndBuffer sobolBuffer, scrambleBuffer, rankingBuffer;
     private static Pipeline rayTracingPipeline;
     private static Pipeline rasterPipeline;
     private static AllocationAndBuffer rayTracingShaderBindingTable;
@@ -261,10 +265,14 @@ public class NvRayTracingHybridExample {
             assertAvailable(pProperties, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
             assertAvailable(pProperties, VK_NV_RAY_TRACING_EXTENSION_NAME);
             assertAvailable(pProperties, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
-            PointerBuffer extensions = stack.mallocPointer(3 + 1);
+            assertAvailable(pProperties, VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+            assertAvailable(pProperties, VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
+            PointerBuffer extensions = stack.mallocPointer(5 + 1);
             extensions.put(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
                       .put(stack.UTF8(VK_NV_RAY_TRACING_EXTENSION_NAME))
-                      .put(stack.UTF8(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME));
+                      .put(stack.UTF8(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
+                      .put(stack.UTF8(VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
+                      .put(stack.UTF8(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME));
             if (isExtensionEnabled(pProperties, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)) {
                 extensions.put(stack.UTF8(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME));
             }
@@ -273,6 +281,9 @@ public class NvRayTracingHybridExample {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_LUNARG_standard_validation"));
             }
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo(stack)
+                    .pNext(VkPhysicalDeviceFeatures2(stack)
+                            .pNext(VkPhysicalDevice8BitStorageFeaturesKHR(stack)
+                                    .uniformAndStorageBuffer8BitAccess(true).address()).address())
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo(stack)
                             .queueFamilyIndex(queueFamily)
                             .pQueuePriorities(stack.floats(1.0f)))
@@ -986,6 +997,7 @@ public class NvRayTracingHybridExample {
         List<Face> faces = new ArrayList<>();
         GreedyMeshing gm = new GreedyMeshing(w, h, d);
         gm.mesh(ds, faces);
+        System.out.println("Faces: " + faces.size());
         return faces;
     }
 
@@ -994,6 +1006,21 @@ public class NvRayTracingHybridExample {
     // floating-point number and not a short.
     private static final class Float16 {
         static final int BYTES = 2;
+    }
+
+    private static AllocationAndBuffer createBufferFromResource(String resource, int usage) throws IOException {
+        ByteBuffer buffer = ioResourceToByteBuffer(resource, 8192);
+        return createBuffer(usage,
+                memByteBuffer(MemoryUtil.memAddress(buffer), buffer.remaining()));
+    }
+    private static AllocationAndBuffer createSobolBuffer() throws IOException {
+        return createBufferFromResource("org/lwjgl/demo/vulkan/sobol_256_256_4spp.data", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    }
+    private static AllocationAndBuffer createScrambleBuffer() throws IOException {
+        return createBufferFromResource("org/lwjgl/demo/vulkan/scramble_128_128_8_4spp.data", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    }
+    private static AllocationAndBuffer createRankingBuffer() throws IOException {
+        return createBufferFromResource("org/lwjgl/demo/vulkan/ranking_128_128_8_4spp.data", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     }
 
     private static Geometry createGeometry(MemoryStack stack) {
@@ -1520,7 +1547,7 @@ public class NvRayTracingHybridExample {
     }
 
     private static Pipeline createRayTracingPipeline() throws IOException {
-        int numDescriptors = 8;
+        int numDescriptors = 11;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pSetLayout = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorSetLayout(device, VkDescriptorSetLayoutCreateInfo(stack)
@@ -1563,6 +1590,21 @@ public class NvRayTracingHybridExample {
                                 .apply(dslb -> dslb
                                         .binding(7)
                                         .descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
+                                .apply(dslb -> dslb
+                                        .binding(8)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
+                                .apply(dslb -> dslb
+                                        .binding(9)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
+                                .apply(dslb -> dslb
+                                        .binding(10)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                         .descriptorCount(1)
                                         .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_NV))
                                 .flip()),
@@ -1633,7 +1675,7 @@ public class NvRayTracingHybridExample {
             rayTracingDescriptorSets.free();
         }
         int numSets = swapchain.images.length;
-        int numDescriptors = 8;
+        int numDescriptors = 11;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pDescriptorPool = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo(stack)
@@ -1653,6 +1695,12 @@ public class NvRayTracingHybridExample {
                                     .apply(6, dps -> dps.type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
                                             .descriptorCount(numSets))
                                     .apply(7, dps -> dps.type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                                            .descriptorCount(numSets))
+                                    .apply(8, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                            .descriptorCount(numSets))
+                                    .apply(9, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                            .descriptorCount(numSets))
+                                    .apply(10, dps -> dps.type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                             .descriptorCount(numSets)))
                             .maxSets(numSets), null, pDescriptorPool),
                     "Failed to create descriptor pool");
@@ -1733,7 +1781,31 @@ public class NvRayTracingHybridExample {
                                 .pImageInfo(VkDescriptorImageInfo(stack, 1)
                                         .imageView(blueNoiseImage.imageView)
                                         .sampler(sampler)
-                                        .imageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)));
+                                        .imageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)))
+                        .apply(wds -> wds
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(8)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
+                                        .buffer(sobolBuffer.buffer)
+                                        .range(VK_WHOLE_SIZE)))
+                        .apply(wds -> wds
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(9)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
+                                        .buffer(scrambleBuffer.buffer)
+                                        .range(VK_WHOLE_SIZE)))
+                        .apply(wds -> wds
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(10)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo(stack, 1)
+                                        .buffer(rankingBuffer.buffer)
+                                        .range(VK_WHOLE_SIZE)));
             }
             vkUpdateDescriptorSets(device, writeDescriptorSet.flip(), null);
             return new DescriptorSets(pDescriptorPool.get(0), sets);
@@ -1997,6 +2069,9 @@ public class NvRayTracingHybridExample {
         depthStencilImages = createDepthStencilImages();
         commandPool = createCommandPool(0);
         commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+        sobolBuffer = createSobolBuffer();
+        scrambleBuffer = createScrambleBuffer();
+        rankingBuffer = createRankingBuffer();
         blueNoiseImage = createBlueNoiseImage();
         normalImages = createNormalImages();
         rayTracingImages = createRayTracingImages();
@@ -2033,6 +2108,9 @@ public class NvRayTracingHybridExample {
             normalImages[i].free();
             rayTracingImages[i].free();
         }
+        rankingBuffer.free();
+        scrambleBuffer.free();
+        sobolBuffer.free();
         blueNoiseImage.free();
         freeCommandBuffers();
         rayTracingDescriptorSets.free();
