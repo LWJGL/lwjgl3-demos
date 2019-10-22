@@ -3,6 +3,9 @@ package org.lwjgl.demo.util;
 import static java.lang.Float.*;
 import static org.lwjgl.demo.util.GreedyMeshing.Face.*;
 
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
+
 import org.lwjgl.demo.util.GreedyMeshing.Face;
 
 public class FaceTriangulator {
@@ -20,8 +23,45 @@ public class FaceTriangulator {
         return (side & 1) != 0;
     }
 
-    public static void triangulate_Vf16_Iu16(Iterable<Face> faces, DynamicByteBuffer positions, DynamicByteBuffer normals,
-            DynamicByteBuffer indices) {
+    public static void triangulate_Vu8_Iu16(Iterable<Face> faces, ByteBuffer positions, ShortBuffer indices) {
+        int i = 0;
+        for (Face f : faces) {
+            switch (f.s) {
+            case SIDE_NX:
+            case SIDE_PX:
+                positions.put(f.p).put(f.u0).put(f.v0);
+                positions.put(f.p).put(f.u1).put(f.v0);
+                positions.put(f.p).put(f.u1).put(f.v1);
+                positions.put(f.p).put(f.u0).put(f.v1);
+                break;
+            case SIDE_NY:
+            case SIDE_PY:
+                positions.put(f.v0).put(f.p).put(f.u0);
+                positions.put(f.v0).put(f.p).put(f.u1);
+                positions.put(f.v1).put(f.p).put(f.u1);
+                positions.put(f.v1).put(f.p).put(f.u0);
+                break;
+            case SIDE_NZ:
+            case SIDE_PZ:
+                positions.put(f.u0).put(f.v0).put(f.p);
+                positions.put(f.u1).put(f.v0).put(f.p);
+                positions.put(f.u1).put(f.v1).put(f.p);
+                positions.put(f.u0).put(f.v1).put(f.p);
+                break;
+            }
+            if (isPositiveSide(f.s)) {
+                indices.put((short) (i << 2)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2));
+                indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) (i << 2));
+            } else {
+                indices.put((short) (i << 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2));
+                indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1)).put((short) (i << 2));
+            }
+            i++;
+        }
+    }
+
+    public static void triangulate_Vf16_Iu16(Iterable<Face> faces, DynamicByteBuffer positions,
+            DynamicByteBuffer normals, DynamicByteBuffer indices) {
         int i = 0;
         for (Face f : faces) {
             switch (f.s) {
