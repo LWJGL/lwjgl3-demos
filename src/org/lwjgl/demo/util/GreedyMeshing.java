@@ -40,6 +40,7 @@ public class GreedyMeshing {
     private final short[] m;
     private final short dx, dy;
     private final short[] dims;
+    private boolean singleOpaque;
 
     public GreedyMeshing(int dx, int dy, int dz) {
         if (dx < 1 || dx > 256)
@@ -52,6 +53,14 @@ public class GreedyMeshing {
         this.dy = (short) dy;
         this.m = new short[max(dx, dy) * max(dy, dz)];
         this.dims = new short[] { (short) dx, (short) dy, (short) dz };
+    }
+
+    public void setSingleOpaque(boolean singleOpaque) {
+        this.singleOpaque = singleOpaque;
+    }
+
+    public boolean isSingleOpaque() {
+        return singleOpaque;
     }
 
     private byte at(byte[] vs, int x, int y, int z) {
@@ -84,9 +93,9 @@ public class GreedyMeshing {
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
-            m[n] = a;
+            m[n] = singleOpaque ? 1 : a;
         else
-            m[n] = (short) -b;
+            m[n] = (short) -(singleOpaque ? 1 : b);
     }
 
     private void mergeAndGenerateFaces(List<Face> faces, short u, short v, byte d) {
