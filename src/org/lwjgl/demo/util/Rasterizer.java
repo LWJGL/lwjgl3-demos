@@ -1,6 +1,7 @@
 package org.lwjgl.demo.util;
 
-import static java.lang.Math.*;
+import static java.lang.Float.*;
+import static java.lang.Integer.*;
 import static java.util.Arrays.*;
 
 import java.nio.ByteBuffer;
@@ -57,7 +58,7 @@ public class Rasterizer {
             float maxX = max3(v0xw, v1xw, v2xw), maxY = max3(v0yw, v1yw, v2yw), maxZ = max3(v0zp, v1zp, v2zp);
             if (minX >= width || minY >= height || maxX < 0 || maxY < 0 || minZ > 1.0f || maxZ < -1.0f)
                 continue;
-            // Clip bounding box
+            // Clamp bounding box
             int miX = max(min((int) minX, width - 1), 0), miY = max(min((int) minY, height - 1), 0);
             int maX = max(min((int) maxX, width - 1), 0), maY = max(min((int) maxY, height - 1), 0);
             // Compute barycentric transformation matrix
@@ -71,11 +72,17 @@ public class Rasterizer {
             for (int y = miY; y <= maY; y++, b0 += x12, b1 += x20, b2 += x01) {
                 float w0 = b0, w1 = b1, w2 = b2;
                 for (int x = miX; x <= maX; x++, w0 += y21, w1 += y02, w2 += y10) {
-                    if (w0 < 0 || w1 < 0 || w2 < 0)
+                    if (((floatToRawIntBits(w0)
+                        | floatToRawIntBits(w1)
+                        | floatToRawIntBits(w2)) & 0x80000000) != 0)
                         continue;
-                    float d = (w0 * v0zp + w1 * v1zp + w2 * v2zp) / (w0 + w1 + w2);
+                    float d = w0 * v0zp + w1 * v1zp + w2 * v2zp;
                     // Check against depth buffer
-                    if (d < 0.0f || d > 1.0f || depthTest && depthbuffer[x + y * width] - d <= 1E-6f)
+                    float s = w0 + w1 + w2;
+                    if (d < 0.0f || d > s)
+                        continue;
+                    d /= s;
+                    if (depthTest && depthbuffer[x + y * width] - d <= 1E-6f)
                         continue;
                     if (depthWrite)
                         depthbuffer[x + y * width] = d;
