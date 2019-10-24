@@ -4,7 +4,6 @@ import static java.lang.Math.*;
 
 import java.util.BitSet;
 import java.util.PriorityQueue;
-import java.util.function.Predicate;
 
 import org.joml.*;
 
@@ -14,7 +13,6 @@ import org.joml.*;
  * @author Kai Burjack
  */
 public class ChunkIterator {
-    private final Vector3i chunkIndex = new Vector3i();
     private final int sx, sy, sz;
     private final int w, h, d;
     private final FrustumIntersection fi = new FrustumIntersection();
@@ -28,7 +26,7 @@ public class ChunkIterator {
         byte x, y, z;
 
         Chunk(byte x, byte y, byte z) {
-            this.d = distance2(ox, oy, oz, sx * x, sy * y, sz * z);
+            this.d = distance2(sx * x, sy * y, sz * z);
             this.x = x;
             this.y = y;
             this.z = z;
@@ -61,10 +59,8 @@ public class ChunkIterator {
         this.visited = new BitSet(w * h * d);
     }
 
-    private float distance2(float ox, float oy, float oz, int x, int y, int z) {
-        float dx = max(max(x - ox, ox - (x + sx)), 0);
-        float dy = max(max(y - oy, oy - (y + sy)), 0);
-        float dz = max(max(z - oz, oz - (z + sz)), 0);
+    private float distance2(int x1, int y1, int z1) {
+        float dx = x1 - ox, dy = y1 - oy, dz = z1 - oz;
         return dx * dx + dy * dy + dz * dz;
     }
 
@@ -87,10 +83,10 @@ public class ChunkIterator {
      * @param consumer consumes chunk indices; iteration continues as long as it
      *                 returns <code>true</code>
      */
-    public void iterateFrontToBack(Vector3f rp, Quaternionf view, Matrix4f proj, Predicate<Vector3i> consumer) {
-        ox = min(max(rp.x, 0.0f), (w - 1) * sx);
-        oy = min(max(rp.y, 0.0f), (h - 1) * sy);
-        oz = min(max(rp.z, 0.0f), (d - 1) * sz);
+    public void iterateFrontToBack(Vector3f rp, Quaternionf view, Matrix4f proj, Vector3iVisitor consumer) {
+        ox = min(max(rp.x, 0.0f), (w - 1) * sx) - sx * 0.5f;
+        oy = min(max(rp.y, 0.0f), (h - 1) * sy) - sy * 0.5f;
+        oz = min(max(rp.z, 0.0f), (d - 1) * sz) - sz * 0.5f;
         Vector3f forward = view.positiveZ(new Vector3f()).negate();
         fi.set(vp.set(proj).rotate(view).translate(-rp.x, -rp.y, -rp.z));
         add((int) (ox / sx), (int) (oy / sy), (int) (oz / sz));
@@ -100,8 +96,7 @@ public class ChunkIterator {
             if (c.d < minD)
                 continue;
             minD = c.d;
-            chunkIndex.set(c.x, c.y, c.z);
-            if (!consumer.test(chunkIndex))
+            if (!consumer.visit(c.x, c.y, c.z))
                 break;
             if (c.x < w - 1 && forward.x >= 0 && !has(c.x + 1, c.y, c.z) && visible(c.x + 1, c.y, c.z))
                 add(c.x + 1, c.y, c.z);
