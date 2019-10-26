@@ -64,7 +64,7 @@ public class GreedyMeshing {
     }
 
     private byte at(byte[] vs, int x, int y, int z) {
-        return vs[x + dx * (y + dy * z)];
+        return vs[x + 1 + (dx + 2) * (y + 1 + (dy + 2) * (z + 1))];
     }
 
     public void mesh(byte[] vs, List<Face> faces) {
@@ -88,8 +88,8 @@ public class GreedyMeshing {
     }
 
     private void generateMask(byte[] vs, byte d, int n) {
-        short a = x[d] >= 0 ? at(vs, x[0], x[1], x[2]) : 0;
-        short b = x[d] < dims[d] - 1 ? at(vs, x[0] + q[0], x[1] + q[1], x[2] + q[2]) : 0;
+        short a = at(vs, x[0], x[1], x[2]);
+        short b = at(vs, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)

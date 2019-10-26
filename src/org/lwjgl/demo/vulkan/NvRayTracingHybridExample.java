@@ -984,14 +984,14 @@ public class NvRayTracingHybridExample {
 
     private static List<Face> createMesh() {
         int w = CHUNK_WIDTH, h = CHUNK_HEIGHT, d = CHUNK_DEPTH;
-        byte[] ds = new byte[w * h * d];
+        byte[] ds = new byte[(w + 2) * (h + 2) * (d + 2)];
         float xzScale = 0.012343f, yScale = 0.13212f;
-        for (int z = 0; z < d; z++)
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++) {
-                    float v = noise(x * xzScale, y * yScale, z * xzScale);
+        for (int z = 0; z < d + 2; z++)
+            for (int y = 0; y < h + 2; y++)
+                for (int x = 0; x < w + 2; x++) {
+                    float v = noise((x - 1) * xzScale, (y - 1) * yScale, (z - 1) * xzScale);
                     if (y == 0 || v > 0.4f) {
-                        ds[x + y * w + z * w * h] = 1;
+                        ds[x + (w + 2) * (y + z * (h + 2))] = 1;
                     }
                 }
         List<Face> faces = new ArrayList<>();
