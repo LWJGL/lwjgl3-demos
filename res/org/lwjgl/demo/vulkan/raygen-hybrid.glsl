@@ -37,7 +37,7 @@ layout(binding = 10) readonly buffer RankingBuffer {
 
 #define BOUNCES 2
 #define SAMPLES 1
-#define BOX_COLOR vec3(0.83, 0.64, 0.49)
+#define BOX_COLOR vec3(196.0, 152.0, 116.0)/255.0
 #define BLUENOISE
 
 #include "random.inc.glsl"

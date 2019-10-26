@@ -19,7 +19,7 @@ layout(location = 0) rayPayloadNV Payload {
 
 #define BOUNCES 3
 #define SPP 1
-#define BOX_COLOR vec3(0.9, 0.7, 0.5)
+#define BOX_COLOR vec3(196.0, 152.0, 116.0)/255.0
 
 #include "random.inc.glsl"
 
