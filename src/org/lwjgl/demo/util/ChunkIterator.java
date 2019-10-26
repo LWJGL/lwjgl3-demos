@@ -14,7 +14,6 @@ import org.joml.*;
  * @author Kai Burjack
  */
 public class ChunkIterator {
-    private final int sx, sy, sz;
     private final int w, h, d;
     private final FrustumIntersection fi = new FrustumIntersection();
     private final BitSet visited;
@@ -27,7 +26,7 @@ public class ChunkIterator {
         byte x, y, z;
 
         Chunk(byte x, byte y, byte z) {
-            this.d = distance2(sx * x, sy * y, sz * z);
+            this.d = distance2(x, y, z);
             this.x = x;
             this.y = y;
             this.z = z;
@@ -44,7 +43,7 @@ public class ChunkIterator {
         }
     }
 
-    public ChunkIterator(int w, int h, int d, int sx, int sy, int sz) {
+    public ChunkIterator(int w, int h, int d) {
         if (w < 1 || w > 256)
             throw new IllegalArgumentException("w");
         if (h < 1 || h > 256)
@@ -54,9 +53,6 @@ public class ChunkIterator {
         this.w = w;
         this.h = h;
         this.d = d;
-        this.sx = sx;
-        this.sy = sy;
-        this.sz = sz;
         this.visited = new BitSet(w * h * d);
     }
 
@@ -74,7 +70,7 @@ public class ChunkIterator {
     }
 
     public boolean visible(int x, int y, int z) {
-        return fi.testAab(sx * x, sy * y, sz * z, (x + 1) * sx, (y + 1) * sy, (z + 1) * sz);
+        return fi.testAab(x, y, z, x + 1, y + 1, z + 1);
     }
 
     /**
@@ -85,12 +81,12 @@ public class ChunkIterator {
      *                 returns <code>true</code>
      */
     public void iterateFrontToBack(Vector3f rp, Quaternionf view, Matrix4f proj, Vector3iVisitor consumer) {
-        ox = min(max(rp.x, 0.0f), (w - 1) * sx) - sx * 0.5f;
-        oy = min(max(rp.y, 0.0f), (h - 1) * sy) - sy * 0.5f;
-        oz = min(max(rp.z, 0.0f), (d - 1) * sz) - sz * 0.5f;
+        ox = min(max(rp.x, 0.0f), w) - 0.5f;
+        oy = min(max(rp.y, 0.0f), h) - 0.5f;
+        oz = min(max(rp.z, 0.0f), d) - 0.5f;
         Vector3f forward = view.positiveZ(new Vector3f()).negate();
         fi.set(vp.set(proj).rotate(view).translate(-rp.x, -rp.y, -rp.z));
-        add((int) (ox / sx), (int) (oy / sy), (int) (oz / sz));
+        add((int) ox, (int) oy, (int) oz);
         double minD = Double.NaN;
         loop: while (!queue.isEmpty()) {
             Chunk c = queue.remove();
