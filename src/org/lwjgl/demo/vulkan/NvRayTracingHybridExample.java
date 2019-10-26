@@ -39,6 +39,7 @@ import static org.lwjgl.vulkan.KHR8bitStorage.*;
 import static org.lwjgl.vulkan.KHRDedicatedAllocation.*;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
+import static org.lwjgl.vulkan.KHRShaderFloat16Int8.*;
 import static org.lwjgl.vulkan.KHRStorageBufferStorageClass.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -266,12 +267,14 @@ public class NvRayTracingHybridExample {
             assertAvailable(pProperties, VK_NV_RAY_TRACING_EXTENSION_NAME);
             assertAvailable(pProperties, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
             assertAvailable(pProperties, VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+            assertAvailable(pProperties, VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
             assertAvailable(pProperties, VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
-            PointerBuffer extensions = stack.mallocPointer(5 + 1);
+            PointerBuffer extensions = stack.mallocPointer(6 + 1);
             extensions.put(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
                       .put(stack.UTF8(VK_NV_RAY_TRACING_EXTENSION_NAME))
                       .put(stack.UTF8(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
                       .put(stack.UTF8(VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
+                      .put(stack.UTF8(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME))
                       .put(stack.UTF8(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME));
             if (isExtensionEnabled(pProperties, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)) {
                 extensions.put(stack.UTF8(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME));
@@ -283,6 +286,8 @@ public class NvRayTracingHybridExample {
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo(stack)
                     .pNext(VkPhysicalDeviceFeatures2(stack)
                             .pNext(VkPhysicalDevice8BitStorageFeaturesKHR(stack)
+                                    .pNext(VkPhysicalDeviceFloat16Int8FeaturesKHR(stack)
+                                            .shaderInt8(true).address())
                                     .uniformAndStorageBuffer8BitAccess(true).address()).address())
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo(stack)
                             .queueFamilyIndex(queueFamily)
@@ -1043,7 +1048,7 @@ public class NvRayTracingHybridExample {
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
                     .vertexCount(faces.size() * 4)
-                    .vertexStride(Float16.BYTES * 3)
+                    .vertexStride(Float16.BYTES * 3 + 4)
                     .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)
@@ -1100,11 +1105,12 @@ public class NvRayTracingHybridExample {
             _CHECK_(vkCreatePipelineLayout(device, layoutCreateInfo, null, pPipelineLayout),
                     "Failed to create pipeline layout");
             VkVertexInputBindingDescription.Buffer bindingDescriptor = VkVertexInputBindingDescription(stack, 2)
-                    .apply(0, d -> d.binding(0).stride(3 * Float16.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX))
+                    .apply(0, d -> d.binding(0).stride(3 * Float16.BYTES + 4).inputRate(VK_VERTEX_INPUT_RATE_VERTEX))
                     .apply(1, d -> d.binding(1).stride(4 * Byte.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX));
-            VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription(stack, 2)
+            VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription(stack, 3)
                     .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16_SFLOAT).offset(0))
-                    .apply(1, d -> d.binding(1).location(1).format(VK_FORMAT_R8G8B8A8_SNORM).offset(0));
+                    .apply(1, d -> d.binding(0).location(1).format(VK_FORMAT_R8G8B8A8_SINT).offset(3 * Float16.BYTES))
+                    .apply(2, d -> d.binding(1).location(2).format(VK_FORMAT_R8G8B8A8_SNORM).offset(0));
             VkPipelineVertexInputStateCreateInfo pVertexInputState = VkPipelineVertexInputStateCreateInfo(stack)
                 .pVertexBindingDescriptions(bindingDescriptor)
                 .pVertexAttributeDescriptions(attributeDescriptions);

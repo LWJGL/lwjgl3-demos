@@ -68,9 +68,13 @@ public class FaceTriangulator {
             case SIDE_NX:
             case SIDE_PX:
                 positions.putShort(f16(f.p & 0xFF)).putShort(f16(f.u0 & 0xFF)).putShort(f16(f.v0 & 0xFF));
+                positions.putByte(0).putByte(-1).putByte(-1).putByte(0);
                 positions.putShort(f16(f.p & 0xFF)).putShort(f16(f.u1 & 0xFF)).putShort(f16(f.v0 & 0xFF));
+                positions.putByte(0).putByte(1).putByte(-1).putByte(0);
                 positions.putShort(f16(f.p & 0xFF)).putShort(f16(f.u1 & 0xFF)).putShort(f16(f.v1 & 0xFF));
+                positions.putByte(0).putByte(1).putByte(1).putByte(0);
                 positions.putShort(f16(f.p & 0xFF)).putShort(f16(f.u0 & 0xFF)).putShort(f16(f.v1 & 0xFF));
+                positions.putByte(0).putByte(-1).putByte(1).putByte(0);
                 normals.putByte(127 * ((f.s << 1) - 1)).putByte(0).putByte(0).putByte(0);
                 normals.putByte(127 * ((f.s << 1) - 1)).putByte(0).putByte(0).putByte(0);
                 normals.putByte(127 * ((f.s << 1) - 1)).putByte(0).putByte(0).putByte(0);
@@ -79,9 +83,13 @@ public class FaceTriangulator {
             case SIDE_NY:
             case SIDE_PY:
                 positions.putShort(f16(f.v0 & 0xFF)).putShort(f16(f.p & 0xFF)).putShort(f16(f.u0 & 0xFF));
+                positions.putByte(-1).putByte(0).putByte(-1).putByte(0);
                 positions.putShort(f16(f.v0 & 0xFF)).putShort(f16(f.p & 0xFF)).putShort(f16(f.u1 & 0xFF));
+                positions.putByte(-1).putByte(0).putByte(1).putByte(0);
                 positions.putShort(f16(f.v1 & 0xFF)).putShort(f16(f.p & 0xFF)).putShort(f16(f.u1 & 0xFF));
+                positions.putByte(1).putByte(0).putByte(1).putByte(0);
                 positions.putShort(f16(f.v1 & 0xFF)).putShort(f16(f.p & 0xFF)).putShort(f16(f.u0 & 0xFF));
+                positions.putByte(1).putByte(0).putByte(-1).putByte(0);
                 normals.putByte(0).putByte(127 * ((f.s << 1) - 5)).putByte(0).putByte(0);
                 normals.putByte(0).putByte(127 * ((f.s << 1) - 5)).putByte(0).putByte(0);
                 normals.putByte(0).putByte(127 * ((f.s << 1) - 5)).putByte(0).putByte(0);
@@ -90,9 +98,13 @@ public class FaceTriangulator {
             case SIDE_NZ:
             case SIDE_PZ:
                 positions.putShort(f16(f.u0 & 0xFF)).putShort(f16(f.v0 & 0xFF)).putShort(f16(f.p & 0xFF));
+                positions.putByte(-1).putByte(-1).putByte(0).putByte(0);
                 positions.putShort(f16(f.u1 & 0xFF)).putShort(f16(f.v0 & 0xFF)).putShort(f16(f.p & 0xFF));
+                positions.putByte(1).putByte(-1).putByte(0).putByte(0);
                 positions.putShort(f16(f.u1 & 0xFF)).putShort(f16(f.v1 & 0xFF)).putShort(f16(f.p & 0xFF));
+                positions.putByte(1).putByte(1).putByte(0).putByte(0);
                 positions.putShort(f16(f.u0 & 0xFF)).putShort(f16(f.v1 & 0xFF)).putShort(f16(f.p & 0xFF));
+                positions.putByte(-1).putByte(1).putByte(0).putByte(0);
                 normals.putByte(0).putByte(0).putByte(127 * ((f.s << 1) - 9)).putByte(0);
                 normals.putByte(0).putByte(0).putByte(127 * ((f.s << 1) - 9)).putByte(0);
                 normals.putByte(0).putByte(0).putByte(127 * ((f.s << 1) - 9)).putByte(0);

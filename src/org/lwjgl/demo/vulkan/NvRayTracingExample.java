@@ -755,7 +755,7 @@ public class NvRayTracingExample {
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
                     .vertexCount(faces.size() * 4)
-                    .vertexStride(Float16.BYTES * 3)
+                    .vertexStride(Float16.BYTES * 3 + 4)
                     .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)

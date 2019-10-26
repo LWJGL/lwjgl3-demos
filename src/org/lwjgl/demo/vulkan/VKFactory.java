@@ -16,6 +16,7 @@ import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHR8bitStorage.*;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.*;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
+import static org.lwjgl.vulkan.KHRShaderFloat16Int8.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.NVRayTracing.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -55,6 +56,10 @@ public class VKFactory {
     
     static VkPhysicalDevice8BitStorageFeaturesKHR VkPhysicalDevice8BitStorageFeaturesKHR(MemoryStack stack) {
         return VkPhysicalDevice8BitStorageFeaturesKHR.callocStack(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR);
+    }
+    
+    static VkPhysicalDeviceFloat16Int8FeaturesKHR VkPhysicalDeviceFloat16Int8FeaturesKHR(MemoryStack stack) {
+        return VkPhysicalDeviceFloat16Int8FeaturesKHR.callocStack(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR);
     }
 
     static VkPhysicalDeviceProperties2 VkPhysicalDeviceProperties2(MemoryStack stack) {
