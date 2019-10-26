@@ -71,11 +71,16 @@ public class Rasterizer {
             // Iterate over every pixel in the bounding rectangle
             for (int y = miY; y <= maY; y++, b0 += x12, b1 += x20, b2 += x01) {
                 float w0 = b0, w1 = b1, w2 = b2;
+                boolean in = false;
                 for (int x = miX; x <= maX; x++, w0 += y21, w1 += y02, w2 += y10) {
                     if (((floatToRawIntBits(w0)
                         | floatToRawIntBits(w1)
                         | floatToRawIntBits(w2)) & 0x80000000) != 0)
-                        continue;
+                        if (in)
+                            break;
+                        else
+                            continue;
+                    in = true;
                     float d = w0 * v0zp + w1 * v1zp + w2 * v2zp;
                     // Check against depth buffer
                     float s = w0 + w1 + w2;
