@@ -24,19 +24,18 @@ layout(location = 0) rayPayloadNV Payload {
   vec3 normal;
   float t;
 } payload;
-layout(binding = 7, set = 0) uniform sampler2D blueNoiseImage;
-layout(binding = 8) readonly buffer SobolBuffer {
+layout(binding = 7) readonly buffer SobolBuffer {
   uint8_t[] sobols;
 };
-layout(binding = 9) readonly buffer ScrambleBuffer {
+layout(binding = 8) readonly buffer ScrambleBuffer {
   uint8_t[] scrambles;
 };
-layout(binding = 10) readonly buffer RankingBuffer {
+layout(binding = 9) readonly buffer RankingBuffer {
   uint8_t[] rankings;
 };
 
 #define BOUNCES 2
-#define SAMPLES 1
+#define SAMPLES 2
 #define BOX_COLOR vec3(196.0, 152.0, 116.0)/255.0
 #define BLUENOISE
 
@@ -44,8 +43,6 @@ layout(binding = 10) readonly buffer RankingBuffer {
 
 ivec2 px;
 vec2 pc;
-ivec2 bns;
-ivec2 off;
 
 float sampleBlueNoise(uint sampleIndex, uint sampleDimension) {
   uint xoff = hash2(sampleIndex, ((px.y>>7)<<7) | (px.x>>7)) & 255;
@@ -84,10 +81,8 @@ vec3 sky(vec3 d) {
 }
 
 void main() {
-  bns = textureSize(blueNoiseImage, 0);
   px = ivec2(gl_LaunchIDNV.xy);
   pc = vec2(px) + vec2(0.5);
-  off = px / bns;
   vec2 tx = pc / vec2(gl_LaunchSizeNV.xy);
   vec2 nc = tx * 2.0 - vec2(1.0);
   float invz = 1.0 - textureLod(depthImage, tx, 0.0).r;
