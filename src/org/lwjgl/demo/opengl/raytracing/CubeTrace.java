@@ -272,11 +272,11 @@ public class CubeTrace {
                 nodes.addFirst(n.right);
                 nodes.addFirst(n.left);
             } else {
-                if (!n.voxels.isEmpty())
+                if (!n.boundables.isEmpty())
                     n.leafIndex = leafIndex++;
                 else
                     n.leafIndex = -1;
-                n.voxels.forEach(v -> {
+                n.boundables.forEach(v -> {
                     v.nindex = n.index;
                 });
             }
@@ -335,8 +335,8 @@ public class CubeTrace {
         for (KDTreei.Node<KDTreei.Voxel> n : nodes) {
             int numVoxels = 0;
             if (n.left == null) {
-                numVoxels = n.voxels.size();
-                n.voxels.forEach(v -> {
+                numVoxels = n.boundables.size();
+                n.boundables.forEach(v -> {
                     voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex);
                 });
                 if (n.leafIndex != -1)

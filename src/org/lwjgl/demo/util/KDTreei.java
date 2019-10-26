@@ -255,7 +255,7 @@ public class KDTreei<T extends Boundable<T>> {
         public Box boundingBox;
         public Node<B> left;
         public Node<B> right;
-        public List<B> voxels = new ArrayList<>();
+        public List<B> boundables = new ArrayList<>();
         public Node<B>[] ropes;
         public int index;
         public int leafIndex;
@@ -354,12 +354,13 @@ public class KDTreei<T extends Boundable<T>> {
             return right.findNode(cameraPosition);
         }
 
-        private void intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, List<B> boundables) {
+        private void intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ,
+                List<B> boundables) {
             Box b = boundingBox;
             if (!b.intersects(minX, minY, minZ, maxX, maxY, maxZ))
                 return;
             if (isLeafNode()) {
-                for (B voxel : voxels) {
+                for (B voxel : boundables) {
                     if (!voxel.intersects(minX, minY, minZ, maxX, maxY, maxZ))
                         continue;
                     boundables.add(voxel);
@@ -372,14 +373,14 @@ public class KDTreei<T extends Boundable<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends Boundable<T>> KDTreei<T> build(List<T> voxels, int maxDepth) {
-        return build(voxels, new Node[6], maxDepth);
+    public static <T extends Boundable<T>> KDTreei<T> build(List<T> boundables, int maxDepth) {
+        return build(boundables, new Node[6], maxDepth);
     }
 
-    private static <T extends Boundable<T>> KDTreei<T> build(List<T> voxels, Node<T>[] neighbors, int maxDepth) {
+    private static <T extends Boundable<T>> KDTreei<T> build(List<T> boundables, Node<T>[] neighbors, int maxDepth) {
         Box b = new Box(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE,
                 Integer.MIN_VALUE);
-        for (T v : voxels) {
+        for (T v : boundables) {
             b.minX = b.minX < v.min(X) ? b.minX : v.min(X);
             b.minY = b.minY < v.min(Y) ? b.minY : v.min(Y);
             b.minZ = b.minZ < v.min(Z) ? b.minZ : v.min(Z);
@@ -388,7 +389,7 @@ public class KDTreei<T extends Boundable<T>> {
             b.maxZ = b.maxZ > v.max(Z) ? b.maxZ : v.max(Z);
         }
         KDTreei<T> root = new KDTreei<T>();
-        root.buildTree(voxels, b, neighbors, maxDepth);
+        root.buildTree(boundables, b, neighbors, maxDepth);
         return root;
     }
 
@@ -404,7 +405,7 @@ public class KDTreei<T extends Boundable<T>> {
         if (root != null)
             root = null;
         root = new Node<T>();
-        root.voxels = list;
+        root.boundables = list;
         root.boundingBox = bbox;
         buildTree(root, 0, 0, maxDepth);
         root.processNode(root.ropes = neighbors);
@@ -412,7 +413,7 @@ public class KDTreei<T extends Boundable<T>> {
     }
 
     private void buildTree(Node<T> node, int axis, int depth, int maxDepth) {
-        if (node.voxels.size() > maxVoxelCount && depth < maxDepth) {
+        if (node.boundables.size() > maxVoxelCount && depth < maxDepth) {
             node.splitAxis = axis;
             node.splitPos = findSplitPlane(node);
         } else {
@@ -421,18 +422,18 @@ public class KDTreei<T extends Boundable<T>> {
         if (node.splitAxis == -1) {
             return;
         }
-        if (node.voxels.size() > maxVoxelCount) {
+        if (node.boundables.size() > maxVoxelCount) {
             node.left = new Node<T>();
             node.right = new Node<T>();
             node.left.boundingBox = new Box(node.boundingBox);
             node.left.boundingBox.setMax(node.splitAxis, node.splitPos);
             node.right.boundingBox = new Box(node.boundingBox);
             node.right.boundingBox.setMin(node.splitAxis, node.splitPos);
-            node.voxels.forEach(vx -> {
+            node.boundables.forEach(vx -> {
                 if (vx.min(node.splitAxis) >= node.splitPos) {
-                    node.right.voxels.add(vx);
+                    node.right.boundables.add(vx);
                 } else if (vx.max(node.splitAxis) <= node.splitPos) {
-                    node.left.voxels.add(vx);
+                    node.left.boundables.add(vx);
                 } else {
                     T left = vx.splitLeft(node.splitAxis, node.splitPos);
                     T right = vx.splitRight(node.splitAxis, node.splitPos);
@@ -440,11 +441,11 @@ public class KDTreei<T extends Boundable<T>> {
                         throw new AssertionError();
                     if (right.min(node.splitAxis) < node.splitPos)
                         throw new AssertionError();
-                    node.left.voxels.add(left);
-                    node.right.voxels.add(right);
+                    node.left.boundables.add(left);
+                    node.right.boundables.add(right);
                 }
             });
-            node.voxels.clear();
+            node.boundables.clear();
             int nextAxis = (axis + 1) % 3;
             buildTree(node.left, nextAxis, depth + 1, maxDepth);
             buildTree(node.right, nextAxis, depth + 1, maxDepth);
@@ -455,7 +456,7 @@ public class KDTreei<T extends Boundable<T>> {
         if (node == null)
             return -1;
         Box bb = node.boundingBox;
-        int nPrims = node.voxels.size();
+        int nPrims = node.boundables.size();
         int xw = bb.maxX - bb.minX;
         int yw = bb.maxY - bb.minY;
         int zw = bb.maxZ - bb.minZ;
@@ -473,11 +474,11 @@ public class KDTreei<T extends Boundable<T>> {
         }
         float inv_box_width = 1.0f / box_width;
         List<IntervalBoundary> intervals = new ArrayList<IntervalBoundary>();
-        final int count = node.voxels.size();
+        final int count = node.boundables.size();
         final int divisor = (int) Math.ceil(count / 100.0);
         nPrims /= divisor;
         for (int i = 0; i < count; i += divisor) {
-            T vx = node.voxels.get(i);
+            T vx = node.boundables.get(i);
             if (!bb.intersects(vx.min(X), vx.min(Y), vx.min(Z), vx.max(X), vx.max(Y), vx.max(Z))) {
                 throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
             }
