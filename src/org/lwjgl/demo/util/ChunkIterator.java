@@ -1,6 +1,7 @@
 package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
+import static org.lwjgl.demo.util.Vector3iVisitor.*;
 
 import java.util.BitSet;
 import java.util.PriorityQueue;
@@ -91,13 +92,16 @@ public class ChunkIterator {
         fi.set(vp.set(proj).rotate(view).translate(-rp.x, -rp.y, -rp.z));
         add((int) (ox / sx), (int) (oy / sy), (int) (oz / sz));
         double minD = Double.NaN;
-        while (!queue.isEmpty()) {
+        loop: while (!queue.isEmpty()) {
             Chunk c = queue.remove();
             if (c.d < minD)
                 continue;
             minD = c.d;
-            if (!consumer.visit(c.x, c.y, c.z))
-                break;
+            int r = consumer.visit(c.x, c.y, c.z, c.d);
+            switch (r) {
+            case ABORT: break loop;
+            case CANCEL: continue;
+            }
             if (c.x < w - 1 && forward.x >= 0 && !has(c.x + 1, c.y, c.z) && visible(c.x + 1, c.y, c.z))
                 add(c.x + 1, c.y, c.z);
             if (c.x > 0 && forward.x <= 0 && !has(c.x - 1, c.y, c.z) && visible(c.x - 1, c.y, c.z))
