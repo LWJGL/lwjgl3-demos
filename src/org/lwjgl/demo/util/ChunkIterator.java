@@ -1,7 +1,7 @@
 package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
-import static org.lwjgl.demo.util.Vector3iVisitor.*;
+import static org.lwjgl.demo.util.ChunkIteratorVisitor.*;
 
 import java.util.BitSet;
 import java.util.PriorityQueue;
@@ -80,7 +80,7 @@ public class ChunkIterator {
      * @param consumer consumes chunk indices; iteration continues as long as it
      *                 returns <code>true</code>
      */
-    public void iterateFrontToBack(Vector3f rp, Quaternionf view, Matrix4f proj, Vector3iVisitor consumer) {
+    public void iterateFrontToBack(Vector3f rp, Quaternionf view, Matrix4f proj, ChunkIteratorVisitor consumer) {
         ox = min(max(rp.x, 0.0f), w) - 0.5f;
         oy = min(max(rp.y, 0.0f), h) - 0.5f;
         oz = min(max(rp.z, 0.0f), d) - 0.5f;
@@ -112,7 +112,6 @@ public class ChunkIterator {
                 add(c.x, c.y, c.z - 1);
         }
         queue.clear();
-        visited.clear();
     }
 
     private void add(int x, int y, int z) {

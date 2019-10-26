@@ -1,6 +1,6 @@
 package org.lwjgl.demo.util;
 
-public interface Vector3iVisitor {
+public interface ChunkIteratorVisitor {
     int CONTINUE = 0;
     int CANCEL = 1;
     int ABORT = 2;
