@@ -2007,6 +2007,7 @@ public class NvRayTracingHybridExample {
             vkDestroySemaphore(device, imageAcquireSemaphores[i], null);
             vkDestroySemaphore(device, renderCompleteSemaphores[i], null);
             vkDestroyFence(device, renderFences[i], null);
+            vkDestroyFramebuffer(device, framebuffers[i], null);
             rayTracingUbos[i].free();
             rasterUbos[i].free();
             depthStencilImages[i].free();
@@ -2027,8 +2028,6 @@ public class NvRayTracingHybridExample {
         blas.free(true);
         vkDestroySampler(device, sampler, null);
         swapchain.free();
-        for (long framebuffer : framebuffers)
-            vkDestroyFramebuffer(device, framebuffer, null);
         vkDestroyRenderPass(device, renderPass, null);
         vkDestroyCommandPool(device, commandPool, null);
         vkDestroyCommandPool(device, commandPoolTransient, null);
