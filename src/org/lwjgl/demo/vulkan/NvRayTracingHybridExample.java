@@ -1934,10 +1934,9 @@ public class NvRayTracingHybridExample {
     }
 
     private static void updateRasterUniformBufferObject(int idx) {
-        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * (16 + 12));
+        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * 16);
         viewProjMatrix.get(0, bb);
-        viewMatrix.get3x4(Float.BYTES * 16, bb);
-        rasterUbos[idx].flushMapped(0, Float.BYTES * (16 + 12));
+        rasterUbos[idx].flushMapped(0, Float.BYTES * 16);
     }
 
     private static void createSyncObjects() {
@@ -1990,7 +1989,7 @@ public class NvRayTracingHybridExample {
         tlas = compressAccelerationStructure(createTopLevelAccelerationStructure());
         rayTracingUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
         rayTracingPipeline = createRayTracingPipeline();
-        rasterUbos = createUniformBufferObjects(Float.BYTES * (16 + 12));
+        rasterUbos = createUniformBufferObjects(Float.BYTES * 16);
         rasterPipeline = createRasterPipeline();
         rayTracingShaderBindingTable = createRayTracingShaderBindingTable();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();

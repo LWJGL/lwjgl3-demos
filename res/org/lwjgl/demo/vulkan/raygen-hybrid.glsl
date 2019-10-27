@@ -80,6 +80,12 @@ vec3 sky(vec3 d) {
   return vec3(pow(min(1.0, max(0.0, d.y + 1.0)), 4.0));
 }
 
+vec3 decodeNormal(vec2 enc) {
+  vec3 nn = vec3(enc * 3.5554 - 1.7777, 1.0);
+  float g = 2.0 / dot(nn, nn);
+  return vec3(g * nn.xy, g - 1.0);
+}
+
 void main() {
   px = ivec2(gl_LaunchIDNV.xy);
   pc = vec2(px) + vec2(0.5);
@@ -93,9 +99,8 @@ void main() {
     return;
   }
   vec3 origin = cam.viewInverse[3].xyz + direction * nci.z / nci.w;
-  vec2 nv = imageLoad(normalImage, px).xy;
-  vec3 nr = vec3(nv, sqrt(max(0.0, 1.0 - dot(nv, nv))));
-  vec3 normal = (cam.viewInverse * vec4(nr, 0.0)).xyz;
+  vec2 ne = imageLoad(normalImage, px).xy;
+  vec3 normal = decodeNormal(ne);
   vec3 col = vec3(0.0);
   for (int s = 0; s < SAMPLES; s++) {
     vec3 att = vec3(1.0), o = origin, n = normal;
