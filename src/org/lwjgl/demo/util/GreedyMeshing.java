@@ -2,7 +2,6 @@ package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -36,10 +35,10 @@ public class GreedyMeshing {
         }
     }
 
-    private final short[] du = new short[3], dv = new short[3], q = new short[3], x = new short[3];
-    private final short[] m;
-    private final short dx, dy;
-    private final short[] dims;
+    private final int[] du = new int[3], dv = new int[3], q = new int[3], x = new int[3];
+    private final int[] m;
+    private final int dx, dy;
+    private final int[] dims;
     private boolean singleOpaque;
 
     public GreedyMeshing(int dx, int dy, int dz) {
@@ -49,10 +48,10 @@ public class GreedyMeshing {
             throw new IllegalArgumentException("dy");
         if (dz < 1 || dz > 256)
             throw new IllegalArgumentException("dz");
-        this.dx = (short) dx;
-        this.dy = (short) dy;
-        this.m = new short[max(dx, dy) * max(dy, dz)];
-        this.dims = new short[] { (short) dx, (short) dy, (short) dz };
+        this.dx = dx;
+        this.dy = dy;
+        this.m = new int[max(dx, dy) * max(dy, dz)];
+        this.dims = new int[] { dx, dy, dz };
     }
 
     public void setSingleOpaque(boolean singleOpaque) {
@@ -69,8 +68,10 @@ public class GreedyMeshing {
 
     public void mesh(byte[] vs, List<Face> faces) {
         for (byte d = 0; d < 3; d++) {
-            short u = (short) ((d + 1) % 3), v = (short) ((d + 2) % 3);
-            Arrays.fill(q, (byte) 0);
+            int u = ((d + 1) % 3), v = ((d + 2) % 3);
+            q[0] = 0;
+            q[1] = 0;
+            q[2] = 0;
             q[d] = 1;
             for (x[d] = -1; x[d] < dims[d];) {
                 generateMask(vs, d, u, v);
@@ -80,48 +81,48 @@ public class GreedyMeshing {
         }
     }
 
-    private void generateMask(byte[] vs, byte d, short u, short v) {
+    private void generateMask(byte[] vs, int d, int u, int v) {
         int n = 0;
         for (x[v] = 0; x[v] < dims[v]; x[v]++)
             for (x[u] = 0; x[u] < dims[u]; x[u]++, n++)
                 generateMask(vs, d, n);
     }
 
-    private void generateMask(byte[] vs, byte d, int n) {
-        short a = at(vs, x[0], x[1], x[2]);
-        short b = at(vs, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
+    private void generateMask(byte[] vs, int d, int n) {
+        int a = at(vs, x[0], x[1], x[2]);
+        int b = at(vs, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
             m[n] = singleOpaque ? 1 : a;
         else
-            m[n] = (short) -(singleOpaque ? 1 : b);
+            m[n] = -(singleOpaque ? 1 : b);
     }
 
-    private void mergeAndGenerateFaces(List<Face> faces, short u, short v, byte d) {
-        for (short j = 0, n = 0; j < dims[v]; ++j)
-            for (short i = 0, incr; i < dims[u]; i += incr, n += incr)
+    private void mergeAndGenerateFaces(List<Face> faces, int u, int v, int d) {
+        for (int j = 0, n = 0; j < dims[v]; ++j)
+            for (int i = 0, incr; i < dims[u]; i += incr, n += incr)
                 incr = mergeAndGenerateFace(faces, u, v, n, j, i, d);
     }
 
-    private short mergeAndGenerateFace(List<Face> faces, short u, short v, short n, short j, short i, byte d) {
+    private int mergeAndGenerateFace(List<Face> faces, int u, int v, int n, int j, int i, int d) {
         if (m[n] == 0)
             return 1;
-        short w = determineWidth(u, n, i, m[n]);
-        short h = determineHeight(u, v, n, j, m[n], w);
-        byte s = determineFaceRegion(u, v, n, j, i, d, w, h);
+        int w = determineWidth(u, n, i, m[n]);
+        int h = determineHeight(u, v, n, j, m[n], w);
+        int s = determineFaceRegion(u, v, n, j, i, d, w, h);
         addFace(faces, u, v, d, s);
         eraseMask(u, n, w, h);
         return w;
     }
 
-    private void eraseMask(short u, short n, short w, short h) {
-        for (short l = 0; l < h; l++)
-            for (short k = 0; k < w; k++)
+    private void eraseMask(int u, int n, int w, int h) {
+        for (int l = 0; l < h; l++)
+            for (int k = 0; k < w; k++)
                 m[n + k + l * dims[u]] = 0;
     }
 
-    private byte determineFaceRegion(short u, short v, short n, short j, short i, byte d, short w, short h) {
+    private int determineFaceRegion(int u, int v, int n, int j, int i, int d, int w, int h) {
         x[u] = i;
         x[v] = j;
         if (m[n] > 0) {
@@ -137,18 +138,18 @@ public class GreedyMeshing {
         }
     }
 
-    private short determineWidth(short u, short n, short i, short c) {
-        short w = 1;
+    private int determineWidth(int u, int n, int i, int c) {
+        int w = 1;
         while (n + w < m.length && i + w < dims[u] && c == m[n + w])
             w++;
         return w;
     }
 
-    private short determineHeight(short u, short v, short n, short j, short c, short w) {
-        short h;
+    private int determineHeight(int u, int v, int n, int j, int c, int w) {
+        int h;
         boolean done = false;
         for (h = 1; j + h < dims[v]; h++) {
-            for (short k = 0; k < w; k++)
+            for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dims[u]]) {
                     done = true;
                     break;
@@ -159,7 +160,7 @@ public class GreedyMeshing {
         return h;
     }
 
-    private void addFace(List<Face> faces, short u, short v, byte d, byte s) {
+    private void addFace(List<Face> faces, int u, int v, int d, int s) {
         faces.add(new Face(x[u], x[v], x[u] + du[u] + dv[u], x[v] + du[v] + dv[v], x[d], (d << 1) + s));
     }
 }
