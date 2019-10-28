@@ -45,15 +45,15 @@ ivec2 px;
 vec2 pc;
 
 float sampleBlueNoise(uint sampleIndex, uint sampleDimension) {
-  uint xoff = hash2(sampleIndex, ((px.y>>7)<<7) | (px.x>>7)) & 255;
-  uint yoff = hash2(sampleIndex, ((px.x>>7)<<7) | (px.y>>7)) & 255;
-  uvec2 pxo = (px + ivec2(xoff, yoff)) & 127;
-  sampleIndex = sampleIndex & 255;
-  sampleDimension = sampleDimension & 255;
-  uint pxv = (pxo.x + (pxo.y<<7))<<3;
+  uint xoff = hash2(sampleIndex, px.y & ~0x7F | px.x >> 7) & 0xFF;
+  uint yoff = hash2(sampleIndex, px.x & ~0x7F | px.y >> 7) & 0xFF;
+  uvec2 pxo = (px + ivec2(xoff, yoff)) & 0x7F;
+  sampleIndex = sampleIndex & 0xFF;
+  sampleDimension = sampleDimension & 0xFF;
+  uint pxv = pxo.x + (pxo.y << 7) << 3;
   uint rankedSampleIndex = sampleIndex ^ uint(rankings[sampleDimension + pxv]);
   uint value = uint(sobols[sampleDimension + (rankedSampleIndex << 8)]);
-  value = value ^ uint(scrambles[(sampleDimension & 7) + pxv]);
+  value ^= uint(scrambles[(sampleDimension & 7) + pxv]);
   return (0.5 + float(value)) / 256.0;
 }
 
