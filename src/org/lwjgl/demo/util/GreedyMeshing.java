@@ -35,14 +35,10 @@ public class GreedyMeshing {
         }
     }
 
-    private final int[] q = new int[3], x = new int[3];
-    private int n, u, v, d, i, j, w, h;
     private final int[] m;
-    private final int dx, dy;
-    private final int[] dims;
-    private int dimsu, dimsv;
-    private boolean singleOpaque;
     private byte[] vs;
+    private int dx, dy, dz;
+    private boolean singleOpaque;
 
     public GreedyMeshing(int dx, int dy, int dz) {
         if (dx < 1 || dx > 256)
@@ -53,8 +49,8 @@ public class GreedyMeshing {
             throw new IllegalArgumentException("dz");
         this.dx = dx;
         this.dy = dy;
+        this.dz = dz;
         this.m = new int[max(dx, dy) * max(dy, dz)];
-        this.dims = new int[] { dx, dy, dz };
     }
 
     public void setSingleOpaque(boolean singleOpaque) {
@@ -71,33 +67,69 @@ public class GreedyMeshing {
 
     public void mesh(byte[] vs, List<Face> faces) {
         this.vs = vs;
-        for (d = 0; d < 3; d++) {
-            u = ((d + 1) % 3);
-            v = ((d + 2) % 3);
-            dimsu = dims[u];
-            dimsv = dims[v];
-            q[0] = 0;
-            q[1] = 0;
-            q[2] = 0;
-            q[d] = 1;
-            for (x[d] = -1; x[d] < dims[d];) {
-                generateMask();
-                x[d]++;
-                mergeAndGenerateFaces(faces);
-            }
+        meshX(faces);
+        meshY(faces);
+        meshZ(faces);
+    }
+
+    private void meshX(List<Face> faces) {
+        for (int x0 = -1; x0 < dx;) {
+            generateMaskX(x0);
+            x0++;
+            mergeAndGenerateFacesX(faces, x0);
         }
     }
 
-    private void generateMask() {
-        n = 0;
-        for (x[v] = 0; x[v] < dimsv; x[v]++)
-            for (x[u] = 0; x[u] < dimsu; x[u]++, n++)
-                generateMask2();
+    private void meshY(List<Face> faces) {
+        for (int x1 = -1; x1 < dy;) {
+            generateMaskY(x1);
+            x1++;
+            mergeAndGenerateFacesY(faces, x1);
+        }
     }
 
-    private void generateMask2() {
-        int a = at(x[0], x[1], x[2]);
-        int b = at(x[0] + q[0], x[1] + q[1], x[2] + q[2]);
+    private void meshZ(List<Face> faces) {
+        for (int x2 = -1; x2 < dz;) {
+            generateMaskZ(x2);
+            x2++;
+            mergeAndGenerateFacesZ(faces, x2);
+        }
+    }
+
+    private void generateMaskX(int x0) {
+        int n = 0;
+        for (int x2 = 0; x2 < dz; x2++)
+            for (int x1 = 0; x1 < dy; x1++, n++)
+                generateMaskX(x0, x1, x2, n);
+    }
+
+    private void generateMaskY(int x1) {
+        int n = 0;
+        for (int x0 = 0; x0 < dx; x0++)
+            for (int x2 = 0; x2 < dz; x2++, n++)
+                generateMaskY(x0, x1, x2, n);
+    }
+
+    private void generateMaskZ(int x2) {
+        int n = 0;
+        for (int x1 = 0; x1 < dy; x1++)
+            for (int x0 = 0; x0 < dx; x0++, n++)
+                generateMaskZ(x0, x1, x2, n);
+    }
+
+    private void generateMaskX(int x0, int x1, int x2, int n) {
+        writeMask(n, at(x0, x1, x2), at(x0 + 1, x1, x2));
+    }
+
+    private void generateMaskY(int x0, int x1, int x2, int n) {
+        writeMask(n, at(x0, x1, x2), at(x0, x1 + 1, x2));
+    }
+
+    private void generateMaskZ(int x0, int x1, int x2, int n) {
+        writeMask(n, at(x0, x1, x2), at(x0, x1, x2 + 1));
+    }
+
+    private void writeMask(int n, int a, int b) {
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
@@ -106,52 +138,123 @@ public class GreedyMeshing {
             m[n] = -(singleOpaque ? 1 : b);
     }
 
-    private void mergeAndGenerateFaces(List<Face> faces) {
-        n = 0;
-        int incr;
-        for (j = 0, n = 0; j < dimsv; ++j)
-            for (i = 0; i < dimsu; i += incr, n += incr)
-                incr = mergeAndGenerateFace(faces);
+    private void mergeAndGenerateFacesX(List<Face> faces, int x0) {
+        int i, j, n, incr;
+        for (j = 0, n = 0; j < dz; ++j)
+            for (i = 0; i < dy; i += incr, n += incr)
+                incr = mergeAndGenerateFaceX(faces, x0, n, i, j);
     }
 
-    private int mergeAndGenerateFace(List<Face> faces) {
+    private void mergeAndGenerateFacesY(List<Face> faces, int x1) {
+        int i, j, n, incr;
+        for (j = 0, n = 0; j < dx; ++j)
+            for (i = 0; i < dz; i += incr, n += incr)
+                incr = mergeAndGenerateFaceY(faces, x1, n, i, j);
+    }
+
+    private void mergeAndGenerateFacesZ(List<Face> faces, int x2) {
+        int i, j, n, incr;
+        for (j = 0, n = 0; j < dy; ++j)
+            for (i = 0; i < dx; i += incr, n += incr)
+                incr = mergeAndGenerateFaceZ(faces, x2, n, i, j);
+    }
+
+    private int mergeAndGenerateFaceX(List<Face> faces, int x0, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
-        w = determineWidth(mn);
-        h = determineHeight(mn);
-        x[u] = i;
-        x[v] = j;
-        faces.add(new Face(i, j, i + w, j + h, x[d], (d << 1) + (m[n] > 0 ? 1 : 0)));
-        eraseMask();
+        int w = determineWidthX(mn, n, i);
+        int h = determineHeightX(mn, n, j, w);
+        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0)));
+        eraseMaskX(n, w, h);
         return w;
     }
 
-    private void eraseMask() {
-        for (int l = 0; l < h; l++)
-            for (int k = 0; k < w; k++)
-                m[n + k + l * dimsu] = 0;
+    private int mergeAndGenerateFaceY(List<Face> faces, int x1, int n, int i, int j) {
+        int mn = m[n];
+        if (mn == 0)
+            return 1;
+        int w = determineWidthY(mn, n, i);
+        int h = determineHeightY(mn, n, j, w);
+        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0)));
+        eraseMaskY(n, w, h);
+        return w;
     }
 
-    private int determineWidth(int c) {
+    private int mergeAndGenerateFaceZ(List<Face> faces, int x2, int n, int i, int j) {
+        int mn = m[n];
+        if (mn == 0)
+            return 1;
+        int w = determineWidthZ(mn, n, i);
+        int h = determineHeightZ(mn, n, j, w);
+        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0)));
+        eraseMaskZ(n, w, h);
+        return w;
+    }
+
+    private void eraseMaskX(int n, int w, int h) {
+        for (int l = 0; l < h; l++)
+            for (int k = 0; k < w; k++)
+                m[n + k + l * dy] = 0;
+    }
+
+    private void eraseMaskY(int n, int w, int h) {
+        for (int l = 0; l < h; l++)
+            for (int k = 0; k < w; k++)
+                m[n + k + l * dz] = 0;
+    }
+
+    private void eraseMaskZ(int n, int w, int h) {
+        for (int l = 0; l < h; l++)
+            for (int k = 0; k < w; k++)
+                m[n + k + l * dx] = 0;
+    }
+
+    private int determineWidthX(int c, int n, int i) {
         int w = 1;
-        while (n + w < dimsu * dimsv && i + w < dimsu && c == m[n + w])
+        while (n + w < dy * dz && i + w < dx && c == m[n + w])
             w++;
         return w;
     }
 
-    private int determineHeight(int c) {
+    private int determineWidthY(int c, int n, int i) {
+        int w = 1;
+        while (n + w < dz * dx && i + w < dz && c == m[n + w])
+            w++;
+        return w;
+    }
+
+    private int determineWidthZ(int c, int n, int i) {
+        int w = 1;
+        while (n + w < dx * dy && i + w < dx && c == m[n + w])
+            w++;
+        return w;
+    }
+
+    private int determineHeightX(int c, int n, int j, int w) {
         int h;
-        boolean done = false;
-        for (h = 1; j + h < dimsv; h++) {
+        for (h = 1; j + h < dz; h++)
             for (int k = 0; k < w; k++)
-                if (c != m[n + k + h * dimsu]) {
-                    done = true;
-                    break;
-                }
-            if (done)
-                break;
-        }
+                if (c != m[n + k + h * dy])
+                    return h;
+        return h;
+    }
+
+    private int determineHeightY(int c, int n, int j, int w) {
+        int h;
+        for (h = 1; j + h < dx; h++)
+            for (int k = 0; k < w; k++)
+                if (c != m[n + k + h * dz])
+                    return h;
+        return h;
+    }
+
+    private int determineHeightZ(int c, int n, int j, int w) {
+        int h;
+        for (h = 1; j + h < dy; h++)
+            for (int k = 0; k < w; k++)
+                if (c != m[n + k + h * dx])
+                    return h;
         return h;
     }
 }
