@@ -106,10 +106,10 @@ void main() {
     vec3 att = vec3(1.0), o = origin, n = normal;
     for (int i = 0; i < BOUNCES; i++) {
       vec2 rnd = randNoise(s, i);
-      vec4 s = randomCosineWeightedHemisphereDirection(n, rnd);
-      if (s.w > 1E-4)
-        att /= s.w;
-      vec3 d = s.xyz;
+      vec4 rd = randomCosineWeightedHemisphereDirection(n, rnd);
+      if (rd.w > 1E-4)
+        att /= rd.w;
+      vec3 d = rd.xyz;
       att *= max(0.0, dot(d, n)) * BOX_COLOR * ONE_OVER_PI;
       payload.t = -1.0;
       traceNV(topLevelAS, gl_RayFlagsOpaqueNV | gl_RayFlagsCullBackFacingTrianglesNV, 0x1, 0, 0, 0, o, 1E-3, d, 1E4, 0);
