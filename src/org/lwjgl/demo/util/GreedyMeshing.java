@@ -23,15 +23,15 @@ public class GreedyMeshing {
         public static final byte SIDE_NZ = 4;
         public static final byte SIDE_PZ = 5;
 
-        public byte u0, v0, u1, v1, p, s;
+        public short u0, v0, u1, v1, p, s;
 
         public Face(int u0, int v0, int u1, int v1, int p, int s) {
-            this.u0 = (byte) u0;
-            this.v0 = (byte) v0;
-            this.u1 = (byte) u1;
-            this.v1 = (byte) v1;
-            this.p = (byte) p;
-            this.s = (byte) s;
+            this.u0 = (short) u0;
+            this.v0 = (short) v0;
+            this.u1 = (short) u1;
+            this.v1 = (short) v1;
+            this.p = (short) p;
+            this.s = (short) s;
         }
     }
 
@@ -41,11 +41,11 @@ public class GreedyMeshing {
     private boolean singleOpaque;
 
     public GreedyMeshing(int dx, int dy, int dz) {
-        if (dx < 1 || dx > 256)
+        if (dx < 1 || dx > Short.MAX_VALUE)
             throw new IllegalArgumentException("dx");
-        if (dy < 1 || dy > 256)
+        if (dy < 1 || dy > Short.MAX_VALUE)
             throw new IllegalArgumentException("dy");
-        if (dz < 1 || dz > 256)
+        if (dz < 1 || dz > Short.MAX_VALUE)
             throw new IllegalArgumentException("dz");
         this.dx = dx;
         this.dy = dy;
