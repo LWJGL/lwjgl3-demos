@@ -140,21 +140,21 @@ public class GreedyMeshing {
 
     private void mergeAndGenerateFacesX(List<Face> faces, int x0) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dz; ++j)
+        for (j = 0, n = 0; j < dz; j++)
             for (i = 0; i < dy; i += incr, n += incr)
                 incr = mergeAndGenerateFaceX(faces, x0, n, i, j);
     }
 
     private void mergeAndGenerateFacesY(List<Face> faces, int x1) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dx; ++j)
+        for (j = 0, n = 0; j < dx; j++)
             for (i = 0; i < dz; i += incr, n += incr)
                 incr = mergeAndGenerateFaceY(faces, x1, n, i, j);
     }
 
     private void mergeAndGenerateFacesZ(List<Face> faces, int x2) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dy; ++j)
+        for (j = 0, n = 0; j < dy; j++)
             for (i = 0; i < dx; i += incr, n += incr)
                 incr = mergeAndGenerateFaceZ(faces, x2, n, i, j);
     }
@@ -212,7 +212,7 @@ public class GreedyMeshing {
 
     private int determineWidthX(int c, int n, int i) {
         int w = 1;
-        while (n + w < dy * dz && i + w < dx && c == m[n + w])
+        while (n + w < dy * dz && i + w < dy && c == m[n + w])
             w++;
         return w;
     }
