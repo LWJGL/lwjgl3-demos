@@ -7,6 +7,7 @@
 
 layout(binding = 0, set = 0) uniform Camera {
   mat4 mvp;
+  float scale;
 } camera;
 
 layout(location = 0) in vec3 vertex;
@@ -24,5 +25,5 @@ vec2 encodeNormal(vec3 n) {
 void main(void) {
   float w = dot(transpose(camera.mvp)[3], vec4(vertex, 1.0));
   out_normal = encodeNormal(normal);
-  gl_Position = camera.mvp * vec4(vertex + vec3(offset) * OFFSET_SCALE * w, 1.0);
+  gl_Position = camera.mvp * vec4(vertex + vec3(offset) * (OFFSET_SCALE / camera.scale) * w, 1.0);
 }

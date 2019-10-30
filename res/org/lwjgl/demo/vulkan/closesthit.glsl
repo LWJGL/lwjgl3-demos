@@ -4,7 +4,6 @@
  */
 #version 460
 #extension GL_NV_ray_tracing : require
-#extension GL_EXT_shader_16bit_storage : require
 
 layout(location = 0) rayPayloadInNV Payload {
     vec3 normal;
@@ -14,7 +13,7 @@ layout(location = 0) rayPayloadInNV Payload {
 hitAttributeNV vec2 attribs;
 
 layout(binding = 3, set = 0) buffer Normals { uint n[]; } normals;
-layout(binding = 4, set = 0) buffer Indices { uint16_t i[]; } indices;
+layout(binding = 4, set = 0) buffer Indices { uint i[]; } indices;
 
 void main() {
     ivec3 index = ivec3(

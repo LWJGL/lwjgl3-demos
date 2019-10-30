@@ -65,6 +65,8 @@ public class NvRayTracingHybridExample {
         }
     }
 
+    private static final int BITS_FOR_POSITIONS = 10; // <- allow for a position maximum of 1024
+    private static final int POSITION_SCALE = 1 << BITS_FOR_POSITIONS;
     private static int INITIAL_WINDOW_WIDTH = 800;
     private static int INITIAL_WINDOW_HEIGHT = 600;
     private static int CHUNK_WIDTH = 128;
@@ -922,13 +924,6 @@ public class NvRayTracingHybridExample {
         return faces;
     }
 
-    // Just a proxy class for 16-bit floating-point numbers
-    // to not use Short.BYTES when we actually do mean a 16-bit
-    // floating-point number and not a short.
-    private static final class Float16 {
-        static final int BYTES = 2;
-    }
-
     private static AllocationAndBuffer createBufferFromResource(String resource, int usage) throws IOException {
         ByteBuffer buffer = ioResourceToByteBuffer(resource, 8192);
         return createBuffer(usage,
@@ -949,7 +944,7 @@ public class NvRayTracingHybridExample {
         DynamicByteBuffer positions = new DynamicByteBuffer();
         DynamicByteBuffer normals = new DynamicByteBuffer();
         DynamicByteBuffer indices = new DynamicByteBuffer();
-        triangulate_Vf16_Iu16(faces, positions, normals, indices);
+        triangulate_Vsn16_Iu32(BITS_FOR_POSITIONS, faces, positions, normals, indices);
         AllocationAndBuffer positionsBuffer = createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
                 memByteBuffer(positions.addr, positions.pos));
         positions.free();
@@ -964,11 +959,11 @@ public class NvRayTracingHybridExample {
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
                     .vertexCount(faces.size() * 4)
-                    .vertexStride(Float16.BYTES * 3 + 4)
-                    .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
+                    .vertexStride(Short.BYTES * 3 + 4)
+                    .vertexFormat(VK_FORMAT_R16G16B16_SNORM)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)
-                    .indexType(VK_INDEX_TYPE_UINT16)).aabbs(VKFactory::VkGeometryAABBNV))
+                    .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
                 .flags(VK_GEOMETRY_OPAQUE_BIT_NV);
         return new Geometry(positionsBuffer, normalsBuffer, indicesBuffer, geometry, faces.size() * 6);
     }
@@ -1021,11 +1016,11 @@ public class NvRayTracingHybridExample {
             _CHECK_(vkCreatePipelineLayout(device, layoutCreateInfo, null, pPipelineLayout),
                     "Failed to create pipeline layout");
             VkVertexInputBindingDescription.Buffer bindingDescriptor = VkVertexInputBindingDescription(stack, 2)
-                    .apply(0, d -> d.binding(0).stride(3 * Float16.BYTES + 4).inputRate(VK_VERTEX_INPUT_RATE_VERTEX))
+                    .apply(0, d -> d.binding(0).stride(3 * Short.BYTES + 4).inputRate(VK_VERTEX_INPUT_RATE_VERTEX))
                     .apply(1, d -> d.binding(1).stride(4 * Byte.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX));
             VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription(stack, 3)
-                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16_SFLOAT).offset(0))
-                    .apply(1, d -> d.binding(0).location(1).format(VK_FORMAT_R8G8B8A8_SINT).offset(3 * Float16.BYTES))
+                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16_SNORM).offset(0))
+                    .apply(1, d -> d.binding(0).location(1).format(VK_FORMAT_R8G8B8A8_SINT).offset(3 * Short.BYTES))
                     .apply(2, d -> d.binding(1).location(2).format(VK_FORMAT_R8G8B8A8_SNORM).offset(0));
             VkPipelineVertexInputStateCreateInfo pVertexInputState = VkPipelineVertexInputStateCreateInfo(stack)
                 .pVertexBindingDescriptions(bindingDescriptor)
@@ -1109,7 +1104,7 @@ public class NvRayTracingHybridExample {
                         stack.longs(rasterDescriptorSets.sets[i]), null);
                 vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rasterPipeline.pipeline);
                 vkCmdBindVertexBuffers(cmdBuffer, 0, new long[] {geometry.positions.buffer, geometry.normals.buffer}, new long[]{0, 0});
-                vkCmdBindIndexBuffer(cmdBuffer, geometry.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindIndexBuffer(cmdBuffer, geometry.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdDrawIndexed(cmdBuffer, geometry.indexCount, 1, 0, 0, 0);
                 vkCmdEndRenderPass(cmdBuffer);
                 _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
@@ -1380,6 +1375,7 @@ public class NvRayTracingHybridExample {
             GeometryInstance inst = new GeometryInstance();
             inst.accelerationStructureHandle = blas.handle;
             inst.mask = (byte) 0x1;
+            inst.transform.scaling(POSITION_SCALE);
             inst.write(instanceData);
             instanceData.flip();
             AllocationAndBuffer instanceMemory = createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, instanceData);
@@ -1921,7 +1917,7 @@ public class NvRayTracingHybridExample {
                 .scaling(1, -1, 1) // <- Y up
                 .perspective((float) Math.toRadians(60),
                         (float) windowAndCallbacks.width / windowAndCallbacks.height, 1E-1f, 1E4f, true);
-        viewProjMatrix.set(projMatrix).mul(viewMatrix);
+        viewProjMatrix.set(projMatrix).mul(viewMatrix).scale(POSITION_SCALE);
     }
 
     private static void updateRayTracingUniformBufferObject(int idx) {
@@ -1934,9 +1930,10 @@ public class NvRayTracingHybridExample {
     }
 
     private static void updateRasterUniformBufferObject(int idx) {
-        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * 16);
+        ByteBuffer bb = memByteBuffer(rasterUbos[idx].mapped, Float.BYTES * (16 + 4));
         viewProjMatrix.get(0, bb);
-        rasterUbos[idx].flushMapped(0, Float.BYTES * 16);
+        bb.putFloat(Float.BYTES * 16, POSITION_SCALE);
+        rasterUbos[idx].flushMapped(0, Float.BYTES * (16 + 4));
     }
 
     private static void createSyncObjects() {
@@ -1989,7 +1986,7 @@ public class NvRayTracingHybridExample {
         tlas = compressAccelerationStructure(createTopLevelAccelerationStructure());
         rayTracingUbos = createUniformBufferObjects(Float.BYTES * 16 * 2);
         rayTracingPipeline = createRayTracingPipeline();
-        rasterUbos = createUniformBufferObjects(Float.BYTES * 16);
+        rasterUbos = createUniformBufferObjects(Float.BYTES * (16 + 4));
         rasterPipeline = createRasterPipeline();
         rayTracingShaderBindingTable = createRayTracingShaderBindingTable();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();

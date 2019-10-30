@@ -58,6 +58,8 @@ public class NvRayTracingExample {
         }
     }
 
+    private static final int BITS_FOR_POSITIONS = 10; // <- allow for a position maximum of 1024
+    private static final int POSITION_SCALE = 1 << BITS_FOR_POSITIONS;
     private static int CHUNK_WIDTH = 32;
     private static int CHUNK_HEIGHT = 16;
     private static int CHUNK_DEPTH = 32;
@@ -729,19 +731,12 @@ public class NvRayTracingExample {
         return faces;
     }
 
-    // Just a proxy class for 16-bit floating-point numbers
-    // to not use Short.BYTES when we actually do mean a 16-bit
-    // floating-point number and not a short.
-    private static final class Float16 {
-        static final int BYTES = 2;
-    }
-
     private static Geometry createGeometry(MemoryStack stack) {
         List<Face> faces = createMesh();
         DynamicByteBuffer positions = new DynamicByteBuffer();
         DynamicByteBuffer normals = new DynamicByteBuffer();
         DynamicByteBuffer indices = new DynamicByteBuffer();
-        triangulate_Vf16_Iu16(faces, positions, normals, indices);
+        triangulate_Vsn16_Iu32(BITS_FOR_POSITIONS, faces, positions, normals, indices);
         AllocationAndBuffer positionsBuffer = createRayTracingBuffer(memByteBuffer(positions.addr, positions.pos));
         positions.free();
         AllocationAndBuffer normalsBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
@@ -755,11 +750,11 @@ public class NvRayTracingExample {
                 .geometry(g -> g.triangles(t -> VkGeometryTrianglesNV(t)
                     .vertexData(positionsBuffer.buffer)
                     .vertexCount(faces.size() * 4)
-                    .vertexStride(Float16.BYTES * 3 + 4)
-                    .vertexFormat(VK_FORMAT_R16G16B16_SFLOAT)
+                    .vertexStride(Short.BYTES * 3 + 4)
+                    .vertexFormat(VK_FORMAT_R16G16B16_SNORM)
                     .indexData(indicesBuffer.buffer)
                     .indexCount(faces.size() * 6)
-                    .indexType(VK_INDEX_TYPE_UINT16)).aabbs(VKFactory::VkGeometryAABBNV))
+                    .indexType(VK_INDEX_TYPE_UINT32)).aabbs(VKFactory::VkGeometryAABBNV))
                 .flags(VK_GEOMETRY_OPAQUE_BIT_NV);
         return new Geometry(positionsBuffer, normalsBuffer, indicesBuffer, geometry);
     }
@@ -933,7 +928,7 @@ public class NvRayTracingExample {
                     GeometryInstance inst = new GeometryInstance();
                     inst.accelerationStructureHandle = blas.handle;
                     inst.mask = (byte) 0x1;
-                    inst.transform.translate(x * CHUNK_WIDTH, 0, z * CHUNK_DEPTH);
+                    inst.transform.translate(x * CHUNK_WIDTH, 0, z * CHUNK_DEPTH).scale(POSITION_SCALE);
                     inst.write(instanceData);
                 }
             }
