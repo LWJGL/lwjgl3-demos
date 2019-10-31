@@ -39,6 +39,7 @@ public class GreedyMeshing {
     private byte[] vs;
     private int dx, dy, dz;
     private boolean singleOpaque;
+    private int maxMergeLength = Integer.MAX_VALUE;
 
     public GreedyMeshing(int dx, int dy, int dz) {
         if (dx < 1 || dx > Short.MAX_VALUE)
@@ -51,6 +52,10 @@ public class GreedyMeshing {
         this.dy = dy;
         this.dz = dz;
         this.m = new int[max(dx, dy) * max(dy, dz)];
+    }
+
+    public void setMaxMergeLength(int maxMergeLength) {
+        this.maxMergeLength = maxMergeLength;
     }
 
     public void setSingleOpaque(boolean singleOpaque) {
@@ -212,28 +217,28 @@ public class GreedyMeshing {
 
     private int determineWidthX(int c, int n, int i) {
         int w = 1;
-        while (n + w < dy * dz && i + w < dy && c == m[n + w])
+        while (w < maxMergeLength && n + w < dy * dz && i + w < dy && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthY(int c, int n, int i) {
         int w = 1;
-        while (n + w < dz * dx && i + w < dz && c == m[n + w])
+        while (w < maxMergeLength && n + w < dz * dx && i + w < dz && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthZ(int c, int n, int i) {
         int w = 1;
-        while (n + w < dx * dy && i + w < dx && c == m[n + w])
+        while (w < maxMergeLength && n + w < dx * dy && i + w < dx && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineHeightX(int c, int n, int j, int w) {
         int h;
-        for (h = 1; j + h < dz; h++)
+        for (h = 1; h < maxMergeLength && j + h < dz; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dy])
                     return h;
@@ -242,7 +247,7 @@ public class GreedyMeshing {
 
     private int determineHeightY(int c, int n, int j, int w) {
         int h;
-        for (h = 1; j + h < dx; h++)
+        for (h = 1; h < maxMergeLength && j + h < dx; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dz])
                     return h;
@@ -251,7 +256,7 @@ public class GreedyMeshing {
 
     private int determineHeightZ(int c, int n, int j, int w) {
         int h;
-        for (h = 1; j + h < dy; h++)
+        for (h = 1; h < maxMergeLength && j + h < dy; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dx])
                     return h;
