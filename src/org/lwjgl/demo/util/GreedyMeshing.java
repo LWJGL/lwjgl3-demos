@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Greedy meshing based on the JavaScript code from
  * https://0fps.net/2012/07/07/meshing-minecraft-part-2/
- * 
+ * <p>
  * Instances of this class are <i>not</i> thread-safe, so calls to
  * {@link #mesh(byte[], List)} on the same instance must be externally
  * synchronized.
@@ -40,6 +40,8 @@ public class GreedyMeshing {
     private int dx, dy, dz;
     private boolean singleOpaque;
     private int maxMergeLength = Integer.MAX_VALUE;
+    private int splitShift = 16;
+    private int splitMask = (1 << splitShift) - 1;
 
     public GreedyMeshing(int dx, int dy, int dz) {
         if (dx < 1 || dx > Short.MAX_VALUE)
@@ -60,6 +62,11 @@ public class GreedyMeshing {
 
     public void setSingleOpaque(boolean singleOpaque) {
         this.singleOpaque = singleOpaque;
+    }
+
+    public void setSplitShift(int splitShift) {
+        this.splitShift = splitShift;
+        this.splitMask = (1 << splitShift) - 1;
     }
 
     public boolean isSingleOpaque() {
@@ -217,28 +224,28 @@ public class GreedyMeshing {
 
     private int determineWidthX(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dy * dz && i + w < dy && c == m[n + w])
+        while (w < maxMergeLength && n + w < dy * dz && ((i + w) & splitMask) != 0 && i + w < dy && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthY(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dz * dx && i + w < dz && c == m[n + w])
+        while (w < maxMergeLength && n + w < dz * dx && ((i + w) & splitMask) != 0 && i + w < dz && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthZ(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dx * dy && i + w < dx && c == m[n + w])
+        while (w < maxMergeLength && n + w < dx * dy && ((i + w) & splitMask) != 0 && i + w < dx && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineHeightX(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && j + h < dz; h++)
+        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dz; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dy])
                     return h;
@@ -247,7 +254,7 @@ public class GreedyMeshing {
 
     private int determineHeightY(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && j + h < dx; h++)
+        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dx; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dz])
                     return h;
@@ -256,7 +263,7 @@ public class GreedyMeshing {
 
     private int determineHeightZ(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && j + h < dy; h++)
+        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dy; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dx])
                     return h;
