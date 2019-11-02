@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.util;
 
+import java.lang.annotation.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -20,6 +21,22 @@ import org.joml.Vector4f;
  * @author Kai Burjack
  */
 public class Std430Writer {
+
+    /**
+     * Used to annotate a struct member (i.e. field in a class representing a GLSL struct).
+     * 
+     * @author Kai Burjack
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface Member {
+
+        /**
+         * If that member is an array, this indicates the static size of the array.
+         */
+        int length() default 0;
+
+    }
 
     private static final Map<Class<?>, Integer> SIZES = new IdentityHashMap<Class<?>, Integer>();
     static {

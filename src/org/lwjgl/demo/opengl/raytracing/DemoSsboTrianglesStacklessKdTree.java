@@ -7,6 +7,7 @@ package org.lwjgl.demo.opengl.raytracing;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.util.*;
 import org.lwjgl.demo.util.KDTree.*;
+import org.lwjgl.demo.util.Std430Writer.*;
 import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;

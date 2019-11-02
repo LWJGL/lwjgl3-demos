@@ -13,7 +13,6 @@ import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.demo.util.DynamicByteBuffer;
-import org.lwjgl.demo.util.Member;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
