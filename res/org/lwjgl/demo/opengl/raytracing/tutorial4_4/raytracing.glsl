@@ -22,7 +22,7 @@ layout(binding=1) uniform sampler2D ltc_mag;
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 #define LARGE_FLOAT 1E+10
 #define EPSILON 1E-4
-#define LIGHT_INTENSITY 4.0
+#define LIGHT_INTENSITY 6.0
 
 #define LUT_SIZE 64.0
 #define LUT_SCALE ((LUT_SIZE - 1.0) / LUT_SIZE)
@@ -36,8 +36,8 @@ struct box {
 #define NUM_BOXES 5
 const box boxes[NUM_BOXES] = {
   {vec3(-5.0, -0.1, -5.0), vec3( 5.0, 0.0,  5.0), vec3(0.90, 0.85, 0.78)},// <- floor
-  {vec3(-5.1,  0.0, -5.0), vec3(-5.0, 5.0,  5.0), vec3(0.96, 0.96, 0.96)},   // <- left wall
-  {vec3( 5.0,  0.0, -5.0), vec3( 5.1, 5.0,  5.0), vec3(0.96, 0.96, 0.96)},   // <- right wall
+  {vec3(-5.1,  0.0, -5.0), vec3(-5.0, 5.0,  5.0), vec3(1.00, 0.82, 0.78)},   // <- left wall
+  {vec3( 5.0,  0.0, -5.0), vec3( 5.1, 5.0,  5.0), vec3(1.00, 1.00, 0.90)},   // <- right wall
   {vec3(-5.0,  0.0, -5.1), vec3( 5.0, 5.0, -5.0), vec3(0.63, 0.82, 0.37)},// <- back wall
   {vec3(-5.0,  0.0,  5.0), vec3( 5.0, 5.0,  5.1), vec3(0.96, 0.6, 0.29)},  // <- front wall
 };
@@ -47,19 +47,24 @@ struct rectangle {
   vec3 x;
   vec3 y;
 };
-#define NUM_RECTANGLES 11
+#define NUM_RECTANGLES 16
 const rectangle rectangles[NUM_RECTANGLES] = {
-  {vec3( 0.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(-1.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(-2.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(-3.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(-4.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(+1.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(+2.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(+3.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(+4.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.05)},
-  {vec3(+4.9, 4.0, 1.0), vec3(0.0, 0.0, -5.0), vec3(0.0, -0.2, 0.0)},
-  {vec3(-4.9, 1.0, 1.0), vec3(0.0, 0.0, -5.0), vec3(0.0, 0.5, 0.0)}
+  {vec3( 0.0, 5.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -5.0, 0.0)},
+  {vec3(-1.0, 4.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -4.0, 0.0)},
+  {vec3(-2.0, 3.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -3.0, 0.0)},
+  {vec3(-3.0, 2.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -2.0, 0.0)},
+  {vec3(-4.0, 1.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -1.0, 0.0)},
+  {vec3(+4.0, 1.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -1.0, 0.0)},
+  {vec3(+3.0, 2.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -2.0, 0.0)},
+  {vec3(+2.0, 3.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -3.0, 0.0)},
+  {vec3(+1.0, 4.0, 3.0), vec3(0.2, 0.0, 0.0), vec3(0.0, -4.0, 0.0)},
+  {vec3(+4.9, 4.0, 4.0), vec3(0.0, 0.0, -5.0), vec3(0.0, -0.2, 0.0)},
+  {vec3(+4.9, 3.0, 3.0), vec3(0.0, 0.0, -5.0), vec3(0.0, -0.2, 0.0)},
+  {vec3(+4.9, 2.0, 2.0), vec3(0.0, 0.0, -5.0), vec3(0.0, -0.2, 0.0)},
+  {vec3(+4.9, 1.0, 1.0), vec3(0.0, 0.0, -5.0), vec3(0.0, -0.2, 0.0)},
+  {vec3(-1.0, 5.0, -4.9), vec3(0.2, 0.0, 0.0), vec3(0.0, -2.0, 0.0)},
+  {vec3(+0.0, 3.0, -4.9), vec3(0.2, 0.0, 0.0), vec3(0.0, -2.0, 0.0)},
+  {vec3(+1.0, 5.0, -4.9), vec3(0.2, 0.0, 0.0), vec3(0.0, -2.0, 0.0)},
 };
 
 struct hitinfo {
@@ -174,11 +179,11 @@ float ltcEvaluate(vec3 N, vec3 V, vec3 P, mat3 M, rectangle r) {
   L[2] = normalize(L[2]);
   L[3] = normalize(L[3]);
   L[4] = normalize(L[4]);
-  return max(0.0, integrateEdge(L[0], L[1])
-                + integrateEdge(L[1], L[2])
-                + integrateEdge(L[2], L[3])
-                + mix(integrateEdge(L[3], L[4]), 0.0, n < 4)
-                + mix(integrateEdge(L[4], L[0]), 0.0, n != 5));
+  return abs(integrateEdge(L[0], L[1])
+           + integrateEdge(L[1], L[2])
+           + integrateEdge(L[2], L[3])
+           + mix(integrateEdge(L[3], L[4]), 0.0, n < 4)
+           + mix(integrateEdge(L[4], L[0]), 0.0, n != 5));
 }
 
 ivec2 px;
@@ -192,7 +197,7 @@ bool intersectRectangle(vec3 origin, vec3 dir, rectangle r, out hitinfo hinfo) {
   vec3 n = cross(r.x, r.y);
   float den = dot(n, dir), t = dot(r.c - origin, n) / den;
   hinfo.near = t;
-  return den < 0.0 && t > 0.0 && inrect(origin + t * dir, r.c, r.x, r.y);
+  return den != 0.0 && t > 0.0 && inrect(origin + t * dir, r.c, r.x, r.y);
 }
 
 vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
@@ -273,8 +278,9 @@ vec3 trace(vec3 origin, vec3 dir) {
     vec3(m.y, 0.0, m.w)
   );
   vec3 col = vec3(0.0);
-  for (int i = 0; i < NUM_RECTANGLES; i++)
-  	col += vec3(ltcEvaluate(normal, -dir, point, M, rectangles[i]) * f.x);
+  for (int i = 0; i < NUM_RECTANGLES; i++) {
+    col += ltcEvaluate(normal, -dir, point, M, rectangles[i]) * f.x;
+  }
   return col * albedo * LIGHT_INTENSITY;
 }
 
