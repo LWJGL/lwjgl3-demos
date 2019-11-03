@@ -41,7 +41,7 @@ public class Tutorial4_4 {
     private int height = 600;
     private boolean resetFramebuffer = true;
     private int tex;
-    private int ltcMatTexture;
+    private int ltcMatTexture, ltcMagTexture;
     private int vao;
     private int computeProgram;
     private int quadProgram;
@@ -163,10 +163,17 @@ public class Tutorial4_4 {
     private void createLtcMatTexture() throws IOException {
         try (MemoryStack frame = MemoryStack.stackPush()) {
             ltcMatTexture = glGenTextures();
+            int size = 64;
             glBindTexture(GL_TEXTURE_2D, ltcMatTexture);
-            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_4/ltc.data",
+            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_4/ltc1.data",
                     64 * 1024);
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, 64, 64);
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
+            ltcMagTexture = glGenTextures();
+            glBindTexture(GL_TEXTURE_2D, ltcMagTexture);
+            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_4/ltc2.data",
+                    64 * 1024);
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
@@ -321,8 +328,12 @@ public class Tutorial4_4 {
         glUniform3f(ray10Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
         invViewProjMatrix.transformProject(tmpVector.set(1, 1, 0)).sub(cameraPosition);
         glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, ltcMatTexture);
         glBindSampler(0, sampler);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ltcMagTexture);
+        glBindSampler(1, sampler);
         glBindImageTexture(framebufferImageBinding, tex, 0, false, 0, GL_READ_WRITE, GL_RGBA8);
         int numGroupsX = (int) Math.ceil((double) width / workGroupSizeX);
         int numGroupsY = (int) Math.ceil((double) height / workGroupSizeY);
@@ -335,6 +346,7 @@ public class Tutorial4_4 {
     private void present() {
         glUseProgram(quadProgram);
         glBindVertexArray(vao);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
         glBindSampler(0, this.sampler);
         glDrawArrays(GL_TRIANGLES, 0, 6);

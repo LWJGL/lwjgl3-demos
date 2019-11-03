@@ -13,7 +13,8 @@
 layout(binding = 0, rgba8) uniform image2D framebufferImage;
 uniform vec3 eye, ray00, ray01, ray10, ray11;
 uniform float roughness;
-uniform sampler2D ltc_mat;
+layout(binding=0) uniform sampler2D ltc_mat;
+layout(binding=1) uniform sampler2D ltc_mag;
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
@@ -265,6 +266,7 @@ vec3 trace(vec3 origin, vec3 dir) {
   vec2 uv = vec2(roughness, sqrt(1.0 - min(1.0, max(0.0, dot(normal, -dir)))))
               * LUT_SCALE + vec2(LUT_BIAS);
   vec4 m = texture2D(ltc_mat, uv);
+  vec4 f = texture2D(ltc_mag, uv);
   mat3 M = mat3(
     vec3(m.x, 0.0, m.z),
     vec3(0.0, 1.0, 0.0),
@@ -272,7 +274,7 @@ vec3 trace(vec3 origin, vec3 dir) {
   );
   vec3 col = vec3(0.0);
   for (int i = 0; i < NUM_RECTANGLES; i++)
-  	col += vec3(ltcEvaluate(normal, -dir, point, M, rectangles[i]));
+  	col += vec3(ltcEvaluate(normal, -dir, point, M, rectangles[i]) * f.x);
   return col * albedo * LIGHT_INTENSITY;
 }
 
