@@ -1413,6 +1413,16 @@ public class NvRayTracingExample {
                 _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
                         "Failed to create semaphore");
                 renderCompleteSemaphores[i] = pSemaphore.get(0);
+            }
+        }
+        recreateFences();
+    }
+
+    private static void recreateFences() {
+        for (int i = 0; i < swapchain.images.length; i++) {
+            try (MemoryStack stack = stackPush()) {
+                if (renderFences[i] != 0L)
+                    vkDestroyFence(device, renderFences[i], null);
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack).flags(VK_FENCE_CREATE_SIGNALED_BIT), null,
                         pFence), "Failed to create fence");
@@ -1475,10 +1485,11 @@ public class NvRayTracingExample {
         windowAndCallbacks.free();
     }
 
-    private static void reallocateOnResize() {
+    private static void recreateOnResize() {
         swapchain = createSwapChain();
         descriptorSets = createDescriptorSets();
         commandBuffers = createRayTracingCommandBuffers();
+        recreateFences();
     }
 
     private static boolean windowSizeChanged() {
@@ -1541,7 +1552,9 @@ public class NvRayTracingExample {
                 vkResetFences(device, renderFences[idx]);
                 if (windowSizeChanged()) {
                     vkQueueWaitIdle(queue);
-                    reallocateOnResize();
+                    recreateOnResize();
+                    idx = 0;
+                    continue;
                 }
                 updateUniformBufferObject(idx);
                 _CHECK_(vkAcquireNextImageKHR(device, swapchain.swapchain, -1L, imageAcquireSemaphores[idx], VK_NULL_HANDLE,

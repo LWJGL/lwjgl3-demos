@@ -1955,6 +1955,16 @@ public class NvRayTracingHybridExample {
                 _CHECK_(vkCreateSemaphore(device, VkSemaphoreCreateInfo(stack), null, pSemaphore),
                         "Failed to create raster semaphore");
                 renderCompleteSemaphores[i] = pSemaphore.get(0);
+            }
+        }
+        recreateFences();
+    }
+
+    private static void recreateFences() {
+        for (int i = 0; i < swapchain.images.length; i++) {
+            try (MemoryStack stack = stackPush()) {
+                if (renderFences[i] != 0L)
+                    vkDestroyFence(device, renderFences[i], null);
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo(stack).flags(VK_FENCE_CREATE_SIGNALED_BIT), null,
                         pFence), "Failed to create fence");
@@ -2055,6 +2065,7 @@ public class NvRayTracingHybridExample {
         rasterCommandBuffers = createRasterCommandBuffers();
         rayTracingCommandBuffers = createRayTracingCommandBuffers();
         presentCommandBuffers = createPresentCommandBuffers();
+        recreateFences();
     }
 
     private static boolean windowSizeChanged() {
@@ -2122,6 +2133,8 @@ public class NvRayTracingHybridExample {
                 if (windowSizeChanged()) {
                     vkQueueWaitIdle(queue);
                     recreateOnResize();
+                    idx = 0;
+                    continue;
                 }
                 updateRayTracingUniformBufferObject(idx);
                 updateRasterUniformBufferObject(idx);
