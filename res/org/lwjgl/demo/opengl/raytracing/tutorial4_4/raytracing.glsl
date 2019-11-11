@@ -4,12 +4,6 @@
  */
 #version 430 core
 
-#if GL_NV_gpu_shader5
-#extension GL_NV_gpu_shader5 : enable
-#elif GL_EXT_shader_8bit_storage
-#extension GL_EXT_shader_8bit_storage : enable
-#endif
-
 layout(binding = 0, rgba8) uniform image2D framebufferImage;
 uniform vec3 eye, ray00, ray01, ray10, ray11;
 uniform float roughness;
