@@ -64,6 +64,7 @@ vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 dir);
 
 struct hitinfo {
   float near;
+  vec3 normal;
   float far;
   int bi;
 };
@@ -76,13 +77,14 @@ struct hitinfo {
 vec3 rand;
 vec3 cameraUp;
 
-vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
+vec2 intersectBox(vec3 origin, vec3 dir, const box b, out vec3 normal) {
   vec3 tMin = (b.min - origin) / dir;
   vec3 tMax = (b.max - origin) / dir;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
   float tFar = min(min(t2.x, t2.y), t2.z);
+  normal = vec3(equal(t1, vec3(tNear))) * vec3(-1.0) * sign(dir);
   return vec2(tNear, tFar);
 }
 
@@ -105,32 +107,19 @@ vec4 colorOfBox(const box b) {
 bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
   float smallest = MAX_SCENE_BOUNDS;
   bool found = false;
+  vec3 normal;
   for (int i = 0; i < NUM_BOXES; i++) {
-    vec2 lambda = intersectBox(origin, dir, boxes[i]);
+    vec2 lambda = intersectBox(origin, dir, boxes[i], normal);
     if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.near = lambda.x;
       info.far = lambda.y;
+      info.normal = normal;
       info.bi = i;
       smallest = lambda.x;
       found = true;
     }
   }
   return found;
-}
-
-vec3 normalForBox(vec3 hit, const box b) {
-  if (hit.x < b.min.x + EPSILON)
-    return vec3(-1.0, 0.0, 0.0);
-  else if (hit.x > b.max.x - EPSILON)
-    return vec3(1.0, 0.0, 0.0);
-  else if (hit.y < b.min.y + EPSILON)
-    return vec3(0.0, -1.0, 0.0);
-  else if (hit.y > b.max.y - EPSILON)
-    return vec3(0.0, 1.0, 0.0);
-  else if (hit.z < b.min.z + EPSILON)
-    return vec3(0.0, 0.0, -1.0);
-  else
-    return vec3(0.0, 0.0, 1.0);
 }
 
 vec4 trace(vec3 origin, vec3 dir) {
@@ -141,7 +130,7 @@ vec4 trace(vec3 origin, vec3 dir) {
     if (intersectBoxes(origin, dir, i)) {
       box b = boxes[i.bi];
       vec3 hitPoint = origin + i.near * dir;
-      vec3 normal = normalForBox(hitPoint, b);
+      vec3 normal = i.normal;
       vec3 lightNormal = normalize(hitPoint - lightCenterPosition);
       vec3 lightPosition = lightCenterPosition + randomDiskPoint(rand, lightNormal) * LIGHT_RADIUS;
       vec3 shadowRayDir = lightPosition - hitPoint;

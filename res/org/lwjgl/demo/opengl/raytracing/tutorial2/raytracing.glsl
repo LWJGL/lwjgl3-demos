@@ -82,6 +82,10 @@ const box boxes[NUM_BOXES] = {
  * Describes the first intersection of a ray with a box.
  */
 struct hitinfo {
+  /**
+   * The normal at the point of intersection.
+   */
+  vec3 normal;
   /*
    * The value of the parameter 't' in the ray equation
    * `p = origin + dir * t` at which p is a point on one of the boxes
@@ -108,13 +112,14 @@ ivec2 px;
  * enters and exists the box, called (tNear, tFar). If there is no
  * intersection then tNear > tFar or tFar < 0.
  */
-vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
+vec2 intersectBox(vec3 origin, vec3 dir, const box b, out vec3 normal) {
   vec3 tMin = (b.min - origin) / dir;
   vec3 tMax = (b.max - origin) / dir;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
   float tFar = min(min(t2.x, t2.y), t2.z);
+  normal = vec3(equal(t1, vec3(tNear))) * vec3(-1.0) * sign(dir);
   return vec2(tNear, tFar);
 }
 
@@ -127,42 +132,18 @@ vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
 bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
   float smallest = LARGE_FLOAT;
   bool found = false;
+  vec3 normal;
   for (int i = 0; i < NUM_BOXES; i++) {
-    vec2 lambda = intersectBox(origin, dir, boxes[i]);
+    vec2 lambda = intersectBox(origin, dir, boxes[i], normal);
     if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.near = lambda.x;
       info.i = i;
+      info.normal = normal;
       smallest = lambda.x;
       found = true;
     }
   }
   return found;
-}
-
-/**
- * When we hit a box with a ray, we need the normal at the point of
- * intersection. This is just a very simple way of telling from the
- * point of intersection and the box definition what the normal probably
- * is based on the distance between the box sides and the point of
- * intersection.
- *
- * @param hit the point of intersection between ray and box
- * @param b the box to get the normal for
- * @returns the world-space normal vector
- */
-vec3 normalForBox(vec3 hit, const box b) {
-  if (hit.x < b.min.x + EPSILON)
-    return vec3(-1.0, 0.0, 0.0);
-  else if (hit.x > b.max.x - EPSILON)
-    return vec3(1.0, 0.0, 0.0);
-  else if (hit.y < b.min.y + EPSILON)
-    return vec3(0.0, -1.0, 0.0);
-  else if (hit.y > b.max.y - EPSILON)
-    return vec3(0.0, 1.0, 0.0);
-  else if (hit.z < b.min.z + EPSILON)
-    return vec3(0.0, 0.0, -1.0);
-  else
-    return vec3(0.0, 0.0, 1.0);
 }
 
 /**
@@ -249,7 +230,7 @@ vec3 trace(vec3 origin, vec3 dir) {
      * a random direction. For that, we first need the surface's normal
      * at the point of intersection.
      */
-    vec3 normal = normalForBox(point, b);
+    vec3 normal = hinfo.normal;
     /*
      * Next, we reset the ray's origin to the point of intersection
      * offset by a small epsilon along the surface normal to avoid

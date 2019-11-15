@@ -62,6 +62,7 @@ const rectangle rectangles[NUM_RECTANGLES] = {
 };
 
 struct hitinfo {
+  vec3 normal;
   float near;
   int i;
   bool isRectangle;
@@ -194,25 +195,28 @@ bool intersectRectangle(vec3 origin, vec3 dir, rectangle r, out hitinfo hinfo) {
   return den != 0.0 && t > 0.0 && inrect(origin + t * dir, r.c, r.x, r.y);
 }
 
-vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
+vec2 intersectBox(vec3 origin, vec3 dir, const box b, out vec3 normal) {
   vec3 tMin = (b.min - origin) / dir;
   vec3 tMax = (b.max - origin) / dir;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
   float tFar = min(min(t2.x, t2.y), t2.z);
+  normal = vec3(equal(t1, vec3(tNear))) * vec3(-1.0) * sign(dir);
   return vec2(tNear, tFar);
 }
 
 bool intersectObjects(vec3 origin, vec3 dir, out hitinfo info) {
   float smallest = LARGE_FLOAT;
   bool found = false;
+  vec3 normal;
   for (int i = 0; i < NUM_BOXES; i++) {
-    vec2 lambda = intersectBox(origin, dir, boxes[i]);
+    vec2 lambda = intersectBox(origin, dir, boxes[i], normal);
     if (lambda.y >= 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.near = lambda.x;
       info.i = i;
       info.isRectangle = false;
+      info.normal = normal;
       smallest = lambda.x;
       found = true;
     }
@@ -232,20 +236,6 @@ bool intersectObjects(vec3 origin, vec3 dir, out hitinfo info) {
 vec3 normalForRectangle(vec3 hit, const rectangle r) {
   return cross(r.x, r.y);
 }
-vec3 normalForBox(vec3 hit, const box b) {
-  if (hit.x < b.min.x + EPSILON)
-    return vec3(-1.0, 0.0, 0.0);
-  else if (hit.x > b.max.x - EPSILON)
-    return vec3(1.0, 0.0, 0.0);
-  else if (hit.y < b.min.y + EPSILON)
-    return vec3(0.0, -1.0, 0.0);
-  else if (hit.y > b.max.y - EPSILON)
-    return vec3(0.0, 1.0, 0.0);
-  else if (hit.z < b.min.z + EPSILON)
-    return vec3(0.0, 0.0, -1.0);
-  else
-    return vec3(0.0, 0.0, 1.0);
-}
 
 vec3 trace(vec3 origin, vec3 dir) {
   hitinfo hinfo;
@@ -258,7 +248,7 @@ vec3 trace(vec3 origin, vec3 dir) {
     return vec3(1.0);
   } else {
     const box b = boxes[hinfo.i];
-    normal = normalForBox(point, b);
+    normal = hinfo.normal;
     albedo = b.col;
   }
   origin = point + normal * EPSILON;
