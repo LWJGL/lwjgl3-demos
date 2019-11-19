@@ -45,8 +45,8 @@ ivec2 px;
 vec2 pc;
 
 float sampleBlueNoise(uint sampleIndex, uint sampleDimension) {
-  uint xoff = hash2(sampleIndex, px.y & ~0x7F | px.x >> 7) & 0xFF;
-  uint yoff = hash2(sampleIndex, px.x & ~0x7F | px.y >> 7) & 0xFF;
+  uint xoff = hash2(px.y>>7u, px.x>>7u) & 255u;
+  uint yoff = hash2(px.x>>7u, px.y>>7u) & 255u;
   uvec2 pxo = (px + ivec2(xoff, yoff)) & 0x7F;
   sampleIndex = sampleIndex & 0xFF;
   sampleDimension = sampleDimension & 0xFF;

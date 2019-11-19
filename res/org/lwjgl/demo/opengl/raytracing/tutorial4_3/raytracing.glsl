@@ -139,8 +139,8 @@ vec3 normalForRectangle(vec3 hit, const rectangle r) {
 }
 
 float sampleBlueNoise(uint sampleDimension) {
-  uint xoff = hash2(frameIndex, ((px.y>>7)<<4) ^ (px.x>>7)) & 255;
-  uint yoff = hash2(frameIndex, ((px.x>>7)<<4) ^ (px.y>>7)) & 255;
+  uint xoff = hash2(px.y>>7u, px.x>>7u) & 255u;
+  uint yoff = hash2(px.x>>7u, px.y>>7u) & 255u;
   uvec2 pxo = (px + ivec2(xoff, yoff)) & 127;
   uint sampleIndex = frameIndex & 255;
   sampleDimension = sampleDimension & 255;
