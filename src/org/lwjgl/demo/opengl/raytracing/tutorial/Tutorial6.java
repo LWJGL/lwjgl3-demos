@@ -401,7 +401,7 @@ public class Tutorial6 {
         /* Create all needed GL resources */
         createFramebufferTextures();
         createSampler();
-        quadFullScreenVao();
+        this.vao = glGenVertexArrays();
         createComputeProgram();
         initComputeProgram();
         createQuadProgram();
@@ -727,33 +727,6 @@ public class Tutorial6 {
     }
 
     /**
-     * Create a VAO with a full-screen quad VBO.
-     */
-    private void quadFullScreenVao() {
-        /*
-         * Really simple. Just a VAO with a VBO to render a full-screen quad as two
-         * triangles.
-         */
-        this.vao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-
-    /**
      * Create the full-scren quad shader.
      */
     private void createQuadProgram() throws IOException {
@@ -767,7 +740,6 @@ public class Tutorial6 {
                 GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -1037,7 +1009,7 @@ public class Tutorial6 {
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, pttex);
         glBindSampler(0, this.sampler);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindSampler(0, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);

@@ -369,7 +369,6 @@ public class CubeTraceMerged {
         int fshader = createShader("org/lwjgl/demo/opengl/raytracing/cubetracemerged/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);

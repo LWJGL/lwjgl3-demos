@@ -244,7 +244,7 @@ public class HybridDemoSsboInstancing45 {
         createRasterizerTextures();
         createRasterFrameBufferObject();
         createSceneSSBO();
-        createFullScreenVao();
+        this.vao = glGenVertexArrays();
         createSceneVao();
         createRasterProgram();
         initRasterProgram();
@@ -284,27 +284,6 @@ public class HybridDemoSsboInstancing45 {
             fv.put(max.x).put(max.y).put(max.z).put(0.0f);
         }
         glNamedBufferData(this.ssbo, ssboData, GL_STATIC_DRAW);
-    }
-
-    /**
-     * Creates a VAO with a full-screen quad VBO.
-     */
-    private void createFullScreenVao() {
-        this.vao = glCreateVertexArrays();
-        int vbo = glCreateBuffers();
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glNamedBufferData(vbo, bb, GL_STATIC_DRAW);
-        glEnableVertexArrayAttrib(this.vao, 0);
-        glVertexArrayAttribFormat(this.vao, 0, 2, GL_FLOAT, false, 0);
-        glVertexArrayVertexBuffer(this.vao, 0, vbo, 0L, 8);
-        glVertexArrayAttribBinding(this.vao, 0, 0);
     }
 
     /**
@@ -389,7 +368,6 @@ public class HybridDemoSsboInstancing45 {
         int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs",    GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -717,7 +695,7 @@ public class HybridDemoSsboInstancing45 {
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, raytraceTexture);
         glBindSampler(0, this.sampler);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindSampler(0, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);

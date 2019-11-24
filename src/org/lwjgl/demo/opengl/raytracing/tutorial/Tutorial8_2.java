@@ -168,7 +168,7 @@ public class Tutorial8_2 {
         debugProc = GLUtil.setupDebugMessageCallback();
         importSceneAsBoxes();
         createSceneVao();
-        createFullScreenQuad();
+        this.quadVao = glGenVertexArrays();
         createSceneUBO();
         createSamplers();
         createFramebufferTextures();
@@ -228,26 +228,6 @@ public class Tutorial8_2 {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         this.vaoScene = vao;
-    }
-
-    private void createFullScreenQuad() {
-        this.quadVao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(quadVao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
     }
 
     private void createSceneUBO() {
@@ -355,7 +335,6 @@ public class Tutorial8_2 {
                         "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -381,7 +360,6 @@ public class Tutorial8_2 {
                         "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -449,7 +427,7 @@ public class Tutorial8_2 {
             glBindSampler(0, this.linearSampler);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, tex);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
         } else {
             NVDrawTexture.glDrawTextureNV(tex, linearSampler, 0, 0, windowWidth, windowHeight, 0, 0, 0, 1, 1);
         }
@@ -472,7 +450,7 @@ public class Tutorial8_2 {
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glDrawBuffers(drawBuffers[curr]);
         glBindVertexArray(quadVao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 

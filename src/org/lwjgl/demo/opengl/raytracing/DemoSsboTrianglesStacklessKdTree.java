@@ -19,8 +19,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -216,7 +214,7 @@ public class DemoSsboTrianglesStacklessKdTree {
         createComputeProgram();
         initComputeProgram();
         if (!caps.GL_NV_draw_texture) {
-            createFullScreenVao();
+            this.vao = glGenVertexArrays();
             createQuadProgram();
         }
     }
@@ -344,29 +342,6 @@ public class DemoSsboTrianglesStacklessKdTree {
     }
 
     /**
-     * Creates a VAO with a full-screen quad VBO.
-     */
-    void createFullScreenVao() {
-        this.vao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-
-    /**
      * Create the full-scren quad shader.
      *
      * @throws IOException
@@ -377,7 +352,6 @@ public class DemoSsboTrianglesStacklessKdTree {
         int fshader = createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -573,7 +547,7 @@ public class DemoSsboTrianglesStacklessKdTree {
             glBindVertexArray(vao);
             glBindTexture(GL_TEXTURE_2D, raytraceTexture);
             glBindSampler(0, this.sampler);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             glBindSampler(0, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
             glBindVertexArray(0);

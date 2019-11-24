@@ -14,8 +14,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static java.lang.Math.*;
@@ -204,36 +202,13 @@ public class Demo {
         /* Create all needed GL resources */
         createFramebufferTexture();
         createSampler();
-        quadFullScreenVao();
+        this.vao = glGenVertexArrays();
         createComputeProgram();
         initComputeProgram();
         createQuadProgram();
         initQuadProgram();
 
         firstTime = System.nanoTime();
-    }
-
-    /**
-     * Create a VAO with a full-screen quad VBO.
-     */
-    private void quadFullScreenVao() {
-        this.vao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
     }
 
     /**
@@ -247,7 +222,6 @@ public class Demo {
         int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -438,7 +412,7 @@ public class Demo {
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, tex);
         glBindSampler(0, this.sampler);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindSampler(0, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);

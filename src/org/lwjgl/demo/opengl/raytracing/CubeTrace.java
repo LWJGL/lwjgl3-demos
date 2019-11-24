@@ -385,7 +385,6 @@ public class CubeTrace {
         int fshader = DemoUtils.createShader("cubetrace/experiments/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);

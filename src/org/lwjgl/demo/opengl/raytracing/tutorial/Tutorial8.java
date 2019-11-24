@@ -381,7 +381,7 @@ public class Tutorial8 {
         debugProc = GLUtil.setupDebugMessageCallback();
         importSceneAsBoxes();
         createSceneVao();
-        createFullScreenQuad();
+        this.quadVao = glGenVertexArrays();
         createDepthProgram();
         initDepthProgram();
         createSceneUBO();
@@ -463,30 +463,6 @@ public class Tutorial8 {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         this.vaoScene = vao;
-    }
-
-    /**
-     * Create the full-screen quad VAO/VBO used to present the final color image
-     * to the screen.
-     */
-    private void createFullScreenQuad() {
-        this.quadVao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(quadVao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
     }
 
     /**
@@ -703,7 +679,6 @@ public class Tutorial8 {
                 GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -754,7 +729,6 @@ public class Tutorial8 {
                 GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -842,7 +816,7 @@ public class Tutorial8 {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, read);
             glBindSampler(0, this.linearSampler);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
         } else {
             NVDrawTexture.glDrawTextureNV(read, linearSampler, 0, 0,
                     windowWidth, windowHeight, 0, 0, 0, 1, 1);
@@ -947,7 +921,7 @@ public class Tutorial8 {
             glBindTexture(GL_TEXTURE_2D, read);
             glDrawBuffers(write == filterTextures[0] ? GL_COLOR_ATTACHMENT5
                     : GL_COLOR_ATTACHMENT6);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             if (i == 0) {
                 read = filterTextures[1];
             }

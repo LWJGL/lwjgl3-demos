@@ -4,13 +4,14 @@
  */
 #version 330 core
 
-/* The position of the vertex as two-dimensional vector */
-in vec2 vertex;
-
 /* Write interpolated texture coordinate to fragment shader */
 out vec2 texcoord;
 
 void main(void) {
+  /* Map gl_VertexID to full-screen triangle */
+  vec2 vertex = vec2(-1.0) + vec2(
+    float((gl_VertexID & 1) << 2),
+    float((gl_VertexID & 2) << 1));
   gl_Position = vec4(vertex, 0.0, 1.0);
   /*
    * Compute texture coordinate by simply

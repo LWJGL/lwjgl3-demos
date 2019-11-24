@@ -269,7 +269,6 @@ public class Demo20 {
         int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad110.fs", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
@@ -301,7 +300,6 @@ public class Demo20 {
         glAttachShader(program, fshader);
         glAttachShader(program, randomCommon);
         glAttachShader(program, random);
-        glBindAttribLocation(program, 0, "vertex");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);

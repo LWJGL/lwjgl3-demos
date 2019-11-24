@@ -229,7 +229,7 @@ public class HybridDemo {
         createSampler();
         createRasterizerTextures();
         createRasterFrameBufferObject();
-        createFullScreenVao();
+        this.vao = glGenVertexArrays();
         createSceneVao();
         createRasterProgram();
         initRasterProgram();
@@ -242,29 +242,6 @@ public class HybridDemo {
         glEnable(GL_CULL_FACE);
 
         firstTime = System.nanoTime();
-    }
-
-    /**
-     * Creates a VAO with a full-screen quad VBO.
-     */
-    private void createFullScreenVao() {
-        this.vao = glGenVertexArrays();
-        int vbo = glGenBuffers();
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        ByteBuffer bb = BufferUtils.createByteBuffer(4 * 2 * 6);
-        FloatBuffer fv = bb.asFloatBuffer();
-        fv.put(-1.0f).put(-1.0f);
-        fv.put(1.0f).put(-1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(1.0f).put(1.0f);
-        fv.put(-1.0f).put(1.0f);
-        fv.put(-1.0f).put(-1.0f);
-        glBufferData(GL_ARRAY_BUFFER, bb, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
     }
 
     /**
@@ -325,7 +302,6 @@ public class HybridDemo {
         int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
-        glBindAttribLocation(program, 0, "vertex");
         glBindFragDataLocation(program, 0, "color");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -594,7 +570,7 @@ public class HybridDemo {
         glBindVertexArray(vao);
         glBindTexture(GL_TEXTURE_2D, raytraceTexture);
         glBindSampler(0, this.sampler);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindSampler(0, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
