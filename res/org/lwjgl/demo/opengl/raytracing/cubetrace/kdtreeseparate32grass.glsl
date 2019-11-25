@@ -11,6 +11,8 @@
 
 #define NO_AXIS uint(-1u)
 #define NO_NODE uint(-1u)
+#define SPLIT_POS(v) (v & 0x3FFFFFFFu)
+#define SPLIT_AXIS(v) (v >> 30u & 3u)
 #define MAX_DESCEND 200u
 #define MAX_ROPES 100u
 #define SKY_COLOR vec3(0.96, 0.98, 1.0)
@@ -26,7 +28,7 @@ uniform uint startNodeIdx = 0u;
 layout(location = 0) uniform sampler2D tex;
 
 struct node {
-  uvec4 rightOrLeaf_SplitAxis_SplitPos_GlobalOffset;
+  uvec2 rightOrLeaf_SplitAxisSplitPos;
   uint ropes[6];
 };
 layout(std430, binding = 0) readonly restrict buffer Nodes {
@@ -124,20 +126,20 @@ const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 d
   uvec3 nmin = ng.min, nmax = ng.max;
   while (true) {
     vec3 pEntry = dir * lambda.x + o;
-    while (n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.y != NO_AXIS) {
-      if (float(n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.z)*scale <= pEntry[n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.y]) {
-        nodeIdx = n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.x;
-        nmin[n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.y] = n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.z;
+    while (n.rightOrLeaf_SplitAxisSplitPos.y != NO_AXIS) {
+      if (float(SPLIT_POS(n.rightOrLeaf_SplitAxisSplitPos.y))*scale <= pEntry[SPLIT_AXIS(n.rightOrLeaf_SplitAxisSplitPos.y)]) {
+        nodeIdx = n.rightOrLeaf_SplitAxisSplitPos.x;
+        nmin[SPLIT_AXIS(n.rightOrLeaf_SplitAxisSplitPos.y)] = SPLIT_POS(n.rightOrLeaf_SplitAxisSplitPos.y);
       } else {
         nodeIdx = nodeIdx + 1u;
-        nmax[n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.y] = n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.z - 1u;
+        nmax[SPLIT_AXIS(n.rightOrLeaf_SplitAxisSplitPos.y)] = SPLIT_POS(n.rightOrLeaf_SplitAxisSplitPos.y) - 1u;
       }
       n = nodes[nodeIdx];
       if (shinfo.descends++ > MAX_DESCEND)
         return false;
     }
-    if (n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.x != NO_NODE) {
-      leafnode ln = leafnodes[n.rightOrLeaf_SplitAxis_SplitPos_GlobalOffset.x];
+    if (n.rightOrLeaf_SplitAxisSplitPos.x != NO_NODE) {
+      leafnode ln = leafnodes[n.rightOrLeaf_SplitAxisSplitPos.x];
       if (intersectVoxels(o, dir, ln.voxels.x, ln.voxels.y, shinfo.t, shinfo.vindex, shinfo.uv))
         return true;
     }
