@@ -1,6 +1,10 @@
 package org.lwjgl.demo.util;
 
-import java.util.*;
+import static java.lang.Math.*;
+import static java.util.Arrays.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.joml.Vector3d;
 
@@ -11,23 +15,8 @@ public class KDTreei<T extends Boundable<T>> {
     private static final int Z = 2;
 
     public Node<T> root;
-    private int maxVoxelCount = 2;
-    private float nodeIntersectCosts = 1.0f;
-    private float voxelIntersectCosts = 1.0f;
-
-    private class IntervalBoundary {
-        int type;
-        int pos;
-
-        IntervalBoundary(int t, int p) {
-            type = t;
-            pos = p;
-        }
-
-        int compareTo(IntervalBoundary sib) {
-            return Integer.compare(pos, sib.pos);
-        }
-    }
+    private int maxVoxelCount = 4;
+    private final int[] intervals = new int[1024];
 
     public static class Box implements Boundable<Box> {
         public int minX, minY, minZ;
@@ -49,13 +38,6 @@ public class KDTreei<T extends Boundable<T>> {
             this.maxX = bbox.maxX;
             this.maxY = bbox.maxY;
             this.maxZ = bbox.maxZ;
-        }
-
-        public float diagonal() {
-            float dx = maxX - minX;
-            float dy = maxY - minY;
-            float dz = maxZ - minZ;
-            return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
 
         @Override
@@ -275,7 +257,7 @@ public class KDTreei<T extends Boundable<T>> {
             }
         }
 
-        private final boolean isLeafNode() {
+        private boolean isLeafNode() {
             return splitAxis == -1;
         }
 
@@ -407,21 +389,18 @@ public class KDTreei<T extends Boundable<T>> {
         root = new Node<T>();
         root.boundables = list;
         root.boundingBox = bbox;
-        buildTree(root, 0, 0, maxDepth);
+        buildTree(root, 0, maxDepth);
         root.processNode(root.ropes = neighbors);
         root.optimizeRopes();
     }
 
-    private void buildTree(Node<T> node, int axis, int depth, int maxDepth) {
-        if (node.boundables.size() > maxVoxelCount && depth < maxDepth) {
-            node.splitAxis = axis;
+    private void buildTree(Node<T> node, int depth, int maxDepth) {
+        if (node.boundables.size() > maxVoxelCount && depth < maxDepth)
             node.splitPos = findSplitPlane(node);
-        } else {
+        else
             node.splitAxis = -1;
-        }
-        if (node.splitAxis == -1) {
+        if (node.splitAxis == -1)
             return;
-        }
         if (node.boundables.size() > maxVoxelCount) {
             node.left = new Node<T>();
             node.right = new Node<T>();
@@ -446,9 +425,8 @@ public class KDTreei<T extends Boundable<T>> {
                 }
             });
             node.boundables.clear();
-            int nextAxis = (axis + 1) % 3;
-            buildTree(node.left, nextAxis, depth + 1, maxDepth);
-            buildTree(node.right, nextAxis, depth + 1, maxDepth);
+            buildTree(node.left, depth + 1, maxDepth);
+            buildTree(node.right, depth + 1, maxDepth);
         }
     }
 
@@ -456,65 +434,52 @@ public class KDTreei<T extends Boundable<T>> {
         if (node == null)
             return -1;
         Box bb = node.boundingBox;
-        int nPrims = node.boundables.size();
-        int xw = bb.maxX - bb.minX;
-        int yw = bb.maxY - bb.minY;
-        int zw = bb.maxZ - bb.minZ;
-        int box_width;
-        int ax;
+        int xw = bb.maxX - bb.minX, yw = bb.maxY - bb.minY, zw = bb.maxZ - bb.minZ;
+        int ax, boxWidth;
         if (xw > yw && xw > zw) {
             ax = X;
-            box_width = xw;
+            boxWidth = xw;
         } else if (yw > zw) {
             ax = Y;
-            box_width = yw;
+            boxWidth = yw;
         } else {
             ax = Z;
-            box_width = zw;
+            boxWidth = zw;
         }
-        float inv_box_width = 1.0f / box_width;
-        List<IntervalBoundary> intervals = new ArrayList<IntervalBoundary>();
-        final int count = node.boundables.size();
-        final int divisor = (int) Math.ceil(count / 100.0);
-        nPrims /= divisor;
-        for (int i = 0; i < count; i += divisor) {
-            T vx = node.boundables.get(i);
-            if (!bb.intersects(vx.min(X), vx.min(Y), vx.min(Z), vx.max(X), vx.max(Y), vx.max(Z))) {
-                throw new IllegalStateException("!!! KDTree.findSplitPlane: no intersection of boxes");
-            }
-            intervals.add(new IntervalBoundary(0, vx.min(ax)));
-            intervals.add(new IntervalBoundary(1, vx.max(ax)));
-        }
-        Collections.sort(intervals, IntervalBoundary::compareTo);
-        int done_intervals = 0;
-        int open_intervals = 0;
-        float alpha;
-        int minid = 0;
-        float mincost = Float.MAX_VALUE;
-        for (int i = 0; i < intervals.size(); i++) {
-            IntervalBoundary in = intervals.get(i);
-            if (in.type == 1) {
-                open_intervals--;
-                done_intervals++;
-            }
-            alpha = (in.pos - bb.min(ax)) * inv_box_width;
-            float cost = voxelIntersectCosts + nodeIntersectCosts
-                    * ((done_intervals + open_intervals) * alpha + (nPrims - done_intervals) * (1.0f - alpha));
-            if (cost < mincost) {
-                minid = i;
-                mincost = cost;
-            }
-            if (in.type == 0) {
-                open_intervals++;
-            }
-        }
-        int splitPlane = intervals.get(minid).pos;
-        if (splitPlane == bb.min(ax) || splitPlane == bb.max(ax)) {
+        int n = node.boundables.size();
+        int step = (int) ceil(n / 64.0);
+        int k = splitIntervals(node, n, ax, step);
+        sort(intervals, 0, k);
+        int split = bestSplitSah(bb, n / step, ax, boxWidth, k);
+        if (split == bb.min(ax) || split == bb.max(ax)) {
             node.splitAxis = -1;
             return -1;
         }
         node.splitAxis = ax;
-        return intervals.get(minid).pos;
+        return split;
     }
 
+    private int splitIntervals(Node<T> node, int n, int ax, int step) {
+        int k = 0;
+        for (int i = 0; i < n; i += step, k++) {
+            T vx = node.boundables.get(i);
+            intervals[k] = vx.min(ax);
+        }
+        return k;
+    }
+
+    private int bestSplitSah(Box bb, int n, int ax, float boxWidth, int k) {
+        float invBoxWidth = 1.0f / boxWidth, mincost = Float.POSITIVE_INFINITY;
+        int minid = 0;
+        for (int i = 0; i < k; i++) {
+            int in = intervals[i];
+            float alpha = (in - bb.min(ax)) * invBoxWidth;
+            float cost = i * alpha + (n - i) * (1.0f - alpha);
+            if (cost < mincost) {
+                minid = i;
+                mincost = cost;
+            }
+        }
+        return intervals[minid];
+    }
 }
