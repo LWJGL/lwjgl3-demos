@@ -136,7 +136,7 @@ vec2 intersectBox(vec3 origin, vec3 dir, const box b, out vec3 normal) {
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
   float tFar = min(min(t2.x, t2.y), t2.z);
-  normal = vec3(equal(t1, vec3(tNear))) * vec3(-1.0) * sign(dir);
+  normal = vec3(equal(t1, vec3(tNear))) * sign(-dir);
   return vec2(tNear, tFar);
 }
 
