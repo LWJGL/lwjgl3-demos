@@ -101,16 +101,6 @@ public class KDTreei<T extends Boundable<T>> {
             return this.maxX >= minX && this.maxY >= minY && this.maxZ >= minZ && this.minX <= maxX && this.minY <= maxY
                     && this.minZ <= maxZ;
         }
-
-        @Override
-        public Box splitLeft(int splitAxis, int splitPos) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Box splitRight(int splitAxis, int splitPos) {
-            throw new UnsupportedOperationException();
-        }
     }
 
     public static class Voxel implements Boundable<Voxel> {
@@ -363,12 +353,14 @@ public class KDTreei<T extends Boundable<T>> {
         Box b = new Box(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE,
                 Integer.MIN_VALUE);
         for (T v : boundables) {
-            b.minX = b.minX < v.min(X) ? b.minX : v.min(X);
-            b.minY = b.minY < v.min(Y) ? b.minY : v.min(Y);
-            b.minZ = b.minZ < v.min(Z) ? b.minZ : v.min(Z);
-            b.maxX = b.maxX > v.max(X) ? b.maxX : v.max(X);
-            b.maxY = b.maxY > v.max(Y) ? b.maxY : v.max(Y);
-            b.maxZ = b.maxZ > v.max(Z) ? b.maxZ : v.max(Z);
+            int vminx = v.min(X), vminy = v.min(Y), vminz = v.min(Z);
+            int vmaxx = v.max(X), vmaxy = v.max(Y), vmaxz = v.max(Z);
+            b.minX = b.minX < vminx ? b.minX : vminx;
+            b.minY = b.minY < vminy ? b.minY : vminy;
+            b.minZ = b.minZ < vminz ? b.minZ : vminz;
+            b.maxX = b.maxX > vmaxx ? b.maxX : vmaxx;
+            b.maxY = b.maxY > vmaxy ? b.maxY : vmaxy;
+            b.maxZ = b.maxZ > vmaxz ? b.maxZ : vmaxz;
         }
         KDTreei<T> root = new KDTreei<T>();
         root.buildTree(boundables, b, neighbors, maxDepth);
