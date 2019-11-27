@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.opengl.raytracing;
 
+import static java.lang.ClassLoader.*;
 import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -38,10 +39,11 @@ public class GL33KdTreeTrace {
   private int rayTracingProgram;
   private int camUniform;
   private Matrix4f pMat = new Matrix4f();
-  private Matrix4f vMat = new Matrix4f().lookAt(50, 90, 130, 40, 30, 40, 0, 1, 0);
+  private Matrix4f vMat = new Matrix4f().lookAt(70, 60, 180, 60, 20, 80, 0, 1, 0);
   private Matrix4f ivpMat = new Matrix4f();
   private Vector3f camPos = new Vector3f();
   private Vector3f v = new Vector3f();
+  private Material[] materials = new Material[512];
   private FloatBuffer vbuf = memAllocFloat(3);
   private Callback debugProc;
   private int nodesBufferBO;
@@ -52,6 +54,8 @@ public class GL33KdTreeTrace {
   private int nodeGeomsBufferTex;
   private int leafNodesBufferBO;
   private int leafNodesBufferTex;
+  private int materialsBufferBO;
+  private int materialsBufferTex;
 
   private void init() throws IOException {
     if (!glfwInit())
@@ -163,6 +167,7 @@ public class GL33KdTreeTrace {
     glUniform1i(glGetUniformLocation(program, "nodegeoms"), 1);
     glUniform1i(glGetUniformLocation(program, "leafnodes"), 2);
     glUniform1i(glGetUniformLocation(program, "voxels"), 3);
+    glUniform1i(glGetUniformLocation(program, "materials"), 4);
     glUseProgram(0);
     rayTracingProgram = program;
   }
@@ -198,6 +203,19 @@ public class GL33KdTreeTrace {
     leafNodesBufferTex = glGenTextures();
     glBindTexture(GL_TEXTURE_BUFFER, leafNodesBufferTex);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32UI, leafNodesBufferBO);
+    //
+    DynamicByteBuffer materialsBuffer = new DynamicByteBuffer();
+    for (Material mat : materials)
+        if (mat != null)
+            materialsBuffer.putInt(mat.color);
+        else
+            materialsBuffer.putInt(0);
+    materialsBufferBO = glGenBuffers();
+    glBindBuffer(GL_TEXTURE_BUFFER, materialsBufferBO);
+    nglBufferData(GL_TEXTURE_BUFFER, materialsBuffer.pos, materialsBuffer.addr, GL_STATIC_DRAW);
+    materialsBufferTex = glGenTextures();
+    glBindTexture(GL_TEXTURE_BUFFER, materialsBufferTex);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, materialsBufferBO);
   }
 
   private void kdTreeToBuffers(KDTreei<Voxel> root, int nodeIndexOffset, int voxelIndexOffset, DynamicByteBuffer nodesBuffer,
@@ -249,22 +267,27 @@ public class GL33KdTreeTrace {
     glBindTexture(GL_TEXTURE_BUFFER, leafNodesBufferTex);
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_BUFFER, voxelsBufferTex);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_BUFFER, materialsBufferTex);
     glBindVertexArray(quadVao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
     glUseProgram(0);
   }
 
+  private static int idx(int x, int y, int z, int width, int height) {
+      return x + width * (y + z * height);
+  }
   private List<KDTreei.Voxel> buildTerrainVoxels() throws IOException {
     Vector3i dims = new Vector3i();
-    FileInputStream fis = new FileInputStream("menger.vox"); // <- please specify location to MagicaVoxel model file!
-    BufferedInputStream bis = new BufferedInputStream(fis, fis.available());
+    InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house6.vox");
+    BufferedInputStream bis = new BufferedInputStream(is);
     List<KDTreei.Voxel> voxels = new ArrayList<>();
     byte[] field = new byte[256 * 256 * 256];
     new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
       public void voxel(int x, int y, int z, byte c) {
         y = dims.z - y - 1;
-        field[x + dims.x * (z + y * dims.y)] = c;
+        field[idx(x, z, y, dims.x, dims.y)] = c;
       }
 
       public void size(int x, int y, int z) {
@@ -274,15 +297,34 @@ public class GL33KdTreeTrace {
       }
 
       public void paletteMaterial(int i, Material mat) {
+          materials[i] = mat;
       }
     });
-    for (short z = 0; z < dims.z; z++)
-      for (short y = 0; y < dims.y; y++)
-        for (short x = 0; x < dims.x; x++) {
-          int idx = x + dims.x * (y + z * dims.y);
-          if (field[idx] != 0)
-            voxels.add(new KDTreei.Voxel((byte) x, (byte) y, (byte) z, field[idx]));
+    // Cull voxels
+    int numVoxels = 0, numRetainedVoxels = 0;
+    for (int z = 0; z < dims.z; z++) {
+        for (int y = 0; y < dims.y; y++) {
+            for (int x = 0; x < dims.x; x++) {
+                int idx = idx(x, y, z, dims.x, dims.y);
+                byte c = field[idx];
+                if (c == 0)
+                    continue;
+                numVoxels++;
+                boolean left = x > 0 && (field[idx(x - 1, y, z, dims.x, dims.y)]) != 0;
+                boolean right = x < dims.x - 1 && (field[idx(x + 1, y, z, dims.x, dims.y)]) != 0;
+                boolean down = y > 0 && (field[idx(x, y - 1, z, dims.x, dims.y)]) != 0;
+                boolean up = y < dims.y - 1 && (field[idx(x, y + 1, z, dims.x, dims.y)]) != 0;
+                boolean back = z > 0 && (field[idx(x, y, z - 1, dims.x, dims.y)]) != 0;
+                boolean front = z < dims.z - 1 && (field[idx(x, y, z + 1, dims.x, dims.y)]) != 0;
+                if (left && right && down && up && back && front)
+                    continue;
+                numRetainedVoxels++;
+                voxels.add(new KDTreei.Voxel(x, y, z, c));
+            }
         }
+    }
+    System.out.println("Num voxels: " + numVoxels);
+    System.out.println("Num retained voxels: " + numRetainedVoxels);
     return voxels;
   }
 

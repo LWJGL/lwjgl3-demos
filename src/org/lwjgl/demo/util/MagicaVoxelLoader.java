@@ -1,5 +1,6 @@
 package org.lwjgl.demo.util;
 
+import static java.lang.Math.*;
 import static java.nio.charset.StandardCharsets.*;
 
 import java.io.*;
@@ -89,9 +90,10 @@ public class MagicaVoxelLoader {
             throw new IOException();
         skip(input, chunk.size);
         boolean foundPalette = false;
-        Material[] mats = new Material[256];
-        for (int p = 0; p < 256; p++)
+        Material[] mats = new Material[512];
+        for (int p = 0; p < 512; p++)
             mats[p] = new Material();
+        int numMaterials = 0;
         while (true) {
             try {
                 readChunk(input, chunk);
@@ -106,6 +108,7 @@ public class MagicaVoxelLoader {
                     callback.voxel(input.read(), input.read(), input.read(), (byte) (input.read() & 0xff));
             } else if (chunk.id == magicValue('R', 'G', 'B', 'A')) {
                 mats[0].color = DEFAULT_PALETTE[0];
+                numMaterials = max(numMaterials, 256);
                 for (int p = 1; p < 256; p++)
                     mats[p].color = read32(input);
                 skip(input, 4);
@@ -113,6 +116,7 @@ public class MagicaVoxelLoader {
             } else if (chunk.id == magicValue('M', 'A', 'T', 'L')) {
                 int mid = read32(input), dc = read32(input);
                 Material mat = mats[mid];
+                numMaterials = max(numMaterials, mid + 1);
                 for (int i = 0; i < dc; i++) {
                     String v = readString(input);
                     switch (readString(input)) {
@@ -147,10 +151,11 @@ public class MagicaVoxelLoader {
                 skip(input, chunk.size + chunk.childrenCount);
             }
         }
-        if (!foundPalette)
-            for (int p = 0; p < 256; p++)
+        if (!foundPalette) {
+            for (int p = 0; p < numMaterials; p++)
                 mats[p].color = DEFAULT_PALETTE[p];
-        for (int p = 0; p < 256; p++)
+        }
+        for (int p = 0; p < numMaterials; p++)
             callback.paletteMaterial(p, mats[p]);
     }
 

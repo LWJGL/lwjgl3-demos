@@ -222,7 +222,7 @@ public class KDTreei<T extends Boundable<T>> {
         private static final int SIDE_Z_POS = 4;
         private static final int SIDE_Z_NEG = 5;
 
-        public int splitAxis = -1;
+        public int splitAxis;
         public int splitPos;
         public Box boundingBox;
         public Node<B> left;
@@ -258,16 +258,20 @@ public class KDTreei<T extends Boundable<T>> {
             } else {
                 int sideLeft;
                 int sideRight;
-                if (splitAxis == X) {
+                switch (splitAxis) {
+                case X:
                     sideLeft = SIDE_X_NEG;
                     sideRight = SIDE_X_POS;
-                } else if (splitAxis == Y) {
+                    break;
+                case Y:
                     sideLeft = SIDE_Y_NEG;
                     sideRight = SIDE_Y_POS;
-                } else if (splitAxis == Z) {
+                    break;
+                case Z:
                     sideLeft = SIDE_Z_NEG;
                     sideRight = SIDE_Z_POS;
-                } else {
+                    break;
+                default:
                     throw new AssertionError();
                 }
                 this.left.ropes = new Node[6];

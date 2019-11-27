@@ -11,7 +11,7 @@
 #define MAX_ROPES 100u
 #define SIDE_Y_NEG 2u
 #define SIDE_Z_NEG 4u
-#define INT_BITS 30u
+#define AXIS_SHIFT 30u
 #define SHORT_BITS 16u
 #define AXIS_MASK 3u
 #define SPLITPOS_MASK 0x3FFFu
@@ -27,6 +27,7 @@ uniform usamplerBuffer nodes;
 uniform usamplerBuffer nodegeoms;
 uniform usamplerBuffer leafnodes;
 uniform usamplerBuffer voxels;
+uniform samplerBuffer materials;
 
 struct hitinfo {
   vec3 normal;
@@ -34,20 +35,20 @@ struct hitinfo {
   uint i;
   uint descends;
   uint ropes;
+  uint16_t nodeIdx;
 };
 bool intersectVoxel(vec3 origin, vec3 invdir, vec3 bmin, vec3 bmax, out float t, out vec3 normal) {
   vec3 tMin = (bmin - origin) * invdir, tMax = (bmax - origin) * invdir;
   vec3 t1 = min(tMin, tMax), t2 = max(tMin, tMax);
   t = max(max(t1.x, t1.y), t1.z);
-  vec3 e = vec3(equal(t1, vec3(t))), p = origin + t / invdir - bmin;
-  normal = e * sign(-invdir);
+  normal = vec3(equal(t1, vec3(t))) * sign(-invdir);
   return t >= 0.0 && t <= min(min(t2.x, t2.y), t2.z);
 }
-vec2 intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
+float intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
   bvec3 lt = lessThan(invdir, vec3(0.0));
   vec3 m1 = (vec3(bmin) - origin) * invdir, m2 = ((vec3(bmax) + vec3(1.0)) - origin) * invdir;
-  vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
-  return vec2(max(max(tmin.x, tmin.y), tmin.z), min(min(tmax.x, tmax.y), tmax.z));
+  vec3 tmin = mix(m1, m2, lt);
+  return max(max(tmin.x, tmin.y), tmin.z);
 }
 bool intersectVoxels(vec3 origin, vec3 invdir, uint firstVoxel, uint numVoxels, inout hitinfo hinfo) {
   bool hit = false;
@@ -76,7 +77,7 @@ float exitSide(vec3 origin, vec3 invdir, uvec3 boxMin, uvec3 boxMax, out int exi
 }
 
 uint8_t axis(uvec4 n) {
-  return uint8_t(n.x >> INT_BITS & AXIS_MASK);
+  return uint8_t(n.x >> AXIS_SHIFT & AXIS_MASK);
 }
 uint8_t splitPos(uvec4 n) {
   return uint8_t(n.x >> SHORT_BITS & SPLITPOS_MASK);
@@ -94,23 +95,21 @@ uint16_t rope(uvec4 n, int r) {
 bool intersectScene(uint16_t nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hitinfo shinfo) {
   uvec4 n = texelFetch(nodes, int(nodeIdx));
   uvec4 ng = texelFetch(nodegeoms, int(nodeIdx));
-  vec2 lambda = intersectBox(origin, invdir, unpack8(ng.x), unpack8(ng.y));
-  if (lambda.y < 0.0 || lambda.x > lambda.y)
-    return false;
-  lambda.x = max(lambda.x, 0.0);
+  float tEntry = max(0.0, intersectBox(origin, invdir, unpack8(ng.x), unpack8(ng.y)));
   shinfo.descends = 0u;
   shinfo.ropes = 0u;
   shinfo.t = 1.0/0.0;
   uvec3 nmin = unpack8(ng.x), nmax = unpack8(ng.y);
   while (true) {
-    vec3 pEntry = dir * lambda.x + origin;
+    vec3 pEntry = dir * tEntry + origin;
     while (axis(n) != NO_AXIS) {
-      if (splitPos(n) <= pEntry[axis(n)]) {
+      uint8_t sp = splitPos(n);
+      if (sp <= pEntry[axis(n)]) {
         nodeIdx = nodeIndex(n);
-        nmin[axis(n)] = uint8_t(splitPos(n));
+        nmin[axis(n)] = sp;
       } else {
         nodeIdx = uint16_t(nodeIdx + 1u);
-        nmax[axis(n)] = uint8_t(splitPos(n) - 1u);
+        nmax[axis(n)] = uint8_t(sp - 1u);
       }
       n = texelFetch(nodes, int(nodeIdx));
       if (shinfo.descends++ > MAX_DESCEND)
@@ -119,11 +118,13 @@ bool intersectScene(uint16_t nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hi
     uint16_t leafIndex = nodeIndex(n);
     if (leafIndex != NO_NODE) {
       uvec4 ln = texelFetch(leafnodes, int(leafIndex));
-      if (intersectVoxels(origin, invdir, ln.x, ln.y, shinfo))
+      if (intersectVoxels(origin, invdir, ln.x, ln.y, shinfo)) {
+        shinfo.nodeIdx = nodeIdx;
         return true;
+      }
     }
     int exit;
-    lambda.x = exitSide(origin, invdir, nmin, nmax, exit);
+    tEntry = exitSide(origin, invdir, nmin, nmax, exit);
     nodeIdx = rope(n, exit);
     if (nodeIdx == NO_NODE)
       return false;
@@ -138,13 +139,18 @@ bool intersectScene(uint16_t nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hi
 }
 
 vec3 trace(vec3 origin, vec3 dir) {
-  hitinfo hinfo;
-  vec3 col = vec3(0.0);
+  hitinfo hinfo, hinfo2;
+  vec3 col = vec3(0.3, 0.42, 0.62);
   if (intersectScene(uint16_t(0u), origin, dir, 1.0/dir, hinfo)) {
-    col = hinfo.normal;
-  } else {
-    col = vec3(hinfo.descends, hinfo.ropes, 0.0) * 0.05;
+    uvec4 v = texelFetch(voxels, int(hinfo.i));
+    col = texelFetch(materials, int(v.w)).rgb;
+    // Cast shadow ray
+    origin += dir * hinfo.t + hinfo.normal * 1E-3;
+    dir = vec3(2.0, 1.0, 1.0);
+    if (intersectScene(hinfo.nodeIdx, origin, dir, 1.0/dir, hinfo2))
+      col *= 0.3;
   }
+  //col *= vec3(hinfo.ropes, hinfo.descends, 1.0) * vec3(0.3, 0.05, 1.0);
   return col;
 }
 
