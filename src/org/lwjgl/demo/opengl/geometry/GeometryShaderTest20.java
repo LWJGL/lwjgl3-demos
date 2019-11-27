@@ -18,8 +18,6 @@ import java.nio.IntBuffer;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.EXTGeometryShader4.*;
 import static org.lwjgl.system.MemoryUtil.*;

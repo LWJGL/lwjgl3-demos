@@ -6,11 +6,7 @@ package org.lwjgl.demo.opengl.shader;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.createShader;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.opengl.GL31C.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import java.io.IOException;
 import java.nio.*;
