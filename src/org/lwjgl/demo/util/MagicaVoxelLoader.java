@@ -118,8 +118,9 @@ public class MagicaVoxelLoader {
                 Material mat = mats[mid];
                 numMaterials = max(numMaterials, mid + 1);
                 for (int i = 0; i < dc; i++) {
+                    String k = readString(input);
                     String v = readString(input);
-                    switch (readString(input)) {
+                    switch (k) {
                     case "_type":
                         mat.type = Material.Type.valueOf(v);
                         break;
