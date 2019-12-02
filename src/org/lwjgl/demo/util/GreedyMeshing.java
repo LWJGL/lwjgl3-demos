@@ -24,14 +24,16 @@ public class GreedyMeshing {
         public static final byte SIDE_PZ = 5;
 
         public short u0, v0, u1, v1, p, s;
+        public byte v;
 
-        public Face(int u0, int v0, int u1, int v1, int p, int s) {
+        public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {
             this.u0 = (short) u0;
             this.v0 = (short) v0;
             this.u1 = (short) u1;
             this.v1 = (short) v1;
             this.p = (short) p;
             this.s = (short) s;
+            this.v = v;
         }
     }
 
@@ -177,7 +179,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0)));
+        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
         eraseMaskX(n, w, h);
         return w;
     }
@@ -188,7 +190,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0)));
+        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
         eraseMaskY(n, w, h);
         return w;
     }
@@ -199,7 +201,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0)));
+        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
         eraseMaskZ(n, w, h);
         return w;
     }
