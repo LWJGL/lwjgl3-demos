@@ -130,15 +130,15 @@ public class GreedyMeshing {
     }
 
     private void generateMaskX(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2), at(x0 + 1, x1, x2));
+        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0 + 1, x1, x2) & 0xFF);
     }
 
     private void generateMaskY(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2), at(x0, x1 + 1, x2));
+        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0, x1 + 1, x2) & 0xFF);
     }
 
     private void generateMaskZ(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2), at(x0, x1, x2 + 1));
+        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0, x1, x2 + 1) & 0xFF);
     }
 
     private void writeMask(int n, int a, int b) {
