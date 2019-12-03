@@ -104,8 +104,7 @@ public class GL33KdTreeTrace {
     // Create OpenGL resources
     quadVao = glGenVertexArrays();
     createRayTracingProgram();
-    List<Voxel> voxels = buildTerrainVoxels();
-    createSceneTBOs(voxels);
+    createSceneTBOs(buildTerrainVoxels());
   }
 
   private static List<KDTreei.Node<Voxel>> allocate(KDTreei.Node<Voxel> node) {
@@ -190,7 +189,7 @@ public class GL33KdTreeTrace {
     nglBufferData(GL_TEXTURE_BUFFER, voxelsBuffer.pos, voxelsBuffer.addr, GL_STATIC_DRAW);
     voxelsBufferTex = glGenTextures();
     glBindTexture(GL_TEXTURE_BUFFER, voxelsBufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8UI, voxelsBufferBO);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32UI, voxelsBufferBO);
     nodeGeomsBufferBO = glGenBuffers();
     glBindBuffer(GL_TEXTURE_BUFFER, nodeGeomsBufferBO);
     nglBufferData(GL_TEXTURE_BUFFER, nodeGeomsBuffer.pos, nodeGeomsBuffer.addr, GL_STATIC_DRAW);
@@ -227,17 +226,18 @@ public class GL33KdTreeTrace {
       int numVoxels = 0;
       if (n.left == null) {
         numVoxels = n.boundables.size();
-        n.boundables.forEach(v ->
-        // RGBA8UI
-        voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex));
+        n.boundables.forEach(v -> {
+          // RG32UI
+          voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex);
+          voxelsBuffer.putByte(v.ex).putByte(v.ey).putByte(v.ez).putByte(0);
+        });
         if (n.leafIndex != -1)
           // RG32UI
           leafNodesBuffer.putInt(first).putInt(numVoxels);
       }
       // RG32UI
       nodeGeomsBuffer.putByte(n.boundingBox.minX).putByte(n.boundingBox.minY).putByte(n.boundingBox.minZ).putByte(0);
-      nodeGeomsBuffer.putByte(n.boundingBox.maxX - 1).putByte(n.boundingBox.maxY - 1).putByte(n.boundingBox.maxZ - 1)
-          .putByte(0);
+      nodeGeomsBuffer.putByte(n.boundingBox.maxX-1).putByte(n.boundingBox.maxY-1).putByte(n.boundingBox.maxZ-1).putByte(0);
       // RGBA32UI
       nodesBuffer.putShort(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
       nodesBuffer.putShort(n.splitAxis == -1 ? -1 : n.splitAxis << (Short.SIZE - 2) | n.splitPos);
@@ -278,12 +278,13 @@ public class GL33KdTreeTrace {
   private static int idx(int x, int y, int z, int width, int height) {
       return x + width * (y + z * height);
   }
+
   private List<KDTreei.Voxel> buildTerrainVoxels() throws IOException {
     Vector3i dims = new Vector3i();
     InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house6.vox");
     BufferedInputStream bis = new BufferedInputStream(is);
-    List<KDTreei.Voxel> voxels = new ArrayList<>();
     byte[] field = new byte[256 * 256 * 256];
+    boolean[] culled = new boolean[256 * 256 * 256];
     new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
       public void voxel(int x, int y, int z, byte c) {
         y = dims.z - y - 1;
@@ -316,15 +317,24 @@ public class GL33KdTreeTrace {
                 boolean up = y < dims.y - 1 && (field[idx(x, y + 1, z, dims.x, dims.y)]) != 0;
                 boolean back = z > 0 && (field[idx(x, y, z - 1, dims.x, dims.y)]) != 0;
                 boolean front = z < dims.z - 1 && (field[idx(x, y, z + 1, dims.x, dims.y)]) != 0;
-                if (left && right && down && up && back && front)
-                    continue;
-                numRetainedVoxels++;
-                voxels.add(new KDTreei.Voxel(x, y, z, c));
+                if (left && right && down && up && back && front) {
+                    culled[idx] = true;
+                } else {
+                    numRetainedVoxels++;
+                }
             }
         }
     }
     System.out.println("Num voxels: " + numVoxels);
     System.out.println("Num retained voxels: " + numRetainedVoxels);
+    /* Merge voxels */
+    List<Voxel> voxels = new ArrayList<>();
+    GreedyVoxels gv = new GreedyVoxels(dims.x, dims.y, dims.z, (x, y, z, w, h, d, v) -> {
+      voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
+    });
+    gv.setMergeCulled(true);
+    gv.merge(field, culled);
+    System.out.println("Num voxels after merge: " + voxels.size());
     return voxels;
   }
 

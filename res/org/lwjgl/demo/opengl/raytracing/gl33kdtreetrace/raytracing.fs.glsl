@@ -45,13 +45,17 @@ float intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
   vec3 tmin = mix(m1, m2, lt);
   return max(max(tmin.x, tmin.y), tmin.z);
 }
+uvec3 unpack8(uint v) {
+  return uvec3(v & BYTE_MASK, v >> 8u & BYTE_MASK, v >> 16u & BYTE_MASK);
+}
 bool intersectVoxels(vec3 origin, vec3 invdir, uint firstVoxel, uint numVoxels, inout hitinfo hinfo) {
   bool hit = false;
   for (uint i = 0u; i < numVoxels; i++) {
-    vec3 vx = vec3(texelFetch(voxels, int(i + firstVoxel)));
+    uvec2 vpe = texelFetch(voxels, int(i + firstVoxel)).xy;
+    vec3 vp = vec3(unpack8(vpe.x)), ve = vec3(unpack8(vpe.y));
     float tn;
     vec3 normal;
-    if (intersectVoxel(origin, invdir, vx, vx + vec3(1.0), tn, normal) && tn <= hinfo.t) {
+    if (intersectVoxel(origin, invdir, vp, vp + ve + vec3(1.0), tn, normal) && tn <= hinfo.t) {
       hinfo.t = tn;
       hinfo.i = i + firstVoxel;
       hinfo.normal = normal;
@@ -79,9 +83,6 @@ uint splitPos(uvec4 n) {
 }
 uint nodeIndex(uvec4 n) {
   return n.x & SHORT_MASK;
-}
-uvec3 unpack8(uint v) {
-  return uvec3(v & BYTE_MASK, v >> 8u & BYTE_MASK, v >> 16u & BYTE_MASK);
 }
 uint rope(uvec4 n, uint r) {
   return n[1u + (r >> 1u)] >> (r & 1u) * SHORT_BITS & SHORT_MASK;
@@ -137,8 +138,8 @@ vec3 trace(vec3 origin, vec3 dir) {
   hitinfo hinfo, hinfo2;
   vec3 col = vec3(0.3, 0.42, 0.62);
   if (intersectScene(0u, origin, dir, 1.0/dir, hinfo)) {
-    uvec4 v = texelFetch(voxels, int(hinfo.i));
-    col = texelFetch(materials, int(v.w)).rgb;
+    uint vm = texelFetch(voxels, int(hinfo.i)).x >> 24u;
+    col = texelFetch(materials, int(vm)).rgb;
     // Cast shadow ray
     origin += dir * hinfo.t + hinfo.normal * 1E-3;
     dir = vec3(2.0, 1.0, 1.0);
