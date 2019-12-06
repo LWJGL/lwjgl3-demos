@@ -13,6 +13,7 @@
 #define NO_NODE uint(-1u)
 #define SPLIT_POS(v) (v & 0x3FFFFFFFu)
 #define SPLIT_AXIS(v) (v >> 30u & 3u)
+#define BYTE_MASK 0xFFu
 #define MAX_DESCEND 200u
 #define MAX_ROPES 100u
 #define SKY_COLOR vec3(0.96, 0.98, 1.0)
@@ -27,11 +28,10 @@ uniform int scale = 1;
 uniform uint startNodeIdx = 0u;
 
 /*
- * 8 ints.
+ * 2 ints.
  */
 struct node {
   uvec2 rightOrLeaf_SplitAxisSplitPos;
-  uint ropes[6];
 };
 layout(std430, binding = 0) readonly restrict buffer Nodes {
   node[] nodes;
@@ -41,34 +41,36 @@ layout(std430, binding = 0) readonly restrict buffer Nodes {
  * 2 ints.
  */
 struct nodegeom {
-  u8vec3 min, max;
+  uvec2 min_max;
 };
 layout(std430, binding = 1) readonly restrict buffer NodeGeoms {
   nodegeom[] nodegeoms;
 };
 
 /*
- * 2 ints.
+ * 8 ints.
  */
 struct leafnode {
   uvec2 voxels;
+  uint ropes[6];
 };
 layout(std430, binding = 2) readonly restrict buffer LeafNodes {
   leafnode[] leafnodes;
 };
 
-struct voxel {
-  u8vec4 positionAndPalette;
-  u8vec4 extent;
-};
-
 /*
- * 1 int.
+ * 2 ints.
  */
+struct voxel {
+  uvec2 positionAndPalette_extent;
+};
 layout(std430, binding = 3) readonly restrict buffer Voxels {
   voxel[] voxels;
 };
 
+uvec3 unpack8(uint v) {
+  return uvec3(v & BYTE_MASK, v >> 8u & BYTE_MASK, v >> 16u & BYTE_MASK);
+}
 const bool intersectVoxel(const in vec3 origin, const in vec3 invdir, const in vec3 bmin, const in vec3 bmax,
                           inout float t) {
   const bvec3 lt = lessThan(invdir, vec3(0.0));
@@ -89,8 +91,8 @@ const bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const uin
   bool hit = false;
   for (uint i = 0; i < numVoxels; i++) {
     const voxel v = voxels[i + firstVoxel];
-    const vec3 vp = vec3(v.positionAndPalette.xyz)*scale;
-    const vec3 ve = vec3(v.extent.xyz)*scale;
+    const vec3 vp = vec3(unpack8(v.positionAndPalette_extent.x))*scale;
+    const vec3 ve = vec3(unpack8(v.positionAndPalette_extent.y))*scale;
     if (intersectVoxel(origin, invdir, vp, vp + vec3(scale) + ve, t)) {
       hit = true;
       vindex = i + firstVoxel;
@@ -112,7 +114,7 @@ const float exitSide(const in vec3 origin, const in vec3 invdir,
   return vals.x;
 }
 
-const vec2 intersectBox(const in vec3 origin, const in vec3 invdir, const in u8vec3 bmin, const in u8vec3 bmax) {
+const vec2 intersectBox(const in vec3 origin, const in vec3 invdir, const in uvec3 bmin, const in uvec3 bmax) {
   const bvec3 lt = lessThan(invdir, vec3(0.0));
   const vec3 m1 = (vec3(bmin)*scale - origin) * invdir, m2 = ((vec3(bmax) + vec3(1.0))*scale - origin) * invdir;
   const vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
@@ -129,14 +131,14 @@ const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 d
   node n = nodes[nodeIdx];
   vec3 o = origin;
   nodegeom ng = nodegeoms[nodeIdx];
-  vec2 lambda = intersectBox(o, invdir, ng.min, ng.max);
+  uvec3 nmin = unpack8(ng.min_max.x), nmax = unpack8(ng.min_max.y);
+  vec2 lambda = intersectBox(o, invdir, nmin, nmax);
   if (lambda.y < 0.0 || lambda.x > lambda.y)
     return false;
   lambda.x = max(lambda.x, 0.0);
   shinfo.descends = 0u;
   shinfo.ropes = 0u;
   shinfo.t = 1.0/0.0;
-  uvec3 nmin = ng.min, nmax = ng.max;
   while (true) {
     vec3 pEntry = dir * lambda.x + o;
     while (n.rightOrLeaf_SplitAxisSplitPos.y != NO_AXIS) {
@@ -151,20 +153,18 @@ const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 d
       if (shinfo.descends++ > MAX_DESCEND)
         return false;
     }
-    if (n.rightOrLeaf_SplitAxisSplitPos.x != NO_NODE) {
-      leafnode ln = leafnodes[n.rightOrLeaf_SplitAxisSplitPos.x];
-      if (intersectVoxels(o, invdir, ln.voxels.x, ln.voxels.y, shinfo.t, shinfo.vindex))
-        return true;
-    }
+    leafnode ln = leafnodes[n.rightOrLeaf_SplitAxisSplitPos.x];
+    if (intersectVoxels(o, invdir, ln.voxels.x, ln.voxels.y, shinfo.t, shinfo.vindex))
+      return true;
     uint exit;
     lambda.x = exitSide(o, invdir, nmin, nmax, exit);
-    nodeIdx = n.ropes[exit];
+    nodeIdx = ln.ropes[exit];
     if (nodeIdx == NO_NODE || shinfo.ropes++ > MAX_ROPES)
       break;
     n = nodes[nodeIdx];
     ng = nodegeoms[nodeIdx];
-    nmin = ng.min;
-    nmax = ng.max;
+    nmin = unpack8(ng.min_max.x);
+    nmax = unpack8(ng.min_max.y);
     o = origin;
   }
   return false;

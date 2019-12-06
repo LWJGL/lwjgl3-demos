@@ -121,10 +121,7 @@ public class GL33KdTreeTrace {
         nodes.addFirst(n.right);
         nodes.addFirst(n.left);
       } else {
-        if (!n.boundables.isEmpty())
-          n.leafIndex = leafIndex++;
-        else
-          n.leafIndex = -1;
+        n.leafIndex = leafIndex++;
         n.boundables.forEach(v -> v.nindex = n.index);
       }
     }
@@ -184,7 +181,7 @@ public class GL33KdTreeTrace {
     nglBufferData(GL_TEXTURE_BUFFER, nodesBuffer.pos, nodesBuffer.addr, GL_STATIC_DRAW);
     nodesBufferTex = glGenTextures();
     glBindTexture(GL_TEXTURE_BUFFER, nodesBufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32UI, nodesBufferBO);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, nodesBufferBO);
     voxelsBufferBO = glGenBuffers();
     glBindBuffer(GL_TEXTURE_BUFFER, voxelsBufferBO);
     nglBufferData(GL_TEXTURE_BUFFER, voxelsBuffer.pos, voxelsBuffer.addr, GL_STATIC_DRAW);
@@ -202,7 +199,7 @@ public class GL33KdTreeTrace {
     nglBufferData(GL_TEXTURE_BUFFER, leafNodesBuffer.pos, leafNodesBuffer.addr, GL_STATIC_DRAW);
     leafNodesBufferTex = glGenTextures();
     glBindTexture(GL_TEXTURE_BUFFER, leafNodesBufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32UI, leafNodesBufferBO);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32UI, leafNodesBufferBO);
     //
     DynamicByteBuffer materialsBuffer = new DynamicByteBuffer();
     for (Material mat : materials)
@@ -232,18 +229,17 @@ public class GL33KdTreeTrace {
           voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex);
           voxelsBuffer.putByte(v.ex).putByte(v.ey).putByte(v.ez).putByte(0);
         });
-        if (n.leafIndex != -1)
-          // RG32UI
-          leafNodesBuffer.putInt(first).putInt(numVoxels);
+        // RGBA32UI
+        leafNodesBuffer.putShort(first).putShort(numVoxels);
+        for (int i = 0; i < 6; i++)
+            leafNodesBuffer.putShort(n.ropes[i] != null ? n.ropes[i].index : -1);
       }
       // RG32UI
       nodeGeomsBuffer.putByte(n.boundingBox.minX).putByte(n.boundingBox.minY).putByte(n.boundingBox.minZ).putByte(0);
       nodeGeomsBuffer.putByte(n.boundingBox.maxX-1).putByte(n.boundingBox.maxY-1).putByte(n.boundingBox.maxZ-1).putByte(0);
-      // RGBA32UI
+      // R32UI
       nodesBuffer.putShort(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
       nodesBuffer.putShort(n.splitAxis == -1 ? -1 : n.splitAxis << (Short.SIZE - 2) | n.splitPos);
-      for (int i = 0; i < 6; i++)
-        nodesBuffer.putShort(n.ropes[i] != null ? n.ropes[i].index : -1);
       first += numVoxels;
     }
   }

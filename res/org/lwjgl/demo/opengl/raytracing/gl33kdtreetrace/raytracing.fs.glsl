@@ -75,23 +75,35 @@ float exitSide(vec3 origin, vec3 invdir, uvec3 boxMin, uvec3 boxMax, out uint ex
   return vals.x;
 }
 
-uint axis(uvec4 n) {
-  return n.x >> AXIS_SHIFT & AXIS_MASK;
+uint axis(uint n) {
+  return n >> AXIS_SHIFT & AXIS_MASK;
 }
-uint splitPos(uvec4 n) {
-  return n.x >> SHORT_BITS & SPLITPOS_MASK;
+uint splitPos(uint n) {
+  return n >> SHORT_BITS & SPLITPOS_MASK;
 }
-uint nodeIndex(uvec4 n) {
-  return n.x & SHORT_MASK;
+uint nodeIndex(uint n) {
+  return n & SHORT_MASK;
 }
 uint rope(uvec4 n, uint r) {
   return n[1u + (r >> 1u)] >> (r & 1u) * SHORT_BITS & SHORT_MASK;
 }
+uint firstVoxel(uvec4 ln) {
+  return ln.x & SHORT_MASK;
+}
+uint numVoxels(uvec4 ln) {
+  return ln.x >> SHORT_BITS & SHORT_MASK;
+}
+uvec3 boxmin(uvec2 ng) {
+  return unpack8(ng.x);
+}
+uvec3 boxmax(uvec2 ng) {
+  return unpack8(ng.y);
+}
 
 bool intersectScene(uint nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hitinfo shinfo) {
-  uvec4 n = texelFetch(nodes, int(nodeIdx));
-  uvec4 ng = texelFetch(nodegeoms, int(nodeIdx));
-  uvec3 nmin = unpack8(ng.x), nmax = unpack8(ng.y);
+  uint n = texelFetch(nodes, int(nodeIdx)).x;
+  uvec2 ng = texelFetch(nodegeoms, int(nodeIdx)).xy;
+  uvec3 nmin = boxmin(ng), nmax = boxmax(ng);
   float tEntry = max(0.0, intersectBox(origin, invdir, nmin, nmax));
   shinfo.descends = 0u;
   shinfo.ropes = 0u;
@@ -107,27 +119,25 @@ bool intersectScene(uint nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hitinf
         nodeIdx = nodeIdx + 1u;
         nmax[axis(n)] = sp - 1u;
       }
-      n = texelFetch(nodes, int(nodeIdx));
+      n = texelFetch(nodes, int(nodeIdx)).x;
       if (shinfo.descends++ > MAX_DESCEND)
         return false;
     }
     uint leafIndex = nodeIndex(n);
-    if (leafIndex != NO_NODE) {
-      uvec4 ln = texelFetch(leafnodes, int(leafIndex));
-      if (intersectVoxels(origin, invdir, ln.x, ln.y, shinfo)) {
-        shinfo.nodeIdx = nodeIdx;
-        return true;
-      }
+    uvec4 ln = texelFetch(leafnodes, int(leafIndex));
+    if (intersectVoxels(origin, invdir, firstVoxel(ln), numVoxels(ln), shinfo)) {
+      shinfo.nodeIdx = nodeIdx;
+      return true;
     }
     uint exit;
     tEntry = exitSide(origin, invdir, nmin, nmax, exit);
-    nodeIdx = rope(n, exit);
+    nodeIdx = rope(ln, exit);
     if (nodeIdx == NO_NODE)
       return false;
-    n = texelFetch(nodes, int(nodeIdx));
-    ng = texelFetch(nodegeoms, int(nodeIdx));
-    nmin = unpack8(ng.x);
-    nmax = unpack8(ng.y);
+    n = texelFetch(nodes, int(nodeIdx)).x;
+    ng = texelFetch(nodegeoms, int(nodeIdx)).xy;
+    nmin = boxmin(ng);
+    nmax = boxmax(ng);
     if (shinfo.ropes++ > MAX_ROPES)
       return false;
   }

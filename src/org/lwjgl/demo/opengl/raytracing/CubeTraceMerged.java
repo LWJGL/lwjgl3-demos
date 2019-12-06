@@ -258,10 +258,7 @@ public class CubeTraceMerged {
                 nodes.addFirst(n.right);
                 nodes.addFirst(n.left);
             } else {
-                if (!n.boundables.isEmpty())
-                    n.leafIndex = leafIndex++;
-                else
-                    n.leafIndex = -1;
+                n.leafIndex = leafIndex++;
                 n.boundables.forEach(v -> {
                     v.nindex = n.index;
                 });
@@ -326,17 +323,22 @@ public class CubeTraceMerged {
                     voxelsBuffer.putByte(v.x).putByte(v.y).putByte(v.z).putByte(v.paletteIndex);
                     voxelsBuffer.putByte(v.ex).putByte(v.ey).putByte(v.ez).putByte(0);
                 });
-                if (n.leafIndex != -1)
-                    leafNodesBuffer.putInt(first).putInt(numVoxels);
+                leafNodesBuffer.putInt(first).putInt(numVoxels);
+                for (int i = 0; i < 6; i++)
+                    leafNodesBuffer.putInt(n.ropes[i] != null ? n.ropes[i].index : -1);
             }
-            nodeGeomsBuffer.putByte(n.boundingBox.minX).putByte(n.boundingBox.minY).putByte(n.boundingBox.minZ)
+            nodeGeomsBuffer
+                    .putByte(n.boundingBox.minX)
+                    .putByte(n.boundingBox.minY)
+                    .putByte(n.boundingBox.minZ)
                     .putByte(0);
-            nodeGeomsBuffer.putByte(n.boundingBox.maxX - 1).putByte(n.boundingBox.maxY - 1)
-                    .putByte(n.boundingBox.maxZ - 1).putByte(0);
+            nodeGeomsBuffer
+                    .putByte(n.boundingBox.maxX - 1)
+                    .putByte(n.boundingBox.maxY - 1)
+                    .putByte(n.boundingBox.maxZ - 1)
+                    .putByte(0);
             nodesBuffer.putInt(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
             nodesBuffer.putInt(n.splitAxis == -1 ? -1 : n.splitAxis << 30 | n.splitPos);
-            for (int i = 0; i < 6; i++)
-                nodesBuffer.putInt(n.ropes[i] != null ? n.ropes[i].index : -1);
             first += numVoxels;
         }
     }
