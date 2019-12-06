@@ -219,7 +219,7 @@ public class GL33KdTreeTrace {
       DynamicByteBuffer nodeGeomsBuffer, DynamicByteBuffer leafNodesBuffer, DynamicByteBuffer voxelsBuffer) {
     int first = 0;
     List<KDTreei.Node<Voxel>> nodes = allocate(root.root);
-    System.out.println("Num nodes: " + nodes.size());
+    System.out.println("Num nodes in kd-tree: " + nodes.size());
     for (KDTreei.Node<Voxel> n : nodes) {
       int numVoxels = 0;
       if (n.left == null) {
@@ -242,6 +242,7 @@ public class GL33KdTreeTrace {
       nodesBuffer.putShort(n.splitAxis == -1 ? -1 : n.splitAxis << (Short.SIZE - 2) | n.splitPos);
       first += numVoxels;
     }
+    System.out.println("Num voxels in kd-tree: " + first);
   }
 
   private void update() {
@@ -329,7 +330,6 @@ public class GL33KdTreeTrace {
     GreedyVoxels gv = new GreedyVoxels(dims.x, dims.y, dims.z, (x, y, z, w, h, d, v) -> {
       voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
     });
-    gv.setMergeCulled(true);
     gv.merge(field, culled);
     System.out.println("Num voxels after merge: " + voxels.size());
     return voxels;

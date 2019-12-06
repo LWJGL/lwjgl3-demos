@@ -15,6 +15,7 @@ public class GreedyVoxels {
     private final Callback callback;
     private final int dx, dy, dz;
     private boolean mergeCulled;
+    private boolean singleOpaque;
 
     public boolean isMergeCulled() {
         return mergeCulled;
@@ -22,6 +23,14 @@ public class GreedyVoxels {
 
     public void setMergeCulled(boolean mergeCulled) {
         this.mergeCulled = mergeCulled;
+    }
+
+    public boolean isSingleOpaque() {
+        return singleOpaque;
+    }
+
+    public void setSingleOpaque(boolean singleOpaque) {
+        this.singleOpaque = singleOpaque;
     }
 
     public GreedyVoxels(int dx, int dy, int dz, Callback callback) {
@@ -75,7 +84,7 @@ public class GreedyVoxels {
     }
 
     private boolean sameOrOccluded(int c, int mn) {
-        return c == mn || (mergeCulled && mn == -1);
+        return c == mn || (mergeCulled && mn == -1) || (singleOpaque && mn > 0);
     }
 
     private int determineWidth(int c, int x, int y, int z) {
