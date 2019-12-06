@@ -214,7 +214,7 @@ public class CubeTraceMerged {
                         numVoxels++;
                     }
                 }
-        System.out.println("Voxels: " + numVoxels);
+        System.out.println("Num voxels: " + numVoxels);
         /* Remove voxels that have neighbors at all sides */
         for (int z = 0; z < depth; z++) {
             for (int y = 0; y < height; y++) {
@@ -241,7 +241,7 @@ public class CubeTraceMerged {
             voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
         });
         gv.merge(field, culled);
-        System.out.println("Retained voxels: " + voxels.size());
+        System.out.println("Num voxels after culling: " + voxels.size());
         return voxels;
     }
 
@@ -314,7 +314,7 @@ public class CubeTraceMerged {
             DynamicByteBuffer voxelsBuffer) {
         int first = 0;
         List<KDTreei.Node<KDTreei.Voxel>> nodes = allocate(root.root);
-        System.out.println("Num nodes: " + nodes.size());
+        System.out.println("Num nodes in kd-tree: " + nodes.size());
         for (KDTreei.Node<KDTreei.Voxel> n : nodes) {
             int numVoxels = 0;
             if (n.left == null) {
@@ -341,6 +341,7 @@ public class CubeTraceMerged {
             nodesBuffer.putInt(n.splitAxis == -1 ? -1 : n.splitAxis << 30 | n.splitPos);
             first += numVoxels;
         }
+        System.out.println("Num voxels in kd-tree: " + first);
     }
 
     private void createFullScreenVao() {

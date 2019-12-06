@@ -324,7 +324,7 @@ public class GL33KdTreeTrace {
         }
     }
     System.out.println("Num voxels: " + numVoxels);
-    System.out.println("Num retained voxels: " + numRetainedVoxels);
+    System.out.println("Num voxels after culling: " + numRetainedVoxels);
     /* Merge voxels */
     List<Voxel> voxels = new ArrayList<>();
     GreedyVoxels gv = new GreedyVoxels(dims.x, dims.y, dims.z, (x, y, z, w, h, d, v) -> {
