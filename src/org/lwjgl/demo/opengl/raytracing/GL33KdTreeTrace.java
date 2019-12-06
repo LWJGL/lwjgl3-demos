@@ -89,7 +89,6 @@ public class GL33KdTreeTrace {
     GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
     glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
     glfwMakeContextCurrent(window);
-    glfwShowWindow(window);
 
     try (MemoryStack frame = stackPush()) {
       IntBuffer framebufferSize = frame.mallocInt(2);
@@ -105,6 +104,8 @@ public class GL33KdTreeTrace {
     quadVao = glGenVertexArrays();
     createRayTracingProgram();
     createSceneTBOs(buildTerrainVoxels());
+
+    glfwShowWindow(window);
   }
 
   private static List<KDTreei.Node<Voxel>> allocate(KDTreei.Node<Voxel> node) {
