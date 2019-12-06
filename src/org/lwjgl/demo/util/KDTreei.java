@@ -1,6 +1,5 @@
 package org.lwjgl.demo.util;
 
-import static java.lang.Math.*;
 import static java.util.Arrays.*;
 
 import java.util.ArrayList;
@@ -16,7 +15,7 @@ public class KDTreei<T extends Boundable<T>> {
 
     public Node<T> root;
     private int maxVoxelCount = 4;
-    private final int[] intervals = new int[1024];
+    private short[] intervals = new short[512];
 
     public static class Box implements Boundable<Box> {
         public int minX, minY, minZ;
@@ -385,6 +384,9 @@ public class KDTreei<T extends Boundable<T>> {
         root = new Node<T>();
         root.boundables = list;
         root.boundingBox = bbox;
+        if (intervals.length < list.size()) {
+            intervals = new short[list.size()];
+        }
         buildTree(root, 0, maxDepth);
         root.processNode(root.ropes = neighbors);
         root.optimizeRopes();
@@ -443,10 +445,9 @@ public class KDTreei<T extends Boundable<T>> {
             boxWidth = zw;
         }
         int n = node.boundables.size();
-        int step = (int) ceil(n / 64.0);
-        int k = splitIntervals(node, n, ax, step);
-        sort(intervals, 0, k);
-        int split = bestSplitSah(bb, n / step, ax, boxWidth, k);
+        splitIntervals(node, n, ax);
+        sort(intervals, 0, n);
+        int split = bestSplitSah(bb, n, ax, boxWidth);
         if (split == bb.min(ax) || split == bb.max(ax)) {
             node.splitAxis = -1;
             return -1;
@@ -455,19 +456,17 @@ public class KDTreei<T extends Boundable<T>> {
         return split;
     }
 
-    private int splitIntervals(Node<T> node, int n, int ax, int step) {
-        int k = 0;
-        for (int i = 0; i < n; i += step, k++) {
+    private void splitIntervals(Node<T> node, int n, int ax) {
+        for (int i = 0; i < n; i++) {
             T vx = node.boundables.get(i);
-            intervals[k] = vx.min(ax);
+            intervals[i] = (short) vx.min(ax);
         }
-        return k;
     }
 
-    private int bestSplitSah(Box bb, int n, int ax, float boxWidth, int k) {
+    private int bestSplitSah(Box bb, int n, int ax, float boxWidth) {
         float invBoxWidth = 1.0f / boxWidth, mincost = Float.POSITIVE_INFINITY;
         int minid = 0;
-        for (int i = 0; i < k; i++) {
+        for (int i = 0; i < n; i++) {
             int in = intervals[i];
             float alpha = (in - bb.min(ax)) * invBoxWidth;
             float cost = i * alpha + (n - i) * (1.0f - alpha);
