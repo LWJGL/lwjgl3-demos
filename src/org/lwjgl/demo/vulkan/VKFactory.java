@@ -23,6 +23,8 @@ import static org.lwjgl.vulkan.VK10.*;
 
 /**
  * Factory methods to allocate various Vulkan structs.
+ * 
+ * @author Kai Burjack
  */
 public class VKFactory {
     static VmaVulkanFunctions VmaVulkanFunctions(MemoryStack stack) {

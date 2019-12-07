@@ -1,3 +1,7 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
 package org.lwjgl.demo.opengl.raytracing;
 
 import static java.lang.Math.*;
@@ -7,6 +11,9 @@ import java.util.List;
 
 import org.lwjgl.demo.util.KDTreei;
 
+/**
+ * @author Kai Burjack
+ */
 public class LargestRectangle {
     private static final byte[] a = new byte[256 * 256];
     private static final short[] w = new short[256 * 256];

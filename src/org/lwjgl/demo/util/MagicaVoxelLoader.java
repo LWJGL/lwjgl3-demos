@@ -1,3 +1,7 @@
+/*  
+ * Copyright LWJGL. All rights reserved.    
+ * License terms: https://www.lwjgl.org/license 
+ */
 package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
@@ -6,6 +10,8 @@ import static java.nio.charset.StandardCharsets.*;
 import java.io.*;
 
 /**
+ * Loader for MagicaVoxel .vox files.
+ * 
  * @author Kai Burjack
  */
 public class MagicaVoxelLoader {

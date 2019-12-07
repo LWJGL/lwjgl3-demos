@@ -1,3 +1,7 @@
+/*  
+ * Copyright LWJGL. All rights reserved.    
+ * License terms: https://www.lwjgl.org/license 
+ */
 package org.lwjgl.demo.opengl.raytracing;
 
 import static org.lwjgl.demo.opengl.util.DemoUtils.*;

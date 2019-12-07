@@ -1,3 +1,7 @@
+/*  
+ * Copyright LWJGL. All rights reserved.    
+ * License terms: https://www.lwjgl.org/license 
+ */
 package org.lwjgl.demo.util;
 
 import static org.lwjgl.demo.util.GreedyMeshing.Face.*;
@@ -6,6 +10,9 @@ import java.nio.*;
 
 import org.lwjgl.demo.util.GreedyMeshing.Face;
 
+/**
+ * @author Kai Burjack
+ */
 public class FaceTriangulator {
 
     private static boolean isPositiveSide(int side) {

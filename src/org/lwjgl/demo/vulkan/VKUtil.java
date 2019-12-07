@@ -33,6 +33,11 @@ import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.NVRayTracing.*;
 import static org.lwjgl.vulkan.VK10.*;
 
+/**
+ * Utility functions for Vulkan.
+ * 
+ * @author Kai Burjack
+ */
 public class VKUtil {
 
     public static final int VK_FLAGS_NONE = 0;

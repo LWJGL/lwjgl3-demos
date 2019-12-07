@@ -1,3 +1,7 @@
+/*  
+ * Copyright LWJGL. All rights reserved.    
+ * License terms: https://www.lwjgl.org/license 
+ */
 package org.lwjgl.demo.util;
 
 import static java.util.Arrays.*;
@@ -7,6 +11,11 @@ import java.util.List;
 
 import org.joml.Vector3d;
 
+/**
+ * KD-tree on integer lattices.
+ * 
+ * @author Kai Burjack
+ */
 public class KDTreei<T extends Boundable<T>> {
 
     private static final int X = 0;

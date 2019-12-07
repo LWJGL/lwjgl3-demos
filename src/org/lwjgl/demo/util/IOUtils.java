@@ -1,3 +1,7 @@
+/*  
+ * Copyright LWJGL. All rights reserved.    
+ * License terms: https://www.lwjgl.org/license 
+ */
 package org.lwjgl.demo.util;
 
 import java.io.*;
@@ -7,6 +11,9 @@ import java.nio.channels.FileChannel;
 
 import org.lwjgl.BufferUtils;
 
+/**
+ * @author Kai Burjack
+ */
 public class IOUtils {
     private static ByteBuffer resizeBuffer(ByteBuffer buffer, int newCapacity) {
         ByteBuffer newBuffer = BufferUtils.createByteBuffer(newCapacity);
