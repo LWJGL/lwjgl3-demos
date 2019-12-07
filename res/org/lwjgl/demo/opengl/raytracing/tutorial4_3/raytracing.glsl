@@ -41,7 +41,7 @@ layout(std430, binding = 2) readonly buffer RankingBuffer {
 #define LIGHT_INTENSITY 80.0
 #define PROBABILITY_OF_LIGHT_SAMPLE 0.6
 
-uint hash2(uint x, uint y);
+uint hash3(uint x, uint y, uint z);
 float random3(vec3 f);
 float random2(vec2 f);
 vec4 randomHemisphereDirection(vec3 n, vec2 rand);
@@ -139,15 +139,15 @@ vec3 normalForRectangle(vec3 hit, const rectangle r) {
 }
 
 float sampleBlueNoise(uint sampleDimension) {
-  uint xoff = hash2(px.y>>7u, px.x>>7u) & 255u;
-  uint yoff = hash2(px.x>>7u, px.y>>7u) & 255u;
-  uvec2 pxo = (px + ivec2(xoff, yoff)) & 127;
-  uint sampleIndex = frameIndex & 255;
-  sampleDimension = sampleDimension & 255;
-  uint pxv = (pxo.x + (pxo.y<<7))<<3;
+  uint xoff = hash3(px.y>>7u, px.x>>7u, frameIndex >> 8u);
+  uint yoff = hash3(px.x>>7u, px.y>>7u, frameIndex >> 8u);
+  uvec2 pxo = (px + ivec2(xoff, yoff)) & 127u;
+  uint sampleIndex = frameIndex & 255u;
+  sampleDimension = sampleDimension & 255u;
+  uint pxv = (pxo.x + (pxo.y<<7u))<<3u;
   uint rankedSampleIndex = sampleIndex ^ rankings[sampleDimension + pxv];
-  uint value = sobols[sampleDimension + (rankedSampleIndex << 8)];
-  value ^= scrambles[(sampleDimension & 7) + pxv];
+  uint value = sobols[sampleDimension + (rankedSampleIndex << 8u)];
+  value ^= scrambles[(sampleDimension & 7u) + pxv];
   return (0.5 + float(value)) / 256.0;
 }
 
