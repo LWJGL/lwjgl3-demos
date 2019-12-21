@@ -92,8 +92,7 @@ import org.lwjgl.vulkan.VkWriteDescriptorSet;
  * @author Kai Burjack
  */
 public class TwoRotatingTrianglesDemo {
-
-    private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "true"));
+    private static boolean debug = System.getProperty("NDEBUG") == null;
 
     private static ByteBuffer[] layers = {
             memUTF8("VK_LAYER_LUNARG_standard_validation"),
@@ -119,7 +118,7 @@ public class TwoRotatingTrianglesDemo {
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; validation && i < layers.length; i++)
+        for (int i = 0; debug && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
@@ -209,7 +208,7 @@ public class TwoRotatingTrianglesDemo {
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; validation && i < layers.length; i++)
+        for (int i = 0; debug && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
 

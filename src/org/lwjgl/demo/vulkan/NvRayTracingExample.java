@@ -46,7 +46,7 @@ import static org.lwjgl.vulkan.VK10.*;
  * @author Kai Burjack
  */
 public class NvRayTracingExample {
-    private static boolean debug = true;
+    private static boolean debug = System.getProperty("NDEBUG") == null;
 
     static {
         if (debug) {
