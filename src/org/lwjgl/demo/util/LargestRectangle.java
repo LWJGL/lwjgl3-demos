@@ -2,14 +2,12 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-package org.lwjgl.demo.opengl.raytracing;
+package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
 
 import java.util.Arrays;
 import java.util.List;
-
-import org.lwjgl.demo.util.KDTreei;
 
 /**
  * @author Kai Burjack
