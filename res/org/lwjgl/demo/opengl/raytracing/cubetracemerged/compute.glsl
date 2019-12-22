@@ -51,8 +51,7 @@ layout(std430, binding = 1) readonly restrict buffer NodeGeoms {
  * 8 ints.
  */
 struct leafnode {
-  uvec2 voxels;
-  uint ropes[6];
+  uvec4[2] uv;
 };
 layout(std430, binding = 2) readonly restrict buffer LeafNodes {
   leafnode[] leafnodes;
@@ -126,6 +125,7 @@ struct scenehitinfo {
   uint vindex;
   uint descends, ropes;
 };
+#define rope(uv, r) ((uv)[((r)+2u)>>2u][((r)+2u)&3u])
 const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 dir,
                           const in vec3 invdir, out scenehitinfo shinfo) {
   node n = nodes[nodeIdx];
@@ -154,11 +154,11 @@ const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 d
         return false;
     }
     leafnode ln = leafnodes[n.rightOrLeaf_SplitAxisSplitPos.x];
-    if (intersectVoxels(o, invdir, ln.voxels.x, ln.voxels.y, shinfo.t, shinfo.vindex))
+    if (intersectVoxels(o, invdir, ln.uv[0].x, ln.uv[0].y, shinfo.t, shinfo.vindex))
       return true;
     uint exit;
     lambda.x = exitSide(o, invdir, nmin, nmax, exit);
-    nodeIdx = ln.ropes[exit];
+    nodeIdx = rope(ln.uv, exit);
     if (nodeIdx == NO_NODE || shinfo.ropes++ > MAX_ROPES)
       break;
     n = nodes[nodeIdx];
