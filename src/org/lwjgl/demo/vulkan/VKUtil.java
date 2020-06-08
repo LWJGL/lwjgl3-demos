@@ -101,7 +101,7 @@ public class VKUtil {
         ByteBuffer resultBytes = createByteBuffer(size);
         resultBytes.put(shaderc_result_get_bytes(res));
         resultBytes.flip();
-        shaderc_compiler_release(res);
+        shaderc_result_release(res);
         shaderc_compiler_release(compiler);
         releaser.free();
         resolver.free();
