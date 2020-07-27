@@ -229,8 +229,7 @@ public class ClearScreenDemo {
         try (MemoryStack stack = stackPush()) {
             VkPhysicalDeviceProperties deviceProperties = VkPhysicalDeviceProperties(stack);
             vkGetPhysicalDeviceProperties(device, deviceProperties);
-            boolean isDiscrete = deviceProperties.deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-            return isDiscrete && !queuesFamilies.graphicsFamilies.isEmpty() && !queuesFamilies.presentFamilies.isEmpty();
+            return !queuesFamilies.graphicsFamilies.isEmpty() && !queuesFamilies.presentFamilies.isEmpty();
         }
     }
 

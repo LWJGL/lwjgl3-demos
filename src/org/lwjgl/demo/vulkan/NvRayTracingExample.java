@@ -286,8 +286,7 @@ public class NvRayTracingExample {
         try (MemoryStack stack = stackPush()) {
             VkPhysicalDeviceProperties deviceProperties = VkPhysicalDeviceProperties(stack);
             vkGetPhysicalDeviceProperties(device, deviceProperties);
-            boolean isDiscrete = deviceProperties.deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-            return isDiscrete && !queuesFamilies.computeFamilies.isEmpty() && !queuesFamilies.graphicsFamilies.isEmpty()
+            return !queuesFamilies.computeFamilies.isEmpty() && !queuesFamilies.graphicsFamilies.isEmpty()
                     && !queuesFamilies.transferFamilies.isEmpty() && !queuesFamilies.presentFamilies.isEmpty();
         }
     }
