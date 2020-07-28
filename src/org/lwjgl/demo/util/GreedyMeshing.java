@@ -29,6 +29,14 @@ public class GreedyMeshing {
 
         public short u0, v0, u1, v1, p, s;
         public byte v;
+        public int tx, ty;
+        
+        public int w() {
+            return u1 - u0;
+        }
+        public int h() {
+            return v1 - v0;
+        }
 
         public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {
             this.u0 = (short) u0;
