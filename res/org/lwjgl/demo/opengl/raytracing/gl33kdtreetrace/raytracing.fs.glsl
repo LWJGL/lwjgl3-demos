@@ -33,11 +33,14 @@ struct hitinfo {
   uint nodeIdx;
 };
 bool intersectVoxel(vec3 origin, vec3 invdir, vec3 bmin, vec3 bmax, out float t, out vec3 normal) {
-  vec3 tMin = (bmin - origin) * invdir, tMax = (bmax - origin) * invdir;
-  vec3 t1 = min(tMin, tMax), t2 = max(tMin, tMax);
-  t = max(max(t1.x, t1.y), t1.z);
-  normal = vec3(equal(t1, vec3(t))) * sign(-invdir);
-  return t >= 0.0 && t <= min(min(t2.x, t2.y), t2.z);
+  float t1 = (bmin.x - origin.x)*invdir.x, t2 = (bmax.x - origin.x)*invdir.x;
+  float t3 = (bmin.y - origin.y)*invdir.y, t4 = (bmax.y - origin.y)*invdir.y;
+  float t5 = (bmin.z - origin.z)*invdir.z, t6 = (bmax.z - origin.z)*invdir.z;
+  float t12m = min(t1, t2), t34m = min(t3, t4), t56m = min(t5, t6);
+  t = max(max(t12m, t34m), t56m);
+  float tm = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+  normal = vec3(equal(vec3(t12m, t34m, t56m), vec3(t))) * sign(-invdir);
+  return t >= 0.0 && t <= tm;
 }
 float intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
   bvec3 lt = lessThan(invdir, vec3(0.0));
