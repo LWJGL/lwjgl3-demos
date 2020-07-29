@@ -200,13 +200,13 @@ public class CubeTraceMerged {
     }
 
     private static int idx(int x, int y, int z, int width, int height) {
-        return x + width * (y + z * height);
+        return (x+1) + (width+2) * ((y+1) + (z+1) * (height+2));
     }
 
     private List<KDTreei.Voxel> buildTerrainVoxels() {
         int width = levelWidth, height = levelHeight, depth = levelDepth;
         float xzScale = 0.02343f * scale, yScale = 0.0212f * scale;
-        byte[] field = new byte[width * depth * height];
+        byte[] field = new byte[(width+2) * (depth+2) * (height+2)];
         boolean[] culled = new boolean[field.length];
         int numVoxels = 0;
         for (int z = 0; z < depth; z++)

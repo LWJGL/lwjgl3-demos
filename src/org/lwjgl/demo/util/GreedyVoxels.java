@@ -48,11 +48,11 @@ public class GreedyVoxels {
         this.dx = dx;
         this.dy = dy;
         this.dz = dz;
-        this.m = new short[dx * dy * dz];
+        this.m = new short[(dx+2) * (dy+2) * (dz+2)];
     }
 
     private int at(int x, int y, int z) {
-        return x + dx * (y + dy * z);
+        return (x+1) + (dx+2) * ((y+1) + (z+1) * (dy+2));
     }
 
     public void merge(byte[] vs, boolean[] culled) {

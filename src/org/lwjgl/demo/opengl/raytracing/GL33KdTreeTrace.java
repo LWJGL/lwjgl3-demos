@@ -274,7 +274,7 @@ public class GL33KdTreeTrace {
   }
 
   private static int idx(int x, int y, int z, int width, int height) {
-      return x + width * (y + z * height);
+      return (x+1) + (width+2) * ((y+1) + (z+1) * (height+2));
   }
 
   private List<KDTreei.Voxel> buildTerrainVoxels() throws IOException {
@@ -282,7 +282,6 @@ public class GL33KdTreeTrace {
     InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house6.vox");
     BufferedInputStream bis = new BufferedInputStream(is);
     byte[] field = new byte[256 * 256 * 256];
-    boolean[] culled = new boolean[256 * 256 * 256];
     new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
       public void voxel(int x, int y, int z, byte c) {
         y = dims.z - y - 1;
@@ -299,6 +298,7 @@ public class GL33KdTreeTrace {
           materials[i] = mat;
       }
     });
+    boolean[] culled = new boolean[(dims.x+2) * (dims.y+2) * (dims.z+2)];
     // Cull voxels
     int numVoxels = 0, numRetainedVoxels = 0;
     for (int z = 0; z < dims.z; z++) {
