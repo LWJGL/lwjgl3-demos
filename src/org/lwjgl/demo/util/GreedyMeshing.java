@@ -191,7 +191,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
+        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
         eraseMaskX(n, w, h);
         return w;
     }
@@ -202,7 +202,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
+        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
         eraseMaskY(n, w, h);
         return w;
     }
@@ -213,7 +213,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) (m[n] & 0xFF)));
+        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
         eraseMaskZ(n, w, h);
         return w;
     }
