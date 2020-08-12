@@ -235,8 +235,8 @@ public class GL33KdTreeTrace {
             leafNodesBuffer.putShort(n.ropes[i] != null ? n.ropes[i].index : -1);
       }
       // RG32UI
-      nodeGeomsBuffer.putByte(n.boundingBox.minX).putByte(n.boundingBox.minY).putByte(n.boundingBox.minZ).putByte(0);
-      nodeGeomsBuffer.putByte(n.boundingBox.maxX-1).putByte(n.boundingBox.maxY-1).putByte(n.boundingBox.maxZ-1).putByte(0);
+      nodeGeomsBuffer.putByte(n.bb.minX).putByte(n.bb.minY).putByte(n.bb.minZ).putByte(0);
+      nodeGeomsBuffer.putByte(n.bb.maxX-1).putByte(n.bb.maxY-1).putByte(n.bb.maxZ-1).putByte(0);
       // R32UI
       nodesBuffer.putShort(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
       nodesBuffer.putShort(n.splitAxis == -1 ? -1 : n.splitAxis << (Short.SIZE - 2) | n.splitPos);
@@ -273,8 +273,8 @@ public class GL33KdTreeTrace {
     glUseProgram(0);
   }
 
-  private static int idx(int x, int y, int z, int width, int height) {
-      return (x+1) + (width+2) * ((y+1) + (z+1) * (height+2));
+  private static int idx(int x, int y, int z, int width, int depth) {
+      return (x+1) + (width+2) * ((z+1) + (y+1) * (depth+2));
   }
 
   private List<KDTreei.Voxel> buildTerrainVoxels() throws IOException {
@@ -285,7 +285,7 @@ public class GL33KdTreeTrace {
     new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
       public void voxel(int x, int y, int z, byte c) {
         y = dims.z - y - 1;
-        field[idx(x, z, y, dims.x, dims.y)] = c;
+        field[idx(x, z, y, dims.x, dims.z)] = c;
       }
 
       public void size(int x, int y, int z) {
@@ -304,17 +304,17 @@ public class GL33KdTreeTrace {
     for (int z = 0; z < dims.z; z++) {
         for (int y = 0; y < dims.y; y++) {
             for (int x = 0; x < dims.x; x++) {
-                int idx = idx(x, y, z, dims.x, dims.y);
+                int idx = idx(x, y, z, dims.x, dims.z);
                 byte c = field[idx];
                 if (c == 0)
                     continue;
                 numVoxels++;
-                boolean left = x > 0 && (field[idx(x - 1, y, z, dims.x, dims.y)]) != 0;
-                boolean right = x < dims.x - 1 && (field[idx(x + 1, y, z, dims.x, dims.y)]) != 0;
-                boolean down = y > 0 && (field[idx(x, y - 1, z, dims.x, dims.y)]) != 0;
-                boolean up = y < dims.y - 1 && (field[idx(x, y + 1, z, dims.x, dims.y)]) != 0;
-                boolean back = z > 0 && (field[idx(x, y, z - 1, dims.x, dims.y)]) != 0;
-                boolean front = z < dims.z - 1 && (field[idx(x, y, z + 1, dims.x, dims.y)]) != 0;
+                boolean left = x > 0 && (field[idx(x - 1, y, z, dims.x, dims.z)]) != 0;
+                boolean right = x < dims.x - 1 && (field[idx(x + 1, y, z, dims.x, dims.z)]) != 0;
+                boolean down = y > 0 && (field[idx(x, y - 1, z, dims.x, dims.z)]) != 0;
+                boolean up = y < dims.y - 1 && (field[idx(x, y + 1, z, dims.x, dims.z)]) != 0;
+                boolean back = z > 0 && (field[idx(x, y, z - 1, dims.x, dims.z)]) != 0;
+                boolean front = z < dims.z - 1 && (field[idx(x, y, z + 1, dims.x, dims.z)]) != 0;
                 if (left && right && down && up && back && front) {
                     culled[idx] = true;
                 } else {

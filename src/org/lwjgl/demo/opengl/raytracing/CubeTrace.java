@@ -342,10 +342,10 @@ public class CubeTrace {
                 if (n.leafIndex != -1)
                     leafNodesBuffer.putInt(first).putInt(numVoxels);
             }
-            nodeGeomsBuffer.putByte(n.boundingBox.minX).putByte(n.boundingBox.minY).putByte(n.boundingBox.minZ)
+            nodeGeomsBuffer.putByte(n.bb.minX).putByte(n.bb.minY).putByte(n.bb.minZ)
                     .putByte(0);
-            nodeGeomsBuffer.putByte(n.boundingBox.maxX - 1).putByte(n.boundingBox.maxY - 1)
-                    .putByte(n.boundingBox.maxZ - 1).putByte(0);
+            nodeGeomsBuffer.putByte(n.bb.maxX - 1).putByte(n.bb.maxY - 1)
+                    .putByte(n.bb.maxZ - 1).putByte(0);
             nodesBuffer.putInt(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
             nodesBuffer.putInt(n.splitAxis == -1 ? -1 : n.splitAxis << 30 | n.splitPos);
             for (int i = 0; i < 6; i++)

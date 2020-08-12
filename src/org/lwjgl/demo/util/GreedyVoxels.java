@@ -51,25 +51,25 @@ public class GreedyVoxels {
         this.m = new short[(dx+2) * (dy+2) * (dz+2)];
     }
 
-    private int at(int x, int y, int z) {
-        return (x+1) + (dx+2) * ((y+1) + (z+1) * (dy+2));
+    private int idx(int x, int y, int z) {
+        return (x+1) + (dx+2) * ((z+1) + (y+1) * (dz+2));
     }
 
     public void merge(byte[] vs, boolean[] culled) {
-        for (int z = 0; z < dz; z++)
-            for (int y = 0; y < dy; y++)
+        for (int y = 0; y < dy; y++)
+            for (int z = 0; z < dz; z++)
                 for (int x = 0; x < dx; x++) {
-                    int i = at(x, y, z);
+                    int i = idx(x, y, z);
                     m[i] = (short) (culled[i] ? -1 : vs[i] & 0xFF);
                 }
-        for (int z = 0; z < dz; z++)
-            for (int y = 0; y < dy; y++)
+        for (int y = 0; y < dy; y++)
+            for (int z = 0; z < dz; z++)
                 for (int x = 0; x < dx; x++)
                     x += mergeAndGenerateFace(x, y, z) - 1;
     }
 
     private int mergeAndGenerateFace(int x, int y, int z) {
-        int mn = m[at(x, y, z)];
+        int mn = m[idx(x, y, z)];
         if (mn <= 0)
             return 1;
         int w = determineWidth(mn, x, y, z);
@@ -81,10 +81,10 @@ public class GreedyVoxels {
     }
 
     private void eraseMask(int x, int y, int z, int w, int h, int d) {
-        for (int zi = 0; zi < d; zi++)
-            for (int yi = 0; yi < h; yi++)
+        for (int yi = 0; yi < h; yi++)
+            for (int zi = 0; zi < d; zi++)
                 for (int xi = 0; xi < w; xi++)
-                    m[at(x + xi, y + yi, z + zi)] = 0;
+                    m[idx(x + xi, y + yi, z + zi)] = 0;
     }
 
     private boolean sameOrOccluded(int c, int mn) {
@@ -93,7 +93,7 @@ public class GreedyVoxels {
 
     private int determineWidth(int c, int x, int y, int z) {
         int w = 1;
-        while (x + w < dx && sameOrOccluded(c, m[at(x + w, y, z)]))
+        while (x + w < dx && sameOrOccluded(c, m[idx(x + w, y, z)]))
             w++;
         return w;
     }
@@ -102,7 +102,7 @@ public class GreedyVoxels {
         int d = 1;
         for (; z + d < dz; d++)
             for (int xi = 0; xi < w; xi++)
-                if (!sameOrOccluded(c, m[at(x + xi, y, z + d)]))
+                if (!sameOrOccluded(c, m[idx(x + xi, y, z + d)]))
                     return d;
         return d;
     }
@@ -112,7 +112,7 @@ public class GreedyVoxels {
         for (; y + h < dy; h++)
             for (int zi = 0; zi < d; zi++)
                 for (int xi = 0; xi < w; xi++)
-                    if (!sameOrOccluded(c, m[at(x + xi, y + h, z + zi)]))
+                    if (!sameOrOccluded(c, m[idx(x + xi, y + h, z + zi)]))
                         return h;
         return h;
     }
