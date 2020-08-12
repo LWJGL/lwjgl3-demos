@@ -30,12 +30,18 @@ public class GreedyMeshing {
         public short u0, v0, u1, v1, p, s;
         public byte v;
         public int tx, ty;
-        
+
         public int w() {
             return u1 - u0;
         }
         public int h() {
             return v1 - v0;
+        }
+        public int tw() {
+            return w() + 1;
+        }
+        public int th() {
+            return h() + 1;
         }
 
         public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {
@@ -88,7 +94,11 @@ public class GreedyMeshing {
     }
 
     private byte at(int x, int y, int z) {
-        return vs[x + 1 + (dx + 2) * (y + 1 + (dy + 2) * (z + 1))];
+        return vs[idx(x, y, z)];
+    }
+
+    private int idx(int x, int y, int z) {
+        return x + 1 + (dx + 2) * (z + 1 + (dz + 2) * (y + 1));
     }
 
     public void mesh(byte[] vs, List<Face> faces) {
