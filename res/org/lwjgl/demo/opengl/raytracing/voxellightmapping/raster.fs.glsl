@@ -14,7 +14,6 @@ layout(location=0) out vec4 color;
 
 void main(void) {
   vec3 col = texelFetch(materials, matIndex).rgb;
-  vec3 lm = vec4(texture(lightmap, lightmapCoords_varying)).rgb * col;
-  //vec3 lm = col;
-  color = vec4(lm, 1.0);
+  vec3 lm = vec4(texture(lightmap, lightmapCoords_varying)).rgb;
+  color = vec4(lm * col, 1.0);
 }

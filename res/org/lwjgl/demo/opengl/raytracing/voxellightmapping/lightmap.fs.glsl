@@ -40,21 +40,19 @@ uniform sampler2D blendIndices;
 uniform float time;
 
 struct hitinfo {
-  vec3 normal;
   float t;
   uint i;
   uint descends;
   uint ropes;
   uint nodeIdx;
 };
-bool intersectVoxel(vec3 origin, vec3 invdir, vec3 bmin, vec3 bmax, out float t, out vec3 normal) {
+bool intersectVoxel(vec3 origin, vec3 invdir, vec3 bmin, vec3 bmax, out float t) {
   float t1 = (bmin.x - origin.x)*invdir.x, t2 = (bmax.x - origin.x)*invdir.x;
   float t3 = (bmin.y - origin.y)*invdir.y, t4 = (bmax.y - origin.y)*invdir.y;
   float t5 = (bmin.z - origin.z)*invdir.z, t6 = (bmax.z - origin.z)*invdir.z;
   float t12m = min(t1, t2), t34m = min(t3, t4), t56m = min(t5, t6);
   t = max(max(t12m, t34m), t56m);
   float tm = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
-  normal = vec3(equal(vec3(t12m, t34m, t56m), vec3(t))) * sign(-invdir);
   return tm > 0.0 && t <= tm;
 }
 float intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
@@ -72,11 +70,9 @@ bool intersectVoxels(vec3 origin, vec3 invdir, uint firstVoxel, uint numVoxels, 
     uvec2 vpe = texelFetch(voxels, int(i + firstVoxel)).xy;
     vec3 vp = vec3(unpack8(vpe.x)), ve = vec3(unpack8(vpe.y));
     float tn;
-    vec3 normal;
-    if (intersectVoxel(origin, invdir, vp, vp + ve + vec3(1.0), tn, normal) && tn <= hinfo.t) {
+    if (intersectVoxel(origin, invdir, vp, vp + ve + vec3(1.0), tn) && tn <= hinfo.t) {
       hinfo.t = tn;
       hinfo.i = i + firstVoxel;
-      hinfo.normal = normal;
       hit = true;
     }
   }
