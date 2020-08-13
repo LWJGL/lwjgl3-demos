@@ -43,10 +43,10 @@ public class VoxelLightmapping {
     private long window;
     private int width = 1600;
     private int height = 940;
-    private Matrix4f pMat = new Matrix4f();
-    private Matrix4f vMat = new Matrix4f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
-    private Matrix4f mvpMat = new Matrix4f();
-    private Material[] materials = new Material[512];
+    private final Matrix4f pMat = new Matrix4f();
+    private final Matrix4f vMat = new Matrix4f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
+    private final Matrix4f mvpMat = new Matrix4f();
+    private final Material[] materials = new Material[512];
     private Callback debugProc;
 
     /* OpenGL resources for kd-tree */
@@ -74,7 +74,7 @@ public class VoxelLightmapping {
 
     /* Misc */
     private int indexCount;
-    private boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
+    private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private boolean mouseDown;
     private int mouseX, mouseY;
 
@@ -304,7 +304,7 @@ public class VoxelLightmapping {
     }
 
     private static short materialAndOffset(byte m, int x, int y, int z) {
-        return (short) ((int) (m & 0xFF) | ((x + 1) << 8) | ((y + 1) << 10) | ((z + 1) << 12));
+        return (short) ((m & 0xFF) | ((x + 1) << 8) | ((y + 1) << 10) | ((z + 1) << 12));
     }
 
     public void triangulate(ArrayList<Face> faces, ShortBuffer positions, ByteBuffer normals,
@@ -398,34 +398,38 @@ public class VoxelLightmapping {
     }
 
     private void setupIndices(IntBuffer indices) {
+        indices.flip();
         indexBufferObject = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.flip(), GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
         memFree(indices);
     }
 
     private void setupLightmapCoords(FloatBuffer lightmapCoords) {
+        lightmapCoords.flip();
         lightmapCoordsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, lightmapCoords.flip(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
         memFree(lightmapCoords);
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 4, GL_FLOAT, false, 0, 0L);
     }
 
     private void setupNormals(ByteBuffer normals) {
+        normals.flip();
         normalsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, normalsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, normals.flip(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW);
         memFree(normals);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_BYTE, true, 0, 0L);
     }
 
     private void setupPositions(ShortBuffer positions) {
+        positions.flip();
         positionsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, positionsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, positions.flip(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, positions, GL_STATIC_DRAW);
         memFree(positions);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
@@ -438,14 +442,14 @@ public class VoxelLightmapping {
         DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
         DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
         DynamicByteBuffer leafNodesBuffer = new DynamicByteBuffer();
-        kdTreeToBuffers(root, 0, 0, nodesBuffer, leafNodesBuffer, voxelsBuffer);
+        kdTreeToBuffers(root, 0, nodesBuffer, leafNodesBuffer, voxelsBuffer);
         createVoxelsTexture(voxelsBuffer);
         createNodesTexture(nodesBuffer);
         createLeafNodesTexture(leafNodesBuffer);
     }
 
     private void createMaterialsTexture() {
-        ByteBuffer materialsBuffer = memAlloc(1 * Integer.BYTES * materials.length);
+        ByteBuffer materialsBuffer = memAlloc(Integer.BYTES * materials.length);
         for (Material mat : materials)
             materialsBuffer.putInt(mat == null ? 0 : mat.color);
         materialsBuffer.flip();
@@ -511,8 +515,9 @@ public class VoxelLightmapping {
         return linearNodes;
     }
 
-    private void kdTreeToBuffers(KDTreei<Voxel> root, int nodeIndexOffset, int voxelIndexOffset,
-            DynamicByteBuffer nodesBuffer, DynamicByteBuffer leafNodesBuffer, DynamicByteBuffer voxelsBuffer) {
+    private void kdTreeToBuffers(KDTreei<Voxel> root, int nodeIndexOffset,
+                                 DynamicByteBuffer nodesBuffer, DynamicByteBuffer leafNodesBuffer,
+                                 DynamicByteBuffer voxelsBuffer) {
         int first = 0;
         ArrayList<KDTreei.Node<Voxel>> nodes = allocate(root.root);
         System.out.println("Num nodes in kd-tree: " + nodes.size());
@@ -576,7 +581,7 @@ public class VoxelLightmapping {
     private void update(float dt) {
         handleKeyboardInput(dt);
         vMat.withLookAtUp(0, 1, 0);
-        pMat.setPerspective((float) Math.toRadians(50.0f), (float) width / height, 0.1f, 1200.0f);
+        pMat.setPerspective(Math.toRadians(50.0f), (float) width / height, 0.1f, 1200.0f);
         pMat.mulPerspectiveAffine(vMat, mvpMat);
     }
 
@@ -707,9 +712,8 @@ public class VoxelLightmapping {
         System.out.println("Num voxels after culling: " + numRetainedVoxels);
         /* Greedy voxeling */
         ArrayList<Voxel> voxels = new ArrayList<>();
-        GreedyVoxels gv = new GreedyVoxels(field.w, field.h, field.d, (x, y, z, w, h, d, v) -> {
-            voxels.add(new Voxel(x, y, z, w - 1, h - 1, d - 1, v));
-        });
+        GreedyVoxels gv = new GreedyVoxels(field.w, field.h, field.d, (x, y, z, w, h, d, v) ->
+                voxels.add(new Voxel(x, y, z, w - 1, h - 1, d - 1, v)));
         gv.setSingleOpaque(true);
         gv.merge(field.field, culled);
         System.out.println("Num voxels after merge: " + voxels.size());
