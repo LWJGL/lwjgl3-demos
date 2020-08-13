@@ -5,12 +5,14 @@
 package org.lwjgl.demo.vulkan;
 
 import org.lwjgl.assimp.*;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.shaderc.ShadercIncludeResolve;
 import org.lwjgl.util.shaderc.ShadercIncludeResult;
 import org.lwjgl.util.shaderc.ShadercIncludeResultRelease;
 import org.lwjgl.vulkan.VkDevice;
+import org.lwjgl.vulkan.VkLayerProperties;
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkSpecializationInfo;
 
@@ -18,7 +20,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.lwjgl.BufferUtils.*;
 import static org.lwjgl.assimp.Assimp.*;
@@ -483,5 +487,41 @@ public class VKUtil {
                 aiProcess_JoinIdenticalVertices | aiProcess_Triangulate, fileIo);
         callbacks.forEach(Callback::free);
         return scene;
+    }
+
+    public static final PointerBuffer allocateLayerBuffer(String[] layers) {
+        final Set<String> availableLayers = getAvailableLayers();
+
+        PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
+        System.out.println("Using layers:");
+        for (int i = 0; i < layers.length; i++) {
+            final String layer = layers[i];
+            if(availableLayers.contains(layer)) {
+                System.out.println("\t" + layer);
+                ppEnabledLayerNames.put(memUTF8(layer));
+            }
+        }
+        ppEnabledLayerNames.flip();
+        return ppEnabledLayerNames;
+    }
+
+    private static final Set<String> getAvailableLayers() {
+        final Set<String> res = new HashSet<>();
+        final int[] ip = new int[1];
+        vkEnumerateInstanceLayerProperties(ip, null);
+        final int count = ip[0];
+
+        try(final MemoryStack stack = MemoryStack.stackPush()) {
+            if (count > 0) {
+                final VkLayerProperties.Buffer instanceLayers = VkLayerProperties.mallocStack(count, stack);
+                vkEnumerateInstanceLayerProperties(ip, instanceLayers);
+                for (int i = 0; i < count; i++) {
+                    final String layerName = instanceLayers.get(i).layerNameString();
+                    res.add(layerName);
+                }
+            }
+        }
+
+        return res;
     }
 }
