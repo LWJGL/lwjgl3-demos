@@ -57,7 +57,7 @@ public class VoxelLightmapping {
 
     /* Resources for rasterizing the faces of the scene */
     private int rasterProgram;
-    private int rasterProgramMvpUniform;
+    private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform;
     private int vao;
     private int positionsBufferObject;
     private int normalsBufferObject;
@@ -66,7 +66,7 @@ public class VoxelLightmapping {
 
     /* Resources for building the lightmap */
     private int lightmapProgram;
-    private int lightmapProgramTimeUniform;
+    private int lightmapProgramTimeUniform, lightmapProgramLightmapSizeUniform;
     private int fbo;
     private int lightmapTexWidth, lightmapTexHeight;
     private int lightmapTexture;
@@ -216,7 +216,7 @@ public class VoxelLightmapping {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, (ByteBuffer) null);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w, h, 0, GL_RED, GL_FLOAT, (ByteBuffer) null);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
@@ -266,6 +266,7 @@ public class VoxelLightmapping {
         glUniform1i(glGetUniformLocation(program, "materials"), 3);
         glUniform1i(glGetUniformLocation(program, "blendIndices"), 4);
         lightmapProgramTimeUniform = glGetUniformLocation(program, "time");
+        lightmapProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
         glUseProgram(0);
         lightmapProgram = program;
     }
@@ -287,6 +288,7 @@ public class VoxelLightmapping {
         glUniform1i(glGetUniformLocation(program, "lightmap"), 0);
         glUniform1i(glGetUniformLocation(program, "materials"), 1);
         rasterProgramMvpUniform = glGetUniformLocation(program, "mvp");
+        rasterProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
         glUseProgram(0);
         rasterProgram = program;
     }
@@ -295,20 +297,12 @@ public class VoxelLightmapping {
         return (side & 1) != 0;
     }
 
-    private float lmx(int x, float o) {
-        return (x + o) / lightmapTexWidth;
-    }
-
-    private float lmy(int y, float o) {
-        return (y + o) / lightmapTexHeight;
-    }
-
     private static short materialAndOffset(byte m, int x, int y, int z) {
         return (short) ((m & 0xFF) | ((x + 1) << 8) | ((y + 1) << 10) | ((z + 1) << 12));
     }
 
     public void triangulate(ArrayList<Face> faces, ShortBuffer positions, ByteBuffer normals,
-            FloatBuffer lightmapCoords, IntBuffer indices) {
+            ShortBuffer lightmapCoords, IntBuffer indices) {
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
             switch (f.s) {
@@ -340,12 +334,12 @@ public class VoxelLightmapping {
         }
     }
 
-    private void generateTexCoords(Face f, FloatBuffer lightmapCoords) {
+    private void generateTexCoords(Face f, ShortBuffer lightmapCoords) {
         lightmapCoords
-                .put(lmx(f.tx, 0)).put(lmy(f.ty, 0)).put(lmx(f.tx, .5f)).put(lmy(f.ty, .5f))
-                .put(lmx(f.tx + f.tw(), 0)).put(lmy(f.ty, 0)).put(lmx(f.tx + f.w(), .5f)).put(lmy(f.ty, .5f))
-                .put(lmx(f.tx + f.tw(), 0)).put(lmy(f.ty + f.th(), 0)).put(lmx(f.tx + f.w(), .5f)).put(lmy(f.ty + f.h(), .5f))
-                .put(lmx(f.tx, 0)).put(lmy(f.ty + f.th(), 0)).put(lmx(f.tx, .5f)).put(lmy(f.ty + f.h(), .5f));
+                .put((short) f.tx).put((short) f.ty).put((short) 0).put((short) 0)
+                .put((short) (f.tx + f.w())).put((short) f.ty).put((short) 1).put((short) 0)
+                .put((short) (f.tx + f.w())).put((short) (f.ty + f.h())).put((short) 1).put((short) 1)
+                .put((short) f.tx).put((short) (f.ty + f.h())).put((short) 0).put((short) 1);
     }
 
     private static void generatePositionsAndNormalsZ(Face f, ShortBuffer positions, ByteBuffer normals) {
@@ -385,7 +379,7 @@ public class VoxelLightmapping {
         indexCount = faces.size() * 6;
         ShortBuffer positions = memAllocShort(4 * Short.BYTES * faces.size() * 4);
         ByteBuffer normals = memAlloc(3 * Byte.BYTES * faces.size() * 4);
-        FloatBuffer lightmapCoords = memAllocFloat(4 * Float.BYTES * faces.size() * 4);
+        ShortBuffer lightmapCoords = memAllocShort(4 * Short.BYTES * faces.size() * 4);
         IntBuffer indices = memAllocInt(Integer.BYTES * indexCount);
         triangulate(faces, positions, normals, lightmapCoords, indices);
         vao = glGenVertexArrays();
@@ -405,14 +399,14 @@ public class VoxelLightmapping {
         memFree(indices);
     }
 
-    private void setupLightmapCoords(FloatBuffer lightmapCoords) {
+    private void setupLightmapCoords(ShortBuffer lightmapCoords) {
         lightmapCoords.flip();
         lightmapCoordsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
         memFree(lightmapCoords);
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, false, 0, 0L);
+        glVertexAttribPointer(2, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
     }
 
     private void setupNormals(ByteBuffer normals) {
@@ -595,6 +589,7 @@ public class VoxelLightmapping {
         try (MemoryStack stack = stackPush()) {
             glUniformMatrix4fv(rasterProgramMvpUniform, false, mvpMat.get(stack.mallocFloat(16)));
         }
+        glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
         glViewport(0, 0, width, height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, lightmapTexture);
@@ -613,6 +608,7 @@ public class VoxelLightmapping {
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glUseProgram(lightmapProgram);
         glUniform1f(lightmapProgramTimeUniform, (float) System.nanoTime() / 1E6f);
+        glUniform2i(lightmapProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_BUFFER, nodesTexture);
         glActiveTexture(GL_TEXTURE1);

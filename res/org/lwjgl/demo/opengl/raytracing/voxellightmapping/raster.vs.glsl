@@ -5,6 +5,8 @@
 #version 330 core
 
 uniform mat4 mvp;
+uniform ivec2 lightmapSize;
+
 layout(location=0) in vec4 position;
 layout(location=2) in vec4 lightmapCoords;
 
@@ -19,6 +21,6 @@ vec3 offset() {
 void main(void) {
   float w = dot(transpose(mvp)[3], vec4(position.xyz, 1.0));
   matIndex = int(position.w)&0xFF;
-  lightmapCoords_varying = lightmapCoords.zw;
+  lightmapCoords_varying = (lightmapCoords.xy + vec2(0.5)) / vec2(lightmapSize);
   gl_Position = mvp * vec4(position.xyz + offset() * 1E-4 * w, 1.0);
 }

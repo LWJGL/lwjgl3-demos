@@ -4,6 +4,8 @@
  */
 #version 330 core
 
+uniform ivec2 lightmapSize;
+
 layout(location=0) in vec4 position;
 layout(location=1) in vec3 normal;
 layout(location=2) in vec4 lightmapCoords;
@@ -19,5 +21,5 @@ vec3 offset() {
 void main(void) {
   normal_varying = normal;
   position_varying = position.xyz + offset()*0.497;
-  gl_Position = vec4(lightmapCoords.xy * 2.0 - 1.0, 0.0, 1.0);
+  gl_Position = vec4((lightmapCoords.xy + lightmapCoords.zw) / vec2(lightmapSize) * 2.0 - 1.0, 0.0, 1.0);
 }
