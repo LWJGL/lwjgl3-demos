@@ -515,8 +515,7 @@ public class VoxelLightmapping {
         int first = 0;
         ArrayList<KDTreei.Node<Voxel>> nodes = allocate(root.root);
         System.out.println("Num nodes in kd-tree: " + nodes.size());
-        for (int j = 0; j < nodes.size(); j++) {
-            KDTreei.Node<Voxel> n = nodes.get(j);
+        for (KDTreei.Node<Voxel> n : nodes) {
             int numVoxels = 0;
             if (n.left == null) {
                 numVoxels = n.boundables.size();
@@ -639,25 +638,26 @@ public class VoxelLightmapping {
     private VoxelField buildVoxelField() throws IOException {
         System.out.println("Building voxel field...");
         Vector3i dims = new Vector3i();
-        InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
-        BufferedInputStream bis = new BufferedInputStream(is);
         byte[] field = new byte[(256 + 2) * (256 + 2) * (256 + 2)];
-        new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
-            public void voxel(int x, int y, int z, byte c) {
-                y = dims.z - y - 1;
-                field[idx(x, z, y, dims.x, dims.z)] = c;
-            }
+        try (InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
+             BufferedInputStream bis = new BufferedInputStream(is)) {
+            new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
+                public void voxel(int x, int y, int z, byte c) {
+                    y = dims.z - y - 1;
+                    field[idx(x, z, y, dims.x, dims.z)] = c;
+                }
 
-            public void size(int x, int y, int z) {
-                dims.x = x;
-                dims.y = z;
-                dims.z = y;
-            }
+                public void size(int x, int y, int z) {
+                    dims.x = x;
+                    dims.y = z;
+                    dims.z = y;
+                }
 
-            public void paletteMaterial(int i, Material mat) {
-                materials[i] = mat;
-            }
-        });
+                public void paletteMaterial(int i, Material mat) {
+                    materials[i] = mat;
+                }
+            });
+        }
         System.out.println("Voxel dimensions: " + dims);
         VoxelField res = new VoxelField();
         res.w = dims.x;
