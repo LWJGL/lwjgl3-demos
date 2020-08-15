@@ -18,8 +18,10 @@ vec3 offset() {
   return vec3(((mxyz>>8)&0x3)-1, ((mxyz>>10)&0x3)-1, ((mxyz>>12)&0x3)-1);
 }
 
+#define CENTER_TO_CORNER_FACTOR 0.497
+
 void main(void) {
   normal_varying = normal;
-  position_varying = position.xyz + offset()*0.497;
+  position_varying = position.xyz + offset() * CENTER_TO_CORNER_FACTOR;
   gl_Position = vec4((lightmapCoords.xy + lightmapCoords.zw) / vec2(lightmapSize) * 2.0 - 1.0, 0.0, 1.0);
 }
