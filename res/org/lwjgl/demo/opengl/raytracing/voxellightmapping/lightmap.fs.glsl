@@ -88,16 +88,16 @@ float exitSide(vec3 origin, vec3 invdir, uvec3 boxMin, uvec3 boxMax, out uint ex
   return vals.x;
 }
 
-#define axis(n) ((n.z) >> AXIS_SHIFT & AXIS_MASK)
-#define splitPos(n) ((n.z) >> SHORT_BITS & SPLITPOS_MASK)
-#define nodeIndex(n) ((n) & SHORT_MASK)
-#define rope(n, r) ((n)[1u + ((r) >> 1u)] >> ((r) & 1u) * SHORT_BITS & SHORT_MASK)
-#define firstVoxel(ln) ((ln).x & SHORT_MASK)
-#define numVoxels(ln) ((ln).x >> SHORT_BITS & SHORT_MASK)
-#define boxMin(ng) unpack8((ng).x)
-#define boxMax(ng) unpack8((ng).y)
-#define leftChild(nodeIdx) ((nodeIdx) + 1u)
-#define rightChild(n) nodeIndex(n.z)
+uint axis(uvec3 n) {return n.z >> AXIS_SHIFT & AXIS_MASK;}
+uint splitPos(uvec3 n) {return n.z >> SHORT_BITS & SPLITPOS_MASK;}
+uint nodeIndex(uint n) {return n & SHORT_MASK;}
+uint rope(uvec4 n, uint r) {return n[1u + (r >> 1u)] >> (r & 1u) * SHORT_BITS & SHORT_MASK;}
+uint firstVoxel(uvec4 ln) {return ln.x & SHORT_MASK;}
+uint numVoxels(uvec4 ln) {return ln.x >> SHORT_BITS & SHORT_MASK;}
+uvec3 boxMin(uvec3 ng) {return unpack8(ng.x);}
+uvec3 boxMax(uvec3 ng) {return unpack8(ng.y);}
+uint leftChild(uint nodeIdx) {return nodeIdx + 1u;}
+uint rightChild(uvec3 n) {return nodeIndex(n.z);}
 
 bool intersectScene(uint nodeIdx, vec3 origin, vec3 dir, vec3 invdir, out hitinfo shinfo) {
   uvec3 ngn = texelFetch(nodes, int(nodeIdx)).xyz;
