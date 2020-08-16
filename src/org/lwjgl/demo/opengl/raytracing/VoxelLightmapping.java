@@ -326,11 +326,11 @@ public class VoxelLightmapping {
 
     private static void generateIndices(Face f, int i, IntBuffer indices) {
         if (isPositiveSide(f.s)) {
-            indices.put(i << 2).put((i << 2) + 1).put((i << 2) + 2);
+            indices.put((i << 2) + 1).put((i << 2) + 2).put(i << 2);
             indices.put((i << 2) + 2).put((i << 2) + 3).put(i << 2);
         } else {
-            indices.put(i << 2).put((i << 2) + 3).put((i << 2) + 2);
             indices.put((i << 2) + 2).put((i << 2) + 1).put(i << 2);
+            indices.put((i << 2) + 3).put((i << 2) + 2).put(i << 2);
         }
     }
 
@@ -344,9 +344,9 @@ public class VoxelLightmapping {
 
     private static void generatePositionsAndNormalsZ(Face f, ShortBuffer positions, ByteBuffer normals) {
         positions.put(f.u0).put(f.v0).put(f.p).put(materialAndOffset(f.v, -1, -1, 0));
-        positions.put(f.u1).put(f.v0).put(f.p).put(materialAndOffset(f.v, +1, -1, 0));
-        positions.put(f.u1).put(f.v1).put(f.p).put(materialAndOffset(f.v, +1, +1, 0));
-        positions.put(f.u0).put(f.v1).put(f.p).put(materialAndOffset(f.v, -1, +1, 0));
+        positions.put(f.u1).put(f.v0).put(f.p).put(materialAndOffset((byte) 0, +1, -1, 0));
+        positions.put(f.u1).put(f.v1).put(f.p).put(materialAndOffset((byte) 0, +1, +1, 0));
+        positions.put(f.u0).put(f.v1).put(f.p).put(materialAndOffset((byte) 0, -1, +1, 0));
         normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
         normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
         normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
@@ -355,9 +355,9 @@ public class VoxelLightmapping {
 
     private static void generatePositionsAndNormalsY(Face f, ShortBuffer positions, ByteBuffer normals) {
         positions.put(f.v0).put(f.p).put(f.u0).put(materialAndOffset(f.v, -1, 0, -1));
-        positions.put(f.v0).put(f.p).put(f.u1).put(materialAndOffset(f.v, -1, 0, +1));
-        positions.put(f.v1).put(f.p).put(f.u1).put(materialAndOffset(f.v, +1, 0, +1));
-        positions.put(f.v1).put(f.p).put(f.u0).put(materialAndOffset(f.v, +1, 0, -1));
+        positions.put(f.v0).put(f.p).put(f.u1).put(materialAndOffset((byte) 0, -1, 0, +1));
+        positions.put(f.v1).put(f.p).put(f.u1).put(materialAndOffset((byte) 0, +1, 0, +1));
+        positions.put(f.v1).put(f.p).put(f.u0).put(materialAndOffset((byte) 0, +1, 0, -1));
         normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
         normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
         normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
@@ -366,9 +366,9 @@ public class VoxelLightmapping {
 
     private static void generatePositionsAndNormalsX(Face f, ShortBuffer positions, ByteBuffer normals) {
         positions.put(f.p).put(f.u0).put(f.v0).put(materialAndOffset(f.v, 0, -1, -1));
-        positions.put(f.p).put(f.u1).put(f.v0).put(materialAndOffset(f.v, 0, +1, -1));
-        positions.put(f.p).put(f.u1).put(f.v1).put(materialAndOffset(f.v, 0, +1, +1));
-        positions.put(f.p).put(f.u0).put(f.v1).put(materialAndOffset(f.v, 0, -1, +1));
+        positions.put(f.p).put(f.u1).put(f.v0).put(materialAndOffset((byte) 0, 0, +1, -1));
+        positions.put(f.p).put(f.u1).put(f.v1).put(materialAndOffset((byte) 0, 0, +1, +1));
+        positions.put(f.p).put(f.u0).put(f.v1).put(materialAndOffset((byte) 0, 0, -1, +1));
         normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
         normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
         normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
