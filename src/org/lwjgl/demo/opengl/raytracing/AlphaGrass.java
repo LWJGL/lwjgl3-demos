@@ -27,7 +27,7 @@ import org.lwjgl.system.*;
 /**
  * @author Kai Burjack
  */
-public class CubeTrace {
+public class AlphaGrass {
     private long window;
     private int width = 1920;
     private int height = 1080;
@@ -118,25 +118,25 @@ public class CubeTrace {
         });
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (CubeTrace.this.width != width
-                        || CubeTrace.this.height != height)) {
-                    CubeTrace.this.width = width;
-                    CubeTrace.this.height = height;
-                    CubeTrace.this.resetFramebuffer = true;
+                if (width > 0 && height > 0 && (AlphaGrass.this.width != width
+                        || AlphaGrass.this.height != height)) {
+                    AlphaGrass.this.width = width;
+                    AlphaGrass.this.height = height;
+                    AlphaGrass.this.resetFramebuffer = true;
                 }
             }
         });
         glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
             public void invoke(long window, double x, double y) {
                 if (leftMouseDown) {
-                    float deltaX = (float) x - CubeTrace.this.mouseX;
-                    float deltaY = (float) y - CubeTrace.this.mouseY;
+                    float deltaX = (float) x - AlphaGrass.this.mouseX;
+                    float deltaY = (float) y - AlphaGrass.this.mouseY;
                     cameraLookDir
                             .rotate(quaternion.identity().rotateAxis(-deltaY * 0.002f, viewMatrix.positiveX(tmpVector))
                                     .rotateAxis(-deltaX * 0.002f, viewMatrix.positiveY(tmpVector)));
                 }
-                CubeTrace.this.mouseX = (float) x;
-                CubeTrace.this.mouseY = (float) y;
+                AlphaGrass.this.mouseX = (float) x;
+                AlphaGrass.this.mouseY = (float) y;
             }
         });
         glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
@@ -187,7 +187,7 @@ public class CubeTrace {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             ByteBuffer data;
-            data = stbi_load_from_memory(ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/cubetrace/grass_high.png", 1024), width,
+            data = stbi_load_from_memory(ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/alphagrass/grass_high.png", 1024), width,
                     height, components, 4);
             int w = width.get(0), h = height.get(0);
             glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGBA8, w, h);
@@ -379,8 +379,8 @@ public class CubeTrace {
 
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("cubetrace/experiments/quad.vs.glsl", GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("cubetrace/experiments/quad.fs.glsl", GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/alphagrass/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/alphagrass/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -403,7 +403,7 @@ public class CubeTrace {
 
     private void createFinalGatherProgram() throws IOException {
         int program = glCreateProgram();
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/cubetrace/kdtreeseparate32grass.glsl", GL_COMPUTE_SHADER);
+        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/alphagrass/kdtreeseparate32grass.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, cshader);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
@@ -576,7 +576,7 @@ public class CubeTrace {
     }
 
     public static void main(String[] args) throws Exception {
-        new CubeTrace().run();
+        new AlphaGrass().run();
     }
 
 }
