@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-package org.lwjgl.demo.opengl.raytracing.tutorial;
+package org.lwjgl.demo.opengl.raytracing;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.util.DemoUtils;
@@ -31,7 +31,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * 
  * @author Kai Burjack
  */
-public class Tutorial4_4 {
+public class LinearlyTransformedCosines {
     private long window;
     private int width = 800;
     private int height = 600;
@@ -76,7 +76,7 @@ public class Tutorial4_4 {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        window = glfwCreateWindow(width, height, "Linearly Transformed Cosines", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Linearly Transformed Cosines with Multiple Lights", NULL, NULL);
         if (window == NULL)
             throw new AssertionError("Failed to create the GLFW window");
         System.out.println("Press WSAD, LCTRL, SPACE to move around in the scene.");
@@ -105,10 +105,10 @@ public class Tutorial4_4 {
         });
         glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (Tutorial4_4.this.width != width || Tutorial4_4.this.height != height)) {
-                    Tutorial4_4.this.width = width;
-                    Tutorial4_4.this.height = height;
-                    Tutorial4_4.this.resetFramebuffer = true;
+                if (width > 0 && height > 0 && (LinearlyTransformedCosines.this.width != width || LinearlyTransformedCosines.this.height != height)) {
+                    LinearlyTransformedCosines.this.width = width;
+                    LinearlyTransformedCosines.this.height = height;
+                    LinearlyTransformedCosines.this.resetFramebuffer = true;
                 }
             }
         });
@@ -116,21 +116,21 @@ public class Tutorial4_4 {
             @Override
             public void invoke(long window, double x, double y) {
                 if (mouseDown) {
-                    float deltaX = (float) x - Tutorial4_4.this.mouseX;
-                    float deltaY = (float) y - Tutorial4_4.this.mouseY;
-                    Tutorial4_4.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
-                    Tutorial4_4.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+                    float deltaX = (float) x - LinearlyTransformedCosines.this.mouseX;
+                    float deltaY = (float) y - LinearlyTransformedCosines.this.mouseY;
+                    LinearlyTransformedCosines.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
+                    LinearlyTransformedCosines.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
                 }
-                Tutorial4_4.this.mouseX = (float) x;
-                Tutorial4_4.this.mouseY = (float) y;
+                LinearlyTransformedCosines.this.mouseX = (float) x;
+                LinearlyTransformedCosines.this.mouseY = (float) y;
             }
         });
         glfwSetMouseButtonCallback(window, mbCallback = new GLFWMouseButtonCallback() {
             public void invoke(long window, int button, int action, int mods) {
                 if (action == GLFW_PRESS) {
-                    Tutorial4_4.this.mouseDown = true;
+                    LinearlyTransformedCosines.this.mouseDown = true;
                 } else if (action == GLFW_RELEASE) {
-                    Tutorial4_4.this.mouseDown = false;
+                    LinearlyTransformedCosines.this.mouseDown = false;
                 }
             }
         });
@@ -161,13 +161,13 @@ public class Tutorial4_4 {
             ltcMatTexture = glGenTextures();
             int size = 64;
             glBindTexture(GL_TEXTURE_2D, ltcMatTexture);
-            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_4/ltc1.data",
+            ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/ltc1.data",
                     64 * 1024);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
             ltcMagTexture = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, ltcMagTexture);
-            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/tutorial4_4/ltc2.data",
+            data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/ltc2.data",
                     64 * 1024);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
@@ -177,9 +177,9 @@ public class Tutorial4_4 {
 
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4_4/quad.vs.glsl",
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.vs.glsl",
                 GL_VERTEX_SHADER, "330");
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4_4/quad.fs.glsl",
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.fs.glsl",
                 GL_FRAGMENT_SHADER, "330");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
@@ -202,7 +202,7 @@ public class Tutorial4_4 {
 
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
-        int raytracing = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial4_4/raytracing.glsl",
+        int raytracing = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/raytracing.glsl",
                 GL_COMPUTE_SHADER);
         glAttachShader(program, raytracing);
         glLinkProgram(program);
@@ -364,6 +364,6 @@ public class Tutorial4_4 {
     }
 
     public static void main(String[] args) throws Exception {
-        new Tutorial4_4().run();
+        new LinearlyTransformedCosines().run();
     }
 }
