@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.util;
 
+import static java.lang.Integer.numberOfLeadingZeros;
 import static java.lang.Math.*;
 
 import java.util.List;
@@ -42,6 +43,11 @@ public class GreedyMeshing {
         }
         public int th() {
             return h() + 1;
+        }
+
+        public int lod() {
+            return min(32 - numberOfLeadingZeros(u0 ^ u1),
+                       32 - numberOfLeadingZeros(v0 ^ v1));
         }
 
         public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {

@@ -34,11 +34,15 @@ import org.lwjgl.system.*;
 /**
  * Loads a MagicaVoxel file and builds a lightmap with ray traced ambient occlusion
  * at runtime. The scene is then rasterized normally with the lightmap sampled with linear filtering.
+ * <p>
+ * Also, implements Progressively Ordered Primitive (POP) Buffer LOD.
  * 
  * @author Kai Burjack
  */
 public class VoxelLightmapping {
     private static final int NOT_USED = 0;
+    private static final int VERTICES_PER_FACE = 6;
+    private static final int INDICES_PER_FACE = 6;
 
     private long window;
     private int width = 1600;
@@ -57,12 +61,13 @@ public class VoxelLightmapping {
 
     /* Resources for rasterizing the faces of the scene */
     private int rasterProgram;
-    private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform;
+    private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform, rasterProgramLodUniform;
     private int vao;
     private int positionsBufferObject;
     private int normalsBufferObject;
     private int lightmapCoordsBufferObject;
     private int indexBufferObject;
+    private int[] lodList;
 
     /* Resources for building the lightmap */
     private int lightmapProgram;
@@ -73,7 +78,7 @@ public class VoxelLightmapping {
     private int blendIndexTexture;
 
     /* Misc */
-    private int indexCount;
+    private float lod;
     private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private boolean mouseDown;
     private int mouseX, mouseY;
@@ -94,6 +99,17 @@ public class VoxelLightmapping {
             glfwSetWindowShouldClose(window, true);
         if (key >= 0)
             keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
+        handleSpecialKeys(key, action);
+    }
+
+    private void handleSpecialKeys(int key, int action) {
+        if ((action == GLFW_PRESS || action == GLFW_REPEAT) && key == GLFW_KEY_UP) {
+            lod = Math.min(4.0f, lod + 0.05f);
+            System.out.println("Lod: " + lod);
+        } else if ((action == GLFW_PRESS || action == GLFW_REPEAT) && key == GLFW_KEY_DOWN) {
+            lod = Math.max(0.0f, lod - 0.05f);
+            System.out.println("Lod: " + lod);
+        }
     }
 
     private void onFramebufferSize(long window, int w, int h) {
@@ -122,7 +138,7 @@ public class VoxelLightmapping {
         glfwWindowHint(GLFW_SAMPLES, 4);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        window = glfwCreateWindow(width, height, "Hello lightmapped voxels", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Hello lightmapped LOD voxels", NULL, NULL);
         if (window == NULL)
             throw new AssertionError("Failed to create the GLFW window");
     }
@@ -171,6 +187,7 @@ public class VoxelLightmapping {
         ArrayList<Face> faces = buildFaces(voxelField);
         PackResult packResult = uvPackFaces(faces);
         System.out.println(packResult);
+        this.lodList = buildLodList(faces);
         createLightmapTextures(packResult.w, packResult.h);
         ArrayList<Voxel> voxels = buildVoxels(voxelField);
         createMaterialsTexture();
@@ -182,10 +199,38 @@ public class VoxelLightmapping {
         glfwShowWindow(window);
     }
 
+    private int[] buildLodList(List<Face> faces) {
+        // Reference: https://0fps.net/2018/03/03/a-level-of-detail-method-for-blocky-voxels/
+        System.out.println("Building LOD list...");
+        int[] buckets = new int[8];
+        for (int i = 0; i < faces.size(); i++)
+            buckets[faces.get(i).lod()]++;
+        int t = 0;
+        for (int i = 0; i < buckets.length; i++) {
+            int b = buckets[i];
+            buckets[i] = t;
+            t += b;
+        }
+        for (int i = faces.size() - 1; i >= 0; i--) {
+            while (true) {
+                Face f = faces.get(i);
+                int lod = f.lod();
+                int ptr = buckets[lod];
+                if (i < ptr)
+                    break;
+                faces.set(i, faces.get(ptr));
+                faces.set(ptr, f);
+                buckets[lod]++;
+            }
+        }
+        return buckets;
+    }
+
     private static void printInfo() {
         System.out.println("Use WASD + Ctrl/Space to move/strafe");
         System.out.println("Use Shift to move/strafe faster");
         System.out.println("Use left mouse button + mouse move to rotate");
+        System.out.println("Use arrow up/down to increase/decrease LOD level");
     }
 
     private static int createShader(String resource, int type) throws IOException {
@@ -289,6 +334,7 @@ public class VoxelLightmapping {
         glUniform1i(glGetUniformLocation(program, "materials"), 1);
         rasterProgramMvpUniform = glGetUniformLocation(program, "mvp");
         rasterProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
+        rasterProgramLodUniform = glGetUniformLocation(program, "lod");
         glUseProgram(0);
         rasterProgram = program;
     }
@@ -376,11 +422,10 @@ public class VoxelLightmapping {
     }
 
     private void createSceneVbos(ArrayList<Face> faces) {
-        indexCount = faces.size() * 6;
-        ShortBuffer positions = memAllocShort(4 * Short.BYTES * faces.size() * 4);
-        ByteBuffer normals = memAlloc(3 * Byte.BYTES * faces.size() * 4);
-        ShortBuffer lightmapCoords = memAllocShort(4 * Short.BYTES * faces.size() * 4);
-        IntBuffer indices = memAllocInt(Integer.BYTES * indexCount);
+        ShortBuffer positions = memAllocShort(4 * Short.BYTES * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer normals = memAlloc(3 * Byte.BYTES * faces.size() * VERTICES_PER_FACE);
+        ShortBuffer lightmapCoords = memAllocShort(4 * Short.BYTES * faces.size() * VERTICES_PER_FACE);
+        IntBuffer indices = memAllocInt(Integer.BYTES * faces.size() * INDICES_PER_FACE);
         triangulate(faces, positions, normals, lightmapCoords, indices);
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
@@ -578,6 +623,17 @@ public class VoxelLightmapping {
         pMat.mulPerspectiveAffine(vMat, mvpMat);
     }
 
+    private int offsetForLod(int lod) {
+        return lodList[lod];
+    }
+
+    private int countForLod(int lod) {
+        int r = 0;
+        for (int i = lod; i < lodList.length - 1; i++)
+            r += lodList[i+1] - lodList[i];
+        return r;
+    }
+
     private void raster() {
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -589,13 +645,16 @@ public class VoxelLightmapping {
             glUniformMatrix4fv(rasterProgramMvpUniform, false, mvpMat.get(stack.mallocFloat(16)));
         }
         glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
+        glUniform1f(rasterProgramLodUniform, lod);
         glViewport(0, 0, width, height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, lightmapTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_BUFFER, materialsTexture);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0L);
+        int off = offsetForLod((int) lod);
+        int cnt = countForLod((int) lod);
+        glDrawElements(GL_TRIANGLES, cnt * INDICES_PER_FACE, GL_UNSIGNED_INT, off * INDICES_PER_FACE * Integer.BYTES);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -620,7 +679,7 @@ public class VoxelLightmapping {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glViewport(0, 0, lightmapTexWidth, lightmapTexHeight);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLES, countForLod(0) * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
