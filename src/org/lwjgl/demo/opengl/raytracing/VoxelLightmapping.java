@@ -41,7 +41,7 @@ import org.lwjgl.system.*;
  */
 public class VoxelLightmapping {
     private static final int NOT_USED = 0;
-    private static final int VERTICES_PER_FACE = 6;
+    private static final int VERTICES_PER_FACE = 4;
     private static final int INDICES_PER_FACE = 6;
 
     private long window;
@@ -628,10 +628,7 @@ public class VoxelLightmapping {
     }
 
     private int countForLod(int lod) {
-        int r = 0;
-        for (int i = lod; i < lodList.length - 1; i++)
-            r += lodList[i+1] - lodList[i];
-        return r;
+        return lodList[lodList.length - 1] - lodList[lod];
     }
 
     private void raster() {
