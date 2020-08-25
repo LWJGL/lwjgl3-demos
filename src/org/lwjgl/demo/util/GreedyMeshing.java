@@ -63,22 +63,25 @@ public class GreedyMeshing {
 
     private final int[] m;
     private byte[] vs;
-    private int dx, dy, dz;
+    private int dx, dy, dz, ny;
     private boolean singleOpaque;
     private int maxMergeLength = Integer.MAX_VALUE;
     private int splitShift = 16;
     private int splitMask = (1 << splitShift) - 1;
 
-    public GreedyMeshing(int dx, int dy, int dz) {
+    public GreedyMeshing(int ny, int py, int dx, int dz) {
         if (dx < 1 || dx > Short.MAX_VALUE)
             throw new IllegalArgumentException("dx");
-        if (dy < 1 || dy > Short.MAX_VALUE)
-            throw new IllegalArgumentException("dy");
+        if (ny < 0 || ny > Short.MAX_VALUE)
+            throw new IllegalArgumentException("ny");
+        if (py < 0 || py > Short.MAX_VALUE)
+            throw new IllegalArgumentException("py");
         if (dz < 1 || dz > Short.MAX_VALUE)
             throw new IllegalArgumentException("dz");
         this.dx = dx;
-        this.dy = dy;
+        this.dy = py - ny + 1;
         this.dz = dz;
+        this.ny = ny;
         this.m = new int[max(dx, dy) * max(dy, dz)];
     }
 
@@ -123,7 +126,7 @@ public class GreedyMeshing {
     }
 
     private void meshY(List<Face> faces) {
-        for (int x1 = -1; x1 < dy;) {
+        for (int x1 = ny - 1; x1 < dy;) {
             generateMaskY(x1);
             x1++;
             mergeAndGenerateFacesY(faces, x1);
@@ -141,7 +144,7 @@ public class GreedyMeshing {
     private void generateMaskX(int x0) {
         int n = 0;
         for (int x2 = 0; x2 < dz; x2++)
-            for (int x1 = 0; x1 < dy; x1++, n++)
+            for (int x1 = ny; x1 < dy; x1++, n++)
                 generateMaskX(x0, x1, x2, n);
     }
 
@@ -154,7 +157,7 @@ public class GreedyMeshing {
 
     private void generateMaskZ(int x2) {
         int n = 0;
-        for (int x1 = 0; x1 < dy; x1++)
+        for (int x1 = ny; x1 < dy; x1++)
             for (int x0 = 0; x0 < dx; x0++, n++)
                 generateMaskZ(x0, x1, x2, n);
     }
@@ -183,7 +186,7 @@ public class GreedyMeshing {
     private void mergeAndGenerateFacesX(List<Face> faces, int x0) {
         int i, j, n, incr;
         for (j = 0, n = 0; j < dz; j++)
-            for (i = 0; i < dy; i += incr, n += incr)
+            for (i = ny; i < dy; i += incr, n += incr)
                 incr = mergeAndGenerateFaceX(faces, x0, n, i, j);
     }
 
@@ -196,7 +199,7 @@ public class GreedyMeshing {
 
     private void mergeAndGenerateFacesZ(List<Face> faces, int x2) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dy; j++)
+        for (j = ny, n = 0; j < dy; j++)
             for (i = 0; i < dx; i += incr, n += incr)
                 incr = mergeAndGenerateFaceZ(faces, x2, n, i, j);
     }

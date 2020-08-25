@@ -17,7 +17,7 @@ public class GreedyVoxels {
 
     private final short[] m;
     private final Callback callback;
-    private final int dx, dy, dz;
+    private final int dx, dy, dz, ny;
     private boolean mergeCulled;
     private boolean singleOpaque;
 
@@ -37,16 +37,19 @@ public class GreedyVoxels {
         this.singleOpaque = singleOpaque;
     }
 
-    public GreedyVoxels(int dx, int dy, int dz, Callback callback) {
+    public GreedyVoxels(int ny, int py, int dx, int dz, Callback callback) {
         if (dx < 1 || dx > Short.MAX_VALUE)
             throw new IllegalArgumentException("dx");
-        if (dy < 1 || dy > Short.MAX_VALUE)
-            throw new IllegalArgumentException("dy");
+        if (ny < 0 || ny > Short.MAX_VALUE)
+            throw new IllegalArgumentException("ny");
+        if (py < 0 || py > Short.MAX_VALUE)
+            throw new IllegalArgumentException("py");
         if (dz < 1 || dz > Short.MAX_VALUE)
             throw new IllegalArgumentException("dz");
         this.callback = callback;
+        this.ny = ny;
         this.dx = dx;
-        this.dy = dy;
+        this.dy = py - ny + 1;
         this.dz = dz;
         this.m = new short[(dx+2) * (dy+2) * (dz+2)];
     }
@@ -56,13 +59,13 @@ public class GreedyVoxels {
     }
 
     public void merge(byte[] vs, boolean[] culled) {
-        for (int y = 0; y < dy; y++)
+        for (int y = ny; y < dy; y++)
             for (int z = 0; z < dz; z++)
                 for (int x = 0; x < dx; x++) {
                     int i = idx(x, y, z);
                     m[i] = (short) (culled[i] ? -1 : vs[i] & 0xFF);
                 }
-        for (int y = 0; y < dy; y++)
+        for (int y = ny; y < dy; y++)
             for (int z = 0; z < dz; z++)
                 for (int x = 0; x < dx; x++)
                     x += mergeAndGenerateFace(x, y, z) - 1;

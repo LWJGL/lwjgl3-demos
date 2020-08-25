@@ -241,7 +241,7 @@ public class CubeTraceMerged {
         }
         /* Merge voxels */
         List<KDTreei.Voxel> voxels = new ArrayList<>();
-        GreedyVoxels gv = new GreedyVoxels(width, height, depth, (x, y, z, w, h, d, v) -> {
+        GreedyVoxels gv = new GreedyVoxels(0, height - 1, width, depth, (x, y, z, w, h, d, v) -> {
             voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
         });
         gv.merge(field, culled);

@@ -687,13 +687,16 @@ public class VoxelLightmapping {
     }
 
     private static class VoxelField {
-        int w, h, d;
+        int ny, py, w, d;
         byte[] field;
+        int h() { return py - ny + 1; }
     }
 
     private VoxelField buildVoxelField() throws IOException {
         System.out.println("Building voxel field...");
         Vector3i dims = new Vector3i();
+        Vector3i min = new Vector3i(Integer.MAX_VALUE);
+        Vector3i max = new Vector3i(Integer.MIN_VALUE);
         byte[] field = new byte[(256 + 2) * (256 + 2) * (256 + 2)];
         try (InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
              BufferedInputStream bis = new BufferedInputStream(is)) {
@@ -701,6 +704,8 @@ public class VoxelLightmapping {
                 public void voxel(int x, int y, int z, byte c) {
                     y = dims.z - y - 1;
                     field[idx(x, z, y, dims.x, dims.z)] = c;
+                    min.set(Math.min(min.x, x), Math.min(min.y, z), Math.min(min.z, y));
+                    max.set(Math.max(max.x, x), Math.max(max.y, z), Math.max(max.z, y));
                 }
 
                 public void size(int x, int y, int z) {
@@ -714,21 +719,23 @@ public class VoxelLightmapping {
                 }
             });
         }
-        System.out.println("Voxel dimensions: " + dims);
+        System.out.println("Voxel field dimensions: " + dims);
+        System.out.println("Actual voxel data: " + min + " - " + max);
         VoxelField res = new VoxelField();
         res.w = dims.x;
-        res.h = dims.y;
         res.d = dims.z;
+        res.ny = min.y;
+        res.py = max.y;
         res.field = field;
         return res;
     }
 
-    private ArrayList<Face> buildFaces(VoxelField voxelField) {
+    private ArrayList<Face> buildFaces(VoxelField vf) {
         System.out.println("Building faces...");
         /* Greedy-meshing */
-        GreedyMeshing gm = new GreedyMeshing(voxelField.w, voxelField.h, voxelField.d);
+        GreedyMeshing gm = new GreedyMeshing(vf.ny, vf.py, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
-        gm.mesh(voxelField.field, faces);
+        gm.mesh(vf.field, faces);
         System.out.println("Num faces: " + faces.size());
         return faces;
     }
@@ -737,8 +744,8 @@ public class VoxelLightmapping {
         /* Cull voxels */
         System.out.println("Building voxels...");
         int numVoxels = 0, numRetainedVoxels = 0;
-        boolean[] culled = new boolean[(field.w + 2) * (field.h + 2) * (field.d + 2)];
-        for (int y = 0; y < field.h; y++) {
+        boolean[] culled = new boolean[(field.w + 2) * (field.h() + 2) * (field.d + 2)];
+        for (int y = field.ny; y < field.h(); y++) {
             for (int z = 0; z < field.d; z++) {
                 for (int x = 0; x < field.w; x++) {
                     int idx = idx(x, y, z, field.w, field.d);
@@ -764,7 +771,7 @@ public class VoxelLightmapping {
         System.out.println("Num voxels after culling: " + numRetainedVoxels);
         /* Greedy voxeling */
         ArrayList<Voxel> voxels = new ArrayList<>();
-        GreedyVoxels gv = new GreedyVoxels(field.w, field.h, field.d, (x, y, z, w, h, d, v) ->
+        GreedyVoxels gv = new GreedyVoxels(field.ny, field.py, field.w, field.d, (x, y, z, w, h, d, v) ->
                 voxels.add(new Voxel(x, y, z, w - 1, h - 1, d - 1, v)));
         gv.setSingleOpaque(true);
         gv.merge(field.field, culled);
