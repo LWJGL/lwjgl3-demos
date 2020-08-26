@@ -95,8 +95,9 @@ import org.lwjgl.vulkan.VkWriteDescriptorSet;
 public class TwoRotatingTrianglesInvDepthDemo {
     private static boolean debug = System.getProperty("NDEBUG") == null;
 
-    private static ByteBuffer[] layers = {
-            memUTF8("VK_LAYER_LUNARG_standard_validation"),
+    private static String[] layers = {
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_KHRONOS_validation",
     };
 
     /**
@@ -118,10 +119,7 @@ public class TwoRotatingTrianglesInvDepthDemo {
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memUTF8(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
-        PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; debug && i < layers.length; i++)
-            ppEnabledLayerNames.put(layers[i]);
-        ppEnabledLayerNames.flip();
+        PointerBuffer ppEnabledLayerNames = debug ? allocateLayerBuffer(layers) : null;
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                 .pApplicationInfo(appInfo)
@@ -136,7 +134,7 @@ public class TwoRotatingTrianglesInvDepthDemo {
         }
         VkInstance ret = new VkInstance(instance, pCreateInfo);
         pCreateInfo.free();
-        memFree(ppEnabledLayerNames);
+        if(ppEnabledLayerNames != null) memFree(ppEnabledLayerNames);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
         memFree(ppEnabledExtensionNames);
         memFree(appInfo.pApplicationName());
@@ -208,16 +206,11 @@ public class TwoRotatingTrianglesInvDepthDemo {
         ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memUTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
-        PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; debug && i < layers.length; i++)
-            ppEnabledLayerNames.put(layers[i]);
-        ppEnabledLayerNames.flip();
 
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
                 .pQueueCreateInfos(queueCreateInfo)
-                .ppEnabledExtensionNames(extensions)
-                .ppEnabledLayerNames(ppEnabledLayerNames);
+                .ppEnabledExtensionNames(extensions);
 
         PointerBuffer pDevice = memAllocPointer(1);
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
@@ -236,7 +229,6 @@ public class TwoRotatingTrianglesInvDepthDemo {
         ret.memoryProperties = memoryProperties;
 
         deviceCreateInfo.free();
-        memFree(ppEnabledLayerNames);
         memFree(VK_KHR_SWAPCHAIN_EXTENSION);
         memFree(extensions);
         memFree(pQueuePriorities);
