@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 330 core
+#version 430 core
 
 /**
  * Description of all necessary information of a ray-triangle

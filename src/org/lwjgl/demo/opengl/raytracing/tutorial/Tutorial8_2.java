@@ -292,8 +292,7 @@ public class Tutorial8_2 {
     private void createRasterAndTraceProgram() throws IOException {
         int program = glCreateProgram();
         int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/raster.vs", GL_VERTEX_SHADER);
-        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/rasterAndTrace.fs",
-                        GL_FRAGMENT_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/rasterAndTrace.fs", GL_FRAGMENT_SHADER);
         int fshader2 = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/random.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader2);
@@ -329,10 +328,8 @@ public class Tutorial8_2 {
 
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/quad.vs.glsl", GL_VERTEX_SHADER,
-                        "330");
-        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/quad.fs.glsl", GL_FRAGMENT_SHADER,
-                        "330");
+        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -354,10 +351,8 @@ public class Tutorial8_2 {
 
     private void createReprojectProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/reproject.vs.glsl", GL_VERTEX_SHADER,
-                        "330");
-        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/reproject.fs.glsl", GL_FRAGMENT_SHADER,
-                        "330");
+        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/reproject.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial8_2/reproject.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");

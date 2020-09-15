@@ -2,6 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
+#version 430 core
+
 /* The texture we are going to sample */
 uniform sampler2D tex;
 
@@ -12,5 +14,5 @@ out vec4 color;
 
 void main(void) {
   /* Well, simply sample the texture */
-  color = texture2D(tex, texcoord);
+  color = texture(tex, texcoord);
 }

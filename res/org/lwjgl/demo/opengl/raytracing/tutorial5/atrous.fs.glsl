@@ -9,7 +9,7 @@
  *
  * https://jo.dreggn.org/home/2010_atrous.pdf
  */
-#version 330 core
+#version 430 core
 
 uniform sampler2D colorMap;
 uniform sampler2D normalMap;

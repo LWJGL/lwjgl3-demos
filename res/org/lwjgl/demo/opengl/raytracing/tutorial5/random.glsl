@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 330 core
+#version 430 core
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718

@@ -651,10 +651,8 @@ public class Tutorial6_2 {
          * Create program and shader objects for our full-screen quad rendering.
          */
         int program = glCreateProgram();
-        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.vs.glsl",
-                GL_VERTEX_SHADER);
-        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.fs.glsl",
-                GL_FRAGMENT_SHADER);
+        int vshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -680,10 +678,8 @@ public class Tutorial6_2 {
          * shader type, now being GL_COMPUTE_SHADER.
          */
         int program = glCreateProgram();
-        int cshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/raytracing.glsl",
-                GL_COMPUTE_SHADER);
-        int geometry = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/geometry.glsl",
-                GL_COMPUTE_SHADER);
+        int cshader = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/raytracing.glsl", GL_COMPUTE_SHADER);
+        int geometry = createShader("org/lwjgl/demo/opengl/raytracing/tutorial6_2/geometry.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, cshader);
         glAttachShader(program, geometry);
         glLinkProgram(program);

@@ -577,10 +577,8 @@ public class Tutorial7 {
      */
     private void createRasterProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.vs.glsl",
-                GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.fs.glsl",
-                GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raster.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindAttribLocation(program, 0, "vertex");
@@ -616,10 +614,8 @@ public class Tutorial7 {
          * Create program and shader objects for our full-screen quad rendering.
          */
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.vs.glsl",
-                GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.fs.glsl",
-                GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -645,12 +641,9 @@ public class Tutorial7 {
          * shader type, now being GL_COMPUTE_SHADER.
          */
         int program = glCreateProgram();
-        int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/geometry.glsl",
-                GL_COMPUTE_SHADER);
-        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/random.glsl",
-                GL_COMPUTE_SHADER);
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raytracing.glsl",
-                GL_COMPUTE_SHADER);
+        int geometry = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/geometry.glsl", GL_COMPUTE_SHADER);
+        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/random.glsl", GL_COMPUTE_SHADER);
+        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial7/raytracing.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, geometry);
         glAttachShader(program, random);
         glAttachShader(program, cshader);

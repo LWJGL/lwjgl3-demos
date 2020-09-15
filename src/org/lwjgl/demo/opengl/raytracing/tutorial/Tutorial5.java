@@ -362,10 +362,8 @@ public class Tutorial5 {
          * Create program and shader objects for our full-screen quad rendering.
          */
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl",
-                GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl",
-                GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -391,10 +389,8 @@ public class Tutorial5 {
          * shader type, now being GL_COMPUTE_SHADER.
          */
         int program = glCreateProgram();
-        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl",
-                GL_COMPUTE_SHADER);
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl",
-                GL_COMPUTE_SHADER);
+        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl", GL_COMPUTE_SHADER);
+        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, random);
         glAttachShader(program, cshader);
         glLinkProgram(program);
@@ -414,10 +410,8 @@ public class Tutorial5 {
      */
     private void createFilterProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl",
-                GL_VERTEX_SHADER);
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl",
-                GL_FRAGMENT_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/atrous.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");

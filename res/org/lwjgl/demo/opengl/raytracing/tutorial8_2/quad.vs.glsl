@@ -2,6 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
+#version 430 core
+
 out vec2 texcoord;
 void main(void) {
   vec2 vertex = vec2(-1.0) + vec2(

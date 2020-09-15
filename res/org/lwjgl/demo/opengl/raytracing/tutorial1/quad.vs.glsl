@@ -2,6 +2,8 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
+#version 430 core
+
 /* Write interpolated texture coordinate to fragment shader */
 out vec2 texcoord;
 
