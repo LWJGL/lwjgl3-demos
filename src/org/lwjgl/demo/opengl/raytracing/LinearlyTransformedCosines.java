@@ -177,10 +177,8 @@ public class LinearlyTransformedCosines {
 
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.vs.glsl",
-                GL_VERTEX_SHADER, "330");
-        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.fs.glsl",
-                GL_FRAGMENT_SHADER, "330");
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.vs.glsl", GL_VERTEX_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/quad.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -202,8 +200,7 @@ public class LinearlyTransformedCosines {
 
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
-        int raytracing = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/raytracing.glsl",
-                GL_COMPUTE_SHADER);
+        int raytracing = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/raytracing.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, raytracing);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);

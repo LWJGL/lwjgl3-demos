@@ -254,8 +254,8 @@ vec3 trace(vec3 origin, vec3 dir) {
   origin = point + normal * EPSILON;
   vec2 uv = vec2(roughness, sqrt(1.0 - min(1.0, max(0.0, dot(normal, -dir)))))
               * LUT_SCALE + vec2(LUT_BIAS);
-  vec4 m = texture2D(ltc_mat, uv);
-  vec4 f = texture2D(ltc_mag, uv);
+  vec4 m = texture(ltc_mat, uv);
+  vec4 f = texture(ltc_mag, uv);
   mat3 M = mat3(
     vec3(m.x, 0.0, m.z),
     vec3(0.0, 1.0, 0.0),
