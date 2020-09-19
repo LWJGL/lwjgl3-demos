@@ -5,6 +5,7 @@
 package org.lwjgl.demo.bgfx;
 
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.BGFXVertexLayout;
 import org.lwjgl.system.MemoryUtil;
@@ -56,11 +57,11 @@ public class Cubes extends Demo {
     private short ibh;
     private short program;
 
-    private Matrix4f view = new Matrix4f();
+    private Matrix4x3f view = new Matrix4x3f();
     private FloatBuffer viewBuf;
     private Matrix4f proj = new Matrix4f();
     private FloatBuffer projBuf;
-    private Matrix4f model = new Matrix4f();
+    private Matrix4x3f model = new Matrix4x3f();
     private FloatBuffer modelBuf;
 
     public static void main(String[] args) {
@@ -102,7 +103,7 @@ public class Cubes extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 0.0f, -35.0f), view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
+        bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
 
         long encoder = bgfx_encoder_begin(false);
         for (int yy = 0; yy < 11; ++yy) {
@@ -112,11 +113,11 @@ public class Cubes extends Demo {
                               -15.0f + xx * 3.0f,
                               -15.0f + yy * 3.0f,
                               0.0f)
-                         .rotateAffineXYZ(
+                         .rotateXYZ(
                               time + xx * 0.21f,
                               time + yy * 0.37f,
                               0.0f)
-                         .get(modelBuf));
+                         .get4x4(modelBuf));
 
                 bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 8);
                 bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);

@@ -5,6 +5,7 @@
 package org.lwjgl.demo.bgfx;
 
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.lwjgl.bgfx.*;
 
@@ -247,7 +248,7 @@ final class BGFXDemoUtil {
         }
     }
 
-    static void lookAt(Vector3f at, Vector3f eye, Matrix4f dest) {
+    static void lookAt(Vector3f at, Vector3f eye, Matrix4x3f dest) {
         dest.setLookAtLH(eye.x, eye.y, eye.z, at.x, at.y, at.z, 0.0f, 1.0f, 0.0f);
     }
 
@@ -257,7 +258,7 @@ final class BGFXDemoUtil {
         dest.setPerspectiveLH(fovRadians, aspect, near, far, zZeroToOne);
     }
 
-    static void ortho(float left, float right, float bottom, float top, float zNear, float zFar, Matrix4f dest) {
+    static void ortho(float left, float right, float bottom, float top, float zNear, float zFar, Matrix4x3f dest) {
         dest.setOrthoLH(left, right, bottom, top, zNear, zFar, zZeroToOne);
     }
 

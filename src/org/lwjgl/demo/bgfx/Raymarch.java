@@ -28,15 +28,15 @@ public class Raymarch extends Demo {
     private short uniformMtx;
     private short uniformLightDirTime;
 
-    private Matrix4f view = new Matrix4f();
+    private Matrix4x3f view = new Matrix4x3f();
     private FloatBuffer viewBuf;
     private Matrix4f proj = new Matrix4f();
     private FloatBuffer projBuf;
 
-    private Matrix4f ortho = new Matrix4f();
+    private Matrix4x3f ortho = new Matrix4x3f();
     private FloatBuffer orthoBuf;
     private Matrix4f vp = new Matrix4f();
-    private Matrix4f mtx = new Matrix4f();
+    private Matrix4x3f mtx = new Matrix4x3f();
     private Matrix4f mtxInv = new Matrix4f();
     private Matrix4f mvp = new Matrix4f();
     private Matrix4f invMvp = new Matrix4f();
@@ -154,10 +154,10 @@ public class Raymarch extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f, 0.0f, -15.0f), view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
+        bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
 
         BGFXDemoUtil.ortho(0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 100.0f, ortho);
-        bgfx_set_view_transform(1, null, ortho.get(orthoBuf));
+        bgfx_set_view_transform(1, null, ortho.get4x4(orthoBuf));
 
         mtx.setRotationXYZ(time, time * 0.37f, 0.0f)
            .invert(mtxInv);

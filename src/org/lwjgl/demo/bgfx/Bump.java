@@ -38,11 +38,11 @@ public class Bump extends Demo {
     private short textureNormal;
     private boolean instancingSupported;
 
-    private Matrix4f view = new Matrix4f();
+    private Matrix4x3f view = new Matrix4x3f();
     private FloatBuffer viewBuf;
     private Matrix4f proj = new Matrix4f();
     private FloatBuffer projBuf;
-    private Matrix4f mtx = new Matrix4f();
+    private Matrix4x3f mtx = new Matrix4x3f();
     private FloatBuffer mtxBuf;
     private ByteBuffer uniformBuf;
 
@@ -283,7 +283,7 @@ public class Bump extends Demo {
         BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
         BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-        bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
+        bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
 
         bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
 
@@ -323,7 +323,7 @@ public class Bump extends Demo {
                 for (int xx = 0; xx < 3; ++xx) {
                     mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f)
                        .setTranslation(-3.0f + xx * 3.0f, -3.0f + yy * 3.0f, 0.0f)
-                       .get(data);
+                       .get4x4(data);
                     data.position(data.position() + instanceStride);
                 }
 
@@ -356,7 +356,7 @@ public class Bump extends Demo {
                     bgfx_encoder_set_transform(encoder, 
                             mtx.setRotationXYZ(time * 0.023f + xx * 0.21f, time * 0.03f + yy * 0.37f, 0.0f)
                                .setTranslation(-3.0f + xx * 3.0f, -3.0f + yy * 3.0f, 0.0f)
-                               .get(mtxBuf));
+                               .get4x4(mtxBuf));
 
                     // Set vertex and index buffer.
                     bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);

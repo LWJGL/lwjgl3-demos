@@ -37,11 +37,11 @@ public class Metaballs extends Demo {
     private BGFXVertexLayout layout;
     private short program;
 
-    private Matrix4f view = new Matrix4f();
+    private Matrix4x3f view = new Matrix4x3f();
     private FloatBuffer viewBuf;
     private Matrix4f proj = new Matrix4f();
     private FloatBuffer projBuf;
-    private Matrix4f model = new Matrix4f();
+    private Matrix4x3f model = new Matrix4x3f();
     private FloatBuffer modelBuf;
 
     private Grid[] grid = new Grid[DIMS * DIMS * DIMS];
@@ -498,7 +498,7 @@ public class Metaballs extends Demo {
             BGFXDemoUtil.lookAt(new Vector3f(0.0f, 0.0f, 0.0f), eye, view);
             BGFXDemoUtil.perspective(60.0f, getWindowWidth(), getWindowHeight(), 0.1f, 100.0f, proj);
 
-            bgfx_set_view_transform(0, view.get(viewBuf), proj.get(projBuf));
+            bgfx_set_view_transform(0, view.get4x4(viewBuf), proj.get(projBuf));
 
             bgfx_set_view_rect(0, 0, 0, getWindowWidth(), getWindowHeight());
 
@@ -630,7 +630,7 @@ public class Metaballs extends Demo {
 
             long encoder = bgfx_encoder_begin(false);
 
-            bgfx_encoder_set_transform(encoder, model.get(modelBuf));
+            bgfx_encoder_set_transform(encoder, model.get4x4(modelBuf));
 
             // Set vertex and index buffer.
             bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, numVertices);
