@@ -109,6 +109,8 @@ public class VoxelLightmapping {
         } else if ((action == GLFW_PRESS || action == GLFW_REPEAT) && key == GLFW_KEY_DOWN) {
             lod = Math.max(0.0f, lod - 0.05f);
             System.out.println("Lod: " + lod);
+        } else if (action == GLFW_PRESS && key == GLFW_KEY_R) {
+            resetBlendIndexTexture();
         }
     }
 
@@ -231,6 +233,7 @@ public class VoxelLightmapping {
         System.out.println("Use Shift to move/strafe faster");
         System.out.println("Use left mouse button + mouse move to rotate");
         System.out.println("Use arrow up/down to increase/decrease LOD level");
+        System.out.println("Press R to reset the lightmap");
     }
 
     private static int createShader(String resource, int type) throws IOException {
@@ -263,6 +266,14 @@ public class VoxelLightmapping {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w, h, 0, GL_RED, GL_FLOAT, (ByteBuffer) null);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    private void resetBlendIndexTexture() {
+        ByteBuffer bb = memCalloc(lightmapTexWidth * lightmapTexHeight * Float.BYTES);
+        glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lightmapTexWidth, lightmapTexHeight, GL_RED, GL_FLOAT, bb);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        memFree(bb);
     }
 
     private void createLightmapTexture(int w, int h) {
