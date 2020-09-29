@@ -97,6 +97,7 @@ public class InfiniteDraggablePlaneDemo {
         int program = glCreateProgramObjectARB();
         int vs = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
         glShaderSourceARB(vs, 
+                "#version 110\n" +
                 "uniform mat4 viewProjMatrix;\n" +
                 "varying vec4 wp;\n" +
                 "void main(void) {\n" +
@@ -106,7 +107,8 @@ public class InfiniteDraggablePlaneDemo {
         glCompileShaderARB(vs);
         glAttachObjectARB(program, vs);
         int fs = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-        glShaderSourceARB(fs, 
+        glShaderSourceARB(fs,
+                "#version 110\n" +
                 "varying vec4 wp;\n" +
                 "void main(void) {\n" +
                 "  vec2 p = wp.xz / wp.w;\n" +
