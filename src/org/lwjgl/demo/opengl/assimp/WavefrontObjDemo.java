@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.demo.util.IOUtils.*;
+import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.opengl.ARBShaderObjects.*;
@@ -77,11 +78,6 @@ public class WavefrontObjDemo {
     private FloatBuffer viewPositionBuffer = BufferUtils.createFloatBuffer(3);
 
     GLCapabilities caps;
-    GLFWKeyCallback keyCallback;
-    GLFWFramebufferSizeCallback fbCallback;
-    GLFWWindowSizeCallback wsCallback;
-    GLFWCursorPosCallback cpCallback;
-    GLFWScrollCallback sCallback;
     Callback debugProc;
 
     void init() throws IOException {
@@ -100,56 +96,39 @@ public class WavefrontObjDemo {
 
         System.out.println("Move the mouse to look around");
         System.out.println("Zoom in/out with mouse wheel");
-        glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
-            @Override
-            public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (WavefrontObjDemo.this.fbWidth != width
-                        || WavefrontObjDemo.this.fbHeight != height)) {
-                    WavefrontObjDemo.this.fbWidth = width;
-                    WavefrontObjDemo.this.fbHeight = height;
-                }
+        glfwSetFramebufferSizeCallback(window, (window, width, height) -> {
+            if (width > 0 && height > 0 && (fbWidth != width || fbHeight != height)) {
+                fbWidth = width;
+                fbHeight = height;
             }
         });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-            @Override
-            public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (WavefrontObjDemo.this.width != width
-                        || WavefrontObjDemo.this.height != height)) {
-                    WavefrontObjDemo.this.width = width;
-                    WavefrontObjDemo.this.height = height;
-                }
+        glfwSetWindowSizeCallback(window, (window, width, height) -> {
+            if (width > 0 && height > 0 && (this.width != width || this.height != height)) {
+                this.width = width;
+                this.height = height;
             }
         });
-        glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
-            @Override
-            public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (action != GLFW_RELEASE) {
-                    return;
-                }
-                if (key == GLFW_KEY_ESCAPE) {
-                    glfwSetWindowShouldClose(window, true);
-                }
+        glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
+            if (action != GLFW_RELEASE) {
+                return;
+            }
+            if (key == GLFW_KEY_ESCAPE) {
+                glfwSetWindowShouldClose(window, true);
             }
         });
-        glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
-            @Override
-            public void invoke(long window, double x, double y) {
-                rotation = ((float) x / width - 0.5f) * 2f * (float) Math.PI;
-            }
+        glfwSetCursorPosCallback(window, (window, x, y) -> {
+            rotation = ((float)x / width - 0.5f) * 2f * (float)Math.PI;
         });
-        glfwSetScrollCallback(window, sCallback = new GLFWScrollCallback() {
-            @Override
-            public void invoke(long window, double xoffset, double yoffset) {
-                if (yoffset < 0) {
-                    fov *= 1.05f;
-                } else {
-                    fov *= 1f / 1.05f;
-                }
-                if (fov < 10.0f) {
-                    fov = 10.0f;
-                } else if (fov > 120.0f) {
-                    fov = 120.0f;
-                }
+        glfwSetScrollCallback(window, (window, xoffset, yoffset) -> {
+            if (yoffset < 0) {
+                fov *= 1.05f;
+            } else {
+                fov *= 1f / 1.05f;
+            }
+            if (fov < 10.0f) {
+                fov = 10.0f;
+            } else if (fov > 120.0f) {
+                fov = 120.0f;
             }
         });
 
@@ -190,26 +169,23 @@ public class WavefrontObjDemo {
     }
 
     void loadModel() {
-        AIFileIO fileIo = AIFileIO.create();
-        AIFileOpenProcI fileOpenProc = new AIFileOpenProc() {
-            public long invoke(long pFileIO, long fileName, long openMode) {
-                AIFile aiFile = AIFile.create();
-                final ByteBuffer data;
+        AIFileIO fileIo = AIFileIO.create()
+            .OpenProc((pFileIO, fileName, openMode) -> {
+                ByteBuffer data;
                 String fileNameUtf8 = memUTF8(fileName);
                 try {
                     data = ioResourceToByteBuffer(fileNameUtf8, 8192);
                 } catch (IOException e) {
                     throw new RuntimeException("Could not open file: " + fileNameUtf8);
                 }
-                AIFileReadProcI fileReadProc = new AIFileReadProc() {
-                    public long invoke(long pFile, long pBuffer, long size, long count) {
+
+                return AIFile.create()
+                    .ReadProc((pFile, pBuffer, size, count) -> {
                         long max = Math.min(data.remaining(), size * count);
                         memCopy(memAddress(data) + data.position(), pBuffer, max);
                         return max;
-                    }
-                };
-                AIFileSeekI fileSeekProc = new AIFileSeek() {
-                    public int invoke(long pFile, long offset, int origin) {
+                    })
+                    .SeekProc((pFile, offset, origin) -> {
                         if (origin == Assimp.aiOrigin_CUR) {
                             data.position(data.position() + (int) offset);
                         } else if (origin == Assimp.aiOrigin_SET) {
@@ -218,27 +194,21 @@ public class WavefrontObjDemo {
                             data.position(data.limit() + (int) offset);
                         }
                         return 0;
-                    }
-                };
-                AIFileTellProcI fileTellProc = new AIFileTellProc() {
-                    public long invoke(long pFile) {
-                        return data.limit();
-                    }
-                };
-                aiFile.ReadProc(fileReadProc);
-                aiFile.SeekProc(fileSeekProc);
-                aiFile.FileSizeProc(fileTellProc);
-                return aiFile.address();
-            }
-        };
-        AIFileCloseProcI fileCloseProc = new AIFileCloseProc() {
-            public void invoke(long pFileIO, long pFile) {
-                /* Nothing to do */
-            }
-        };
-        fileIo.set(fileOpenProc, fileCloseProc, NULL);
+                    })
+                    .FileSizeProc(pFile -> data.limit())
+                    .address();
+            })
+            .CloseProc((pFileIO, pFile) -> {
+                AIFile aiFile = AIFile.create(pFile);
+
+                aiFile.ReadProc().free();
+                aiFile.SeekProc().free();
+                aiFile.FileSizeProc().free();
+            });
         AIScene scene = aiImportFileEx("org/lwjgl/demo/opengl/assimp/magnet.obj",
                 aiProcess_JoinIdenticalVertices | aiProcess_Triangulate, fileIo);
+        fileIo.OpenProc().free();
+        fileIo.CloseProc().free();
         if (scene == null) {
             throw new IllegalStateException(aiGetErrorString());
         }
@@ -345,6 +315,7 @@ public class WavefrontObjDemo {
             render();
             glfwSwapBuffers(window);
         }
+        GL.setCapabilities(null);
     }
 
     void run() {
@@ -355,10 +326,7 @@ public class WavefrontObjDemo {
             if (debugProc != null) {
                 debugProc.free();
             }
-            cpCallback.free();
-            keyCallback.free();
-            fbCallback.free();
-            wsCallback.free();
+            glfwFreeCallbacks(window);
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();
@@ -377,7 +345,7 @@ public class WavefrontObjDemo {
         public List<Mesh> meshes;
         public List<Material> materials;
 
-        public Model(AIScene scene) {
+        Model(AIScene scene) {
 
             this.scene = scene;
 
