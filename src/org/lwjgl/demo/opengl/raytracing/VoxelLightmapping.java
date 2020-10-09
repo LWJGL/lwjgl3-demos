@@ -302,9 +302,11 @@ public class VoxelLightmapping {
         int program = glCreateProgram();
         int vshader = createShader("org/lwjgl/demo/opengl/raytracing/voxellightmapping/lightmap.vs.glsl", GL_VERTEX_SHADER);
         int random = createShader("org/lwjgl/demo/opengl/raytracing/voxellightmapping/random.glsl", GL_FRAGMENT_SHADER);
+        int trace = createShader("org/lwjgl/demo/opengl/raytracing/voxellightmapping/trace.glsl", GL_FRAGMENT_SHADER);
         int fshader = createShader("org/lwjgl/demo/opengl/raytracing/voxellightmapping/lightmap.fs.glsl", GL_FRAGMENT_SHADER);
         glAttachShader(program, vshader);
         glAttachShader(program, random);
+        glAttachShader(program, trace);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
         glBindFragDataLocation(program, 1, "blendIndex_out");
