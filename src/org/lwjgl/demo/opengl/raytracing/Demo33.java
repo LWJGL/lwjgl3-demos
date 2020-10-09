@@ -194,7 +194,6 @@ public class Demo33 {
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
-        glfwShowWindow(window);
 
         try (MemoryStack frame = MemoryStack.stackPush()) {
             IntBuffer framebufferSize = frame.mallocInt(2);
@@ -216,6 +215,7 @@ public class Demo33 {
         createQuadProgram();
         initQuadProgram();
 
+        glfwShowWindow(window);
         firstTime = System.nanoTime();
     }
 

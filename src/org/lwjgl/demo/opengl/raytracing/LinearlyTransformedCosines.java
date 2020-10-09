@@ -138,7 +138,6 @@ public class LinearlyTransformedCosines {
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
-        glfwShowWindow(window);
         try (MemoryStack frame = MemoryStack.stackPush()) {
             IntBuffer framebufferSize = frame.mallocInt(2);
             nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
@@ -154,6 +153,8 @@ public class LinearlyTransformedCosines {
         this.vao = glGenVertexArrays();
         createComputeProgram();
         createQuadProgram();
+
+        glfwShowWindow(window);
     }
 
     private void createLtcMatTexture() throws IOException {

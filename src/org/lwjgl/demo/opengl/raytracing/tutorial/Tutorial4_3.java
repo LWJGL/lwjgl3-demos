@@ -296,7 +296,6 @@ public class Tutorial4_3 {
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
-        glfwShowWindow(window);
 
         /*
          * Account for HiDPI screens where window size != framebuffer pixel size.
@@ -322,6 +321,8 @@ public class Tutorial4_3 {
         initComputeProgram();
         createQuadProgram();
         initQuadProgram();
+
+        glfwShowWindow(window);
     }
 
     /**

@@ -208,7 +208,6 @@ public class HybridDemoSsboTriangles {
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(0);
-        glfwShowWindow(window);
 
         try (MemoryStack frame = MemoryStack.stackPush()) {
             IntBuffer framebufferSize = frame.mallocInt(2);
@@ -243,6 +242,7 @@ public class HybridDemoSsboTriangles {
 
         glEnable(GL_CULL_FACE);
 
+        glfwShowWindow(window);
         firstTime = System.nanoTime();
     }
 
