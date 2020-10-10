@@ -6,7 +6,6 @@ package org.lwjgl.demo.opengl.raytracing;
 
 import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static org.lwjgl.demo.util.FacePacker.pack;
-import static org.lwjgl.demo.util.GreedyMeshing.Face.*;
 import static org.lwjgl.demo.util.IOUtils.*;
 import static org.lwjgl.demo.util.KDTreei.build;
 import static org.lwjgl.glfw.Callbacks.*;
@@ -33,8 +32,11 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.system.*;
 
 /**
- * Same as {@link VoxelLightmapping} but tracing also uses the greedy meshed faces/rectangles
- * instead of axis-aligned boxes.
+ * Enhances {@link VoxelLightmapping} with raytraced reflections with using the greedy meshed faces/rectangles
+ * as scene representation for kd-tree tracing instead of axis-aligned boxes.
+ * <p>
+ * This allows to compute a UV coordinate for the hit point on a face and lookup the lightmap when following
+ * view-dependent rays.
  * 
  * @author Kai Burjack
  */
@@ -62,14 +64,14 @@ public class VoxelLightmapping2 {
 
     /* Resources for rasterizing the faces of the scene */
     private int rasterProgram;
-    private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform, rasterProgramLodUniform;
+    private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform;
     private int rasterProgramCamPosUniform;
     private int vao;
     private int positionsBufferObject;
     private int normalsBufferObject;
     private int lightmapCoordsBufferObject;
     private int indexBufferObject;
-    private int[] lodList;
+    private int faceCount;
 
     /* Resources for building the lightmap */
     private int lightmapProgram;
@@ -80,7 +82,6 @@ public class VoxelLightmapping2 {
     private int blendIndexTexture;
 
     /* Misc */
-    private float lod;
     private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private boolean mouseDown;
     private int mouseX, mouseY;
@@ -105,13 +106,7 @@ public class VoxelLightmapping2 {
     }
 
     private void handleSpecialKeys(int key, int action) {
-        if ((action == GLFW_PRESS || action == GLFW_REPEAT) && key == GLFW_KEY_UP) {
-            lod = Math.min(4.0f, lod + 0.05f);
-            System.out.println("Lod: " + lod);
-        } else if ((action == GLFW_PRESS || action == GLFW_REPEAT) && key == GLFW_KEY_DOWN) {
-            lod = Math.max(0.0f, lod - 0.05f);
-            System.out.println("Lod: " + lod);
-        } else if (action == GLFW_PRESS && key == GLFW_KEY_R) {
+        if (action == GLFW_PRESS && key == GLFW_KEY_R) {
             resetBlendIndexTexture();
         }
     }
@@ -142,7 +137,7 @@ public class VoxelLightmapping2 {
         glfwWindowHint(GLFW_SAMPLES, 4);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        window = glfwCreateWindow(width, height, "Hello lightmapped LOD faces", NULL, NULL);
+        window = glfwCreateWindow(width, height, "Hello reflective lightmapped faces", NULL, NULL);
         if (window == NULL)
             throw new AssertionError("Failed to create the GLFW window");
     }
@@ -191,7 +186,7 @@ public class VoxelLightmapping2 {
         ArrayList<Face> faces = buildFaces(voxelField);
         PackResult packResult = uvPackFaces(faces);
         System.out.println(packResult);
-        this.lodList = buildLodList(faces);
+        faceCount = faces.size();
         createLightmapTextures(packResult.w, packResult.h);
         createMaterialsTexture();
         createSceneTBOs(faces);
@@ -202,38 +197,10 @@ public class VoxelLightmapping2 {
         glfwShowWindow(window);
     }
 
-    private int[] buildLodList(List<Face> faces) {
-        // Reference: https://0fps.net/2018/03/03/a-level-of-detail-method-for-blocky-voxels/
-        System.out.println("Building LOD list...");
-        int[] buckets = new int[8];
-        for (int i = 0; i < faces.size(); i++)
-            buckets[faces.get(i).lod()]++;
-        int t = 0;
-        for (int i = 0; i < buckets.length; i++) {
-            int b = buckets[i];
-            buckets[i] = t;
-            t += b;
-        }
-        for (int i = faces.size() - 1; i >= 0; i--) {
-            while (true) {
-                Face f = faces.get(i);
-                int lod = f.lod();
-                int ptr = buckets[lod];
-                if (i < ptr)
-                    break;
-                faces.set(i, faces.get(ptr));
-                faces.set(ptr, f);
-                buckets[lod]++;
-            }
-        }
-        return buckets;
-    }
-
     private static void printInfo() {
         System.out.println("Use WASD + Ctrl/Space to move/strafe");
         System.out.println("Use Shift to move/strafe faster");
         System.out.println("Use left mouse button + mouse move to rotate");
-        System.out.println("Use arrow up/down to increase/decrease LOD level");
         System.out.println("Press R to reset the lightmap");
     }
 
@@ -353,7 +320,6 @@ public class VoxelLightmapping2 {
         rasterProgramMvpUniform = glGetUniformLocation(program, "mvp");
         rasterProgramCamPosUniform = glGetUniformLocation(program, "camPos");
         rasterProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
-        rasterProgramLodUniform = glGetUniformLocation(program, "lod");
         glUseProgram(0);
         rasterProgram = program;
     }
@@ -370,17 +336,14 @@ public class VoxelLightmapping2 {
             ShortBuffer lightmapCoords, IntBuffer indices) {
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
-            switch (f.s) {
-            case SIDE_NX:
-            case SIDE_PX:
+            switch (f.s >>> 1) {
+            case 0:
                 generatePositionsAndNormalsX(f, positions, normals);
                 break;
-            case SIDE_NY:
-            case SIDE_PY:
+            case 1:
                 generatePositionsAndNormalsY(f, positions, normals);
                 break;
-            case SIDE_NZ:
-            case SIDE_PZ:
+            case 2:
                 generatePositionsAndNormalsZ(f, positions, normals);
                 break;
             }
@@ -585,13 +548,11 @@ public class VoxelLightmapping2 {
                 for (int i = 0; i < numFaces; i++) {
                     Face f = n.boundables.get(i);
                     // RGBA32UI
-                    facePosition(f, facesBuffer);
-                    facesBuffer.putByte(f.v);
-                    faceX(f, facesBuffer);
-                    facesBuffer.putByte(f.s);
-                    faceY(f, facesBuffer);
-                    facesBuffer.putByte(NOT_USED);
-                    facesBuffer.putInt(NOT_USED);
+                    int s = f.s >>> 1;
+                    facesBuffer.putInt(f.p << (s << 3) | f.u0 << ((s + 1 << 3) % 24) | f.v0 << ((s + 2 << 3) % 24) | f.v << 24);
+                    facesBuffer.putInt(f.u1 - f.u0 << (s + 1 << 3) % 24 | f.u1 - f.u0 << 24);
+                    facesBuffer.putInt(f.v1 - f.v0 << (s + 2 << 3) % 24 | f.v1 - f.v0 << 24);
+                    facesBuffer.putShort(f.tx).putShort(f.ty);
                 }
                 // RGBA32UI
                 leafNodesBuffer.putShort(first).putShort(numFaces);
@@ -607,48 +568,6 @@ public class VoxelLightmapping2 {
             nodesBuffer.putInt(NOT_USED);
         }
         System.out.println("Num faces in kd-tree: " + first);
-    }
-
-    private static void facePosition(Face f, DynamicByteBuffer facesBuffer) {
-        switch (f.s >>> 1) {
-        case 0:
-            facesBuffer.putByte(f.p).putByte(f.u0).putByte(f.v0);
-            break;
-        case 1:
-            facesBuffer.putByte(f.v0).putByte(f.p).putByte(f.u0);
-            break;
-        case 2:
-            facesBuffer.putByte(f.u0).putByte(f.v0).putByte(f.p);
-            break;
-        }
-    }
-
-    private static void faceX(Face f, DynamicByteBuffer facesBuffer) {
-        switch (f.s >>> 1) {
-        case 0:
-            facesBuffer.putByte(0).putByte(f.u1 - f.u0).putByte(0);
-            break;
-        case 1:
-            facesBuffer.putByte(0).putByte(0).putByte(f.u1 - f.u0);
-            break;
-        case 2:
-            facesBuffer.putByte(f.u1 - f.u0).putByte(0).putByte(0);
-            break;
-        }
-    }
-
-    private static void faceY(Face f, DynamicByteBuffer facesBuffer) {
-        switch (f.s >>> 1) {
-        case 0:
-            facesBuffer.putByte(0).putByte(0).putByte(f.v1 - f.v0);
-            break;
-        case 1:
-            facesBuffer.putByte(f.v1 - f.v0).putByte(0).putByte(0);
-            break;
-        case 2:
-            facesBuffer.putByte(0).putByte(f.v1 - f.v0).putByte(0);
-            break;
-        }
     }
 
     private void handleKeyboardInput(float dt) {
@@ -688,14 +607,6 @@ public class VoxelLightmapping2 {
         pMat.mulPerspectiveAffine(vMat, mvpMat).invert(ivpMat);
     }
 
-    private int offsetForLod(int lod) {
-        return lodList[lod];
-    }
-
-    private int countForLod(int lod) {
-        return lodList[lodList.length - 1] - lodList[lod];
-    }
-
     private void raster() {
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -708,7 +619,6 @@ public class VoxelLightmapping2 {
             glUniform3fv(rasterProgramCamPosUniform, vMat.originAffine(camPos).get(stack.mallocFloat(3)));
         }
         glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
-        glUniform1f(rasterProgramLodUniform, lod);
         glViewport(0, 0, width, height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, lightmapTexture);
@@ -721,9 +631,7 @@ public class VoxelLightmapping2 {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_BUFFER, facesTexture);
         glBindVertexArray(vao);
-        int off = offsetForLod((int) lod);
-        int cnt = countForLod((int) lod);
-        glDrawElements(GL_TRIANGLES, cnt * INDICES_PER_FACE, GL_UNSIGNED_INT, off * INDICES_PER_FACE * Integer.BYTES);
+        glDrawElements(GL_TRIANGLES, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -746,7 +654,7 @@ public class VoxelLightmapping2 {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glViewport(0, 0, lightmapTexWidth, lightmapTexHeight);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, countForLod(0) * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLES, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

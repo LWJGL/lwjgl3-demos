@@ -73,15 +73,12 @@ public class GreedyMeshing {
         }
 
         public int min(int axis) {
-            switch (s) {
+            switch (s >>> 1) {
             case 0:
-            case 1:
                 return minX(axis);
-            case 2:
-            case 3:
+            case 1:
                 return minY(axis);
-            case 4:
-            case 5:
+            case 2:
                 return minZ(axis);
             default:
                 throw new IllegalArgumentException();
@@ -112,15 +109,12 @@ public class GreedyMeshing {
             }
         }
         public int max(int axis) {
-            switch (s) {
+            switch (s >>> 1) {
             case 0:
-            case 1:
                 return maxX(axis);
-            case 2:
-            case 3:
+            case 1:
                 return maxY(axis);
-            case 4:
-            case 5:
+            case 2:
                 return maxZ(axis);
             default:
                 throw new IllegalArgumentException();
@@ -157,15 +151,12 @@ public class GreedyMeshing {
         public Face splitLeft(int splitAxis, int splitPos) {
             if (splitAxis == (s >>> 1))
                 throw new IllegalArgumentException();
-            switch (s) {
+            switch (s >>> 1) {
             case 0:
-            case 1:
                 return splitLeftX(splitAxis, splitPos);
-            case 2:
-            case 3:
+            case 1:
                 return splitLeftY(splitAxis, splitPos);
-            case 4:
-            case 5:
+            case 2:
                 return splitLeftZ(splitAxis, splitPos);
             default:
                 throw new IllegalArgumentException();
@@ -199,15 +190,12 @@ public class GreedyMeshing {
         public Face splitRight(int splitAxis, int splitPos) {
             if (splitAxis == (s >>> 1))
                 throw new IllegalArgumentException();
-            switch (s) {
+            switch (s >>> 1) {
             case 0:
-            case 1:
                 return splitRightX(splitAxis, splitPos);
-            case 2:
-            case 3:
+            case 1:
                 return splitRightY(splitAxis, splitPos);
-            case 4:
-            case 5:
+            case 2:
                 return splitRightZ(splitAxis, splitPos);
             default:
                 throw new IllegalArgumentException();

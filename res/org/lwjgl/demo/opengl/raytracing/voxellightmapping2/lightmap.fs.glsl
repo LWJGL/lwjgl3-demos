@@ -19,6 +19,7 @@ struct hitinfo {
   uint descends;
   uint ropes;
   uint nodeIdx;
+  vec2 uv;
 };
 bool intersectScene(uint nodeIdx, vec3 origin, vec3 dir, out hitinfo shinfo);
 vec4 randomCosineWeightedHemisphereDirection(vec3 n, vec2 rand);

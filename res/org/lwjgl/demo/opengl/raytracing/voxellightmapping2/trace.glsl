@@ -26,6 +26,9 @@ uniform usamplerBuffer faces;
 uvec3 unpack8(uint v) {
   return uvec3(v & BYTE_MASK, v >> BYTE_SHIFT & BYTE_MASK, v >> SHORT_SHIFT & BYTE_MASK);
 }
+uvec4 unpack8_4(uint v) {
+  return uvec4(v & BYTE_MASK, v >> BYTE_SHIFT & BYTE_MASK, v >> SHORT_SHIFT & BYTE_MASK, v >> 24u);
+}
 
 uint axis(uvec3 n) {return n.z >> AXIS_SHIFT & AXIS_MASK;}
 uint splitPos(uvec3 n) {return n.z >> SHORT_BITS & SPLITPOS_MASK;}
@@ -38,10 +41,10 @@ uvec3 boxMax(uvec3 ng) {return unpack8(ng.y);}
 uint leftChild(uint nodeIdx) {return nodeIdx + 1u;}
 uint rightChild(uvec3 n) {return nodeIndex(n.z);}
 
-bool inrect(vec3 p, vec3 c, vec3 x, vec3 y) {
-  vec2 xyp = vec2(dot(p-c, x), dot(p-c, y));
-  return all(greaterThanEqual(xyp, vec2(0.0)))
-      && all(lessThan(xyp, vec2(dot(x,x), dot(y,y))));
+bool inrect(vec3 p, vec3 c, vec4 x, vec4 y, out vec2 uv) {
+  uv = vec2(dot(p-c, x.xyz) / x.w, dot(p-c, y.xyz) / y.w);
+  return all(greaterThanEqual(uv, vec2(0.0)))
+      && all(lessThan(uv, vec2(x.w, y.w)));
 }
 
 struct rectangle {
@@ -49,11 +52,11 @@ struct rectangle {
   vec3 x;
   vec3 y;
 };
-bool intersectRectangle(vec3 origin, vec3 dir, vec3 rc, vec3 rx, vec3 ry, out float t) {
-  vec3 n = cross(rx, ry);
+bool intersectRectangle(vec3 origin, vec3 dir, vec3 rc, vec4 rx, vec4 ry, out float t, out vec2 uv) {
+  vec3 n = cross(rx.xyz, ry.xyz);
   float den = dot(n, dir);
   t = dot(rc - origin, n) / den;
-  return t > 0.0 && inrect(origin + t * dir, rc, rx, ry);
+  return t > 0.0 && inrect(origin + t * dir, rc, rx, ry, uv);
 }
 
 float intersectBox(vec3 origin, vec3 invdir, uvec3 bmin, uvec3 bmax) {
@@ -69,17 +72,21 @@ struct hitinfo {
   uint descends;
   uint ropes;
   uint nodeIdx;
+  vec2 uv;
 };
 
 bool intersectFaces(vec3 origin, vec3 dir, uint firstFace, uint numFaces, inout hitinfo hinfo) {
   bool hit = false;
   for (uint i = 0u; i < numFaces; i++) {
     uvec3 f = texelFetch(faces, int(i + firstFace)).xyz;
-    vec3 p0 = unpack8(f.x), px = unpack8(f.y), py = unpack8(f.z);
+    vec3 p0 = unpack8(f.x);
+    vec4 px = unpack8_4(f.y), py = unpack8_4(f.z);
     float tn;
-    if (intersectRectangle(origin, dir, p0, px, py, tn) && tn <= hinfo.t) {
+    vec2 uv;
+    if (intersectRectangle(origin, dir, p0, px, py, tn, uv) && tn <= hinfo.t) {
       hinfo.t = tn;
       hinfo.i = i + firstFace;
+      hinfo.uv = uv;
       hit = true;
     }
   }
