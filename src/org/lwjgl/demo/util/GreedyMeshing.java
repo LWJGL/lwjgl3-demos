@@ -20,7 +20,7 @@ import java.util.List;
  * @author Kai Burjack
  */
 public class GreedyMeshing {
-    public static class Face {
+    public static class Face implements Boundable<Face> {
         public static final byte SIDE_NX = 0;
         public static final byte SIDE_PX = 1;
         public static final byte SIDE_NY = 2;
@@ -46,8 +46,8 @@ public class GreedyMeshing {
         }
 
         public int lod() {
-            return min(32 - numberOfLeadingZeros(u0 ^ u1),
-                       32 - numberOfLeadingZeros(v0 ^ v1));
+            return Math.min(32 - numberOfLeadingZeros(u0 ^ u1),
+                            32 - numberOfLeadingZeros(v0 ^ v1));
         }
 
         public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {
@@ -58,6 +58,184 @@ public class GreedyMeshing {
             this.p = (short) p;
             this.s = (short) s;
             this.v = v;
+        }
+
+        private Face(int u0, int v0, int u1, int v1, int p, int s, byte v, int tx, int ty) {
+            this.u0 = (short) u0;
+            this.v0 = (short) v0;
+            this.u1 = (short) u1;
+            this.v1 = (short) v1;
+            this.p = (short) p;
+            this.s = (short) s;
+            this.v = v;
+            this.tx = tx;
+            this.ty = ty;
+        }
+
+        public int min(int axis) {
+            switch (s) {
+            case 0:
+            case 1:
+                return minX(axis);
+            case 2:
+            case 3:
+                return minY(axis);
+            case 4:
+            case 5:
+                return minZ(axis);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private int minZ(int axis) {
+            switch (axis) {
+            case 0: return u0;
+            case 1: return v0;
+            case 2: return p;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        private int minY(int axis) {
+            switch (axis) {
+            case 0: return v0;
+            case 1: return p;
+            case 2: return u0;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        private int minX(int axis) {
+            switch (axis) {
+            case 0: return p;
+            case 1: return u0;
+            case 2: return v0;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        public int max(int axis) {
+            switch (s) {
+            case 0:
+            case 1:
+                return maxX(axis);
+            case 2:
+            case 3:
+                return maxY(axis);
+            case 4:
+            case 5:
+                return maxZ(axis);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private int maxZ(int axis) {
+            switch (axis) {
+            case 0: return u1;
+            case 1: return v1;
+            case 2: return p;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        private int maxY(int axis) {
+            switch (axis) {
+            case 0: return v1;
+            case 1: return p;
+            case 2: return u1;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        private int maxX(int axis) {
+            switch (axis) {
+            case 0: return p;
+            case 1: return u1;
+            case 2: return v1;
+            default: throw new IllegalArgumentException();
+            }
+        }
+        public boolean intersects(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+            return false;
+        }
+
+        public Face splitLeft(int splitAxis, int splitPos) {
+            if (splitAxis == (s >>> 1))
+                throw new IllegalArgumentException();
+            switch (s) {
+            case 0:
+            case 1:
+                return splitLeftX(splitAxis, splitPos);
+            case 2:
+            case 3:
+                return splitLeftY(splitAxis, splitPos);
+            case 4:
+            case 5:
+                return splitLeftZ(splitAxis, splitPos);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        
+        private Face splitLeftZ(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 0: return new Face(u0, v0, splitPos, v1, p, s, v, tx, ty);
+            case 1: return new Face(u0, v0, u1, splitPos, p, s, v, tx, ty);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private Face splitLeftY(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 0: return new Face(u0, v0, u1, splitPos, p, s, v, tx, ty);
+            case 2: return new Face(u0, v0, splitPos, v1, p, s, v, tx, ty);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private Face splitLeftX(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 1: return new Face(u0, v0, splitPos, v1, p, s, v, tx, ty);
+            case 2: return new Face(u0, v0, u1, splitPos, p, s, v, tx, ty);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        public Face splitRight(int splitAxis, int splitPos) {
+            if (splitAxis == (s >>> 1))
+                throw new IllegalArgumentException();
+            switch (s) {
+            case 0:
+            case 1:
+                return splitRightX(splitAxis, splitPos);
+            case 2:
+            case 3:
+                return splitRightY(splitAxis, splitPos);
+            case 4:
+            case 5:
+                return splitRightZ(splitAxis, splitPos);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private Face splitRightZ(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 0: return new Face(splitPos, v0, u1, v1, p, s, v, tx+(splitPos-u0), ty);
+            case 1: return new Face(u0, splitPos, u1, v1, p, s, v, tx, ty+(splitPos-v0));
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private Face splitRightY(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 0: return new Face(u0, splitPos, u1, v1, p, s, v, tx, ty+(splitPos-v0));
+            case 2: return new Face(splitPos, v0, u1, v1, p, s, v, tx+(splitPos-u0), ty);
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+        private Face splitRightX(int splitAxis, int splitPos) {
+            switch (splitAxis) {
+            case 1: return new Face(splitPos, v0, u1, v1, p, s, v, tx+(splitPos-u0), ty);
+            case 2: return new Face(u0, splitPos, u1, v1, p, s, v, tx, ty+(splitPos-v0));
+            default:
+                throw new IllegalArgumentException();
+            }
         }
     }
 

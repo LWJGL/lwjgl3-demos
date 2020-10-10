@@ -432,7 +432,6 @@ public class KDTreei<T extends Boundable<T>> {
                     node.right.boundables.add(right);
                 }
             });
-            node.boundables.clear();
             buildTree(node.left, depth + 1, maxDepth);
             buildTree(node.right, depth + 1, maxDepth);
         }
