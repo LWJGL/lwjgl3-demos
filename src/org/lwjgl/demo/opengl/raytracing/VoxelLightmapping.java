@@ -63,10 +63,6 @@ public class VoxelLightmapping {
     private int rasterProgram;
     private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform, rasterProgramLodUniform;
     private int vao;
-    private int positionsBufferObject;
-    private int normalsBufferObject;
-    private int lightmapCoordsBufferObject;
-    private int indexBufferObject;
     private int[] lodList;
 
     /* Resources for building the lightmap */
@@ -442,49 +438,54 @@ public class VoxelLightmapping {
         triangulate(faces, positions, normals, lightmapCoords, indices);
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
-        setupPositions(positions);
-        setupNormals(normals);
-        setupLightmapCoords(lightmapCoords);
-        setupIndices(indices);
+        int positionsBufferObject = setupPositions(positions);
+        int normalsBufferObject = setupNormals(normals);
+        int lightmapCoordsBufferObject = setupLightmapCoords(lightmapCoords);
+        int indicesBufferObject = setupIndices(indices);
         glBindVertexArray(0);
+        glDeleteBuffers(new int[] {positionsBufferObject, normalsBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
     }
 
-    private void setupIndices(IntBuffer indices) {
+    private int setupIndices(IntBuffer indices) {
         indices.flip();
-        indexBufferObject = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
+        int indicesBufferObject = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferObject);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
         memFree(indices);
+        return indicesBufferObject;
     }
 
-    private void setupLightmapCoords(ShortBuffer lightmapCoords) {
+    private int setupLightmapCoords(ShortBuffer lightmapCoords) {
         lightmapCoords.flip();
-        lightmapCoordsBufferObject = glGenBuffers();
+        int lightmapCoordsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
         memFree(lightmapCoords);
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
+        return lightmapCoordsBufferObject;
     }
 
-    private void setupNormals(ByteBuffer normals) {
+    private int setupNormals(ByteBuffer normals) {
         normals.flip();
-        normalsBufferObject = glGenBuffers();
+        int normalsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, normalsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW);
         memFree(normals);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_BYTE, true, 0, 0L);
+        return normalsBufferObject;
     }
 
-    private void setupPositions(ShortBuffer positions) {
+    private int setupPositions(ShortBuffer positions) {
         positions.flip();
-        positionsBufferObject = glGenBuffers();
+        int positionsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, positionsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, positions, GL_STATIC_DRAW);
         memFree(positions);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
+        return positionsBufferObject;
     }
 
     private void createSceneTBOs(ArrayList<Voxel> voxels) {
