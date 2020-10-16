@@ -229,13 +229,13 @@ public class GreedyMeshing {
 
     private final int[] m;
     private byte[] vs;
-    private int dx, dy, dz, ny;
+    private int dx, dy, dz, nx, ny, nz;
     private boolean singleOpaque;
     private int maxMergeLength = Integer.MAX_VALUE;
     private int splitShift = 16;
     private int splitMask = (1 << splitShift) - 1;
 
-    public GreedyMeshing(int ny, int py, int dx, int dz) {
+    public GreedyMeshing(int nx, int ny, int nz, int py, int dx, int dz) {
         if (dx < 1 || dx > Short.MAX_VALUE)
             throw new IllegalArgumentException("dx");
         if (ny < 0 || ny > Short.MAX_VALUE)
@@ -247,7 +247,9 @@ public class GreedyMeshing {
         this.dx = dx;
         this.dy = py - ny + 1;
         this.dz = dz;
+        this.nx = nx;
         this.ny = ny;
+        this.nz = nz;
         this.m = new int[max(dx, dy) * max(dy, dz)];
     }
 
@@ -284,7 +286,7 @@ public class GreedyMeshing {
     }
 
     private void meshX(List<Face> faces) {
-        for (int x0 = -1; x0 < dx;) {
+        for (int x0 = nx - 1; x0 < dx;) {
             generateMaskX(x0);
             x0++;
             mergeAndGenerateFacesX(faces, x0);
@@ -300,7 +302,7 @@ public class GreedyMeshing {
     }
 
     private void meshZ(List<Face> faces) {
-        for (int x2 = -1; x2 < dz;) {
+        for (int x2 = nz - 1; x2 < dz;) {
             generateMaskZ(x2);
             x2++;
             mergeAndGenerateFacesZ(faces, x2);

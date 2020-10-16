@@ -495,7 +495,7 @@ public class VoxelLightmapping {
         DynamicByteBuffer voxelsBuffer = new DynamicByteBuffer();
         DynamicByteBuffer nodesBuffer = new DynamicByteBuffer();
         DynamicByteBuffer leafNodesBuffer = new DynamicByteBuffer();
-        kdTreeToBuffers(root, 0, nodesBuffer, leafNodesBuffer, voxelsBuffer);
+        kdTreeToBuffers(root, nodesBuffer, leafNodesBuffer, voxelsBuffer);
         createVoxelsTexture(voxelsBuffer);
         createNodesTexture(nodesBuffer);
         createLeafNodesTexture(leafNodesBuffer);
@@ -568,7 +568,7 @@ public class VoxelLightmapping {
         return linearNodes;
     }
 
-    private void kdTreeToBuffers(KDTreei<Voxel> root, int nodeIndexOffset,
+    private void kdTreeToBuffers(KDTreei<Voxel> root,
                                  DynamicByteBuffer nodesBuffer, DynamicByteBuffer leafNodesBuffer,
                                  DynamicByteBuffer voxelsBuffer) {
         int first = 0;
@@ -593,7 +593,7 @@ public class VoxelLightmapping {
             // RGBA32UI
             nodesBuffer.putByte(n.bb.minX).putByte(n.bb.minY).putByte(n.bb.minZ).putByte(NOT_USED);
             nodesBuffer.putByte(n.bb.maxX - 1).putByte(n.bb.maxY - 1).putByte(n.bb.maxZ - 1).putByte(NOT_USED);
-            nodesBuffer.putShort(n.right != null ? n.right.index + nodeIndexOffset : n.leafIndex);
+            nodesBuffer.putShort(n.right != null ? n.right.index : n.leafIndex);
             nodesBuffer.putShort(n.splitAxis == -1 ? -1 : n.splitAxis << (Short.SIZE - 2) | n.splitPos);
             nodesBuffer.putInt(NOT_USED);
         }
@@ -747,7 +747,7 @@ public class VoxelLightmapping {
     private ArrayList<Face> buildFaces(VoxelField vf) {
         System.out.println("Building faces...");
         /* Greedy-meshing */
-        GreedyMeshing gm = new GreedyMeshing(vf.ny, vf.py, vf.w, vf.d);
+        GreedyMeshing gm = new GreedyMeshing(0, vf.ny, 0, vf.py, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
         gm.mesh(vf.field, faces);
         System.out.println("Num faces: " + faces.size());
