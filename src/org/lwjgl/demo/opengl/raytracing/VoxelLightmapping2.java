@@ -11,6 +11,7 @@ import static org.lwjgl.demo.util.KDTreei.build;
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL.createCapabilities;
+import static org.lwjgl.opengl.GL20C.glDeleteShader;
 import static org.lwjgl.opengl.GL33C.*;
 import static org.lwjgl.opengl.GLUtil.*;
 import static org.lwjgl.system.MemoryStack.*;
@@ -273,6 +274,10 @@ public class VoxelLightmapping2 {
         glBindFragDataLocation(program, 0, "color");
         glBindFragDataLocation(program, 1, "blendIndex_out");
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(random);
+        glDeleteShader(trace);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)
@@ -299,6 +304,9 @@ public class VoxelLightmapping2 {
         glAttachShader(program, trace);
         glAttachShader(program, fshader);
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(trace);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)

@@ -307,6 +307,10 @@ public class VoxelLightmapping {
         glBindFragDataLocation(program, 0, "color");
         glBindFragDataLocation(program, 1, "blendIndex_out");
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(random);
+        glDeleteShader(trace);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)
@@ -332,6 +336,8 @@ public class VoxelLightmapping {
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)
