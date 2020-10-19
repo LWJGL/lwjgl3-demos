@@ -26,8 +26,7 @@ uniform sampler2D blueNoiseTex;
 #define LIGHT_INTENSITY 80.0
 #define PROBABILITY_OF_LIGHT_SAMPLE 0.6
 
-float random3(vec3 f);
-float random2(vec2 f);
+vec3 random3(vec3 f);
 vec4 randomHemisphereDirection(vec3 n, vec2 rand);
 vec4 randomCosineWeightedHemisphereDirection(vec3 n, vec2 rand);
 float randomCosineWeightedHemisphereDirectionPDF(vec3 n, vec3 v);
@@ -123,17 +122,12 @@ vec3 normalForRectangle(vec3 hit, const rectangle r) {
 }
 
 vec3 randBlueNoise(int s) {
-  vec2 o = vec2(
-    random2(vec2(s, time)),
-    random2(vec2(s, time*1.3)));
+  vec2 o = random3(vec3(s, time, 1.0)).xy;
   vec3 bn = texture(blueNoiseTex, o + vec2(px) / textureSize(blueNoiseTex, 0)).rgb;
   return fract(bn + time);
 }
 vec3 randWhiteNoise(int s) {
-  return vec3(
-    random3(vec3(px + ivec2(s), time)),
-    random3(vec3(px + ivec2(s), time*1.1)),
-    random3(vec3(px + ivec2(s), time*0.3)));
+  return random3(vec3(px + ivec2(s), time));
 }
 vec3 randvec3(int s) {
   return useBlueNoise ? randBlueNoise(s) : randWhiteNoise(s);

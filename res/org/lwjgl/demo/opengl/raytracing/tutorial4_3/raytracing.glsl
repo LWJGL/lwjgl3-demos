@@ -41,9 +41,8 @@ layout(std430, binding = 2) readonly buffer RankingBuffer {
 #define LIGHT_INTENSITY 80.0
 #define PROBABILITY_OF_LIGHT_SAMPLE 0.6
 
-uint hash3(uint x, uint y, uint z);
-float random3(vec3 f);
-float random2(vec2 f);
+uvec3 pcg3d(uvec3 v);
+vec3 random3(vec3 f);
 vec4 randomHemisphereDirection(vec3 n, vec2 rand);
 vec4 randomCosineWeightedHemisphereDirection(vec3 n, vec2 rand);
 float randomCosineWeightedHemisphereDirectionPDF(vec3 n, vec3 v);
@@ -139,9 +138,8 @@ vec3 normalForRectangle(vec3 hit, const rectangle r) {
 }
 
 float sampleBlueNoise(uint sampleDimension) {
-  uint xoff = hash3(px.y>>7u, px.x>>7u, frameIndex >> 8u);
-  uint yoff = hash3(px.x>>7u, px.y>>7u, frameIndex >> 8u);
-  uvec2 pxo = (px + ivec2(xoff, yoff)) & 127u;
+  uvec2 off = pcg3d(uvec3(px.y>>7u, px.x>>7u, frameIndex >> 8u)).xy;
+  uvec2 pxo = (px + ivec2(off)) & 127u;
   uint sampleIndex = frameIndex & 255u;
   sampleDimension = sampleDimension & 255u;
   uint pxv = (pxo.x + (pxo.y<<7u))<<3u;
@@ -159,10 +157,7 @@ vec3 randBlueNoise(uint s) {
   );
 }
 vec3 randWhiteNoise(int s) {
-  return vec3(
-    random3(vec3(px + ivec2(s), time)),
-    random3(vec3(px + ivec2(s), time*1.1)),
-    random3(vec3(px + ivec2(s), time*0.3)));
+  return random3(vec3(px + ivec2(s), time));
 }
 vec3 randvec3(int s) {
   return useBlueNoise ? randBlueNoise(s) : randWhiteNoise(s);

@@ -23,24 +23,20 @@ vec4 randomCosineWeightedHemisphereDirection(vec3 n, vec2 rand) {
   float c = sqrt(rand.y);
   return vec4(around(isotropic(rand.x, c), n), c * ONE_OVER_PI);
 }
-uint hash2(uint x, uint y) {
-  x += x >> 11;
-  x ^= x << 7;
-  x += y;
-  x ^= x << 6;
-  x += x >> 15;
-  x ^= x << 5;
-  x += x >> 12;
-  x ^= x << 9;
-  return x;
+uvec3 pcg3d(uvec3 v) {
+  v = v * 1664525u + 1013904223u;
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+  v ^= v >> 16u;
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+  return v;
 }
-float random2(vec2 f) {
-  uint mantissaMask = 0x007FFFFFu, one = 0x3F800000u;
-  uvec2 u = floatBitsToUint(f);
-  uint h = hash2(u.x, u.y);
-  return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
+vec3 random3(vec3 f) {
+  return uintBitsToFloat((pcg3d(floatBitsToUint(f)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 }
 vec2 randvec2(float time, float frame) {
-  return vec2(random2(vec2(frame*312.3, time * 3.2512)),
-              random2(vec2(frame, time + 0.23)));
+  return random3(vec3(1.0, frame, time)).xy;
 }

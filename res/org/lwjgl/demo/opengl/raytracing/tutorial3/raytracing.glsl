@@ -58,7 +58,7 @@ uniform float specularFactor;
  * 
  * See random.glsl for more explanation of these functions.
  */
-float random(vec3 f);
+vec3 random3(vec3 f);
 vec4 randomHemispherePoint(vec3 n, vec2 rand);
 vec4 randomCosineWeightedHemispherePoint(vec3 n, vec2 rand);
 vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec2 rand);
@@ -183,10 +183,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
  *          numbers, each in the range [0, 1)
  */
 vec3 randvec3(int s) {
-  return vec3(
-    random(vec3(px + ivec2(s), time)),
-    random(vec3(px + ivec2(s), time + 1.1)),
-    random(vec3(px + ivec2(s), time + 0.3)));
+  return random3(vec3(px + ivec2(s), time));
 }
 
 /**
