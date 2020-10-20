@@ -41,7 +41,7 @@ import org.lwjgl.system.*;
 public class VoxelLightmapping {
     private static final int NOT_USED = 0;
     private static final int VERTICES_PER_FACE = 4;
-    private static final int INDICES_PER_FACE = 6;
+    private static final int INDICES_PER_FACE = 5;
 
     private long window;
     private int width = 1600;
@@ -161,6 +161,8 @@ public class VoxelLightmapping {
     private static void configureGlobalGlState() {
         // for accumulating sampled light onto lightmap texels baded on blendFactor
         glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(0xFFFFFF);
     }
 
     private void init() throws IOException {
@@ -385,11 +387,9 @@ public class VoxelLightmapping {
 
     private static void generateIndices(Face f, int i, IntBuffer indices) {
         if (isPositiveSide(f.s)) {
-            indices.put((i << 2) + 1).put((i << 2) + 2).put(i << 2);
-            indices.put((i << 2) + 2).put((i << 2) + 3).put(i << 2);
+            indices.put((i << 2) + 1).put((i << 2) + 2).put((i << 2) + 0).put((i << 2) + 3).put(0xFFFFFF);
         } else {
-            indices.put((i << 2) + 2).put((i << 2) + 1).put(i << 2);
-            indices.put((i << 2) + 3).put((i << 2) + 2).put(i << 2);
+            indices.put((i << 2) + 3).put((i << 2) + 2).put((i << 2) + 0).put((i << 2) + 1).put(0xFFFFFF);
         }
     }
 
@@ -678,7 +678,7 @@ public class VoxelLightmapping {
         glBindVertexArray(vao);
         int off = offsetForLod((int) lod);
         int cnt = countForLod((int) lod);
-        glDrawElements(GL_TRIANGLES, cnt * INDICES_PER_FACE, GL_UNSIGNED_INT, off * INDICES_PER_FACE * Integer.BYTES);
+        glDrawElements(GL_TRIANGLE_STRIP, cnt * INDICES_PER_FACE, GL_UNSIGNED_INT, off * INDICES_PER_FACE * Integer.BYTES);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -703,7 +703,7 @@ public class VoxelLightmapping {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glViewport(0, 0, lightmapTexWidth, lightmapTexHeight);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, countForLod(0) * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLE_STRIP, countForLod(0) * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
