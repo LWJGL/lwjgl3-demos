@@ -158,7 +158,7 @@ public class VoxelLightmapping2 {
         // for accumulating sampled light onto lightmap texels baded on blendFactor
         glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
         glEnable(GL_PRIMITIVE_RESTART);
-        glPrimitiveRestartIndex(0xFFFFFF);
+        glPrimitiveRestartIndex(0xFFFF);
     }
 
     private void init() throws IOException {
@@ -335,7 +335,10 @@ public class VoxelLightmapping2 {
         return (byte) ((x + 1) | ((y + 1) << 2) | ((z + 1) << 4));
     }
 
-    public void triangulate(List<Face> faces, ByteBuffer positionsAndTypes, ByteBuffer sideIndicesAndOffsets, ShortBuffer lightmapCoords, IntBuffer indices) {
+    public void triangulate(List<Face> faces, ByteBuffer positionsAndTypes,
+            ByteBuffer sideIndicesAndOffsets, ShortBuffer lightmapCoords, ShortBuffer indices) {
+        if (faces.size() << 2 > 0xFFFF)
+            throw new AssertionError();
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
             switch (f.s >>> 1) {
@@ -357,11 +360,11 @@ public class VoxelLightmapping2 {
         }
     }
 
-    private static void generateIndices(Face f, int i, IntBuffer indices) {
+    private static void generateIndices(Face f, int i, ShortBuffer indices) {
         if (isPositiveSide(f.s)) {
-            indices.put((i << 2) + 1).put((i << 2) + 2).put((i << 2) + 0).put((i << 2) + 3).put(0xFFFFFF);
+            indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 0)).put((short) ((i << 2) + 3)).put((short) 0xFFFF);
         } else {
-            indices.put((i << 2) + 3).put((i << 2) + 2).put((i << 2) + 0).put((i << 2) + 1).put(0xFFFFFF);
+            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 0)).put((short) ((i << 2) + 1)).put((short) 0xFFFF);
         }
     }
 
@@ -419,7 +422,7 @@ public class VoxelLightmapping2 {
         ByteBuffer positionsAndTypes = memAlloc(4 * Byte.BYTES * faces.size() * VERTICES_PER_FACE);
         ByteBuffer sidesAndOffsets = memAlloc(2 * Byte.BYTES * faces.size() * VERTICES_PER_FACE);
         ShortBuffer lightmapCoords = memAllocShort(4 * Short.BYTES * faces.size() * VERTICES_PER_FACE);
-        IntBuffer indices = memAllocInt(Integer.BYTES * faces.size() * INDICES_PER_FACE);
+        ShortBuffer indices = memAllocShort(faces.size() * INDICES_PER_FACE);
         triangulate(faces, positionsAndTypes, sidesAndOffsets, lightmapCoords, indices);
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
@@ -427,16 +430,19 @@ public class VoxelLightmapping2 {
         int sidesAndOffsetsBufferObject = setupSidesAndOffsets(sidesAndOffsets);
         int lightmapCoordsBufferObject = setupLightmapCoords(lightmapCoords);
         int indicesBufferObject = setupIndices(indices);
+        memFree(positionsAndTypes);
+        memFree(sidesAndOffsets);
+        memFree(lightmapCoords);
+        memFree(indices);
         glBindVertexArray(0);
         glDeleteBuffers(new int[] {positionsAndTypesBufferObject, sidesAndOffsetsBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
     }
 
-    private int setupIndices(IntBuffer indices) {
+    private int setupIndices(ShortBuffer indices) {
         indices.flip();
         int indicesBufferObject = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferObject);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
-        memFree(indices);
         return indicesBufferObject;
     }
 
@@ -445,7 +451,6 @@ public class VoxelLightmapping2 {
         int lightmapCoordsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
-        memFree(lightmapCoords);
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
         return lightmapCoordsBufferObject;
@@ -456,7 +461,6 @@ public class VoxelLightmapping2 {
         int sidesAndOffsetsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, sidesAndOffsetsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, sidesAndOffsets, GL_STATIC_DRAW);
-        memFree(sidesAndOffsets);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(1, 2, GL_UNSIGNED_BYTE, 0, 0L);
         return sidesAndOffsetsBufferObject;
@@ -467,7 +471,6 @@ public class VoxelLightmapping2 {
         int positionsAndTypesBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, positionsAndTypesBufferObject);
         glBufferData(GL_ARRAY_BUFFER, positionsAndTypes, GL_STATIC_DRAW);
-        memFree(positionsAndTypes);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_UNSIGNED_BYTE, false, 0, 0L);
         return positionsAndTypesBufferObject;
@@ -648,7 +651,7 @@ public class VoxelLightmapping2 {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_BUFFER, facesTexture);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_SHORT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -671,7 +674,7 @@ public class VoxelLightmapping2 {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glViewport(0, 0, lightmapTexWidth, lightmapTexHeight);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_SHORT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
