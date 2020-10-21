@@ -42,6 +42,12 @@ public class MagicaVoxelLoader {
         public float att;
         public float flux;
         public boolean plastic;
+
+        public Material() {}
+        public Material(Type type, int color) {
+            this.type = type;
+            this.color = color;
+        }
     }
 
     private static final int[] DEFAULT_PALETTE = { 0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff,
