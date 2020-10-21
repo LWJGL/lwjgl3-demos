@@ -7,6 +7,7 @@ package org.lwjgl.demo.util;
 import static java.lang.Integer.numberOfLeadingZeros;
 import static java.lang.Math.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,6 +44,18 @@ public class GreedyMeshing {
         }
         public int th() {
             return h() + 1;
+        }
+        public int tx() {
+            return tx;
+        }
+        public void tx(int tx) {
+            this.tx = tx;
+        }
+        public int ty() {
+            return ty;
+        }
+        public void ty(int ty) {
+            this.ty = ty;
         }
 
         public int lod() {
@@ -279,13 +292,24 @@ public class GreedyMeshing {
     }
 
     public void mesh(byte[] vs, List<Face> faces) {
+        @SuppressWarnings("unchecked")
+        List<Face>[] fs = new List[] {
+                new ArrayList<Face>(), new ArrayList<Face>(),
+                new ArrayList<Face>(), new ArrayList<Face>(),
+                new ArrayList<Face>(), new ArrayList<Face>()};
+        mesh(vs, fs);
+        for (int i = 0; i < 6; i++)
+            faces.addAll(fs[i]);
+    }
+
+    public void mesh(byte[] vs, List<Face>[] faces) {
         this.vs = vs;
         meshX(faces);
         meshY(faces);
         meshZ(faces);
     }
 
-    private void meshX(List<Face> faces) {
+    private void meshX(List<Face>[] faces) {
         for (int x0 = nx - 1; x0 < dx;) {
             generateMaskX(x0);
             x0++;
@@ -293,7 +317,7 @@ public class GreedyMeshing {
         }
     }
 
-    private void meshY(List<Face> faces) {
+    private void meshY(List<Face>[] faces) {
         for (int x1 = ny - 1; x1 < dy;) {
             generateMaskY(x1);
             x1++;
@@ -301,7 +325,7 @@ public class GreedyMeshing {
         }
     }
 
-    private void meshZ(List<Face> faces) {
+    private void meshZ(List<Face>[] faces) {
         for (int x2 = nz - 1; x2 < dz;) {
             generateMaskZ(x2);
             x2++;
@@ -351,56 +375,59 @@ public class GreedyMeshing {
             m[n] = -(singleOpaque ? 1 : b);
     }
 
-    private void mergeAndGenerateFacesX(List<Face> faces, int x0) {
+    private void mergeAndGenerateFacesX(List<Face>[] faces, int x0) {
         int i, j, n, incr;
         for (j = 0, n = 0; j < dz; j++)
             for (i = ny; i < dy; i += incr, n += incr)
                 incr = mergeAndGenerateFaceX(faces, x0, n, i, j);
     }
 
-    private void mergeAndGenerateFacesY(List<Face> faces, int x1) {
+    private void mergeAndGenerateFacesY(List<Face>[] faces, int x1) {
         int i, j, n, incr;
         for (j = 0, n = 0; j < dx; j++)
             for (i = 0; i < dz; i += incr, n += incr)
                 incr = mergeAndGenerateFaceY(faces, x1, n, i, j);
     }
 
-    private void mergeAndGenerateFacesZ(List<Face> faces, int x2) {
+    private void mergeAndGenerateFacesZ(List<Face>[] faces, int x2) {
         int i, j, n, incr;
         for (j = ny, n = 0; j < dy; j++)
             for (i = 0; i < dx; i += incr, n += incr)
                 incr = mergeAndGenerateFaceZ(faces, x2, n, i, j);
     }
 
-    private int mergeAndGenerateFaceX(List<Face> faces, int x0, int n, int i, int j) {
+    private int mergeAndGenerateFaceX(List<Face>[] faces, int x0, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
+        Face f = new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        faces[f.s].add(f);
         eraseMaskX(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceY(List<Face> faces, int x1, int n, int i, int j) {
+    private int mergeAndGenerateFaceY(List<Face>[] faces, int x1, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
+        Face f = new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        faces[f.s].add(f);
         eraseMaskY(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceZ(List<Face> faces, int x2, int n, int i, int j) {
+    private int mergeAndGenerateFaceZ(List<Face>[] faces, int x2, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        faces.add(new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n])));
+        Face f = new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        faces[f.s].add(f);
         eraseMaskZ(n, w, h);
         return w;
     }
