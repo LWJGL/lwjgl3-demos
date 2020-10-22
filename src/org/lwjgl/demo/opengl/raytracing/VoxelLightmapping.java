@@ -360,8 +360,8 @@ public class VoxelLightmapping {
         return (side & 1) != 0;
     }
 
-    private static byte offset(int x, int y, int z) {
-        return (byte) ((x + 1) | ((y + 1) << 2) | ((z + 1) << 4));
+    private static byte sideAndOffset(int s, int u, int v) {
+        return (byte) (s | u + 1 << 3 | v + 1 << 5);
     }
 
     public void triangulate(List<Face> faces, ByteBuffer positions, ByteBuffer sidesAndOffsets,
@@ -407,25 +407,25 @@ public class VoxelLightmapping {
                 .put((short) f.tx).put((short) (f.ty + f.h())).put((short) 0).put((short) 1);
     }
 
-    private void generateSidesAndOffsetsZ(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put((byte) f.s).put(offset(-1, -1, 0));
-        sidesAndOffsets.put((byte) f.s).put(offset(+1, -1, 0));
-        sidesAndOffsets.put((byte) f.s).put(offset(+1, +1, 0));
-        sidesAndOffsets.put((byte) f.s).put(offset(-1, +1, 0));
+    private static void generateSidesAndOffsetsZ(Face f, ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.put(sideAndOffset(f.s, -1, -1));
+        sidesAndOffsets.put(sideAndOffset(f.s, +1, -1));
+        sidesAndOffsets.put(sideAndOffset(f.s, +1, +1));
+        sidesAndOffsets.put(sideAndOffset(f.s, -1, +1));
     }
 
-    private void generateSidesAndOffsetsY(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put((byte) f.s).put(offset(-1, 0, -1));
-        sidesAndOffsets.put((byte) f.s).put(offset(-1, 0, +1));
-        sidesAndOffsets.put((byte) f.s).put(offset(+1, 0, +1));
-        sidesAndOffsets.put((byte) f.s).put(offset(+1, 0, -1));
+    private static void generateSidesAndOffsetsY(Face f, ByteBuffer sideAndOffsets) {
+        sideAndOffsets.put(sideAndOffset(f.s, -1, -1));
+        sideAndOffsets.put(sideAndOffset(f.s, -1, +1));
+        sideAndOffsets.put(sideAndOffset(f.s, +1, +1));
+        sideAndOffsets.put(sideAndOffset(f.s, +1, -1));
     }
 
-    private void generateSidesAndOffsetsX(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put((byte) f.s).put(offset(0, -1, -1));
-        sidesAndOffsets.put((byte) f.s).put(offset(0, +1, -1));
-        sidesAndOffsets.put((byte) f.s).put(offset(0, +1, +1));
-        sidesAndOffsets.put((byte) f.s).put(offset(0, -1, +1));
+    private static void generateSidesAndOffsetsX(Face f, ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.put(sideAndOffset(f.s, -1, -1));
+        sidesAndOffsets.put(sideAndOffset(f.s, +1, -1));
+        sidesAndOffsets.put(sideAndOffset(f.s, +1, +1));
+        sidesAndOffsets.put(sideAndOffset(f.s, -1, +1));
     }
 
     private static void generatePositionsAndTypeZ(Face f, ByteBuffer positions) {
@@ -451,7 +451,7 @@ public class VoxelLightmapping {
 
     private void createSceneVbos(ArrayList<Face> faces) {
         ByteBuffer positionsAndTypes = memAlloc(4 * faces.size() * VERTICES_PER_FACE);
-        ByteBuffer sidesAndOffsets = memAlloc(2 * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer sidesAndOffsets = memAlloc(faces.size() * VERTICES_PER_FACE);
         ShortBuffer lightmapCoords = memAllocShort(4 * faces.size() * VERTICES_PER_FACE);
         ShortBuffer indices = memAllocShort(faces.size() * INDICES_PER_FACE);
         triangulate(faces, positionsAndTypes, sidesAndOffsets, lightmapCoords, indices);
@@ -493,7 +493,7 @@ public class VoxelLightmapping {
         glBindBuffer(GL_ARRAY_BUFFER, sidesAndOffsetsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, sidesAndOffsets, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
-        glVertexAttribIPointer(1, 2, GL_UNSIGNED_BYTE, 0, 0L);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, 0, 0L);
         return sidesAndOffsetsBufferObject;
     }
 

@@ -9,15 +9,16 @@ uniform ivec2 lightmapSize;
 uniform float lod;
 
 layout(location=0) in vec4 positionAndType;
-layout(location=1) in uvec2 sideIndexAndOffset;
+layout(location=1) in uint sideAndOffset;
 layout(location=2) in vec4 lightmapCoords;
 
 centroid out vec2 lightmapCoords_varying;
 flat out int matIndex;
 
 vec3 offset() {
-  int xyz = int(sideIndexAndOffset.y);
-  return vec3((xyz&0x3)-1, ((xyz>>2)&0x3)-1, ((xyz>>4)&0x3)-1);
+  float s = float(sideAndOffset & 0x7u);
+  vec3 r = vec3(sideAndOffset >> 3u & 0x3u, sideAndOffset >> 5u & 0x3u, 1.0) - vec3(1.0);
+  return mix(r.zxy, mix(r.xzy, r.xyz, step(4.0, s)), step(2.0, s));
 }
 
 /**
