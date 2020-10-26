@@ -29,9 +29,8 @@ public class GreedyMeshing {
         public static final byte SIDE_NZ = 4;
         public static final byte SIDE_PZ = 5;
 
-        public short u0, v0, u1, v1, p, s;
-        public byte v;
-        public int tx, ty;
+        public byte s;
+        public short u0, v0, u1, v1, p, v, tx, ty;
 
         public int w() {
             return u1 - u0;
@@ -49,13 +48,13 @@ public class GreedyMeshing {
             return tx;
         }
         public void tx(int tx) {
-            this.tx = tx;
+            this.tx = (short) tx;
         }
         public int ty() {
             return ty;
         }
         public void ty(int ty) {
-            this.ty = ty;
+            this.ty = (short) ty;
         }
 
         public int lod() {
@@ -63,26 +62,26 @@ public class GreedyMeshing {
                             32 - numberOfLeadingZeros(v0 ^ v1));
         }
 
-        public Face(int u0, int v0, int u1, int v1, int p, int s, byte v) {
+        public Face(int u0, int v0, int u1, int v1, int p, int s, short v) {
             this.u0 = (short) u0;
             this.v0 = (short) v0;
             this.u1 = (short) u1;
             this.v1 = (short) v1;
             this.p = (short) p;
-            this.s = (short) s;
+            this.s = (byte) s;
             this.v = v;
         }
 
-        private Face(int u0, int v0, int u1, int v1, int p, int s, byte v, int tx, int ty) {
+        private Face(int u0, int v0, int u1, int v1, int p, int s, short v, int tx, int ty) {
             this.u0 = (short) u0;
             this.v0 = (short) v0;
             this.u1 = (short) u1;
             this.v1 = (short) v1;
             this.p = (short) p;
-            this.s = (short) s;
+            this.s = (byte) s;
             this.v = v;
-            this.tx = tx;
-            this.ty = ty;
+            this.tx = (short) tx;
+            this.ty = (short) ty;
         }
 
         public int min(int axis) {
@@ -312,24 +311,21 @@ public class GreedyMeshing {
     private void meshX(List<Face>[] faces) {
         for (int x0 = nx - 1; x0 < dx;) {
             generateMaskX(x0);
-            x0++;
-            mergeAndGenerateFacesX(faces, x0);
+            mergeAndGenerateFacesX(faces, ++x0);
         }
     }
 
     private void meshY(List<Face>[] faces) {
         for (int x1 = ny - 1; x1 < dy;) {
             generateMaskY(x1);
-            x1++;
-            mergeAndGenerateFacesY(faces, x1);
+            mergeAndGenerateFacesY(faces, ++x1);
         }
     }
 
     private void meshZ(List<Face>[] faces) {
         for (int x2 = nz - 1; x2 < dz;) {
             generateMaskZ(x2);
-            x2++;
-            mergeAndGenerateFacesZ(faces, x2);
+            mergeAndGenerateFacesZ(faces, ++x2);
         }
     }
 
@@ -355,24 +351,72 @@ public class GreedyMeshing {
     }
 
     private void generateMaskX(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0 + 1, x1, x2) & 0xFF);
+        int a = at(x0, x1, x2) & 0xFF;
+        int b = at(x0 + 1, x1, x2) & 0xFF;
+        if (((a == 0) == (b == 0)))
+            m[n] = 0;
+        else if (a != 0) {
+            m[n] = (singleOpaque ? 1 : a) | neighborsX(x0 + 1, x1, x2) << 8;
+        } else
+            m[n] = (singleOpaque ? 1 : b) | (x0 >= 0 ? neighborsX(x0, x1, x2) << 8 : 0) | 1 << 31;
+    }
+
+    private int neighborsX(int x0, int x1, int x2) {
+        int n0 = at(x0, x1 - 1, x2 - 1) != 0 ? 1 : 0;
+        int n1 = at(x0, x1, x2 - 1) != 0 ? 2 : 0;
+        int n2 = at(x0, x1 + 1, x2 - 1) != 0 ? 4 : 0;
+        int n3 = at(x0, x1 + 1, x2) != 0 ? 8 : 0;
+        int n4 = at(x0, x1 + 1, x2 + 1) != 0 ? 16 : 0;
+        int n5 = at(x0, x1, x2 + 1) != 0 ? 32 : 0;
+        int n6 = at(x0, x1 - 1, x2 + 1) != 0 ? 64 : 0;
+        int n7 = at(x0, x1 - 1, x2) != 0 ? 128 : 0;
+        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
     }
 
     private void generateMaskY(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0, x1 + 1, x2) & 0xFF);
+        int a = at(x0, x1, x2) & 0xFF;
+        int b = at(x0, x1 + 1, x2) & 0xFF;
+        if (((a == 0) == (b == 0)))
+            m[n] = 0;
+        else if (a != 0) {
+            m[n] = (singleOpaque ? 1 : a) | neighborsY(x0, x1 + 1, x2) << 8;
+        } else
+            m[n] = (singleOpaque ? 1 : b) | (x1 >= 0 ? neighborsY(x0, x1, x2) << 8 : 0) | 1 << 31;
+    }
+
+    private int neighborsY(int x0, int x1, int x2) {
+        int n0 = at(x0 - 1, x1, x2 - 1) != 0 ? 1 : 0;
+        int n1 = at(x0, x1, x2 - 1) != 0 ? 2 : 0;
+        int n2 = at(x0 + 1, x1, x2 - 1) != 0 ? 4 : 0;
+        int n3 = at(x0 + 1, x1, x2) != 0 ? 8 : 0;
+        int n4 = at(x0 + 1, x1, x2 + 1) != 0 ? 16 : 0;
+        int n5 = at(x0, x1, x2 + 1) != 0 ? 32 : 0;
+        int n6 = at(x0 - 1, x1, x2 + 1) != 0 ? 64 : 0;
+        int n7 = at(x0 - 1, x1, x2) != 0 ? 128 : 0;
+        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
     }
 
     private void generateMaskZ(int x0, int x1, int x2, int n) {
-        writeMask(n, at(x0, x1, x2) & 0xFF, at(x0, x1, x2 + 1) & 0xFF);
-    }
-
-    private void writeMask(int n, int a, int b) {
+        int a = at(x0, x1, x2) & 0xFF;
+        int b = at(x0, x1, x2 + 1) & 0xFF;
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
-            m[n] = singleOpaque ? 1 : a;
+            m[n] = (singleOpaque ? 1 : a) | neighborsZ(x0, x1, x2 + 1) << 8;
         else
-            m[n] = -(singleOpaque ? 1 : b);
+            m[n] = (singleOpaque ? 1 : b) | (x2 >= 0 ? neighborsZ(x0, x1, x2) << 8 : 0) | 1 << 31;
+    }
+
+    private int neighborsZ(int x0, int x1, int x2) {
+        int n0 = at(x0 - 1, x1 - 1, x2) != 0 ? 1 : 0;
+        int n1 = at(x0, x1 - 1, x2) != 0 ? 2 : 0;
+        int n2 = at(x0 + 1, x1 - 1, x2) != 0 ? 4 : 0;
+        int n3 = at(x0 + 1, x1, x2) != 0 ? 8 : 0;
+        int n4 = at(x0 + 1, x1 + 1, x2) != 0 ? 16 : 0;
+        int n5 = at(x0, x1 + 1, x2) != 0 ? 32 : 0;
+        int n6 = at(x0 - 1, x1 + 1, x2) != 0 ? 64 : 0;
+        int n7 = at(x0 - 1, x1, x2) != 0 ? 128 : 0;
+        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
     }
 
     private void mergeAndGenerateFacesX(List<Face>[] faces, int x0) {
@@ -402,7 +446,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x0, 0 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        Face f = new Face(i, j, i + w, j + h, x0, 0 + (mn > 0 ? 1 : 0), (short) mn);
         faces[f.s].add(f);
         eraseMaskX(n, w, h);
         return w;
@@ -414,7 +458,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x1, 2 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        Face f = new Face(i, j, i + w, j + h, x1, 2 + (mn > 0 ? 1 : 0), (short) mn);
         faces[f.s].add(f);
         eraseMaskY(n, w, h);
         return w;
@@ -426,7 +470,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x2, 4 + (m[n] > 0 ? 1 : 0), (byte) Math.abs(m[n]));
+        Face f = new Face(i, j, i + w, j + h, x2, 4 + (mn > 0 ? 1 : 0), (short) mn);
         faces[f.s].add(f);
         eraseMaskZ(n, w, h);
         return w;
