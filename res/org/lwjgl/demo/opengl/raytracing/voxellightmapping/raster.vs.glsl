@@ -9,16 +9,15 @@ uniform ivec2 lightmapSize;
 uniform float lod;
 
 layout(location=0) in vec4 positionAndType;
-layout(location=1) in uint sideAndOffset;
-layout(location=2) in vec4 lightmapCoords;
+layout(location=1) in uint side;
+layout(location=2) in vec2 lightmapCoords;
 
 centroid out vec2 lightmapCoords_varying;
 flat out int matIndex;
 
 vec3 offset() {
-  float s = float(sideAndOffset & 0x7u);
-  vec3 r = vec3(sideAndOffset >> 3u & 0x3u, sideAndOffset >> 5u & 0x3u, 1.0) - vec3(1.0);
-  return mix(r.zxy, mix(r.xzy, r.xyz, step(4.0, s)), step(2.0, s));
+  vec3 r = vec3(gl_VertexID & 1, gl_VertexID >> 1 & 1, 0.5) * 2.0 - vec3(1.0);
+  return side < 2u ? r.zxy : side < 4u ? r.yzx : r.xyz;
 }
 
 /**
@@ -35,8 +34,8 @@ vec3 lodPosition() {
 
 void main(void) {
   vec3 p = lodPosition();
-  float w = dot(transpose(mvp)[3], vec4(p.xyz, 1.0));
-  matIndex = int(positionAndType.w)&0xFF;
-  lightmapCoords_varying = (lightmapCoords.xy + vec2(0.5)) / vec2(lightmapSize);
+  float w = dot(transpose(mvp)[3], vec4(p, 1.0));
+  matIndex = int(positionAndType.w);
+  lightmapCoords_varying = (lightmapCoords + vec2(0.5)) / vec2(lightmapSize);
   gl_Position = mvp * vec4(p + offset() * 1E-4 * w, 1.0);
 }

@@ -360,11 +360,7 @@ public class VoxelLightmapping {
         return (side & 1) != 0;
     }
 
-    private static byte sideAndOffset(int s, int u, int v) {
-        return (byte) (s | u + 1 << 3 | v + 1 << 5);
-    }
-
-    public void triangulate(List<Face> faces, ByteBuffer positions, ByteBuffer sidesAndOffsets,
+    public void triangulate(List<Face> faces, ByteBuffer positions, ByteBuffer sides,
                             ShortBuffer lightmapCoords, ShortBuffer indices) {
         if (faces.size() << 2 > PRIMITIVE_RESTART_INDEX)
             throw new AssertionError();
@@ -373,17 +369,15 @@ public class VoxelLightmapping {
             switch (f.s >>> 1) {
             case 0:
                 generatePositionsAndTypesX(f, positions);
-                generateSidesAndOffsetsX(f, sidesAndOffsets);
                 break;
             case 1:
                 generatePositionsAndTypesY(f, positions);
-                generateSidesAndOffsetsY(f, sidesAndOffsets);
                 break;
             case 2:
-                generatePositionsAndTypeZ(f, positions);
-                generateSidesAndOffsetsZ(f, sidesAndOffsets);
+                generatePositionsAndTypesZ(f, positions);
                 break;
             }
+            generateSides(f, sides);
             generateTexCoords(f, lightmapCoords);
             generateIndices(f, i, indices);
         }
@@ -391,82 +385,68 @@ public class VoxelLightmapping {
 
     private static void generateIndices(Face f, int i, ShortBuffer indices) {
         if (isPositiveSide(f.s)) {
-            indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 0))
-                   .put((short) ((i << 2) + 3)).put((short) PRIMITIVE_RESTART_INDEX);
+            indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 2)).put((short) PRIMITIVE_RESTART_INDEX);
         } else {
-            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 0))
+            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
                    .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
         }
     }
 
     private void generateTexCoords(Face f, ShortBuffer lightmapCoords) {
         lightmapCoords
-                .put((short) f.tx).put((short) f.ty).put((short) 0).put((short) 0)
-                .put((short) (f.tx + f.w())).put((short) f.ty).put((short) 1).put((short) 0)
-                .put((short) (f.tx + f.w())).put((short) (f.ty + f.h())).put((short) 1).put((short) 1)
-                .put((short) f.tx).put((short) (f.ty + f.h())).put((short) 0).put((short) 1);
+                .put((short) f.tx).put((short) f.ty)
+                .put((short) (f.tx + f.w())).put((short) f.ty)
+                .put((short) f.tx).put((short) (f.ty + f.h()))
+                .put((short) (f.tx + f.w())).put((short) (f.ty + f.h()));
     }
 
-    private static void generateSidesAndOffsetsZ(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put(sideAndOffset(f.s, -1, -1));
-        sidesAndOffsets.put(sideAndOffset(f.s, +1, -1));
-        sidesAndOffsets.put(sideAndOffset(f.s, +1, +1));
-        sidesAndOffsets.put(sideAndOffset(f.s, -1, +1));
+    private static void generateSides(Face f, ByteBuffer sides) {
+        sides.put(f.s);
+        sides.put(f.s);
+        sides.put(f.s);
+        sides.put(f.s);
     }
 
-    private static void generateSidesAndOffsetsY(Face f, ByteBuffer sideAndOffsets) {
-        sideAndOffsets.put(sideAndOffset(f.s, -1, -1));
-        sideAndOffsets.put(sideAndOffset(f.s, -1, +1));
-        sideAndOffsets.put(sideAndOffset(f.s, +1, +1));
-        sideAndOffsets.put(sideAndOffset(f.s, +1, -1));
-    }
-
-    private static void generateSidesAndOffsetsX(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put(sideAndOffset(f.s, -1, -1));
-        sidesAndOffsets.put(sideAndOffset(f.s, +1, -1));
-        sidesAndOffsets.put(sideAndOffset(f.s, +1, +1));
-        sidesAndOffsets.put(sideAndOffset(f.s, -1, +1));
-    }
-
-    private static void generatePositionsAndTypeZ(Face f, ByteBuffer positions) {
+    private static void generatePositionsAndTypesZ(Face f, ByteBuffer positions) {
         positions.put((byte) f.u0).put((byte) f.v0).put((byte) f.p).put((byte) f.v);
         positions.put((byte) f.u1).put((byte) f.v0).put((byte) f.p).put((byte) f.v);
-        positions.put((byte) f.u1).put((byte) f.v1).put((byte) f.p).put((byte) f.v);
         positions.put((byte) f.u0).put((byte) f.v1).put((byte) f.p).put((byte) f.v);
+        positions.put((byte) f.u1).put((byte) f.v1).put((byte) f.p).put((byte) f.v);
     }
 
     private static void generatePositionsAndTypesY(Face f, ByteBuffer positions) {
         positions.put((byte) f.v0).put((byte) f.p).put((byte) f.u0).put((byte) f.v);
         positions.put((byte) f.v0).put((byte) f.p).put((byte) f.u1).put((byte) f.v);
-        positions.put((byte) f.v1).put((byte) f.p).put((byte) f.u1).put((byte) f.v);
         positions.put((byte) f.v1).put((byte) f.p).put((byte) f.u0).put((byte) f.v);
+        positions.put((byte) f.v1).put((byte) f.p).put((byte) f.u1).put((byte) f.v);
     }
 
     private static void generatePositionsAndTypesX(Face f, ByteBuffer positions) {
         positions.put((byte) f.p).put((byte) f.u0).put((byte) f.v0).put((byte) f.v);
         positions.put((byte) f.p).put((byte) f.u1).put((byte) f.v0).put((byte) f.v);
-        positions.put((byte) f.p).put((byte) f.u1).put((byte) f.v1).put((byte) f.v);
         positions.put((byte) f.p).put((byte) f.u0).put((byte) f.v1).put((byte) f.v);
+        positions.put((byte) f.p).put((byte) f.u1).put((byte) f.v1).put((byte) f.v);
     }
 
     private void createSceneVbos(ArrayList<Face> faces) {
         ByteBuffer positionsAndTypes = memAlloc(4 * faces.size() * VERTICES_PER_FACE);
-        ByteBuffer sidesAndOffsets = memAlloc(faces.size() * VERTICES_PER_FACE);
-        ShortBuffer lightmapCoords = memAllocShort(4 * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer sides = memAlloc(faces.size() * VERTICES_PER_FACE);
+        ShortBuffer lightmapCoords = memAllocShort(2 * faces.size() * VERTICES_PER_FACE);
         ShortBuffer indices = memAllocShort(faces.size() * INDICES_PER_FACE);
-        triangulate(faces, positionsAndTypes, sidesAndOffsets, lightmapCoords, indices);
+        triangulate(faces, positionsAndTypes, sides, lightmapCoords, indices);
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
         int positionsAndTypesBufferObject = setupPositionsAndTypes(positionsAndTypes);
-        int sidesAndOffsetsBufferObject = setupSidesAndOffsets(sidesAndOffsets);
+        int sidesBufferObject = setupSides(sides);
         int lightmapCoordsBufferObject = setupLightmapCoords(lightmapCoords);
         int indicesBufferObject = setupIndices(indices);
         memFree(indices);
         memFree(lightmapCoords);
-        memFree(sidesAndOffsets);
+        memFree(sides);
         memFree(positionsAndTypes);
         glBindVertexArray(0);
-        glDeleteBuffers(new int[] {positionsAndTypesBufferObject, sidesAndOffsetsBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
+        glDeleteBuffers(new int[] {positionsAndTypesBufferObject, sidesBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
     }
 
     private int setupIndices(ShortBuffer indices) {
@@ -483,18 +463,18 @@ public class VoxelLightmapping {
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
+        glVertexAttribPointer(2, 2, GL_UNSIGNED_SHORT, false, 0, 0L);
         return lightmapCoordsBufferObject;
     }
 
-    private int setupSidesAndOffsets(ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.flip();
-        int sidesAndOffsetsBufferObject = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, sidesAndOffsetsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, sidesAndOffsets, GL_STATIC_DRAW);
+    private int setupSides(ByteBuffer sides) {
+        sides.flip();
+        int sidesBufferObject = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, sidesBufferObject);
+        glBufferData(GL_ARRAY_BUFFER, sides, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, 0, 0L);
-        return sidesAndOffsetsBufferObject;
+        return sidesBufferObject;
     }
 
     private int setupPositionsAndTypes(ByteBuffer positionsAndTypes) {
@@ -676,7 +656,7 @@ public class VoxelLightmapping {
         glBindVertexArray(vao);
         int off = offsetForLod((int) lod);
         int cnt = countForLod((int) lod);
-        glDrawElements(GL_TRIANGLE_STRIP, cnt * INDICES_PER_FACE, GL_UNSIGNED_SHORT, off * INDICES_PER_FACE * Integer.BYTES);
+        glDrawElements(GL_TRIANGLE_STRIP, cnt * INDICES_PER_FACE, GL_UNSIGNED_SHORT, off * INDICES_PER_FACE * Short.BYTES);
         glBindVertexArray(0);
         glUseProgram(0);
     }
