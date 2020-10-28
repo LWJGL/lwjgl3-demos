@@ -30,7 +30,8 @@ public class GreedyMeshing {
         public static final byte SIDE_PZ = 5;
 
         public byte s;
-        public short u0, v0, u1, v1, p, v, tx, ty;
+        public short u0, v0, u1, v1, p, tx, ty;
+        public int v;
 
         public int w() {
             return u1 - u0;
@@ -62,7 +63,7 @@ public class GreedyMeshing {
                             32 - numberOfLeadingZeros(v0 ^ v1));
         }
 
-        public Face(int u0, int v0, int u1, int v1, int p, int s, short v) {
+        public Face(int u0, int v0, int u1, int v1, int p, int s, int v) {
             this.u0 = (short) u0;
             this.v0 = (short) v0;
             this.u1 = (short) u1;
@@ -72,7 +73,7 @@ public class GreedyMeshing {
             this.v = v;
         }
 
-        private Face(int u0, int v0, int u1, int v1, int p, int s, short v, int tx, int ty) {
+        private Face(int u0, int v0, int u1, int v1, int p, int s, int v, int tx, int ty) {
             this.u0 = (short) u0;
             this.v0 = (short) v0;
             this.u1 = (short) u1;
@@ -239,6 +240,21 @@ public class GreedyMeshing {
         }
     }
 
+    private static final int[] NEIGHBOR_CONFIGS = { 0x5555, 0x2552, 0x5550, 0x2551, 0x5588, 0x2580, 0x5584, 0x2580, 0x5505, 0x2502, 0x5500, 0x2501, 0x5548,
+            0x2540, 0x5544, 0x2540, 0x5225, 0x2222, 0x5220, 0x2221, 0x5208, 0x2200, 0x5204, 0x2200, 0x5215, 0x2212, 0x5210, 0x2211, 0x5208, 0x2200, 0x5204,
+            0x2200, 0x5055, 0x2052, 0x5050, 0x2051, 0x5088, 0x2080, 0x5084, 0x2080, 0x5005, 0x2002, 0x5000, 0x2001, 0x5048, 0x2040, 0x5044, 0x2040, 0x5125,
+            0x2122, 0x5120, 0x2121, 0x5108, 0x2100, 0x5104, 0x2100, 0x5115, 0x2112, 0x5110, 0x2111, 0x5108, 0x2100, 0x5104, 0x2100, 0x8855, 0x852, 0x8850,
+            0x851, 0x8888, 0x880, 0x8884, 0x880, 0x8805, 0x802, 0x8800, 0x801, 0x8848, 0x840, 0x8844, 0x840, 0x8025, 0x22, 0x8020, 0x21, 0x8008, 0x0, 0x8004,
+            0x0, 0x8015, 0x12, 0x8010, 0x11, 0x8008, 0x0, 0x8004, 0x0, 0x8455, 0x452, 0x8450, 0x451, 0x8488, 0x480, 0x8484, 0x480, 0x8405, 0x402, 0x8400, 0x401,
+            0x8448, 0x440, 0x8444, 0x440, 0x8025, 0x22, 0x8020, 0x21, 0x8008, 0x0, 0x8004, 0x0, 0x8015, 0x12, 0x8010, 0x11, 0x8008, 0x0, 0x8004, 0x0, 0x555,
+            0x1552, 0x550, 0x1551, 0x588, 0x1580, 0x584, 0x1580, 0x505, 0x1502, 0x500, 0x1501, 0x548, 0x1540, 0x544, 0x1540, 0x225, 0x1222, 0x220, 0x1221,
+            0x208, 0x1200, 0x204, 0x1200, 0x215, 0x1212, 0x210, 0x1211, 0x208, 0x1200, 0x204, 0x1200, 0x55, 0x1052, 0x50, 0x1051, 0x88, 0x1080, 0x84, 0x1080,
+            0x5, 0x1002, 0x0, 0x1001, 0x48, 0x1040, 0x44, 0x1040, 0x125, 0x1122, 0x120, 0x1121, 0x108, 0x1100, 0x104, 0x1100, 0x115, 0x1112, 0x110, 0x1111,
+            0x108, 0x1100, 0x104, 0x1100, 0x4855, 0x852, 0x4850, 0x851, 0x4888, 0x880, 0x4884, 0x880, 0x4805, 0x802, 0x4800, 0x801, 0x4848, 0x840, 0x4844,
+            0x840, 0x4025, 0x22, 0x4020, 0x21, 0x4008, 0x0, 0x4004, 0x0, 0x4015, 0x12, 0x4010, 0x11, 0x4008, 0x0, 0x4004, 0x0, 0x4455, 0x452, 0x4450, 0x451,
+            0x4488, 0x480, 0x4484, 0x480, 0x4405, 0x402, 0x4400, 0x401, 0x4448, 0x440, 0x4444, 0x440, 0x4025, 0x22, 0x4020, 0x21, 0x4008, 0x0, 0x4004, 0x0,
+            0x4015, 0x12, 0x4010, 0x11, 0x4008, 0x0, 0x4004, 0x0 };
+
     private final int[] m;
     private byte[] vs;
     private int dx, dy, dz, nx, ny, nz;
@@ -316,161 +332,161 @@ public class GreedyMeshing {
     }
 
     private void meshY(List<Face>[] faces) {
-        for (int x1 = ny - 1; x1 < dy;) {
-            generateMaskY(x1);
-            mergeAndGenerateFacesY(faces, ++x1);
+        for (int y = ny - 1; y < dy;) {
+            generateMaskY(y);
+            mergeAndGenerateFacesY(faces, ++y);
         }
     }
 
     private void meshZ(List<Face>[] faces) {
-        for (int x2 = nz - 1; x2 < dz;) {
-            generateMaskZ(x2);
-            mergeAndGenerateFacesZ(faces, ++x2);
+        for (int z = nz - 1; z < dz;) {
+            generateMaskZ(z);
+            mergeAndGenerateFacesZ(faces, ++z);
         }
     }
 
-    private void generateMaskX(int x0) {
+    private void generateMaskX(int x) {
         int n = 0;
-        for (int x2 = 0; x2 < dz; x2++)
-            for (int x1 = ny; x1 < dy; x1++, n++)
-                generateMaskX(x0, x1, x2, n);
+        for (int z = 0; z < dz; z++)
+            for (int y = ny; y < dy; y++, n++)
+                generateMaskX(x, y, z, n);
     }
 
-    private void generateMaskY(int x1) {
+    private void generateMaskY(int y) {
         int n = 0;
-        for (int x0 = 0; x0 < dx; x0++)
-            for (int x2 = 0; x2 < dz; x2++, n++)
-                generateMaskY(x0, x1, x2, n);
+        for (int x = 0; x < dx; x++)
+            for (int z = 0; z < dz; z++, n++)
+                generateMaskY(x, y, z, n);
     }
 
-    private void generateMaskZ(int x2) {
+    private void generateMaskZ(int z) {
         int n = 0;
-        for (int x1 = ny; x1 < dy; x1++)
-            for (int x0 = 0; x0 < dx; x0++, n++)
-                generateMaskZ(x0, x1, x2, n);
+        for (int y = ny; y < dy; y++)
+            for (int x = 0; x < dx; x++, n++)
+                generateMaskZ(x, y, z, n);
     }
 
-    private void generateMaskX(int x0, int x1, int x2, int n) {
-        int a = at(x0, x1, x2) & 0xFF;
-        int b = at(x0 + 1, x1, x2) & 0xFF;
+    private void generateMaskX(int x, int y, int z, int n) {
+        int a = at(x, y, z) & 0xFF;
+        int b = at(x + 1, y, z) & 0xFF;
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0) {
-            m[n] = (singleOpaque ? 1 : a) | neighborsX(x0 + 1, x1, x2) << 8;
+            m[n] = (singleOpaque ? 1 : a) | neighborsX(x + 1, y, z) << 8;
         } else
-            m[n] = (singleOpaque ? 1 : b) | (x0 >= 0 ? neighborsX(x0, x1, x2) << 8 : 0) | 1 << 31;
+            m[n] = (singleOpaque ? 1 : b) | (x >= 0 ? neighborsX(x, y, z) << 8 : 0) | 1 << 31;
     }
 
-    private int neighborsX(int x0, int x1, int x2) {
-        int n0 = at(x0, x1 - 1, x2 - 1) != 0 ? 1 : 0;
-        int n1 = at(x0, x1, x2 - 1) != 0 ? 2 : 0;
-        int n2 = at(x0, x1 + 1, x2 - 1) != 0 ? 4 : 0;
-        int n3 = at(x0, x1 + 1, x2) != 0 ? 8 : 0;
-        int n4 = at(x0, x1 + 1, x2 + 1) != 0 ? 16 : 0;
-        int n5 = at(x0, x1, x2 + 1) != 0 ? 32 : 0;
-        int n6 = at(x0, x1 - 1, x2 + 1) != 0 ? 64 : 0;
-        int n7 = at(x0, x1 - 1, x2) != 0 ? 128 : 0;
-        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
+    private int neighborsX(int x, int y, int z) {
+        int n0 = at(x, y, z - 1) != 0 ? 1 : 0;
+        int n1 = at(x, y - 1, z - 1) != 0 ? 2 : 0;
+        int n2 = at(x, y - 1, z) != 0 ? 4 : 0;
+        int n3 = at(x, y - 1, z + 1) != 0 ? 8 : 0;
+        int n4 = at(x, y, z + 1) != 0 ? 16 : 0;
+        int n5 = at(x, y + 1, z + 1) != 0 ? 32 : 0;
+        int n6 = at(x, y + 1, z) != 0 ? 64 : 0;
+        int n7 = at(x, y + 1, z - 1) != 0 ? 128 : 0;
+        return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
     }
 
-    private void generateMaskY(int x0, int x1, int x2, int n) {
-        int a = at(x0, x1, x2) & 0xFF;
-        int b = at(x0, x1 + 1, x2) & 0xFF;
+    private void generateMaskY(int x, int y, int z, int n) {
+        int a = at(x, y, z) & 0xFF;
+        int b = at(x, y + 1, z) & 0xFF;
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0) {
-            m[n] = (singleOpaque ? 1 : a) | neighborsY(x0, x1 + 1, x2) << 8;
+            m[n] = (singleOpaque ? 1 : a) | neighborsY(x, y + 1, z) << 8;
         } else
-            m[n] = (singleOpaque ? 1 : b) | (x1 >= 0 ? neighborsY(x0, x1, x2) << 8 : 0) | 1 << 31;
+            m[n] = (singleOpaque ? 1 : b) | (y >= 0 ? neighborsY(x, y, z) << 8 : 0) | 1 << 31;
     }
 
-    private int neighborsY(int x0, int x1, int x2) {
-        int n0 = at(x0 - 1, x1, x2 - 1) != 0 ? 1 : 0;
-        int n1 = at(x0, x1, x2 - 1) != 0 ? 2 : 0;
-        int n2 = at(x0 + 1, x1, x2 - 1) != 0 ? 4 : 0;
-        int n3 = at(x0 + 1, x1, x2) != 0 ? 8 : 0;
-        int n4 = at(x0 + 1, x1, x2 + 1) != 0 ? 16 : 0;
-        int n5 = at(x0, x1, x2 + 1) != 0 ? 32 : 0;
-        int n6 = at(x0 - 1, x1, x2 + 1) != 0 ? 64 : 0;
-        int n7 = at(x0 - 1, x1, x2) != 0 ? 128 : 0;
-        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
+    private int neighborsY(int x, int y, int z) {
+        int n0 = at(x - 1, y, z) != 0 ? 1 : 0;
+        int n1 = at(x - 1, y, z - 1) != 0 ? 2 : 0;
+        int n2 = at(x, y, z - 1) != 0 ? 4 : 0;
+        int n3 = at(x + 1, y, z - 1) != 0 ? 8 : 0;
+        int n4 = at(x + 1, y, z) != 0 ? 16 : 0;
+        int n5 = at(x + 1, y, z + 1) != 0 ? 32 : 0;
+        int n6 = at(x, y, z + 1) != 0 ? 64 : 0;
+        int n7 = at(x - 1, y, z + 1) != 0 ? 128 : 0;
+        return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
     }
 
-    private void generateMaskZ(int x0, int x1, int x2, int n) {
-        int a = at(x0, x1, x2) & 0xFF;
-        int b = at(x0, x1, x2 + 1) & 0xFF;
+    private void generateMaskZ(int x, int y, int z, int n) {
+        int a = at(x, y, z) & 0xFF;
+        int b = at(x, y, z + 1) & 0xFF;
         if (((a == 0) == (b == 0)))
             m[n] = 0;
         else if (a != 0)
-            m[n] = (singleOpaque ? 1 : a) | neighborsZ(x0, x1, x2 + 1) << 8;
+            m[n] = (singleOpaque ? 1 : a) | neighborsZ(x, y, z + 1) << 8;
         else
-            m[n] = (singleOpaque ? 1 : b) | (x2 >= 0 ? neighborsZ(x0, x1, x2) << 8 : 0) | 1 << 31;
+            m[n] = (singleOpaque ? 1 : b) | (z >= 0 ? neighborsZ(x, y, z) << 8 : 0) | 1 << 31;
     }
 
-    private int neighborsZ(int x0, int x1, int x2) {
-        int n0 = at(x0 - 1, x1 - 1, x2) != 0 ? 1 : 0;
-        int n1 = at(x0, x1 - 1, x2) != 0 ? 2 : 0;
-        int n2 = at(x0 + 1, x1 - 1, x2) != 0 ? 4 : 0;
-        int n3 = at(x0 + 1, x1, x2) != 0 ? 8 : 0;
-        int n4 = at(x0 + 1, x1 + 1, x2) != 0 ? 16 : 0;
-        int n5 = at(x0, x1 + 1, x2) != 0 ? 32 : 0;
-        int n6 = at(x0 - 1, x1 + 1, x2) != 0 ? 64 : 0;
-        int n7 = at(x0 - 1, x1, x2) != 0 ? 128 : 0;
-        return n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7;
+    private int neighborsZ(int x, int y, int z) {
+        int n0 = at(x, y - 1, z) != 0 ? 1 : 0;
+        int n1 = at(x - 1, y - 1, z) != 0 ? 2 : 0;
+        int n2 = at(x - 1, y, z) != 0 ? 4 : 0;
+        int n3 = at(x - 1, y + 1, z) != 0 ? 8 : 0;
+        int n4 = at(x, y + 1, z) != 0 ? 16 : 0;
+        int n5 = at(x + 1, y + 1, z) != 0 ? 32 : 0;
+        int n6 = at(x + 1, y, z) != 0 ? 64 : 0;
+        int n7 = at(x + 1, y - 1, z) != 0 ? 128 : 0;
+        return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
     }
 
-    private void mergeAndGenerateFacesX(List<Face>[] faces, int x0) {
+    private void mergeAndGenerateFacesX(List<Face>[] faces, int x) {
         int i, j, n, incr;
         for (j = 0, n = 0; j < dz; j++)
             for (i = ny; i < dy; i += incr, n += incr)
-                incr = mergeAndGenerateFaceX(faces, x0, n, i, j);
+                incr = mergeAndGenerateFaceX(faces, x, n, i, j);
     }
 
-    private void mergeAndGenerateFacesY(List<Face>[] faces, int x1) {
+    private void mergeAndGenerateFacesY(List<Face>[] faces, int y) {
         int i, j, n, incr;
         for (j = 0, n = 0; j < dx; j++)
             for (i = 0; i < dz; i += incr, n += incr)
-                incr = mergeAndGenerateFaceY(faces, x1, n, i, j);
+                incr = mergeAndGenerateFaceY(faces, y, n, i, j);
     }
 
-    private void mergeAndGenerateFacesZ(List<Face>[] faces, int x2) {
+    private void mergeAndGenerateFacesZ(List<Face>[] faces, int z) {
         int i, j, n, incr;
         for (j = ny, n = 0; j < dy; j++)
             for (i = 0; i < dx; i += incr, n += incr)
-                incr = mergeAndGenerateFaceZ(faces, x2, n, i, j);
+                incr = mergeAndGenerateFaceZ(faces, z, n, i, j);
     }
 
-    private int mergeAndGenerateFaceX(List<Face>[] faces, int x0, int n, int i, int j) {
+    private int mergeAndGenerateFaceX(List<Face>[] faces, int x, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x0, 0 + (mn > 0 ? 1 : 0), (short) mn);
+        Face f = new Face(i, j, i + w, j + h, x, 0 + (mn > 0 ? 1 : 0), mn);
         faces[f.s].add(f);
         eraseMaskX(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceY(List<Face>[] faces, int x1, int n, int i, int j) {
+    private int mergeAndGenerateFaceY(List<Face>[] faces, int y, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x1, 2 + (mn > 0 ? 1 : 0), (short) mn);
+        Face f = new Face(i, j, i + w, j + h, y, 2 + (mn > 0 ? 1 : 0), mn);
         faces[f.s].add(f);
         eraseMaskY(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceZ(List<Face>[] faces, int x2, int n, int i, int j) {
+    private int mergeAndGenerateFaceZ(List<Face>[] faces, int z, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x2, 4 + (mn > 0 ? 1 : 0), (short) mn);
+        Face f = new Face(i, j, i + w, j + h, z, 4 + (mn > 0 ? 1 : 0), mn);
         faces[f.s].add(f);
         eraseMaskZ(n, w, h);
         return w;

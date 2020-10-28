@@ -9,7 +9,7 @@ uniform ivec2 lightmapSize;
 uniform float lod;
 
 layout(location=0) in vec4 positionAndType;
-layout(location=1) in uint side;
+layout(location=1) in uvec2 sideAndOffset;
 layout(location=2) in vec2 lightmapCoords;
 
 centroid out vec2 lightmapCoords_varying;
@@ -17,7 +17,7 @@ flat out int matIndex;
 
 vec3 offset() {
   vec3 r = vec3(gl_VertexID & 1, gl_VertexID >> 1 & 1, 0.5) * 2.0 - vec3(1.0);
-  return side < 2u ? r.zxy : side < 4u ? r.yzx : r.xyz;
+  return sideAndOffset.x < 2u ? r.zxy : sideAndOffset.x < 4u ? r.yzx : r.xyz;
 }
 
 /**
