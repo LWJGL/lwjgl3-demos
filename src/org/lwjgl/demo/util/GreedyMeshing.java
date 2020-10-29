@@ -251,7 +251,7 @@ public class GreedyMeshing {
     private int splitMask = (1 << splitShift) - 1;
 
     private static byte off(int x, int y) {
-        return (byte) ((x + 1) | (y + 1 << 2));
+        return (byte) (x + 1 | y + 1 << 2);
     }
 
     private static int[] computeNeighborConfigs() {
