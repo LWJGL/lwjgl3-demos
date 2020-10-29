@@ -402,10 +402,10 @@ public class VoxelLightmapping {
     }
 
     private static void generateSidesAndOffsets(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 8 & 3 | (f.v >>> 10 & 3) << 2));
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 20 & 3 | (f.v >>> 22 & 3) << 2));
+        sidesAndOffsets.put(f.s).put((byte) (f.v >>>  8 & 3 | (f.v >>> 10 & 3) << 2));
         sidesAndOffsets.put(f.s).put((byte) (f.v >>> 12 & 3 | (f.v >>> 14 & 3) << 2));
         sidesAndOffsets.put(f.s).put((byte) (f.v >>> 16 & 3 | (f.v >>> 18 & 3) << 2));
+        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 20 & 3 | (f.v >>> 22 & 3) << 2));
     }
 
     private static void generatePositionsAndTypesZ(Face f, ByteBuffer positions) {
