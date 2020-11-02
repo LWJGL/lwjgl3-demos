@@ -349,19 +349,39 @@ public class VoxelLightmapping2 {
                 generatePositionsAndTypesZ(f, positionsAndTypes);
                 break;
             }
-            generateSidesAndOffsets(f, sidesAndOffsets);
+            int n00 = aoFactor(f.v >>>  8 & 7), n10 = aoFactor(f.v >>> 11 & 7);
+            int n01 = aoFactor(f.v >>> 14 & 7), n11 = aoFactor(f.v >>> 17 & 7);
+            generateSidesAndOffsets(f, n00, n10, n01, n11, sidesAndOffsets);
+            int ao00 = n00 >>> 4, ao10 = n10 >>> 4, ao01 = n01 >>> 4, ao11 = n11 >>> 4;
             generateTexCoords(f, lightmapCoords);
-            generateIndices(f, i, indices);
+            generateIndices(f, i, ao00 + ao11 > ao10 + ao01, indices);
         }
     }
 
-    private static void generateIndices(Face f, int i, ShortBuffer indices) {
-        if (isPositiveSide(f.s)) {
+    private static void generateIndices(Face f, int i, boolean swap, ShortBuffer indices) {
+        if (isPositiveSide(f.s))
+            generateIndicesPositive(i, swap, indices);
+        else
+            generateIndicesNegative(i, swap, indices);
+    }
+
+    private static void generateIndicesNegative(int i, boolean swap, ShortBuffer indices) {
+        if (swap) {
+            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
+        } else {
+            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
+                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
+        }
+    }
+
+    private static void generateIndicesPositive(int i, boolean swap, ShortBuffer indices) {
+        if (swap) {
             indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
                    .put((short) ((i << 2) + 2)).put((short) PRIMITIVE_RESTART_INDEX);
         } else {
-            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
-                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
+            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
+                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
         }
     }
 
@@ -373,11 +393,19 @@ public class VoxelLightmapping2 {
                 .put((short) (f.tx + f.w())).put((short) (f.ty + f.h()));
     }
 
-    private static void generateSidesAndOffsets(Face f, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>>  8 & 3 | (f.v >>> 10 & 3) << 2));
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 12 & 3 | (f.v >>> 14 & 3) << 2));
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 16 & 3 | (f.v >>> 18 & 3) << 2));
-        sidesAndOffsets.put(f.s).put((byte) (f.v >>> 20 & 3 | (f.v >>> 22 & 3) << 2));
+    private static byte aoFactor(int n) {
+        boolean b1 = (n & 1) == 1, b2 = (n & 2) == 2, b4 = (n & 4) == 4;
+        int f = b1 && b4 ? 0 : (3 - Integer.bitCount(n));
+        int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
+            y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;
+        return (byte) ((x + 1) | (y + 1) << 2 | f << 4);
+    }
+
+    private static void generateSidesAndOffsets(Face f, int ao00, int ao10, int ao01, int ao11, ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.put(f.s).put((byte) ao00);
+        sidesAndOffsets.put(f.s).put((byte) ao10);
+        sidesAndOffsets.put(f.s).put((byte) ao01);
+        sidesAndOffsets.put(f.s).put((byte) ao11);
     }
 
     private static void generatePositionsAndTypesZ(Face f, ByteBuffer positions) {

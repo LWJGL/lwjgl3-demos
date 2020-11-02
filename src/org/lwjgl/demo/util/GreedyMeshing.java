@@ -250,24 +250,16 @@ public class GreedyMeshing {
     private int splitShift = 16;
     private int splitMask = (1 << splitShift) - 1;
 
-    private static byte off(int x, int y) {
-        return (byte) (x + 1 | y + 1 << 2);
-    }
-
     private static int[] computeNeighborConfigs() {
         int[] offs = new int[256];
         for (int i = 0; i < 256; i++) {
             boolean cxny = (i & 1<<0) == 1<<0, nxny = (i & 1<<1) == 1<<1, nxcy = (i & 1<<2) == 1<<2, nxpy = (i & 1<<3) == 1<<3;
             boolean cxpy = (i & 1<<4) == 1<<4, pxpy = (i & 1<<5) == 1<<5, pxcy = (i & 1<<6) == 1<<6, pxny = (i & 1<<7) == 1<<7;
-            int nunv = off(cxny && !nxny && !nxcy ? 1 : nxcy || nxny && !cxny ? -1 : 0,
-                           nxcy && !nxny && !cxny ? 1 : cxny || nxny && !nxcy ? -1 : 0);
-            int punv = off(cxny && !pxny && !pxcy ? 1 : pxcy || pxny && !cxny ? -1 : 0, 
-                           pxcy && !pxny && !cxny ? 1 : cxny || pxny && !pxcy ? -1 : 0);
-            int nupv = off(cxpy && !nxpy && !nxcy ? 1 : nxcy || nxpy && !cxpy ? -1 : 0,
-                           nxcy && !nxpy && !cxpy ? 1 : cxpy || nxpy && !nxcy ? -1 : 0);
-            int pupv = off(cxpy && !pxpy && !pxcy ? 1 : pxcy || pxpy && !cxpy ? -1 : 0,
-                           pxcy && !pxpy && !cxpy ? 1 : cxpy || pxpy && !pxcy ? -1 : 0);
-            offs[i] = nunv | punv << 4 | nupv << 8 | pupv << 12;
+            int fnunv = (cxny ? 1 : 0) + (nxny ? 2 : 0) + (nxcy ? 4 : 0);
+            int fpunv = (cxny ? 1 : 0) + (pxny ? 2 : 0) + (pxcy ? 4 : 0);
+            int fnupv = (cxpy ? 1 : 0) + (nxpy ? 2 : 0) + (nxcy ? 4 : 0);
+            int fpupv = (cxpy ? 1 : 0) + (pxpy ? 2 : 0) + (pxcy ? 4 : 0);
+            offs[i] = (fnunv) | (fpunv << 3) | (fnupv << 6) | (fpupv << 9);
         }
         return offs;
     }
