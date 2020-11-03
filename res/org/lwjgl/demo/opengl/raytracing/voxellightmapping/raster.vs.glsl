@@ -14,10 +14,15 @@ layout(location=2) in vec2 lightmapCoords;
 
 centroid out vec2 lightmapCoords_varying;
 flat out int matIndex;
+out vec4 ao;
+out vec2 uv;
+
+const float aos[4] = float[4](0.72, 0.81, 0.91, 1.0);
 
 vec3 offset() {
+  uint s = sideAndOffset.x & 7u;
   vec3 r = vec3(gl_VertexID & 1, gl_VertexID >> 1 & 1, 0.5) * 2.0 - vec3(1.0);
-  return sideAndOffset.x < 2u ? r.zxy : sideAndOffset.x < 4u ? r.yzx : r.xyz;
+  return s < 2u ? r.zxy : s < 4u ? r.yzx : r.xyz;
 }
 
 /**
@@ -33,6 +38,8 @@ vec3 lodPosition() {
 }
 
 void main(void) {
+  uv = vec2(gl_VertexID & 1, gl_VertexID >> 1 & 1);
+  ao = vec4(aos[sideAndOffset.y & 3u], aos[sideAndOffset.y >> 2u & 3u], aos[sideAndOffset.y >> 4u & 3u], aos[sideAndOffset.y >> 6u & 3u]);
   vec3 p = lodPosition();
   float w = dot(transpose(mvp)[3], vec4(p, 1.0));
   matIndex = int(positionAndType.w);

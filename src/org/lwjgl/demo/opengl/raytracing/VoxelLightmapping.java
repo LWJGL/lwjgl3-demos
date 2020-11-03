@@ -62,8 +62,10 @@ public class VoxelLightmapping {
     /* Resources for rasterizing the faces of the scene */
     private int rasterProgram;
     private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform, rasterProgramLodUniform;
+    private int rasterProgramUseSimpleAoUniform;
     private int vao;
     private int[] lodList;
+    private boolean useSimpleAo;
 
     /* Resources for building the lightmap */
     private int lightmapProgram;
@@ -107,6 +109,8 @@ public class VoxelLightmapping {
             System.out.println("Lod: " + lod);
         } else if (action == GLFW_PRESS && key == GLFW_KEY_R) {
             resetBlendIndexTexture();
+        } else if (action == GLFW_PRESS && key == GLFW_KEY_O) {
+            useSimpleAo = !useSimpleAo;
         }
     }
 
@@ -232,6 +236,7 @@ public class VoxelLightmapping {
         System.out.println("Use left mouse button + mouse move to rotate");
         System.out.println("Use arrow up/down to increase/decrease LOD level");
         System.out.println("Press R to reset the lightmap");
+        System.out.println("Press O to toggle between simple ao and lightmap");
     }
 
     private static int createShader(String resource, int type) throws IOException {
@@ -352,6 +357,7 @@ public class VoxelLightmapping {
         rasterProgramMvpUniform = glGetUniformLocation(program, "mvp");
         rasterProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
         rasterProgramLodUniform = glGetUniformLocation(program, "lod");
+        rasterProgramUseSimpleAoUniform = glGetUniformLocation(program, "useSimpleAo");
         glUseProgram(0);
         rasterProgram = program;
     }
@@ -377,8 +383,8 @@ public class VoxelLightmapping {
                 generatePositionsAndTypesZ(f, positions);
                 break;
             }
-            int n00 = aoFactor(f.v >>>  8 & 7), n10 = aoFactor(f.v >>> 11 & 7);
-            int n01 = aoFactor(f.v >>> 14 & 7), n11 = aoFactor(f.v >>> 17 & 7);
+            int n00 = f.v >>>  8 & 7, n10 = f.v >>> 11 & 7;
+            int n01 = f.v >>> 14 & 7, n11 = f.v >>> 17 & 7;
             generateSidesAndOffsets(f, n00, n10, n01, n11, sidesAndOffsets);
             int ao00 = n00 >>> 4, ao10 = n10 >>> 4, ao01 = n01 >>> 4, ao11 = n11 >>> 4;
             generateTexCoords(f, lightmapCoords);
@@ -421,19 +427,26 @@ public class VoxelLightmapping {
                 .put((short) (f.tx + f.w())).put((short) (f.ty + f.h()));
     }
 
-    private static byte aoFactor(int n) {
-        boolean b1 = (n & 1) == 1, b2 = (n & 2) == 2, b4 = (n & 4) == 4;
-        int f = b1 && b4 ? 0 : (3 - Integer.bitCount(n));
-        int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
-            y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;
-        return (byte) (x + 1 | y + 1 << 2 | f << 4);
+    private static byte aoFactors(int n00, int n10, int n01, int n11) {
+        return (byte) (aoFactor(n00) | aoFactor(n10) << 2 | aoFactor(n01) << 4 | aoFactor(n11) << 6);
     }
 
-    private static void generateSidesAndOffsets(Face f, int ao00, int ao10, int ao01, int ao11, ByteBuffer sidesAndOffsets) {
-        sidesAndOffsets.put(f.s).put((byte) ao00);
-        sidesAndOffsets.put(f.s).put((byte) ao10);
-        sidesAndOffsets.put(f.s).put((byte) ao01);
-        sidesAndOffsets.put(f.s).put((byte) ao11);
+    private static byte aoFactor(int n) {
+        return (byte) ((n & 1) == 1 && (n & 4) == 4 ? 0 : (3 - Integer.bitCount(n)));
+    }
+
+    private static byte sampleOffset(int n) {
+        boolean b1 = (n & 1) == 1, b2 = (n & 2) == 2, b4 = (n & 4) == 4;
+        int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
+            y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;
+        return (byte) (x + 1 | y + 1 << 2);
+    }
+
+    private static void generateSidesAndOffsets(Face f, int n00, int n10, int n01, int n11, ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.put((byte) (f.s | sampleOffset(n00) << 3)).put(aoFactors(n00, n10, n01, n11));
+        sidesAndOffsets.put((byte) (f.s | sampleOffset(n10) << 3)).put(aoFactors(n00, n10, n01, n11));
+        sidesAndOffsets.put((byte) (f.s | sampleOffset(n01) << 3)).put(aoFactors(n00, n10, n01, n11));
+        sidesAndOffsets.put((byte) (f.s | sampleOffset(n11) << 3)).put(aoFactors(n00, n10, n01, n11));
     }
 
     private static void generatePositionsAndTypesZ(Face f, ByteBuffer positions) {
@@ -676,6 +689,7 @@ public class VoxelLightmapping {
         }
         glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
         glUniform1f(rasterProgramLodUniform, lod);
+        glUniform1i(rasterProgramUseSimpleAoUniform, useSimpleAo ? 1 : 0);
         glViewport(0, 0, width, height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, lightmapTexture);

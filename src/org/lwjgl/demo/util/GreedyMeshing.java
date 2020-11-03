@@ -259,7 +259,7 @@ public class GreedyMeshing {
             int fpunv = (cxny ? 1 : 0) + (pxny ? 2 : 0) + (pxcy ? 4 : 0);
             int fnupv = (cxpy ? 1 : 0) + (nxpy ? 2 : 0) + (nxcy ? 4 : 0);
             int fpupv = (cxpy ? 1 : 0) + (pxpy ? 2 : 0) + (pxcy ? 4 : 0);
-            offs[i] = (fnunv) | (fpunv << 3) | (fnupv << 6) | (fpupv << 9);
+            offs[i] = fnunv | fpunv << 3 | fnupv << 6 | fpupv << 9;
         }
         return offs;
     }
