@@ -394,7 +394,7 @@ public class VoxelLightmapping2 {
     }
 
     private static byte aoFactor(int n) {
-        boolean b1 = (n & 1) == 1, b2 = (n & 2) == 2, b4 = (n & 4) == 4;
+        boolean b1 = (n & 1) != 0, b2 = (n & 2) != 0, b4 = (n & 4) != 0;
         int f = b1 && b4 ? 0 : (3 - Integer.bitCount(n));
         int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
             y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;

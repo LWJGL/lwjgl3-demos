@@ -390,37 +390,18 @@ public class VoxelLightmapping {
             int n00 = f.v >>>  8 & 7, n10 = f.v >>> 11 & 7;
             int n01 = f.v >>> 14 & 7, n11 = f.v >>> 17 & 7;
             generateSidesAndOffsets(f, n00, n10, n01, n11, sidesAndOffsets);
-            int ao00 = n00 >>> 4, ao10 = n10 >>> 4, ao01 = n01 >>> 4, ao11 = n11 >>> 4;
             generateTexCoords(f, lightmapCoords);
-            generateIndices(f, i, ao00 + ao11 > ao10 + ao01, indices);
+            generateIndices(f, i, indices);
         }
     }
 
-    private static void generateIndices(Face f, int i, boolean swap, ShortBuffer indices) {
+    private static void generateIndices(Face f, int i, ShortBuffer indices) {
         if (isPositiveSide(f.s))
-            generateIndicesPositive(i, swap, indices);
-        else
-            generateIndicesNegative(i, swap, indices);
-    }
-
-    private static void generateIndicesNegative(int i, boolean swap, ShortBuffer indices) {
-        if (swap) {
-            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
-                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
-        } else {
-            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
-                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
-        }
-    }
-
-    private static void generateIndicesPositive(int i, boolean swap, ShortBuffer indices) {
-        if (swap) {
             indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
                    .put((short) ((i << 2) + 2)).put((short) PRIMITIVE_RESTART_INDEX);
-        } else {
-            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
-                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
-        }
+        else
+            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
     }
 
     private void generateTexCoords(Face f, ShortBuffer lightmapCoords) {
@@ -436,11 +417,11 @@ public class VoxelLightmapping {
     }
 
     private static byte aoFactor(int n) {
-        return (byte) ((n & 1) == 1 && (n & 4) == 4 ? 0 : (3 - Integer.bitCount(n)));
+        return (byte) ((n & 1) != 0 && (n & 4) != 0 ? 0 : (3 - Integer.bitCount(n)));
     }
 
     private static byte sampleOffset(int n) {
-        boolean b1 = (n & 1) == 1, b2 = (n & 2) == 2, b4 = (n & 4) == 4;
+        boolean b1 = (n & 1) != 0, b2 = (n & 2) != 0, b4 = (n & 4) != 0;
         int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
             y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;
         return (byte) (x + 1 | y + 1 << 2);
@@ -706,7 +687,6 @@ public class VoxelLightmapping {
         glDrawElements(GL_TRIANGLE_STRIP, cnt * INDICES_PER_FACE, GL_UNSIGNED_SHORT, off * INDICES_PER_FACE * Short.BYTES);
         glBindVertexArray(0);
         glUseProgram(0);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     private void trace() {
