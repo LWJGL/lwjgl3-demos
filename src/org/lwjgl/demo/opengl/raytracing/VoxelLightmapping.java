@@ -62,10 +62,10 @@ public class VoxelLightmapping {
     /* Resources for rasterizing the faces of the scene */
     private int rasterProgram;
     private int rasterProgramMvpUniform, rasterProgramLightmapSizeUniform, rasterProgramLodUniform;
-    private int rasterProgramUseSimpleAoUniform;
+    private int rasterProgramUseSimpleAoUniform, rasterProgramUseColorUniform;
     private int vao;
     private int[] lodList;
-    private boolean useSimpleAo;
+    private boolean useSimpleAo, useColor = true;
 
     /* Resources for building the lightmap */
     private int lightmapProgram;
@@ -111,6 +111,8 @@ public class VoxelLightmapping {
             resetBlendIndexTexture();
         } else if (action == GLFW_PRESS && key == GLFW_KEY_O) {
             useSimpleAo = !useSimpleAo;
+        } else if (action == GLFW_PRESS && key == GLFW_KEY_C) {
+            useColor = !useColor;
         }
     }
 
@@ -237,6 +239,7 @@ public class VoxelLightmapping {
         System.out.println("Use arrow up/down to increase/decrease LOD level");
         System.out.println("Press R to reset the lightmap");
         System.out.println("Press O to toggle between simple ao and lightmap");
+        System.out.println("Press C to toggle material color on/off");
     }
 
     private static int createShader(String resource, int type) throws IOException {
@@ -358,6 +361,7 @@ public class VoxelLightmapping {
         rasterProgramLightmapSizeUniform = glGetUniformLocation(program, "lightmapSize");
         rasterProgramLodUniform = glGetUniformLocation(program, "lod");
         rasterProgramUseSimpleAoUniform = glGetUniformLocation(program, "useSimpleAo");
+        rasterProgramUseColorUniform = glGetUniformLocation(program, "useColor");
         glUseProgram(0);
         rasterProgram = program;
     }
@@ -690,6 +694,7 @@ public class VoxelLightmapping {
         glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
         glUniform1f(rasterProgramLodUniform, lod);
         glUniform1i(rasterProgramUseSimpleAoUniform, useSimpleAo ? 1 : 0);
+        glUniform1i(rasterProgramUseColorUniform, useColor ? 1 : 0);
         glViewport(0, 0, width, height);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, lightmapTexture);
