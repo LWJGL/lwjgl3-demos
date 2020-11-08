@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lwjgl</groupId>
@@ -15,9 +14,9 @@
         <lwjgl.version>3.2.4-SNAPSHOT</lwjgl.version>
         <swt.version>4.6.1</swt.version>
         <joml.version>1.9.26-SNAPSHOT</joml.version>
-        <!-- Can be overwritten via -D property during mvn invoke to specify
-            a different demo. The package "org.lwjgl.demo." is prepended automatically. -->
-        <class>game.SpaceGame</class>
+        <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
+            is prepended automatically. -->
+        <class>game.VoxelGameGL</class>
     </properties>
     <profiles>
         <profile>
@@ -244,6 +243,11 @@
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-jemalloc</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-shaderc</artifactId>
             <version>${lwjgl.version}</version>
         </dependency>
@@ -291,6 +295,12 @@
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-shaderc</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>natives-${platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-jemalloc</artifactId>
             <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
