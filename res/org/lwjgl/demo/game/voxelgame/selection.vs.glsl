@@ -6,7 +6,6 @@
 
 layout(std140) uniform Uniforms {
   mat4 mvp;
-  vec4 col;
 };
 
 layout(location=0) in vec2 quad;

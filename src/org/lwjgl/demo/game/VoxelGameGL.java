@@ -113,20 +113,26 @@ public class VoxelGameGL {
         }
 
         public DynamicByteBuffer putInt(int v) {
-            if (cap - pos < 4)
+            if (cap - pos < Integer.BYTES)
                 grow();
+            return putIntNoGrow(v);
+        }
+
+        private DynamicByteBuffer putIntNoGrow(int v) {
             memPutInt(addr + pos, v);
-            pos += 4;
+            pos += Integer.BYTES;
             return this;
         }
 
         public DynamicByteBuffer putShort(int v) {
-            if (DEBUG && v > 1 << 16)
-                throw new IllegalArgumentException();
-            if (cap - pos < 2)
+            if (cap - pos < Short.BYTES)
                 grow();
+            return putShortNoGrow(v);
+        }
+
+        private DynamicByteBuffer putShortNoGrow(int v) {
             memPutShort(addr + pos, (short) v);
-            pos += 2;
+            pos += Short.BYTES;
             return this;
         }
     }
@@ -792,9 +798,9 @@ public class VoxelGameGL {
     /* Computed values depending on the render path we use */
     private int verticesPerFace, indicesPerFace, voxelVertexSize;
 
-    private ByteBuffer indirectDrawBufferByteBuffer;
+    private long indirectDrawBufferAddr;
     private int boundingBoxesVertexBufferObject;
-    private ByteBuffer boundingBoxesVertexBufferObjectByteBuffer;
+    private long boundingBoxesVertexBufferObjectAddr;
     private int visibilityFlagsBuffer;
     private int indirectDrawCulledBuffer;
     private int atomicCounterBuffer;
@@ -868,7 +874,7 @@ public class VoxelGameGL {
     private int materialsTexture;
     private int chunksProgramUboBlockIndex;
     private int chunksProgramUbo;
-    private ByteBuffer chunksProgramUboBufferObject;
+    private long chunksProgramUboAddr;
     private static final int chunksProgramUboSize = 4 * (2 * 16 + 2 * 4);
 
     /* Resources for generating draw commands on the GPU */
@@ -876,7 +882,7 @@ public class VoxelGameGL {
     private int boundingBoxesProgram;
     private int boundingBoxesProgramUboBlockIndex;
     private int boundingBoxesProgramUbo;
-    private ByteBuffer boundingBoxesProgramUboBB;
+    private long boundingBoxesProgramUboAddr;
     private static final int boundingBoxesProgramUboSize = 4 * (16 + 4);
 
     /* Resources for collecting draw calls using the visibility buffer */
@@ -887,8 +893,8 @@ public class VoxelGameGL {
     private int selectionProgram;
     private int selectionProgramUboBlockIndex;
     private int selectionProgramUbo;
-    private ByteBuffer selectionProgramUboBufferObject;
-    private static final int selectionProgramUboSize = 4 * (16 + 4);
+    private long selectionProgramUboAddr;
+    private static final int selectionProgramUboSize = 4 * 16;
     private final Vector3i selectedVoxelPosition = new Vector3i();
     private final Vector3i sideOffset = new Vector3i();
     private boolean hasSelection;
@@ -1301,8 +1307,7 @@ public class VoxelGameGL {
         if (useBufferStorage) {
             glBufferStorage(GL_ARRAY_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-            boundingBoxesVertexBufferObjectByteBuffer = glMapBufferRange(GL_ARRAY_BUFFER, 0L,
-                    DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES,
+            boundingBoxesVertexBufferObjectAddr = nglMapBufferRange(GL_ARRAY_BUFFER, 0L, DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
         } else {
             glBufferData(GL_ARRAY_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES, GL_STATIC_DRAW);
@@ -1362,7 +1367,7 @@ public class VoxelGameGL {
         if (useBufferStorage) {
             glBufferStorage(GL_DRAW_INDIRECT_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * structSize,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-            indirectDrawBufferByteBuffer = glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0L, DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * structSize,
+            indirectDrawBufferAddr = nglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0L, DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * structSize,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
         } else {
             glBufferData(GL_DRAW_INDIRECT_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * MAX_ACTIVE_CHUNKS * structSize, GL_STATIC_DRAW);
@@ -1685,7 +1690,7 @@ public class VoxelGameGL {
         int size = roundUpToNextMultiple(chunksProgramUboSize, uniformBufferOffsetAlignment);
         if (useBufferStorage) {
             glBufferStorage(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-            chunksProgramUboBufferObject = glMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
+            chunksProgramUboAddr = nglMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
         } else {
             glBufferData(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_DYNAMIC_DRAW);
@@ -1702,7 +1707,7 @@ public class VoxelGameGL {
         int size = roundUpToNextMultiple(boundingBoxesProgramUboSize, uniformBufferOffsetAlignment);
         if (useBufferStorage) {
             glBufferStorage(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-            boundingBoxesProgramUboBB = glMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
+            boundingBoxesProgramUboAddr = nglMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
         } else {
             glBufferData(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_DYNAMIC_DRAW);
@@ -1876,7 +1881,7 @@ public class VoxelGameGL {
         int size = roundUpToNextMultiple(selectionProgramUboSize, uniformBufferOffsetAlignment);
         if (useBufferStorage) {
             glBufferStorage(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-            selectionProgramUboBufferObject = glMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
+            selectionProgramUboAddr = nglMapBufferRange(GL_UNIFORM_BUFFER, 0L, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size,
                     GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
         } else {
             glBufferData(GL_UNIFORM_BUFFER, (long) DYNAMIC_BUFFER_OBJECT_REGIONS * size, GL_DYNAMIC_DRAW);
@@ -1961,8 +1966,8 @@ public class VoxelGameGL {
     /**
      * Compute the ambient occlusion factor from a vertex's neighbor configuration <code>n</code>.
      */
-    private static byte aoFactor(int n) {
-        return (byte) ((n & 1) == 1 && (n & 4) == 4 ? 0 : (3 - Integer.bitCount(n)));
+    private static int aoFactor(int n) {
+        return (n & 1) == 1 && (n & 4) == 4 ? 0 : 3 - Integer.bitCount(n);
     }
 
     /**
@@ -2377,7 +2382,7 @@ public class VoxelGameGL {
     /**
      * Update the chunk's per-face buffer region with the given vertex and index data.
      */
-    private void updateChunkVertexAndIndexDataInBufferObjects(Chunk chunk, final DynamicByteBuffer vertexData, final DynamicByteBuffer indices) {
+    private void updateChunkVertexAndIndexDataInBufferObjects(Chunk chunk, DynamicByteBuffer vertexData, DynamicByteBuffer indices) {
         long vertexOffset = (long) chunk.faceOffset * voxelVertexSize * verticesPerFace;
         if (useDirectStateAccess) {
             nglNamedBufferSubData(vertexDataBufferObject, vertexOffset, vertexData.pos, vertexData.addr);
@@ -2425,15 +2430,16 @@ public class VoxelGameGL {
     private void createMaterialsTexture() {
         int materialsBufferObject = glGenBuffers();
         try (MemoryStack stack = stackPush()) {
-            ByteBuffer materialsBuffer = stack.malloc(Integer.BYTES * materials.length);
-            for (Material mat : materials)
-                materialsBuffer.putInt(mat == null ? 0 : mat.col);
-            materialsBuffer.flip();
+            long materialsBuffer = stack.nmalloc(Integer.BYTES * materials.length);
+            for (int i = 0; i < materials.length; i++) {
+                Material mat = materials[i];
+                memPutInt(materialsBuffer + i * Integer.BYTES, mat == null ? 0 : mat.col);
+            }
             glBindBuffer(GL_TEXTURE_BUFFER, materialsBufferObject);
             if (useBufferStorage) {
-                glBufferStorage(GL_TEXTURE_BUFFER, materialsBuffer, 0);
+                nglBufferStorage(GL_TEXTURE_BUFFER, materials.length * Integer.BYTES, materialsBuffer, 0);
             } else {
-                glBufferData(GL_TEXTURE_BUFFER, materialsBuffer, GL_STATIC_DRAW);
+                nglBufferData(GL_TEXTURE_BUFFER, materials.length * Integer.BYTES, materialsBuffer, GL_STATIC_DRAW);
             }
         }
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
@@ -2944,15 +2950,18 @@ public class VoxelGameGL {
      * </ul>
      */
     private void updateBoundingBoxesInputBuffersForInFrustumChunks() {
-        ByteBuffer faceOffsetsAndCounts, bb;
+        long faceOffsetsAndCounts, bb;
+        long faceOffsetsAndCountsPos, bbPos;
         if (useBufferStorage) {
-            faceOffsetsAndCounts = indirectDrawBufferByteBuffer;
-            faceOffsetsAndCounts.position(currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 2 * Integer.BYTES);
-            bb = boundingBoxesVertexBufferObjectByteBuffer;
-            bb.position(currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES);
+            faceOffsetsAndCounts = indirectDrawBufferAddr;
+            faceOffsetsAndCountsPos = currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 2 * Integer.BYTES;
+            bb = boundingBoxesVertexBufferObjectAddr;
+            bbPos = currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES;
         } else {
-            faceOffsetsAndCounts = memAlloc(MAX_ACTIVE_CHUNKS * 5 * Integer.BYTES);
-            bb = memAlloc(MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES);
+            faceOffsetsAndCounts = nmemAlloc(MAX_ACTIVE_CHUNKS * 5 * Integer.BYTES);
+            faceOffsetsAndCountsPos = 0L;
+            bb = nmemAlloc(MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES);
+            bbPos = 0L;
         }
         int numVisible = 0;
         for (int i = 0; i < allChunks.size(); i++) {
@@ -2960,9 +2969,12 @@ public class VoxelGameGL {
             boolean chunkMustBeDrawn = playerInsideChunk(c);
             if (!c.ready || chunkNotInFrustum(c) && !chunkMustBeDrawn)
                 continue;
-            putChunkFaceOffsetAndCount(c, faceOffsetsAndCounts);
-            bb.putInt(c.cx << CHUNK_SIZE_SHIFT).putInt(c.cz << CHUNK_SIZE_SHIFT).putInt(c.minY | c.maxY << 16)
-                    .putInt(c.index | (chunkMustBeDrawn ? 1 << 31 : 0));
+            faceOffsetsAndCountsPos += putChunkFaceOffsetAndCount(c, faceOffsetsAndCounts + faceOffsetsAndCountsPos);
+            memPutInt(bb + bbPos, c.cx << CHUNK_SIZE_SHIFT);
+            memPutInt(bb + bbPos + Integer.BYTES, c.cz << CHUNK_SIZE_SHIFT);
+            memPutInt(bb + bbPos + 2 * Integer.BYTES, c.minY | c.maxY << 16);
+            memPutInt(bb + bbPos + 3 * Integer.BYTES, c.index | (chunkMustBeDrawn ? 1 << 31 : 0));
+            bbPos += 4 * Integer.BYTES;
             numVisible++;
         }
         long faceOffsetsAndCountsOffset = (long) currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 2 * Integer.BYTES;
@@ -2980,19 +2992,17 @@ public class VoxelGameGL {
                 glFlushMappedBufferRange(GL_ARRAY_BUFFER, boundingBoxesOffset, boundingBoxesSize);
             }
         } else {
-            faceOffsetsAndCounts.flip();
-            bb.flip();
             if (useDirectStateAccess) {
-                glNamedBufferSubData(indirectDrawBuffer, faceOffsetsAndCountsOffset, faceOffsetsAndCounts);
-                glNamedBufferSubData(boundingBoxesVertexBufferObject, boundingBoxesOffset, bb);
+                nglNamedBufferSubData(indirectDrawBuffer, faceOffsetsAndCountsOffset, faceOffsetsAndCountsPos, faceOffsetsAndCounts);
+                nglNamedBufferSubData(boundingBoxesVertexBufferObject, boundingBoxesOffset, bbPos, bb);
             } else {
                 glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
                 glBindBuffer(GL_ARRAY_BUFFER, boundingBoxesVertexBufferObject);
-                glBufferSubData(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCounts);
-                glBufferSubData(GL_ARRAY_BUFFER, boundingBoxesOffset, bb);
+                nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCountsPos, faceOffsetsAndCounts);
+                nglBufferSubData(GL_ARRAY_BUFFER, boundingBoxesOffset, bbPos, bb);
             }
-            memFree(faceOffsetsAndCounts);
-            memFree(bb);
+            nmemFree(faceOffsetsAndCounts);
+            nmemFree(bb);
         }
         numChunksInFrustum = numVisible;
     }
@@ -3001,8 +3011,10 @@ public class VoxelGameGL {
      * Write face offset and count to later build an MDI glMultiDrawElementsIndirect struct (to draw the
      * given chunk).
      */
-    private void putChunkFaceOffsetAndCount(Chunk c, ByteBuffer faceOffsetsAndCounts) {
-        faceOffsetsAndCounts.putInt(c.faceOffset).putInt(c.faceCount);
+    private int putChunkFaceOffsetAndCount(Chunk c, long faceOffsetsAndCounts) {
+        memPutInt(faceOffsetsAndCounts, c.faceOffset);
+        memPutInt(faceOffsetsAndCounts + Integer.BYTES, c.faceCount);
+        return Integer.BYTES << 1;
     }
 
     /**
@@ -3011,42 +3023,42 @@ public class VoxelGameGL {
      */
     private int updateIndirectBufferWithInFrustumChunks() {
         int numChunks = 0;
-        ByteBuffer indirect;
+        long indirect, indirectPos;
         long offset = (long) currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 5 * Integer.BYTES;
         if (useBufferStorage) {
-            indirect = indirectDrawBufferByteBuffer;
-            indirect.position((int) offset);
+            indirect = indirectDrawBufferAddr;
+            indirectPos = offset;
         } else {
-            indirect = memAlloc(5 * Integer.BYTES * allChunks.size());
+            indirect = nmemAlloc(5 * Integer.BYTES * allChunks.size());
+            indirectPos = 0L;
         }
         for (int i = 0; i < allChunks.size(); i++) {
             Chunk c = allChunks.get(i);
             if (!c.ready || chunkNotInFrustum(c))
                 continue;
-            indirect.putInt(c.faceCount * indicesPerFace);
-            indirect.putInt(1);
-            indirect.putInt(c.faceOffset * indicesPerFace);
-            indirect.putInt(c.faceOffset * verticesPerFace);
-            indirect.putInt(c.index);
+            memPutInt(indirect + indirectPos, c.faceCount * indicesPerFace);
+            memPutInt(indirect + indirectPos + Integer.BYTES, 1);
+            memPutInt(indirect + indirectPos + Integer.BYTES * 2, c.faceOffset * indicesPerFace);
+            memPutInt(indirect + indirectPos + Integer.BYTES * 3, c.faceOffset * verticesPerFace);
+            memPutInt(indirect + indirectPos + Integer.BYTES * 4, c.index);
+            indirectPos += Integer.BYTES * 5;
             numChunks++;
-        }
-        if (!useDirectStateAccess) {
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
         }
         if (useBufferStorage) {
             if (useDirectStateAccess) {
                 glFlushMappedNamedBufferRange(indirectDrawBuffer, offset, (long) numChunks * 5 * Integer.BYTES);
             } else {
+                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
                 glFlushMappedBufferRange(GL_DRAW_INDIRECT_BUFFER, offset, (long) numChunks * 5 * Integer.BYTES);
             }
         } else {
-            indirect.flip();
             if (useDirectStateAccess) {
-                glNamedBufferSubData(indirectDrawBuffer, offset, indirect);
+                nglNamedBufferSubData(indirectDrawBuffer, offset, indirectPos, indirect);
             } else {
-                glBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, indirect);
+                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
+                nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, indirectPos, indirect);
             }
-            memFree(indirect);
+            nmemFree(indirect);
         }
         return numChunks;
     }
@@ -3227,34 +3239,36 @@ public class VoxelGameGL {
     private void updateChunksProgramUbo() {
         int size = roundUpToNextMultiple(chunksProgramUboSize, uniformBufferOffsetAlignment);
         try (MemoryStack stack = stackPush()) {
-            ByteBuffer ubo;
+            long ubo, uboPos;
             if (useBufferStorage) {
-                ubo = chunksProgramUboBufferObject;
-                ubo.position(currentDynamicBufferIndex * size);
+                ubo = chunksProgramUboAddr;
+                uboPos = currentDynamicBufferIndex * size;
             } else {
-                ubo = stack.malloc(size);
+                ubo = stack.nmalloc(size);
+                uboPos = 0L;
             }
-            mvpMat.get(ubo);
-            ubo.position(ubo.position() + 4 * 16);
-            vMat.get(ubo);
-            ubo.position(ubo.position() + 4 * 16);
-            mvpMat.getRow(3, tmpv4f).get(ubo);
-            ubo.position(ubo.position() + 4 * 4);
-            ubo.putInt((int) floor(playerPosition.x)).putInt((int) floor(playerPosition.y)).putInt((int) floor(playerPosition.z)).putInt(0);
+            mvpMat.getToAddress(ubo + uboPos);
+            uboPos += 16 * Float.BYTES;
+            vMat.getToAddress(ubo + uboPos);
+            uboPos += 16 * Float.BYTES;
+            mvpMat.getRow(3, tmpv4f).getToAddress(ubo + uboPos);
+            uboPos += 4 * Float.BYTES;
+            memPutInt(ubo + uboPos, (int) floor(playerPosition.x));
+            memPutInt(ubo + uboPos + Integer.BYTES, (int) floor(playerPosition.y));
+            memPutInt(ubo + uboPos + Integer.BYTES * 2, (int) floor(playerPosition.z));
+            uboPos += 3 * Float.BYTES;
             if (useDirectStateAccess) {
                 if (useBufferStorage) {
                     glFlushMappedNamedBufferRange(chunksProgramUbo, (long) currentDynamicBufferIndex * size, size);
                 } else {
-                    ubo.flip();
-                    glNamedBufferSubData(chunksProgramUbo, (long) currentDynamicBufferIndex * size, ubo);
+                    nglNamedBufferSubData(chunksProgramUbo, (long) currentDynamicBufferIndex * size, uboPos, ubo);
                 }
             } else {
                 glBindBuffer(GL_UNIFORM_BUFFER, chunksProgramUbo);
                 if (useBufferStorage) {
                     glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
                 } else {
-                    ubo.flip();
-                    glBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, ubo);
+                    nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
                 }
             }
         }
@@ -3266,30 +3280,32 @@ public class VoxelGameGL {
     private void updateBoundingBoxesProgramUbo() {
         int size = roundUpToNextMultiple(boundingBoxesProgramUboSize, uniformBufferOffsetAlignment);
         try (MemoryStack stack = stackPush()) {
-            ByteBuffer ubo;
+            long ubo, uboPos;
             if (useBufferStorage) {
-                ubo = boundingBoxesProgramUboBB;
-                ubo.position(currentDynamicBufferIndex * size);
+                ubo = boundingBoxesProgramUboAddr;
+                uboPos = currentDynamicBufferIndex * size;
             } else {
-                ubo = stack.malloc(size);
+                ubo = stack.nmalloc(size);
+                uboPos = 0L;
             }
-            mvpMat.get(ubo);
-            ubo.position(ubo.position() + 4 * 16);
-            ubo.putInt((int) floor(playerPosition.x)).putInt((int) floor(playerPosition.y)).putInt((int) floor(playerPosition.z)).putInt(0);
+            mvpMat.getToAddress(ubo + uboPos);
+            uboPos += 16 * Float.BYTES;
+            memPutInt(ubo + uboPos, (int) floor(playerPosition.x));
+            memPutInt(ubo + uboPos + Integer.BYTES, (int) floor(playerPosition.y));
+            memPutInt(ubo + uboPos + Integer.BYTES * 2, (int) floor(playerPosition.z));
+            uboPos += 3 * Integer.BYTES;
             glBindBuffer(GL_UNIFORM_BUFFER, boundingBoxesProgramUbo);
             if (useDirectStateAccess) {
                 if (useBufferStorage) {
                     glFlushMappedNamedBufferRange(boundingBoxesProgramUbo, (long) currentDynamicBufferIndex * size, size);
                 } else {
-                    ubo.flip();
-                    glNamedBufferSubData(boundingBoxesProgramUbo, (long) currentDynamicBufferIndex * size, ubo);
+                    nglNamedBufferSubData(boundingBoxesProgramUbo, (long) currentDynamicBufferIndex * size, uboPos, ubo);
                 }
             } else {
                 if (useBufferStorage) {
                     glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
                 } else {
-                    ubo.flip();
-                    glBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, ubo);
+                    nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
                 }
             }
         }
@@ -3594,22 +3610,21 @@ public class VoxelGameGL {
         /* Round up to the next multiple of the UBO alignment */
         int size = roundUpToNextMultiple(selectionProgramUboSize, uniformBufferOffsetAlignment);
         try (MemoryStack stack = stackPush()) {
-            ByteBuffer ubo;
+            long ubo, uboPos;
             if (useBufferStorage) {
-                ubo = selectionProgramUboBufferObject;
-                ubo.position(currentDynamicBufferIndex * size);
+                ubo = selectionProgramUboAddr;
+                uboPos = currentDynamicBufferIndex * size;
             } else {
-                ubo = stack.malloc(size);
+                ubo = stack.nmalloc(size);
+                uboPos = 0L;
             }
-            mvp.get(ubo);
-            ubo.position(ubo.position() + 4 * 16);
-            ubo.putFloat(r).putFloat(g).putFloat(b).putFloat(0);
+            mvp.getToAddress(ubo + uboPos);
+            uboPos += 16 * Float.BYTES;
             glBindBufferRange(GL_UNIFORM_BUFFER, selectionProgramUboBlockIndex, selectionProgramUbo, (long) currentDynamicBufferIndex * size, size);
             if (useBufferStorage) {
                 glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
             } else {
-                ubo.flip();
-                glBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, ubo);
+                nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
             }
         }
     }
