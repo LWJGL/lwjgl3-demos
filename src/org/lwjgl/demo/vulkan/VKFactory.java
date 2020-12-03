@@ -11,6 +11,7 @@ import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.VK_STRUCTURE_TYPE_MEMOR
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.*;
 import static org.lwjgl.vulkan.KHRShaderFloat16Int8.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
+import static org.lwjgl.vulkan.KHRTimelineSemaphore.VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR;
 import static org.lwjgl.vulkan.NVRayTracing.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -224,6 +225,10 @@ public class VKFactory {
 
     static VkSemaphoreCreateInfo VkSemaphoreCreateInfo(MemoryStack stack) {
         return VkSemaphoreCreateInfo.callocStack(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+    }
+
+    static VkSemaphoreTypeCreateInfoKHR VkSemaphoreTypeCreateInfo(MemoryStack stack) {
+        return VkSemaphoreTypeCreateInfoKHR.callocStack(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR);
     }
 
     static VkQueueFamilyProperties.Buffer VkQueueFamilyProperties(int count) {

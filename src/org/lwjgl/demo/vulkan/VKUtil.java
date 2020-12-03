@@ -736,13 +736,4 @@ public class VKUtil {
 
         return res;
     }
-
-    static void assertAvailable(VkExtensionProperties.Buffer pProperties, String extension) {
-        if (!isExtensionEnabled(pProperties, extension))
-            throw new AssertionError("Missing required extension: " + extension);
-    }
-
-    static boolean isExtensionEnabled(VkExtensionProperties.Buffer buf, String extension) {
-        return buf.stream().anyMatch(p -> p.extensionNameString().equals(extension));
-    }
 }

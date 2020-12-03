@@ -162,12 +162,12 @@ public class ClearScreenDemo {
             _CHECK_(nvkEnumerateInstanceExtensionProperties(NULL, pPropertyCount, NULL),
                     "Could not enumerate number of instance extensions");
             int propertyCount = memGetInt(pPropertyCount);
-            VkExtensionProperties.Buffer extensions = VkExtensionProperties.mallocStack(propertyCount, stack);
-            _CHECK_(nvkEnumerateInstanceExtensionProperties(NULL, pPropertyCount, extensions.address()),
+            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
+            _CHECK_(nvkEnumerateInstanceExtensionProperties(NULL, pPropertyCount, pProperties.address()),
                     "Could not enumerate instance extensions");
             List<String> res = new ArrayList<>(propertyCount);
             for (int i = 0; i < propertyCount; i++) {
-                res.add(extensions.get(i).extensionNameString());
+                res.add(pProperties.get(i).extensionNameString());
             }
             return res;
         }
@@ -323,14 +323,11 @@ public class ClearScreenDemo {
     }
 
     private static VkDevice createDevice() {
+        List<String> supportedDeviceExtensions = enumerateSupportedDeviceExtensions();
         try (MemoryStack stack = stackPush()) {
-            long pPropertyCount = stack.nmalloc(Integer.BYTES);
-            _CHECK_(nvkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, NULL, pPropertyCount, NULL),
-                    "Failed to get number of device extensions");
-            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(memGetInt(pPropertyCount), stack);
-            _CHECK_(nvkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, NULL, pPropertyCount, pProperties.address()),
-                    "Failed to enumerate the device extensions");
-            assertAvailable(pProperties, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            if (!supportedDeviceExtensions.contains(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+                throw new AssertionError(VK_KHR_SWAPCHAIN_EXTENSION_NAME + " device extension is not supported");
+            }
             PointerBuffer ppEnabledExtensionNames = stack.pointers(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
             PointerBuffer ppEnabledLayerNames = null;
             if (DEBUG) {
@@ -345,6 +342,23 @@ public class ClearScreenDemo {
             long pDevice = stack.nmalloc(POINTER_SIZE);
             _CHECK_(nvkCreateDevice(deviceAndQueueFamilies.physicalDevice, pCreateInfo.address(), NULL, pDevice), "Failed to create device");
             return new VkDevice(memGetAddress(pDevice), deviceAndQueueFamilies.physicalDevice, pCreateInfo);
+        }
+    }
+
+    private static List<String> enumerateSupportedDeviceExtensions() {
+        try (MemoryStack stack = stackPush()) {
+            long pPropertyCount = stack.nmalloc(Integer.BYTES);
+            _CHECK_(nvkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, NULL, pPropertyCount, NULL),
+                    "Failed to get number of device extensions");
+            int propertyCount = memGetInt(pPropertyCount);
+            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
+            _CHECK_(nvkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, NULL, pPropertyCount, pProperties.address()),
+                    "Failed to enumerate the device extensions");
+            List<String> res = new ArrayList<>(propertyCount);
+            for (int i = 0; i < propertyCount; i++) {
+                res.add(pProperties.get(i).extensionNameString());
+            }
+            return res;
         }
     }
 
