@@ -156,10 +156,31 @@ public class ClearScreenDemo {
         return res;
     }
 
+    private static List<String> enumerateSupportedInstanceExtensions() {
+        try (MemoryStack stack = stackPush()) {
+            long pPropertyCount = stack.nmalloc(Integer.BYTES);
+            _CHECK_(nvkEnumerateInstanceExtensionProperties(NULL, pPropertyCount, NULL),
+                    "Could not enumerate number of instance extensions");
+            int propertyCount = memGetInt(pPropertyCount);
+            VkExtensionProperties.Buffer extensions = VkExtensionProperties.mallocStack(propertyCount, stack);
+            _CHECK_(nvkEnumerateInstanceExtensionProperties(NULL, pPropertyCount, extensions.address()),
+                    "Could not enumerate instance extensions");
+            List<String> res = new ArrayList<>(propertyCount);
+            for (int i = 0; i < propertyCount; i++) {
+                res.add(extensions.get(i).extensionNameString());
+            }
+            return res;
+        }
+    }
+
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
+        List<String> supportedInstanceExtensions = enumerateSupportedInstanceExtensions();
         try (MemoryStack stack = stackPush()) {
             PointerBuffer ppEnabledExtensionNames;
             if (DEBUG) {
+                if (!supportedInstanceExtensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
+                    throw new AssertionError(VK_EXT_DEBUG_UTILS_EXTENSION_NAME + " is not supported on the instance");
+                }
                 ppEnabledExtensionNames = pointers(stack, requiredExtensions, stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
             } else {
                 ppEnabledExtensionNames = pointers(stack, requiredExtensions);
