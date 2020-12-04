@@ -2008,48 +2008,51 @@ public class VoxelGameGL {
 
     private void fillPositionsTypesSideAndAoFactorsZ(int idx, int p, int u0, int v0, int u1, int v1, int s, int n00, int n10, int n01, int n11, int v,
             DynamicByteBuffer vertexData) {
-        vertexData.putInt(u0 | v0 << 8 | p << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        int sideAndAoFactors = s | aoFactors(n00, n10, n01, n11) << 8;
+        vertexData.putInt(u0 | v0 << 8 | p << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(u1 | v0 << 8 | p << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(u1 | v0 << 8 | p << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(u0 | v1 << 8 | p << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(u0 | v1 << 8 | p << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(u1 | v1 << 8 | p << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(u1 | v1 << 8 | p << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
     }
 
     private void fillPositionsTypesSideAndAoFactorsY(int idx, int p, int u0, int v0, int u1, int v1, int s, int n00, int n10, int n01, int n11, int v,
             DynamicByteBuffer vertexData) {
-        vertexData.putInt(v0 | p << 8 | u0 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        int sideAndAoFactors = s | aoFactors(n00, n10, n01, n11) << 8;
+        vertexData.putInt(v0 | p << 8 | u0 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(v0 | p << 8 | u1 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(v0 | p << 8 | u1 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(v1 | p << 8 | u0 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(v1 | p << 8 | u0 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(v1 | p << 8 | u1 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(v1 | p << 8 | u1 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
     }
 
     private void fillPositionsTypesSideAndAoFactorsX(int idx, int p, int u0, int v0, int u1, int v1, int s, int n00, int n10, int n01, int n11, int v,
             DynamicByteBuffer vertexData) {
-        vertexData.putInt(p | u0 << 8 | v0 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        int sideAndAoFactors = s | aoFactors(n00, n10, n01, n11) << 8;
+        vertexData.putInt(p | u0 << 8 | v0 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(p | u1 << 8 | v0 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(p | u1 << 8 | v0 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(p | u0 << 8 | v1 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(p | u0 << 8 | v1 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
-        vertexData.putInt(p | u1 << 8 | v1 << 16 | (byte) v << 24).putShort(s | aoFactors(n00, n10, n01, n11) << 8);
+        vertexData.putInt(p | u1 << 8 | v1 << 16 | (byte) v << 24).putShort(sideAndAoFactors);
         if (!useMultiDrawIndirect)
             vertexData.putInt(idx);
     }
