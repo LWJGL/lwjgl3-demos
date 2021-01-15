@@ -1,0 +1,1 @@
+All images are taken unmodified from https://www.conwaylife.com/wiki/Spaceship

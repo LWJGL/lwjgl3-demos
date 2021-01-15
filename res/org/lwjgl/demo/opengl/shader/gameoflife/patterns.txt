@@ -1,0 +1,18 @@
+Gosperglidergun.png 38 11 0/1 0/1
+25p3h1v0.1.png 18 7 0/1 1/3
+25p3h1v0.2.png 18 10 0/1 1/3
+30p5h2v0.png 15 13 0/1 2/5
+37p4h1v0.png 23 16 0/1 1/4
+56p6h1v0.png 28 14 0/1 1/6
+58p5h1v1.png 25 25 1/5 1/5
+64p2h1v0.png 33 10 0/1 1/2
+77p6h1v1.png 38 38 1/6 1/6
+83p7h1v1.png 28 28 1/7 1/7
+Coeship.png 12 11 1/2 0/1
+Copperhead.png 10 14 0/1 1/10
+Loafer.png 11 11 -1/7 0/1
+Schickengine.png 22 13 -1/2 0/1
+Sirrobin.png 33 81 -1/6 2/6
+Spaghettimonster.png 29 139 0/1 3/7
+Spider.png 29 10
+Weekender.png 18 13
