@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.zip.*;
 
 import org.joml.*;
-import org.joml.primitives.Intersectionf;
 import org.lwjgl.*;
 import org.lwjgl.assimp.*;
 import org.lwjgl.glfw.*;

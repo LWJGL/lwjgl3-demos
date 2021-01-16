@@ -12,7 +12,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.IntBuffer;
 
-import static org.joml.primitives.Intersectionf.intersectRayPlane;
+import static org.joml.Intersectionf.intersectRayPlane;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.ARBFragmentShader.*;
 import static org.lwjgl.opengl.ARBShaderObjects.*;

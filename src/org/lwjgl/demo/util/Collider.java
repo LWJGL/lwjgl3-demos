@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.util;
 
-import org.joml.primitives.AABBf;
 import org.joml.Vector3f;
 import org.lwjgl.demo.util.KDTreei.Voxel;
 
