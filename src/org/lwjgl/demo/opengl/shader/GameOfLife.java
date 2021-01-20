@@ -252,7 +252,7 @@ public class GameOfLife {
                 int width = parseInt(m.group(2)), height = parseInt(m.group(3));
                 GolPattern pat = new GolPattern();
                 pat.height = height;
-                ByteBuffer buf = ioResourceToByteBuffer(GameOfLife.class.getPackageName().replace('.', '/') + "/gameoflife/" + m.group(1), 8192);
+                ByteBuffer buf = ioResourceToByteBuffer(GameOfLife.class.getPackage().getName().replace('.', '/') + "/gameoflife/" + m.group(1), 8192);
                 try (MemoryStack stack = stackPush()) {
                     IntBuffer w = stack.mallocInt(1), h = stack.mallocInt(1), c = stack.mallocInt(1);
                     ByteBuffer mem = stbi_load_from_memory(buf, w, h, c, 3);
