@@ -48,7 +48,7 @@ public class VoxelLightmapping2 {
     private int width = 1600;
     private int height = 940;
     private final Matrix4f pMat = new Matrix4f();
-    private final Matrix4f vMat = new Matrix4f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
+    private final Matrix4x3f vMat = new Matrix4x3f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
     private final Matrix4f mvpMat = new Matrix4f();
     private final Matrix4f ivpMat = new Matrix4f();
     private final Vector3f camPos = new Vector3f();
@@ -639,7 +639,7 @@ public class VoxelLightmapping2 {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         try (MemoryStack stack = stackPush()) {
             glUniformMatrix4fv(rasterProgramMvpUniform, false, mvpMat.get(stack.mallocFloat(16)));
-            glUniform3fv(rasterProgramCamPosUniform, vMat.originAffine(camPos).get(stack.mallocFloat(3)));
+            glUniform3fv(rasterProgramCamPosUniform, vMat.origin(camPos).get(stack.mallocFloat(3)));
         }
         glUniform2i(rasterProgramLightmapSizeUniform, lightmapTexWidth, lightmapTexHeight);
         glViewport(0, 0, width, height);

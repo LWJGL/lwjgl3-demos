@@ -28,7 +28,7 @@ struct hitinfo {
 bool intersectScene(uint nodeIdx, vec3 origin, vec3 dir, out hitinfo shinfo);
 
 #define WINDOW_MATERIAL_INDEX 79
-#define WINDOW_ATTENUATION 0.8
+#define WINDOW_ATTENUATION 1.0
 #define SKY_COLOR vec3(0.42, 0.53, 0.69)
 
 vec2 texCoordsFromFace(uvec4 f) {return vec2(f.w & 0xFFFFu, f.w >> 16u);}

@@ -48,7 +48,7 @@ public class VoxelLightmapping {
     private int width = 1600;
     private int height = 940;
     private final Matrix4f pMat = new Matrix4f();
-    private final Matrix4f vMat = new Matrix4f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
+    private final Matrix4x3f vMat = new Matrix4x3f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
     private final Matrix4f mvpMat = new Matrix4f();
     private final Material[] materials = new Material[512];
     private Callback debugProc;
