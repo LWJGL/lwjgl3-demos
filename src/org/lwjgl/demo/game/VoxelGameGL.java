@@ -901,6 +901,7 @@ public class VoxelGameGL {
     private boolean firstCursorPos = true;
     private boolean fly;
     private boolean wireframe;
+    private boolean debugBoundingBoxes;
 
     private static boolean has(String prop, boolean def) {
         String value = System.getProperty(prop);
@@ -960,6 +961,8 @@ public class VoxelGameGL {
             fly = !fly;
         } else if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
             wireframe = !wireframe;
+        } else if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+            debugBoundingBoxes = !debugBoundingBoxes;
         }
     }
 
@@ -2770,7 +2773,7 @@ public class VoxelGameGL {
         glDisable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(false);
-        glColorMask(false, false, false, false);
+        glColorMask(debugBoundingBoxes, debugBoundingBoxes, debugBoundingBoxes, debugBoundingBoxes);
         if (useRepresentativeFragmentTest) {
             glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         }
