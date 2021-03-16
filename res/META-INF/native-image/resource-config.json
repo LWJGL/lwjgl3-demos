@@ -1,0 +1,37 @@
+{
+  "resources":{
+  "includes":[
+    {"pattern":"\\Qlinux/x64/org/lwjgl/assimp/libassimp.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/bgfx/libbgfx.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/glfw/libglfw.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/glfw/libglfw_wayland.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/liblwjgl.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/openal/libopenal.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/opengl/liblwjgl_opengl.so\\E"}, 
+    {"pattern":"\\Qlinux/x64/org/lwjgl/stb/liblwjgl_stb.so\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/assimp/libassimp.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/bgfx/libbgfx.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/glfw/libglfw.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/liblwjgl.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/openal/libopenal.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/opengl/liblwjgl_opengl.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/stb/liblwjgl_stb.dylib\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/fs_bump.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/fs_cubes.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/fs_raymarching.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/vs_bump_instanced.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/vs_cubes.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/shaders/dx11/vs_raymarching.bin\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/textures/fieldstone-n.dds\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/demo/bgfx/textures/fieldstone-rgba.dds\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/system/APIUtil.class\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/assimp/assimp.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/bgfx/bgfx.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/glfw/glfw.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/lwjgl.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/openal/OpenAL.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/opengl/lwjgl_opengl.dll\\E"}, 
+    {"pattern":"\\Qwindows/x64/org/lwjgl/stb/lwjgl_stb.dll\\E"}
+  ]},
+  "bundles":[]
+}

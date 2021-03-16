@@ -119,12 +119,12 @@ public class Cubes extends Demo {
                               0.0f)
                          .get4x4(modelBuf));
 
-                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 8);
+                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 8, BGFX_INVALID_HANDLE);
                 bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
                 bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
 
-                bgfx_encoder_submit(encoder, 0, program, 0, 0);
+                bgfx_encoder_submit(encoder, 0, program, 0, false);
             }
         }
         bgfx_encoder_end(encoder);

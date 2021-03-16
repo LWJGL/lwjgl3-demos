@@ -2,7 +2,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lwjgl</groupId>
-    <artifactId>lwjgl3-demos</artifactId>
+    <artifactId>lwjgl3-bgfx-demos</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -11,13 +11,18 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
-        <lwjgl.version>3.2.4-SNAPSHOT</lwjgl.version>
+        <lwjgl.version>3.2.3</lwjgl.version>
         <swt.version>4.6.1</swt.version>
-        <joml.version>1.9.26-SNAPSHOT</joml.version>
-        <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
-            is prepended automatically. -->
-        <class>game.VoxelGameGL</class>
+        <joml.version>1.10.1</joml.version>
+        <client-maven-plugin.version>0.1.36</client-maven-plugin.version>
+        <graalvm.version>21.0.0.2</graalvm.version>
+        <exec.mainClass>org.lwjgl.demo.DemoLauncher</exec.mainClass>
+        <!-- Can be overwritten via -D property during mvn invoke to specify a different demo.
+             The package "org.lwjgl.demo." is prepended automatically. -->
+        <class>bgfx.Bump</class>
     </properties>
+    <name>lwjgl3-bgfx-demos</name> <!-- name of the resulting native executable -->
+    <description>LWJGL3 BGFX demos with native image by GraalVM</description>
     <profiles>
         <profile>
             <id>windows</id>
@@ -38,13 +43,6 @@
                     <arch>x86</arch>
                 </os>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.swt</groupId>
-                    <artifactId>org.eclipse.swt.win32.win32.x86</artifactId>
-                    <version>${swt.version}</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>windows-amd64</id>
@@ -54,13 +52,6 @@
                     <arch>amd64</arch>
                 </os>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.swt</groupId>
-                    <artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
-                    <version>${swt.version}</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>linux</id>
@@ -81,13 +72,6 @@
                     <arch>x86</arch>
                 </os>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.swt</groupId>
-                    <artifactId>org.eclipse.swt.gtk.linux.x86</artifactId>
-                    <version>${swt.version}</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>linux-amd64</id>
@@ -97,13 +81,6 @@
                     <arch>amd64</arch>
                 </os>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.swt</groupId>
-                    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
-                    <version>${swt.version}</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>mac</id>
@@ -115,19 +92,6 @@
             <properties>
                 <platform>macos</platform>
             </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.swt</groupId>
-                    <artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
-                    <version>${swt.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.lwjgl</groupId>
-                    <artifactId>lwjgl-vulkan</artifactId>
-                    <version>${lwjgl.version}</version>
-                    <classifier>natives-macos</classifier>
-                </dependency>
-            </dependencies>
         </profile>
     </profiles>
     <build>
@@ -135,178 +99,152 @@
         <resources>
             <resource>
                 <directory>res</directory>
+                <includes>
+                    <!-- restrict to bgfx demo resources only -->
+                    <include>org/lwjgl/demo/bgfx/**/*</include>
+                    <!-- include the GraalVM native-image configuration files -->
+                    <include>META-INF/native-image/*</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <includes>
+                        <!-- include launcher & GraalVM substitution code -->
+                        <include>org/lwjgl/demo/DemoLauncher.java</include>
+                        <include>org/lwjgl/graalvm/*.java</include>
+                        <!-- restrict to bgfx demo source code only -->
+                        <include>org/lwjgl/demo/bgfx/*.java</include>
+                    </includes>
+                </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>${maven-shade-plugin.version}</version>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
-                        <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>exec</goal>
                         </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer
-                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.lwjgl.demo.${class}</mainClass>
-                                </transformer>
-                            </transformers>
-                            <finalName>lwjgl3-demos</finalName>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <!-- GraalVM's agent to generate (or merge with) native-image configuration files -->
+                        <!-- argument>-agentlib:native-image-agent=config-merge-dir=res/META-INF/native-image</argument -->
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>${exec.mainClass}</argument>
+                        <argument>${class}</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.gluonhq</groupId>
+                <artifactId>client-maven-plugin</artifactId>
+                <version>${client-maven-plugin.version}</version>
+                <configuration>
+                    <mainClass>${exec.mainClass}</mainClass>
+                    <nativeImageArgs>
+                        <nativeImageArg>--initialize-at-run-time=org.lwjgl</nativeImageArg>
+                    </nativeImageArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>
     <repositories>
         <repository>
             <id>oss.sonatype.org</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
+            <url>https://oss.sonatype.org/content/repositories/</url>
         </repository>
         <repository>
             <id>swt-repo</id>
             <url>http://maven-eclipse.github.io/maven</url>
         </repository>
     </repositories>
+    <dependencyManagement>
+        <dependencies>
+            <!-- get recommended dependency versions from the LWJGL BOM -->
+            <dependency>
+                <groupId>org.lwjgl</groupId>
+                <artifactId>lwjgl-bom</artifactId>
+                <version>${lwjgl.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.joml</groupId>
             <artifactId>joml</artifactId>
             <version>${joml.version}</version>
         </dependency>
+        <!-- for compiling GraalVM substitution classes -->
         <dependency>
-            <groupId>org.joml</groupId>
-            <artifactId>joml-primitives</artifactId>
-            <version>${joml.version}</version>
+            <groupId>org.graalvm.nativeimage</groupId>
+            <artifactId>svm</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>provided</scope>
         </dependency>
+        <!-- LWJGL modules used: minimal OpenGL (minus openal), plus bgfx -->
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vulkan</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-glfw</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-opengl</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-par</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-bgfx</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-assimp</artifactId>
-            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-opengl</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-cuda</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-jemalloc</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-shaderc</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vma</artifactId>
-            <version>${lwjgl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-glfw</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
-            <version>${lwjgl.version}</version>
-            <classifier>natives-${platform}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-par</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-bgfx</artifactId>
-            <version>${lwjgl.version}</version>
-            <classifier>natives-${platform}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vma</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-assimp</artifactId>
-            <version>${lwjgl.version}</version>
-            <classifier>natives-${platform}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-shaderc</artifactId>
-            <version>${lwjgl.version}</version>
-            <classifier>natives-${platform}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-jemalloc</artifactId>
-            <version>${lwjgl.version}</version>
             <classifier>natives-${platform}</classifier>
         </dependency>
     </dependencies>

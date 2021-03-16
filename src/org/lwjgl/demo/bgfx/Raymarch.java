@@ -115,9 +115,9 @@ public class Raymarch extends Demo {
                 bgfx_encoder_set_transient_index_buffer(encoder, tib, 0, 6);
 
                 vertex.flip();
-                bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, 4);
+                bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, 4, BGFX_INVALID_HANDLE);
 
-                bgfx_encoder_submit(encoder, _view, _program, 0, 0);
+                bgfx_encoder_submit(encoder, _view, _program, 0, false);
             }
         }
     }

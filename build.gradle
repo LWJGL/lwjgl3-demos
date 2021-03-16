@@ -1,0 +1,109 @@
+plugins {
+    id 'application'
+    id 'com.gluonhq.client-gradle-plugin' version '0.1.36'  //requires GraalVM 21+
+}
+
+wrapper {
+    gradleVersion = '6.8.3'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+group = 'org.lwjgl'
+description = 'LWJGL3 BGFX demos with native image by GraalVM'
+//version = '0.0.1-SNAPSHOT'
+
+ext {
+    lwjglVersion = '3.2.3'
+    jomlVersion = '1.10.1'
+    graalvmVersion = '21.0.0.2'
+
+    //LWJGL modules used: minimal OpenGL (minus openal), plus bgfx
+    lwjglModules = ['lwjgl', 'lwjgl-assimp', 'lwjgl-bgfx', 'lwjgl-glfw', 'lwjgl-opengl', 'lwjgl-stb']
+
+    mainClassName = 'org.lwjgl.demo.DemoLauncher'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+//detect the OS (assuming 64-bit, on Intel/AMD hardware)
+private static String getCurrentPlatform() {
+    def currentOS = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+    if (currentOS.isWindows()) {
+        return 'windows'
+    } else if (currentOS.isLinux()) {
+        return 'linux'
+    } else if (currentOS.isMacOsX()) {
+        return 'macos'
+    }
+    return null
+}
+
+dependencies {
+    //get recommended dependency versions from the LWJGL BOM
+    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
+    implementation "org.joml:joml:$jomlVersion"
+
+    def currentOS = getCurrentPlatform()
+	
+    //add LWJGL modules and the current OS's natives to the compile and runtime classpaths
+    lwjglModules.each {
+        implementation "org.lwjgl:$it"
+        if (it != 'lwjgl-egl') { //lwjgl-egl has no native libraries
+            //use natives for 64-bit Intel/AMD platforms only
+            runtimeOnly "org.lwjgl:$it::natives-$currentOS"
+        }
+    }
+
+    //for compiling GraalVM substitution classes
+    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+            //restrict to bgfx demo source code & GraalVM substitution code
+            include '**/DemoLauncher.java', '**/bgfx/*', '**/graalvm/*'
+        }
+        resources {
+            srcDirs = ['res']
+            //restrict to bgfx demo resources only
+            include 'org/lwjgl/demo/bgfx/**'
+            //include the GraalVM native-image configuration files
+            include 'META-INF/native-image/**'
+        }
+    }
+}
+
+application {
+    mainClass = project.mainClassName
+    applicationName = project.name  //name of the resulting native executable
+}
+
+compileJava {
+    options.release = 11  //use JDK11+ for compiling & running
+    options.encoding = 'UTF-8'
+}
+
+jar.archiveBaseName = 'lwjgl3-bgfx-demos'
+
+run {
+    //use the following jvmArgs for as many different run scenarios as possible,
+    //and for all the code-execution paths as much as possible,
+    //to generate (or merge with) the GraalVM native-image configuration files
+    //in the res/META-INF/native-image directory.
+    //This directory is read by GraalVM during the native-image build.
+
+    //jvmArgs = ["-agentlib:native-image-agent=config-merge-dir=res/META-INF/native-image"]
+}
+
+gluonClient {
+    compilerArgs = [
+        '--initialize-at-run-time=org.lwjgl',
+        '--report-unsupported-elements-at-runtime',
+    ]
+}
