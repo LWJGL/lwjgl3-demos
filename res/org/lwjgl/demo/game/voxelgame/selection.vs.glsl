@@ -8,11 +8,10 @@ layout(std140) uniform Uniforms {
   mat4 mvp;
 };
 
-layout(location=0) in vec2 quad;
-
 out vec2 quad_out;
 
 void main(void) {
-  quad_out = (quad + vec2(1.0)) * 0.5;
-  gl_Position = mvp * vec4(quad, 0.0, 1.0);
+  vec2 vertex = vec2(-1.0) + vec2(float((gl_VertexID & 1) <<1), float(gl_VertexID & 2));
+  quad_out = (vertex + vec2(1.0)) * 0.5;
+  gl_Position = mvp * vec4(vertex, 0.0, 1.0);
 }

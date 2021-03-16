@@ -889,7 +889,7 @@ public class VoxelGameGL {
     private int collectDrawCallsProgram;
 
     /* Resources for drawing the "selection" quad */
-    private int selectionVao;
+    private int nullVao;
     private int selectionProgram;
     private int selectionProgramUboBlockIndex;
     private int selectionProgramUbo;
@@ -1285,21 +1285,10 @@ public class VoxelGameGL {
     }
 
     /**
-     * Create the VAO for rendering the selection rectangle, which will be used for both highlighting
-     * the selected voxel faces as well as for rendering the cursor at the center of the screen.
+     * Create an empty VAO.
      */
-    private void createSelectionVao() {
-        selectionVao = glGenVertexArrays();
-        glBindVertexArray(selectionVao);
-        int vbo = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        try (MemoryStack stack = stackPush()) {
-            glBufferData(GL_ARRAY_BUFFER, stack.floats(1, -1, 1, 1, -1, -1, -1, 1), GL_STATIC_DRAW);
-        }
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0L);
-        glBindVertexArray(0);
-        glDeleteBuffers(vbo);
+    private void createNullVao() {
+        nullVao = glGenVertexArrays();
     }
 
     private void createBoundingBoxesVao() {
@@ -3605,7 +3594,7 @@ public class VoxelGameGL {
         glEnable(GL_BLEND);
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(useInverseDepth ? 1 : -1, useInverseDepth ? 1 : -1);
-        glBindVertexArray(selectionVao);
+        glBindVertexArray(nullVao);
         glUseProgram(selectionProgram);
     }
 
@@ -3730,7 +3719,7 @@ public class VoxelGameGL {
             configureGlobalGlState();
             createSelectionProgram();
             createSelectionProgramUbo();
-            createSelectionVao();
+            createNullVao();
             createMaterials();
             createMultiDrawIndirectBuffer();
             createChunkInfoBuffers();
