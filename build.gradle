@@ -92,6 +92,10 @@ compileJava {
 jar.archiveBaseName = 'lwjgl3-bgfx-demos'
 
 run {
+    //get system properties specified from the command line (for debugging, etc.)
+    //and pass them on to the running application's JVM
+    systemProperties = System.getProperties()
+
     //use the following jvmArgs for as many different run scenarios as possible,
     //and for all the code-execution paths as much as possible,
     //to generate (or merge with) the GraalVM native-image configuration files

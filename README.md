@@ -40,6 +40,11 @@ with that specific demo class as parameter (prefixed by `bgfx.`):
 
 	gradlew run --args=bgfx.Raymarch
 
+System properties can be passed on to the running demo with the -D parameter,
+e.g. to print out some debug info in the console:
+
+	gradlew run --args=bgfx.Raymarch -Dorg.lwjgl.util.Debug=true
+
 The above tasks can use any standard JDK 11+.
 
 To generate native executable, GraalVM 21+ need be set up as mentioned in
@@ -70,10 +75,16 @@ demo as parameter prefixed by `bgfx.`:
 
 	./build/client/x86_64-linux/lwjgl3-bgfx-demos bgfx.Cubes
 
+System properties can be passed on to the running demo with the -D parameter,
+e.g. to print out some debug info in the console:
+
+	./build/client/x86_64-linux/lwjgl3-bgfx-demos bgfx.Cubes -Dorg.lwjgl.util.Debug=true
+
 (or if building on a Windows machine:
 
 	build\client\x86_64-windows\lwjgl3-bgfx-demos.exe
 	build\client\x86_64-windows\lwjgl3-bgfx-demos.exe bgfx.Cubes
+	build\client\x86_64-windows\lwjgl3-bgfx-demos.exe bgfx.Cubes -Dorg.lwjgl.util.Debug=true
 
 )
 
@@ -91,6 +102,11 @@ by the above `exec:exec` task without parameter. To run a different BGFX demo, e
 with that specific demo class (prefixed by `bgfx.`) as value of the property `class`:
 
 	mvnw exec:exec -Dclass=bgfx.Raymarch
+
+System properties can be passed on to the running demo with the -Dsys.props parameter,
+e.g. to print out some debug info in the console:
+
+	mvnw exec:exec -Dclass=bgfx.Raymarch -Dsys.props="-Dorg.lwjgl.util.Debug=true"
 
 The above tasks can use any standard JDK 11+.
 
@@ -122,10 +138,16 @@ demo as parameter prefixed by `bgfx.`:
 
 	./target/client/x86_64-linux/lwjgl3-bgfx-demos bgfx.Metaballs
 
+System properties can be passed on to the running demo with the -D parameter,
+e.g. to print out some debug info in the console:
+
+	./target/client/x86_64-linux/lwjgl3-bgfx-demos bgfx.Metaballs -Dorg.lwjgl.util.Debug=true
+
 (or if building on a Windows machine:
 
 	target\client\x86_64-windows\lwjgl3-bgfx-demos.exe
 	target\client\x86_64-windows\lwjgl3-bgfx-demos.exe bgfx.Metaballs
+	target\client\x86_64-windows\lwjgl3-bgfx-demos.exe bgfx.Metaballs -Dorg.lwjgl.util.Debug=true
 
 )
 

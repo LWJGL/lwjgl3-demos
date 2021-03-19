@@ -20,6 +20,10 @@
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo.
              The package "org.lwjgl.demo." is prepended automatically. -->
         <class>bgfx.Bump</class>
+        <!-- system properties for the application when run by exec:exec command;
+             can be specified on the command line with -Dsys.props="..."
+        -->
+        <sys.props></sys.props>
     </properties>
     <name>lwjgl3-bgfx-demos</name> <!-- name of the resulting native executable -->
     <description>LWJGL3 BGFX demos with native image by GraalVM</description>
@@ -137,6 +141,7 @@
                     <arguments>
                         <!-- GraalVM's agent to generate (or merge with) native-image configuration files -->
                         <!-- argument>-agentlib:native-image-agent=config-merge-dir=res/META-INF/native-image</argument -->
+                        <argument>${sys.props}</argument>
                         <argument>-classpath</argument>
                         <classpath/>
                         <argument>${exec.mainClass}</argument>
