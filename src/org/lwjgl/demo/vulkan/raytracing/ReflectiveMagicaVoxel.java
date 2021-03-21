@@ -4,6 +4,7 @@
  */
 package org.lwjgl.demo.vulkan.raytracing;
 
+import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
@@ -27,24 +28,31 @@ import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK11.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.*;
 import java.util.*;
 
 import org.joml.*;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.demo.util.DynamicByteBuffer;
+import org.lwjgl.demo.util.*;
+import org.lwjgl.demo.util.GreedyMeshingNoAo.Face;
+import org.lwjgl.demo.util.MagicaVoxelLoader.Material;
+import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.system.*;
 import org.lwjgl.util.vma.*;
 import org.lwjgl.vulkan.*;
 
 /**
- * VK_KHR_ray_tracing_pipeline and VK_KHR_acceleration_structure demo that draws a triangle.
+ * Draws a MagicaVoxel scene containing reflective materials (windows).
  *
  * @author Kai Burjack
  */
-public class SimpleTriangle {
+public class ReflectiveMagicaVoxel {
 
+    private static final int VERTICES_PER_FACE = 4;
+    private static final int INDICES_PER_FACE = 6;
+    private static final int BITS_FOR_POSITIONS = 7; // <- allow for a position maximum of 128
+    private static final int POSITION_SCALE = 1 << BITS_FOR_POSITIONS;
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "false"));
     static {
         if (DEBUG) {
@@ -73,23 +81,48 @@ public class SimpleTriangle {
     private static long[] renderCompleteSemaphores;
     private static long[] renderFences;
     private static final Map<Long, Runnable> waitingFenceActions = new HashMap<>();
+    private static Geometry geometry;
     private static AccelerationStructure blas, tlas;
     private static RayTracingPipeline rayTracingPipeline;
     private static AllocationAndBuffer[] rayTracingUbos;
     private static AllocationAndBuffer sbt;
+    private static AllocationAndBuffer materialsBuffer;
     private static DescriptorSets rayTracingDescriptorSets;
     private static final Matrix4f projMatrix = new Matrix4f();
-    private static final Matrix4x3f viewMatrix = new Matrix4x3f();
+    private static final Matrix4f viewMatrix = new Matrix4f().setLookAt(-40, 50, 140, 90, -10, 40, 0, 1, 0);
     private static final Matrix4f invProjMatrix = new Matrix4f();
-    private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
+    private static final Matrix4f invViewMatrix = new Matrix4f();
+    private static final Material[] materials = new Material[512];
+    private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
+    private static boolean mouseDown;
+    private static int mouseX, mouseY;
+
+    private static void onCursorPos(long window, double x, double y) {
+        if (mouseDown) {
+            float deltaX = (float) x - mouseX;
+            float deltaY = (float) y - mouseY;
+            viewMatrix.rotateLocalY(deltaX * 0.004f);
+            viewMatrix.rotateLocalX(deltaY * 0.004f);
+        }
+        mouseX = (int) x;
+        mouseY = (int) y;
+    }
 
     private static void onKey(long window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE)
             glfwSetWindowShouldClose(window, true);
+        if (key >= 0)
+            keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
+    }
+
+    private static void onMouseButton(long window, int button, int action, int mods) {
+        mouseDown = action == GLFW_PRESS;
     }
 
     private static void registerWindowCallbacks(long window) {
-        glfwSetKeyCallback(window, SimpleTriangle::onKey);
+        glfwSetKeyCallback(window, ReflectiveMagicaVoxel::onKey);
+        glfwSetCursorPosCallback(window, ReflectiveMagicaVoxel::onCursorPos);
+        glfwSetMouseButtonCallback(window, ReflectiveMagicaVoxel::onMouseButton);
     }
 
     private static class WindowAndCallbacks {
@@ -279,7 +312,9 @@ public class SimpleTriangle {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        long window = glfwCreateWindow(1200, 800, "Hello, ray traced triangle!", NULL, NULL);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+        GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        long window = glfwCreateWindow(mode.width(), mode.height(), "Hello, reflective MagicaVoxel!", NULL, NULL);
         registerWindowCallbacks(window);
         int w, h;
         try (MemoryStack stack = stackPush()) {
@@ -387,10 +422,14 @@ public class SimpleTriangle {
             for (int i = 0; i < physicalDeviceCount; i++) {
                 VkPhysicalDevice dev = new VkPhysicalDevice(pPhysicalDevices.get(i), instance);
                 // Check if the device supports all needed features
+                VkPhysicalDevice16BitStorageFeatures bitStorageFeatures = VkPhysicalDevice16BitStorageFeatures
+                        .mallocStack(stack)
+                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES)
+                        .pNext(NULL);
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
-                        .pNext(NULL);
+                        .pNext(bitStorageFeatures.address());
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeaturesKHR = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
@@ -408,7 +447,14 @@ public class SimpleTriangle {
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
                     !accelerationStructureFeatures.accelerationStructure() ||
-                    !bufferDeviceAddressFeatures.bufferDeviceAddress())
+                    !bufferDeviceAddressFeatures.bufferDeviceAddress() ||
+                    !bitStorageFeatures.storageBuffer16BitAccess())
+                    continue;
+
+                // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
+                VkFormatProperties formatProperties = VkFormatProperties.mallocStack(stack);
+                vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R16G16B16_UNORM, formatProperties);
+                if ((formatProperties.bufferFeatures() & VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR) == 0)
                     continue;
 
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
@@ -454,9 +500,14 @@ public class SimpleTriangle {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
+            VkPhysicalDevice16BitStorageFeaturesKHR bitStorageFeaturesKHR = VkPhysicalDevice16BitStorageFeaturesKHR
+                    .callocStack(stack)
+                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES)
+                    .storageBuffer16BitAccess(true);
             VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
+                    .pNext(bitStorageFeaturesKHR.address())
                     .bufferDeviceAddress(true);
             VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
                     .callocStack(stack)
@@ -558,6 +609,28 @@ public class SimpleTriangle {
         return ret;
     }
 
+    private static int determineBestPresentMode() {
+        try (MemoryStack stack = stackPush()) {
+            IntBuffer pPresentModeCount = stack.mallocInt(1);
+            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, null),
+                    "Failed to get presentation modes count");
+            int presentModeCount = pPresentModeCount.get(0);
+            IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
+            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
+                    "Failed to get presentation modes");
+            int presentMode = VK_PRESENT_MODE_FIFO_KHR; // <- FIFO is _always_ supported, by definition
+            for (int i = 0; i < presentModeCount; i++) {
+                int mode = pPresentModes.get(i);
+                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                    // we prefer mailbox over fifo
+                    presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                    break;
+                }
+            }
+            return presentMode;
+        }
+    }
+
     private static Swapchain createSwapchain() {
         try (MemoryStack stack = stackPush()) {
             VkSurfaceCapabilitiesKHR pSurfaceCapabilities = VkSurfaceCapabilitiesKHR
@@ -587,7 +660,7 @@ public class SimpleTriangle {
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .preTransform(pSurfaceCapabilities.currentTransform())
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-                .presentMode(VK_PRESENT_MODE_FIFO_KHR)
+                .presentMode(determineBestPresentMode())
                 .clipped(true)
                 .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE);
             LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
@@ -793,11 +866,11 @@ public class SimpleTriangle {
     private static class Geometry {
         private final AllocationAndBuffer positions;
         private final AllocationAndBuffer indices;
-        private final int numPrimities;
-        private Geometry(AllocationAndBuffer positions, AllocationAndBuffer indices, int numPrimities) {
+        private final int numFaces;
+        private Geometry(AllocationAndBuffer positions, AllocationAndBuffer indices, int numFaces) {
             this.positions = positions;
             this.indices = indices;
-            this.numPrimities = numPrimities;
+            this.numFaces = numFaces;
         }
         private void free() {
             positions.free();
@@ -920,22 +993,35 @@ public class SimpleTriangle {
         return ret;
     }
 
-    private static Geometry createGeometry() {
-        DynamicByteBuffer positions = new DynamicByteBuffer();
-        positions.putFloat(-2).putFloat(-1).putFloat(0);
-        positions.putFloat(2).putFloat(-1).putFloat(0);
-        positions.putFloat(0).putFloat(1).putFloat(0);
-        DynamicByteBuffer indices = new DynamicByteBuffer();
-        indices.putShort(0).putShort(1).putShort(2);
+    private static Geometry createGeometry() throws IOException {
+        VoxelField voxelField = buildVoxelField();
+        ArrayList<Face> faces = buildFaces(voxelField);
+        ByteBuffer positionsAndTypes = memAlloc(Short.BYTES * 4 * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer indices = memAlloc(Short.BYTES * faces.size() * INDICES_PER_FACE);
+        triangulate(faces, positionsAndTypes.asShortBuffer(), indices.asShortBuffer());
+
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(positions.addr, positions.pos), Float.BYTES);
-        positions.free();
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, positionsAndTypes, Short.BYTES);
+        memFree(positionsAndTypes);
         AllocationAndBuffer indicesBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(indices.addr, indices.pos), Short.BYTES);
-        indices.free();
-        return new Geometry(positionsBuffer, indicesBuffer, 1);
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, indices, Short.BYTES);
+        memFree(indices);
+
+        return new Geometry(positionsBuffer, indicesBuffer, faces.size());
+    }
+
+    private static AllocationAndBuffer createMaterialsBuffer() {
+        ByteBuffer bb = memAlloc(materials.length * Integer.BYTES);
+        for (Material m : materials)
+            bb.putInt(m != null ? m.color : 0);
+        bb.flip();
+        AllocationAndBuffer buf = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bb, Integer.BYTES);
+        memFree(bb);
+        return buf;
     }
 
     private static VkDeviceOrHostAddressKHR deviceAddress(MemoryStack stack, long buffer, long alignment) {
@@ -995,10 +1081,10 @@ public class SimpleTriangle {
                                         .triangles(VkAccelerationStructureGeometryTrianglesDataKHR
                                                 .callocStack(stack)
                                                 .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR)
-                                                .vertexFormat(VK_FORMAT_R32G32B32_SFLOAT)
-                                                .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Float.BYTES))
-                                                .vertexStride(3 * Float.BYTES)
-                                                .maxVertex(geometry.numPrimities * 3)
+                                                .vertexFormat(VK_FORMAT_R16G16B16_UNORM)
+                                                .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Short.BYTES))
+                                                .vertexStride(4 * Short.BYTES)
+                                                .maxVertex(geometry.numFaces * VERTICES_PER_FACE)
                                                 .indexType(VK_INDEX_TYPE_UINT16)
                                                 .indexData(deviceAddressConst(stack, geometry.indices.buffer, Short.BYTES))))
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR));
@@ -1012,7 +1098,7 @@ public class SimpleTriangle {
                     device,
                     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                     pInfos.get(0),
-                    stack.ints(1),
+                    stack.ints(geometry.numFaces * 2),
                     buildSizesInfo);
 
             // Create a buffer that will hold the final BLAS
@@ -1066,17 +1152,13 @@ public class SimpleTriangle {
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
                             .callocStack(stack)
-                            .primitiveCount(geometry.numPrimities)));
+                            .primitiveCount(geometry.numFaces * 2)));
 
             // Finally submit command buffer and register callback when fence signals to 
             // dispose of resources
             submitCommandBuffer(cmdBuf, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuf);
                 scratchBuffer.free();
-                // the BLAS is completely self-contained after build, so
-                // we can also free the geometry (vertex, index buffers), since
-                // we also don't access the geometry data in the shaders.
-                geometry.free();
             });
             return new AccelerationStructure(pAccelerationStructure.get(0), accelerationStructureBuffer);
         }
@@ -1129,7 +1211,7 @@ public class SimpleTriangle {
                     .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
                     .transform(VkTransformMatrixKHR
                             .callocStack(stack)
-                            .matrix(new Matrix4x3f().getTransposed(stack.mallocFloat(12))));
+                            .matrix(new Matrix4x3f().scale(POSITION_SCALE).getTransposed(stack.mallocFloat(12))));
 
             // This instance data also needs to reside in a GPU buffer, so copy it
             AllocationAndBuffer instanceData = createBuffer(
@@ -1238,7 +1320,7 @@ public class SimpleTriangle {
     }
 
     private static RayTracingPipeline createRayTracingPipeline() throws IOException {
-        int numDescriptors = 3;
+        int numDescriptors = 6;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pSetLayout = stack.mallocLong(1);
             // create the descriptor set layout
@@ -1263,6 +1345,21 @@ public class SimpleTriangle {
                                         .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                                         .descriptorCount(1)
                                         .stageFlags(VK_SHADER_STAGE_RAYGEN_BIT_KHR))
+                                .apply(dslb -> dslb
+                                        .binding(3)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))
+                                .apply(dslb -> dslb
+                                        .binding(4)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))
+                                .apply(dslb -> dslb
+                                        .binding(5)
+                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(1)
+                                        .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))
                                 .flip()),
                     null, pSetLayout),
                     "Failed to create descriptor set layout");
@@ -1276,7 +1373,7 @@ public class SimpleTriangle {
                     .callocStack(3, stack);
 
             // load shaders
-            String pkg = SimpleTriangle.class.getName().toLowerCase().replace('.', '/') + "/";
+            String pkg = ReflectiveMagicaVoxel.class.getName().toLowerCase().replace('.', '/') + "/";
             loadShader(pStages
                     .get(0)
                     .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO), 
@@ -1369,7 +1466,7 @@ public class SimpleTriangle {
             rayTracingDescriptorSets.free();
         }
         int numSets = swapchain.imageViews.length;
-        int numDescriptors = 3;
+        int numDescriptors = 6;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pDescriptorPool = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo
@@ -1385,6 +1482,15 @@ public class SimpleTriangle {
                                         .descriptorCount(numSets))
                                 .apply(2, dps -> dps
                                         .type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                                        .descriptorCount(numSets))
+                                .apply(3, dps -> dps
+                                        .type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(numSets))
+                                .apply(4, dps -> dps
+                                        .type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                        .descriptorCount(numSets))
+                                .apply(5, dps -> dps
+                                        .type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                         .descriptorCount(numSets)))
                         .maxSets(numSets), null, pDescriptorPool),
                     "Failed to create descriptor pool");
@@ -1433,6 +1539,36 @@ public class SimpleTriangle {
                                 .pBufferInfo(VkDescriptorBufferInfo
                                         .callocStack(1, stack)
                                         .buffer(rayTracingUbos[idx].buffer)
+                                        .range(VK_WHOLE_SIZE)))
+                        .apply(wds -> wds
+                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(3)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo
+                                        .callocStack(1, stack)
+                                        .buffer(geometry.positions.buffer)
+                                        .range(VK_WHOLE_SIZE)))
+                        .apply(wds -> wds
+                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(4)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo
+                                        .callocStack(1, stack)
+                                        .buffer(geometry.indices.buffer)
+                                        .range(VK_WHOLE_SIZE)))
+                        .apply(wds -> wds
+                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                                .dstBinding(5)
+                                .dstSet(pDescriptorSets.get(idx))
+                                .descriptorCount(1)
+                                .pBufferInfo(VkDescriptorBufferInfo
+                                        .callocStack(1, stack)
+                                        .buffer(materialsBuffer.buffer)
                                         .range(VK_WHOLE_SIZE)));
             }
             vkUpdateDescriptorSets(device, writeDescriptorSet.flip(), null);
@@ -1517,14 +1653,150 @@ public class SimpleTriangle {
         return buffers;
     }
 
-    private static void updateRayTracingUniformBufferObject(int idx) {
-        projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 100.0f, true);
-        viewMatrix.setLookAt(0, 0, 10, 0, 0, 0, 0, 1, 0);
-        projMatrix.invert(invProjMatrix);
+    private static void handleKeyboardInput(float dt) {
+        float factor = 10.0f;
+        if (keydown[GLFW_KEY_LEFT_SHIFT])
+            factor = 40.0f;
+        if (keydown[GLFW_KEY_W])
+            viewMatrix.translateLocal(0, 0, factor * dt);
+        if (keydown[GLFW_KEY_S])
+            viewMatrix.translateLocal(0, 0, -factor * dt);
+        if (keydown[GLFW_KEY_A])
+            viewMatrix.translateLocal(factor * dt, 0, 0);
+        if (keydown[GLFW_KEY_D])
+            viewMatrix.translateLocal(-factor * dt, 0, 0);
+        if (keydown[GLFW_KEY_Q])
+            viewMatrix.rotateLocalZ(-factor * dt);
+        if (keydown[GLFW_KEY_E])
+            viewMatrix.rotateLocalZ(factor * dt);
+        if (keydown[GLFW_KEY_LEFT_CONTROL])
+            viewMatrix.translateLocal(0, factor * dt, 0);
+        if (keydown[GLFW_KEY_SPACE])
+            viewMatrix.translateLocal(0, -factor * dt, 0);
+    }
+
+    private static void update(float dt) {
+        handleKeyboardInput(dt);
+        viewMatrix.withLookAtUp(0, 1, 0);
         viewMatrix.invert(invViewMatrix);
+        projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 1000.0f, true);
+        projMatrix.invert(invProjMatrix);
+    }
+
+    private static void updateRayTracingUniformBufferObject(int idx) {
         invProjMatrix.get(0, rayTracingUbos[idx].mapped);
-        invViewMatrix.get4x4(Float.BYTES * 16, rayTracingUbos[idx].mapped);
+        invViewMatrix.get(Float.BYTES * 16, rayTracingUbos[idx].mapped);
         rayTracingUbos[idx].flushMapped(0, Float.BYTES * 16 * 2);
+    }
+
+    private static int idx(int x, int y, int z, int width, int depth) {
+        return (x + 1) + (width + 2) * ((z + 1) + (y + 1) * (depth + 2));
+    }
+
+    private static class VoxelField {
+        int ny, py, w, d;
+        byte[] field;
+    }
+
+    private static VoxelField buildVoxelField() throws IOException {
+        Vector3i dims = new Vector3i();
+        Vector3i min = new Vector3i(Integer.MAX_VALUE);
+        Vector3i max = new Vector3i(Integer.MIN_VALUE);
+        byte[] field = new byte[(256 + 2) * (256 + 2) * (256 + 2)];
+        try (InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
+             BufferedInputStream bis = new BufferedInputStream(is)) {
+            new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
+                public void voxel(int x, int y, int z, byte c) {
+                    y = dims.z - y - 1;
+                    field[idx(x, z, y, dims.x, dims.z)] = c;
+                    min.set(min(min.x, x), min(min.y, z), min(min.z, y));
+                    max.set(max(max.x, x), max(max.y, z), max(max.z, y));
+                }
+                public void size(int x, int y, int z) {
+                    dims.x = x;
+                    dims.y = z;
+                    dims.z = y;
+                }
+                public void paletteMaterial(int i, Material mat) {
+                    materials[i] = mat;
+                }
+            });
+        }
+        VoxelField res = new VoxelField();
+        res.w = dims.x;
+        res.d = dims.z;
+        res.ny = min.y;
+        res.py = max.y;
+        res.field = field;
+        return res;
+    }
+
+    private static ArrayList<Face> buildFaces(VoxelField vf) {
+        GreedyMeshingNoAo gm = new GreedyMeshingNoAo(0, vf.ny, 0, vf.py, vf.w, vf.d);
+        ArrayList<Face> faces = new ArrayList<>();
+        gm.mesh(vf.field, faces);
+        return faces;
+    }
+
+    public static void triangulate(List<Face> faces, ShortBuffer positionsAndTypes, ShortBuffer indices) {
+        for (int i = 0; i < faces.size(); i++) {
+            Face f = faces.get(i);
+            switch (f.s >>> 1) {
+            case 0:
+                generatePositionsAndTypesX(f, positionsAndTypes);
+                break;
+            case 1:
+                generatePositionsAndTypesY(f, positionsAndTypes);
+                break;
+            case 2:
+                generatePositionsAndTypesZ(f, positionsAndTypes);
+                break;
+            }
+            generateIndices(f, i, indices);
+        }
+    }
+
+    private static boolean isPositiveSide(int side) {
+        return (side & 1) != 0;
+    }
+
+    private static void generateIndices(Face f, int i, ShortBuffer indices) {
+        if (isPositiveSide(f.s))
+            generateIndicesPositive(i, indices);
+        else
+            generateIndicesNegative(i, indices);
+    }
+
+    private static void generateIndicesNegative(int i, ShortBuffer indices) {
+        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
+               .put((short) ((i << 2) + 1)).put((short) (i << 2)).put((short) ((i << 2) + 2));
+    }
+    private static void generateIndicesPositive(int i, ShortBuffer indices) {
+        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
+               .put((short) ((i << 2) + 2)).put((short) (i << 2)).put((short) ((i << 2) + 1));
+    }
+
+    private static void generatePositionsAndTypesZ(Face f, ShortBuffer positions) {
+        positions.put(u16(f.u0)).put(u16(f.v0)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u1)).put(u16(f.v0)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u0)).put(u16(f.v1)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u1)).put(u16(f.v1)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+    }
+    private static void generatePositionsAndTypesY(Face f, ShortBuffer positions) {
+        positions.put(u16(f.v0)).put(u16(f.p)).put(u16(f.u0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v0)).put(u16(f.p)).put(u16(f.u1)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v1)).put(u16(f.p)).put(u16(f.u0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v1)).put(u16(f.p)).put(u16(f.u1)).put((short) (f.v & 0xFF | f.s << 8));
+    }
+    private static void generatePositionsAndTypesX(Face f, ShortBuffer positions) {
+        positions.put(u16(f.p)).put(u16(f.u0)).put(u16(f.v0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u1)).put(u16(f.v0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u0)).put(u16(f.v1)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u1)).put(u16(f.v1)).put((short) (f.v & 0xFF | f.s << 8));
+    }
+
+    private static short u16(short v) {
+        return (short) (v << Short.SIZE - BITS_FOR_POSITIONS);
     }
 
     private static void init() throws IOException {
@@ -1549,7 +1821,8 @@ public class SimpleTriangle {
         swapchain = createSwapchain();
         commandPool = createCommandPool(0);
         commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-        Geometry geometry = createGeometry();
+        geometry = createGeometry();
+        materialsBuffer = createMaterialsBuffer();
         blas = createBottomLevelAccelerationStructure(geometry);
         tlas = createTopLevelAccelerationStructure(blas);
         rayTracingUbos = createUniformBufferObjects(2 * 16 * Float.BYTES);
@@ -1561,11 +1834,15 @@ public class SimpleTriangle {
     }
 
     private static void runOnRenderThread() {
+        long lastTime = System.nanoTime();
         try (MemoryStack stack = stackPush()) {
             IntBuffer pImageIndex = stack.mallocInt(1);
             int idx = 0;
             boolean needRecreate = false;
             while (!glfwWindowShouldClose(windowAndCallbacks.window)) {
+                long thisTime = System.nanoTime();
+                float dt = (thisTime - lastTime) / 1E9f;
+                lastTime = thisTime;
                 updateFramebufferSize();
                 if (!isWindowRenderable())
                     continue;
@@ -1578,6 +1855,7 @@ public class SimpleTriangle {
                 }
                 _CHECK_(vkWaitForFences(device, renderFences[idx], true, Long.MAX_VALUE), "Failed to wait for fence");
                 _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
+                update(dt);
                 updateRayTracingUniformBufferObject(idx);
                 if (!acquireSwapchainImage(pImageIndex, idx)) {
                     needRecreate = true;
@@ -1599,6 +1877,8 @@ public class SimpleTriangle {
         rayTracingPipeline.free();
         tlas.free();
         blas.free();
+        materialsBuffer.free();
+        geometry.free();
         for (int i = 0; i < swapchain.imageViews.length; i++) {
             vkDestroySemaphore(device, imageAcquireSemaphores[i], null);
             vkDestroySemaphore(device, renderCompleteSemaphores[i], null);
@@ -1619,7 +1899,7 @@ public class SimpleTriangle {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         init();
-        Thread updateAndRenderThread = new Thread(SimpleTriangle::runOnRenderThread);
+        Thread updateAndRenderThread = new Thread(ReflectiveMagicaVoxel::runOnRenderThread);
         updateAndRenderThread.start();
         runWndProcLoop();
         updateAndRenderThread.join();
