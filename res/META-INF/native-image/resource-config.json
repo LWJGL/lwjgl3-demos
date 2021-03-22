@@ -1,0 +1,14 @@
+{
+  "resources":{
+  "includes":[
+    {"pattern":"\\Qmacos/x64/org/lwjgl/assimp/libassimp.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/glfw/libglfw.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/liblwjgl.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/openal/libopenal.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/opengl/liblwjgl_opengl.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/stb/liblwjgl_stb.dylib\\E"}, 
+    {"pattern":"\\Qmacos/x64/org/lwjgl/vulkan/libMoltenVK.dylib\\E"}, 
+    {"pattern":"\\Qorg/lwjgl/system/APIUtil.class\\E"}, 
+  ]},
+  "bundles":[]
+}

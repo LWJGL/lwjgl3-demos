@@ -1,0 +1,125 @@
+plugins {
+    id 'application'
+    id 'com.gluonhq.client-gradle-plugin' version '0.1.36'  //requires GraalVM 21+
+}
+
+wrapper {
+    gradleVersion = '6.8.3'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+group = 'org.lwjgl'
+description = 'LWJGL3 Vulkan demos with native image by GraalVM'
+//version = '0.0.1-SNAPSHOT'
+
+ext {
+    lwjglVersion = '3.2.3'
+    jomlVersion = '1.10.1'
+    graalvmVersion = '21.0.0.2'
+
+    //LWJGL modules used: minimal Vulkan (minus openal), plus shaderc and vma
+    lwjglModules = ['lwjgl', 'lwjgl-assimp', 'lwjgl-glfw', 'lwjgl-shaderc', 'lwjgl-stb', 'lwjgl-vma', 'lwjgl-vulkan']
+
+    mainClassName = 'org.lwjgl.demo.DemoLauncher'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+//detect the OS (assuming 64-bit, on Intel/AMD hardware)
+private static String getCurrentPlatform() {
+    def currentOS = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+    if (currentOS.isWindows()) {
+        return 'windows'
+    } else if (currentOS.isLinux()) {
+        return 'linux'
+    } else if (currentOS.isMacOsX()) {
+        return 'macos'
+    }
+    return null
+}
+
+dependencies {
+    //get recommended dependency versions from the LWJGL BOM
+    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
+    implementation "org.joml:joml:$jomlVersion"
+
+    def currentOS = getCurrentPlatform()
+	
+    //add LWJGL modules and the current OS's natives to the compile and runtime classpaths
+    lwjglModules.each {
+        implementation "org.lwjgl:$it"
+        if (it != 'lwjgl-egl') { //lwjgl-egl has no native libraries
+            //use natives for 64-bit Intel/AMD platforms only
+            if (it == 'lwjgl-vulkan') {
+                if (currentOS == 'macos') {
+                    //Vulkan natives exist for Mac OSX only
+                    runtimeOnly "org.lwjgl:$it::natives-$currentOS"
+                }
+            } else {
+                runtimeOnly "org.lwjgl:$it::natives-$currentOS"
+            }
+        }
+    }
+
+    //for compiling GraalVM substitution classes
+    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+            //include launcher & GraalVM substitution code
+            include 'org/lwjgl/demo/DemoLauncher.java', 'org/lwjgl/graalvm/*'
+            //restrict to vulkan demo source code
+            include 'org/lwjgl/demo/vulkan/*'
+            include 'org/lwjgl/demo/util/*'
+        }
+        resources {
+            srcDirs = ['res']
+            //include the GraalVM native-image configuration files
+            include 'META-INF/native-image/**'
+            //restrict to vulkan demo resources only
+            include 'org/lwjgl/demo/vulkan/**'
+        }
+    }
+}
+
+application {
+    mainClass = project.mainClassName
+    applicationName = project.name  //name of the resulting native executable
+}
+
+compileJava {
+    options.release = 11  //use JDK11+ for compiling & running
+    options.encoding = 'UTF-8'
+}
+
+jar.archiveBaseName = 'lwjgl3-vulkan-demos'
+
+run {
+    args 'vulkan.ColoredRotatingQuadDemo'  //default demo is vulkan.ColoredRotatingQuadDemo
+
+    //get system properties specified from the command line (for debugging, etc.)
+    //and pass them on to the running application's JVM
+    systemProperties = System.getProperties()
+
+    //use the following jvmArgs for as many different run scenarios as possible,
+    //and for all the code-execution paths as much as possible,
+    //to generate (or merge with) the GraalVM native-image configuration files
+    //in the res/META-INF/native-image directory.
+    //This directory is read by GraalVM during the native-image build.
+
+    //jvmArgs = ["-agentlib:native-image-agent=config-merge-dir=res/META-INF/native-image"]
+}
+
+gluonClient {
+    compilerArgs = [
+        '--initialize-at-run-time=org.lwjgl',
+        '--report-unsupported-elements-at-runtime',
+    ]
+}
