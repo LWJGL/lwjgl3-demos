@@ -80,6 +80,7 @@ public class ReflectiveMagicaVoxel {
     private static long[] imageAcquireSemaphores;
     private static long[] renderCompleteSemaphores;
     private static long[] renderFences;
+    private static long queryPool;
     private static final Map<Long, Runnable> waitingFenceActions = new HashMap<>();
     private static Geometry geometry;
     private static AccelerationStructure blas, tlas;
@@ -1070,7 +1071,8 @@ public class ReflectiveMagicaVoxel {
                         .callocStack(1, stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR)
-                        .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR)
+                        .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | 
+                               VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR)
                         .geometryCount(1)
                         .pGeometries(VkAccelerationStructureGeometryKHR
                                 .callocStack(1, stack)
@@ -1154,14 +1156,92 @@ public class ReflectiveMagicaVoxel {
                             .callocStack(stack)
                             .primitiveCount(geometry.numFaces * 2)));
 
+            // barrier for compressing the BLAS
+            vkCmdPipelineBarrier(cmdBuf,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                    0,
+                    VkMemoryBarrier
+                        .callocStack(1, stack)
+                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR)
+                        .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
+                    null, null);
+
+            // issue query for compacted size
+            vkCmdResetQueryPool(cmdBuf, queryPool, 0, 1);
+            vkCmdWriteAccelerationStructuresPropertiesKHR(
+                    cmdBuf,
+                    pAccelerationStructure,
+                    VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR,
+                    queryPool,
+                    0);
+
+            // submit command buffer and wait for command buffer completion
+            long fence = submitCommandBuffer(cmdBuf, true, null);
+            waitForFenceAndDestroy(fence);
+            vkFreeCommandBuffers(device, commandPoolTransient, cmdBuf);
+
+            // read-back compacted size
+            LongBuffer compactedSize = stack.mallocLong(1);
+            vkGetQueryPoolResults(device, queryPool, 0, 1, compactedSize, Long.BYTES, 
+                    VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+
+            // Create a buffer that will hold the compacted BLAS
+            AllocationAndBuffer accelerationStructureCompactedBuffer = createBuffer(
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
+                    compactedSize.get(0), null, 256);
+
+            // create compacted acceleration structure
+            LongBuffer pAccelerationStructureCompacted = stack.mallocLong(1);
+            vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
+                    .callocStack(stack)
+                    .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
+                    .buffer(accelerationStructureCompactedBuffer.buffer)
+                    .size(compactedSize.get(0))
+                    .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR), null, pAccelerationStructureCompacted);
+
+            // issue copy command
+            VkCommandBuffer cmdBuf2 = createCommandBuffer(commandPoolTransient);
+            vkCmdCopyAccelerationStructureKHR(
+                    cmdBuf2,
+                    VkCopyAccelerationStructureInfoKHR
+                        .callocStack(stack)
+                        .sType(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR)
+                        .src(pAccelerationStructure.get(0))
+                        .dst(pAccelerationStructureCompacted.get(0))
+                        .mode(VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR));
+
+            // barrier to let TLAS build wait for BLAS compressed copy
+            vkCmdPipelineBarrier(cmdBuf2,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                    0,
+                    VkMemoryBarrier
+                        .callocStack(1, stack)
+                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR)
+                        .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
+                    null, null);
+
             // Finally submit command buffer and register callback when fence signals to 
             // dispose of resources
-            submitCommandBuffer(cmdBuf, true, () -> {
-                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuf);
+            long accelerationStructure = pAccelerationStructure.get(0);
+            submitCommandBuffer(cmdBuf2, true, () -> {
+                vkDestroyAccelerationStructureKHR(device, accelerationStructure, null);
+                accelerationStructureBuffer.free();
+                vkFreeCommandBuffers(device, commandPoolTransient, cmdBuf2);
                 scratchBuffer.free();
             });
-            return new AccelerationStructure(pAccelerationStructure.get(0), accelerationStructureBuffer);
+
+            return new AccelerationStructure(pAccelerationStructureCompacted.get(0), accelerationStructureCompactedBuffer);
         }
+    }
+
+    private static void waitForFenceAndDestroy(long fence) {
+        _CHECK_(vkWaitForFences(device, fence, true, -1), "Failed to wait for fence");
+        vkDestroyFence(device, fence, null);
     }
 
     private static class VkAccelerationStructureInstanceKHR {
@@ -1576,6 +1656,20 @@ public class ReflectiveMagicaVoxel {
         }
     }
 
+    private static long createQueryPool() {
+        try (MemoryStack stack = stackPush()) {
+            LongBuffer pQueryPool = stack.mallocLong(1);
+            _CHECK_(vkCreateQueryPool(device,
+                    VkQueryPoolCreateInfo
+                        .callocStack(stack)
+                        .sType(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO)
+                        .queryCount(1)
+                        .queryType(VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR),
+                    null, pQueryPool), "Failed to create query pool");
+            return pQueryPool.get(0);
+        }
+    }
+
     private static VkCommandBuffer[] createRayTracingCommandBuffers() {
         if (commandBuffers != null) {
             try (MemoryStack stack = stackPush()) {
@@ -1821,6 +1915,7 @@ public class ReflectiveMagicaVoxel {
         swapchain = createSwapchain();
         commandPool = createCommandPool(0);
         commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+        queryPool = createQueryPool();
         geometry = createGeometry();
         materialsBuffer = createMaterialsBuffer();
         blas = createBottomLevelAccelerationStructure(geometry);
@@ -1884,6 +1979,7 @@ public class ReflectiveMagicaVoxel {
             vkDestroySemaphore(device, renderCompleteSemaphores[i], null);
             vkDestroyFence(device, renderFences[i], null);
         }
+        vkDestroyQueryPool(device, queryPool, null);
         vkDestroyCommandPool(device, commandPoolTransient, null);
         vkDestroyCommandPool(device, commandPool, null);
         swapchain.free();
