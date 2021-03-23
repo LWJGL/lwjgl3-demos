@@ -2,7 +2,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lwjgl</groupId>
-    <artifactId>lwjgl3-vulkan-demos</artifactId>
+    <artifactId>lwjgl3-opengl-demos</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,14 +19,14 @@
         <exec.mainClass>org.lwjgl.demo.DemoLauncher</exec.mainClass>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo.
              The package "org.lwjgl.demo." is prepended automatically. -->
-        <class>vulkan.ColoredRotatingQuadDemo</class>
+        <class>opengl.SimpleDrawElements</class>
         <!-- system properties for the application when run by exec:exec command;
              can be specified on the command line with -Dsys.props="..."
         -->
         <sys.props></sys.props>
     </properties>
-    <name>lwjgl3-vulkan-demos</name> <!-- name of the resulting native executable -->
-    <description>LWJGL3 Vulkan demos with native image by GraalVM</description>
+    <name>lwjgl3-opengl-demos</name> <!-- name of the resulting native executable -->
+    <description>LWJGL3 OpenGL demos with native image by GraalVM</description>
     <profiles>
         <profile>
             <id>windows</id>
@@ -96,14 +96,6 @@
             <properties>
                 <platform>macos</platform>
             </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.lwjgl</groupId>
-                    <artifactId>lwjgl-vulkan</artifactId>
-                    <version>${lwjgl.version}</version>
-                    <classifier>natives-macos</classifier>
-                </dependency>
-            </dependencies>
         </profile>
     </profiles>
     <build>
@@ -114,8 +106,9 @@
                 <includes>
                     <!-- include the GraalVM native-image configuration files -->
                     <include>META-INF/native-image/*</include>
-                    <!-- restrict to vulkan demo resources only -->
-                    <include>org/lwjgl/demo/vulkan/**/*</include>
+                    <!-- restrict to opengl demo resources only -->
+                    <include>org/lwjgl/demo/opengl/**/*</include>
+                    <include>org/lwjgl/demo/*</include>
                 </includes>
             </resource>
         </resources>
@@ -128,10 +121,15 @@
                         <!-- include launcher & GraalVM substitution code -->
                         <include>org/lwjgl/demo/DemoLauncher.java</include>
                         <include>org/lwjgl/graalvm/*.java</include>
-                        <!-- restrict to vulkan demo source code only -->
-                        <include>org/lwjgl/demo/vulkan/*.java</include>
+                        <!-- restrict to opengl demo source code & utilities -->
+                        <include>org/lwjgl/demo/opengl/**/*.java</include>
+                        <include>org/lwjgl/demo/intro/*.java</include>
                         <include>org/lwjgl/demo/util/*.java</include>
                     </includes>
+                    <excludes>
+                        <!-- exclude the SWT demo source code for now -->
+                        <exclude>org/lwjgl/demo/opengl/swt/*.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -204,9 +202,9 @@
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>svm</artifactId>
             <version>${graalvm.version}</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
-        <!-- LWJGL modules used: minimal Vulkan (minus openal), plus shaderc and vma -->
+        <!-- LWJGL modules used: minimal OpenGL -->
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
@@ -221,19 +219,15 @@
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-shaderc</artifactId>
+            <artifactId>lwjgl-openal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-opengl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vma</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vulkan</artifactId>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
@@ -252,17 +246,17 @@
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-shaderc</artifactId>
+            <artifactId>lwjgl-openal</artifactId>
+            <classifier>natives-${platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-opengl</artifactId>
             <classifier>natives-${platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
-            <classifier>natives-${platform}</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-vma</artifactId>
             <classifier>natives-${platform}</classifier>
         </dependency>
     </dependencies>

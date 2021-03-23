@@ -9,7 +9,7 @@ wrapper {
 }
 
 group = 'org.lwjgl'
-description = 'LWJGL3 Vulkan demos with native image by GraalVM'
+description = 'LWJGL3 OpenGL demos with native image by GraalVM'
 //version = '0.0.1-SNAPSHOT'
 
 ext {
@@ -17,8 +17,8 @@ ext {
     jomlVersion = '1.10.1'
     graalvmVersion = '21.0.0.2'
 
-    //LWJGL modules used: minimal Vulkan (minus openal), plus shaderc and vma
-    lwjglModules = ['lwjgl', 'lwjgl-assimp', 'lwjgl-glfw', 'lwjgl-shaderc', 'lwjgl-stb', 'lwjgl-vma', 'lwjgl-vulkan']
+    //LWJGL modules used: minimal OpenGL
+    lwjglModules = ['lwjgl', 'lwjgl-assimp', 'lwjgl-glfw', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-stb']
 
     mainClassName = 'org.lwjgl.demo.DemoLauncher'
 }
@@ -42,13 +42,15 @@ private static String getCurrentPlatform() {
 }
 
 dependencies {
+    implementation "org.joml:joml:$jomlVersion"
+    //for compiling GraalVM substitution classes
+    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
+
+    def currentOS = getCurrentPlatform()
+
     //get recommended dependency versions from the LWJGL BOM
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
 
-    implementation "org.joml:joml:$jomlVersion"
-
-    def currentOS = getCurrentPlatform()
-	
     //add LWJGL modules and the current OS's natives to the compile and runtime classpaths
     lwjglModules.each {
         implementation "org.lwjgl:$it"
@@ -64,9 +66,6 @@ dependencies {
             }
         }
     }
-
-    //for compiling GraalVM substitution classes
-    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
 }
 
 sourceSets {
@@ -75,16 +74,20 @@ sourceSets {
             srcDirs = ['src']
             //include launcher & GraalVM substitution code
             include 'org/lwjgl/demo/DemoLauncher.java', 'org/lwjgl/graalvm/*'
-            //restrict to vulkan demo source code
-            include 'org/lwjgl/demo/vulkan/*'
+            //restrict to opengl demo source code & utilities
+            include 'org/lwjgl/demo/opengl/**'
+            include 'org/lwjgl/demo/intro/*'
             include 'org/lwjgl/demo/util/*'
+            //exclude the SWT demo source code for now
+            exclude 'org/lwjgl/demo/opengl/swt/*'
         }
         resources {
             srcDirs = ['res']
             //include the GraalVM native-image configuration files
             include 'META-INF/native-image/**'
-            //restrict to vulkan demo resources only
-            include 'org/lwjgl/demo/vulkan/**'
+            //restrict to opengl demo resources only
+            include 'org/lwjgl/demo/*'
+            include 'org/lwjgl/demo/opengl/**'
         }
     }
 }
@@ -99,10 +102,12 @@ compileJava {
     options.encoding = 'UTF-8'
 }
 
-jar.archiveBaseName = 'lwjgl3-vulkan-demos'
+jar.archiveBaseName = 'lwjgl3-opengl-demos'
 
 run {
-    args 'vulkan.ColoredRotatingQuadDemo'  //default demo is vulkan.ColoredRotatingQuadDemo
+    //default demo is opengl.SimpleDrawElements
+    //(the package "org.lwjgl.demo." is prepended automatically)
+    args 'opengl.SimpleDrawElements'
 
     //get system properties specified from the command line (for debugging, etc.)
     //and pass them on to the running application's JVM

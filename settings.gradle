@@ -7,4 +7,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'lwjgl3-vulkan-demos'
+rootProject.name = 'lwjgl3-opengl-demos'
