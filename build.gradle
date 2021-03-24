@@ -42,13 +42,15 @@ private static String getCurrentPlatform() {
 }
 
 dependencies {
-    //get recommended dependency versions from the LWJGL BOM
-    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
-
     implementation "org.joml:joml:$jomlVersion"
+    //for compiling GraalVM substitution classes
+    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
 
     def currentOS = getCurrentPlatform()
 	
+    //get recommended dependency versions from the LWJGL BOM
+    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
     //add LWJGL modules and the current OS's natives to the compile and runtime classpaths
     lwjglModules.each {
         implementation "org.lwjgl:$it"
@@ -64,9 +66,6 @@ dependencies {
             }
         }
     }
-
-    //for compiling GraalVM substitution classes
-    compileOnly "org.graalvm.nativeimage:svm:$graalvmVersion"
 }
 
 sourceSets {
@@ -102,7 +101,9 @@ compileJava {
 jar.archiveBaseName = 'lwjgl3-vulkan-demos'
 
 run {
-    args 'vulkan.ColoredRotatingQuadDemo'  //default demo is vulkan.ColoredRotatingQuadDemo
+    //default demo is vulkan.ColoredRotatingQuadDemo
+    //(the package "org.lwjgl.demo." is prepended automatically)
+    args 'vulkan.ColoredRotatingQuadDemo'
 
     //get system properties specified from the command line (for debugging, etc.)
     //and pass them on to the running application's JVM
