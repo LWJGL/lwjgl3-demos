@@ -372,6 +372,12 @@ public class GameOfLife {
             glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
         }
         window = glfwCreateWindow(width, height, "Conway's Game of Life", NULL, NULL);
+        try (MemoryStack frame = MemoryStack.stackPush()) {
+            IntBuffer framebufferSize = frame.mallocInt(2);
+            nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+            width = framebufferSize.get(0);
+            height = framebufferSize.get(1);
+        }
     }
 
     private static void initGlfw() throws AssertionError {
