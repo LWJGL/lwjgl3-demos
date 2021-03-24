@@ -30,6 +30,7 @@ import static org.lwjgl.vulkan.VK11.*;
 import java.io.IOException;
 import java.nio.*;
 import java.util.*;
+import java.util.function.Consumer;
 
 import org.joml.*;
 import org.lwjgl.PointerBuffer;
@@ -45,7 +46,7 @@ import org.lwjgl.vulkan.*;
  */
 public class SimpleTriangle {
 
-    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "false"));
+    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
         if (DEBUG) {
             /* When we are in debug mode, enable all LWJGL debug flags */
@@ -827,7 +828,7 @@ public class SimpleTriangle {
         }
     }
 
-    private static AllocationAndBuffer createBuffer(int usageFlags, long size, ByteBuffer data, long alignment) {
+    private static AllocationAndBuffer createBuffer(int usageFlags, long size, ByteBuffer data, long alignment, Consumer<VkCommandBuffer> beforeSubmit) {
         try (MemoryStack stack = stackPush()) {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
@@ -878,6 +879,9 @@ public class SimpleTriangle {
                 long bufferStage = pBufferStage.get(0);
                 long allocationStage = pAllocationStage.get(0);
 
+                if (beforeSubmit != null)
+                    beforeSubmit.accept(cmdBuffer);
+
                 // and submit that, with a callback to destroy the staging buffer once copying is complete
                 submitCommandBuffer(cmdBuffer, true, () -> {
                     vkFreeCommandBuffers(device, commandPoolTransient, cmdBuffer);
@@ -887,8 +891,8 @@ public class SimpleTriangle {
             return new AllocationAndBuffer(pAllocation.get(0), pBuffer.get(0), false);
         }
     }
-    private static AllocationAndBuffer createBuffer(int usageFlags, ByteBuffer data, long alignment) {
-        return createBuffer(usageFlags, data.remaining(), data, alignment);
+    private static AllocationAndBuffer createBuffer(int usageFlags, ByteBuffer data, long alignment, Consumer<VkCommandBuffer> beforeSubmit) {
+        return createBuffer(usageFlags, data.remaining(), data, alignment, beforeSubmit);
     }
 
     private static AllocationAndBuffer[] createUniformBufferObjects(int size) {
@@ -929,11 +933,11 @@ public class SimpleTriangle {
         indices.putShort(0).putShort(1).putShort(2);
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(positions.addr, positions.pos), Float.BYTES);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(positions.addr, positions.pos), Float.BYTES, null);
         positions.free();
         AllocationAndBuffer indicesBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(indices.addr, indices.pos), Short.BYTES);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, memByteBuffer(indices.addr, indices.pos), Short.BYTES, null);
         indices.free();
         return new Geometry(positionsBuffer, indicesBuffer, 1);
     }
@@ -1019,7 +1023,7 @@ public class SimpleTriangle {
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(),
-                    null, 256);
+                    null, 256, null);
 
             // Create a BLAS object (not currently built)
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
@@ -1035,7 +1039,7 @@ public class SimpleTriangle {
             AllocationAndBuffer scratchBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, buildSizesInfo.buildScratchSize(), null,
-                    deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment);
+                    deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment, null);
 
             // fill missing/remaining info into the build geometry info to
             // be able to build the BLAS instance.
@@ -1136,7 +1140,8 @@ public class SimpleTriangle {
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
                     memByteBuffer(instance.address(), VkAccelerationStructureInstanceKHR.SIZEOF),
-                    16); // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
+                    16, // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
+                    null);
 
             // Create the build geometry info holding the BLAS reference
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos = 
@@ -1174,7 +1179,8 @@ public class SimpleTriangle {
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
-                    256);
+                    256,
+                    null);
 
             // Create a TLAS object (not currently built)
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
@@ -1190,7 +1196,7 @@ public class SimpleTriangle {
             AllocationAndBuffer scratchBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, buildSizesInfo.buildScratchSize(), null,
-                    deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment);
+                    deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment, null);
 
             // fill missing/remaining info into the build geometry info to
             // be able to build the TLAS instance.
@@ -1222,6 +1228,19 @@ public class SimpleTriangle {
                             VkAccelerationStructureBuildRangeInfoKHR
                             .callocStack(stack)
                             .primitiveCount(1))); // <- number of BLASes!
+
+            // insert barrier to let tracing wait for the TLAS build
+            vkCmdPipelineBarrier(cmdBuf,
+                    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+                    0, // <- no dependency flags
+                    VkMemoryBarrier
+                        .callocStack(1, stack)
+                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
+                        .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
+                    null,
+                    null);
 
             // Finally submit command buffer and register callback when fence signals to 
             // dispose of resources
@@ -1352,7 +1371,22 @@ public class SimpleTriangle {
             // and upload to a new GPU buffer
             return createBuffer(VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
                                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, handlesForGpu,
-                                deviceAndQueueFamilies.shaderGroupBaseAlignment);
+                                deviceAndQueueFamilies.shaderGroupBaseAlignment, (cmdBuf) -> {
+                                    // insert memory barrier to let ray tracing shader wait for SBT transfer
+                                    try (MemoryStack s = stackPush()) {
+                                        vkCmdPipelineBarrier(cmdBuf,
+                                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+                                                0,
+                                                VkMemoryBarrier
+                                                    .callocStack(1, s)
+                                                    .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                                                    .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
+                                                    .dstAccessMask(VK_ACCESS_SHADER_READ_BIT),
+                                                null,
+                                                null);
+                                    }
+                                });
         }
     }
 
