@@ -850,10 +850,10 @@ public class TwoRotatingTrianglesDemo {
                 .offset(3 * 4);
 
         // Assign to vertex buffer
-        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc();
-        vi.sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
-        vi.pVertexBindingDescriptions(bindingDescriptor);
-        vi.pVertexAttributeDescriptions(attributeDescriptions);
+        VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc()
+            .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
+            .pVertexBindingDescriptions(bindingDescriptor)
+            .pVertexAttributeDescriptions(attributeDescriptions);
 
         Vertices ret = new Vertices();
         ret.createInfo = vi;
@@ -1430,8 +1430,7 @@ public class TwoRotatingTrianglesDemo {
                 .pWaitSemaphores(pRenderCompleteSemaphore)
                 .swapchainCount(pSwapchains.remaining())
                 .pSwapchains(pSwapchains)
-                .pImageIndices(pImageIndex)
-                .pResults(null);
+                .pImageIndices(pImageIndex);
 
         // The render loop
         long lastTime = System.nanoTime();

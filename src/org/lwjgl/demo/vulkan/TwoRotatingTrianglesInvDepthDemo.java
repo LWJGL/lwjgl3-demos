@@ -1209,8 +1209,8 @@ public class TwoRotatingTrianglesInvDepthDemo {
             VkViewport.Buffer viewport = VkViewport.calloc(1)
                     .height(height)
                     .width(width)
-                    .minDepth(1.0f)
-                    .maxDepth(0.0f);
+                    .minDepth(0.0f)
+                    .maxDepth(1.0f);
             vkCmdSetViewport(renderCommandBuffers[i], 0, viewport);
             viewport.free();
 
@@ -1257,7 +1257,7 @@ public class TwoRotatingTrianglesInvDepthDemo {
     private static void updateUbo(VkDevice device, UboDescriptor ubo, float angle) {
         Matrix4f m = new Matrix4f()
                 .scale(1, -1, 1) // <- correcting viewport transformation (what Direct3D does, too)
-                .perspective((float) Math.toRadians(45.0f), (float) width / height, 0.1f, 10.0f, true)
+                .perspective((float) Math.toRadians(45.0f), (float) width / height, 10.0f, 0.1f, true)
                 .lookAt(0, 1, 3,
                         0, 0, 0,
                         0, 1, 0)
