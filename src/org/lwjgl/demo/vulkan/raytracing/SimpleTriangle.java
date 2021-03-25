@@ -46,7 +46,7 @@ import org.lwjgl.vulkan.*;
  */
 public class SimpleTriangle {
 
-    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
+    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "false"));
     static {
         if (DEBUG) {
             /* When we are in debug mode, enable all LWJGL debug flags */
@@ -1083,36 +1083,6 @@ public class SimpleTriangle {
                 geometry.free();
             });
             return new AccelerationStructure(pAccelerationStructure.get(0), accelerationStructureBuffer);
-        }
-    }
-
-    private static class VkAccelerationStructureInstanceKHR {
-        public static final int SIZEOF = 64;
-        private final ByteBuffer memory;
-        private VkAccelerationStructureInstanceKHR(ByteBuffer memory) {
-            this.memory = memory;
-        }
-        private static VkAccelerationStructureInstanceKHR callocStack(MemoryStack stack) {
-            return new VkAccelerationStructureInstanceKHR(stack.calloc(64));
-        }
-        private VkAccelerationStructureInstanceKHR accelerationStructureReference(long accelerationStructureReference) {
-            memory.putLong(56, accelerationStructureReference);
-            return this;
-        }
-        private VkAccelerationStructureInstanceKHR mask(int mask) {
-            memory.putInt(VkTransformMatrixKHR.SIZEOF, memory.getInt(VkTransformMatrixKHR.SIZEOF) & 0xFFFFFF | mask << 24);
-            return this;
-        }
-        private VkAccelerationStructureInstanceKHR flags(int flags) {
-            memory.putInt(VkTransformMatrixKHR.SIZEOF + 4, memory.getInt(VkTransformMatrixKHR.SIZEOF + 4) & 0xFFFFFF | flags << 24);
-            return this;
-        }
-        private VkAccelerationStructureInstanceKHR transform(VkTransformMatrixKHR matrix) {
-            memCopy(matrix.address(), address(), VkTransformMatrixKHR.SIZEOF);
-            return this;
-        }
-        private long address() {
-            return memAddress(memory);
         }
     }
 
