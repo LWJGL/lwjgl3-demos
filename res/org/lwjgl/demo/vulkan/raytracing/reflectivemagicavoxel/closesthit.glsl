@@ -27,7 +27,7 @@ void main(void) {
   uint index = uint(indices.i[3u * gl_PrimitiveID]);
   uint typeAndSide = positionsAndTypes.pt[4u * index + 3u];
   uint type = typeAndSide & 0xFFu;
-  uint side = typeAndSide >> 8u & 0xFFu;
+  uint side = typeAndSide >> 8u;
   vec3 col = unpackUnorm4x8(materials.m[type]).rgb;
   payload.col = col;
   payload.mat = type ;
