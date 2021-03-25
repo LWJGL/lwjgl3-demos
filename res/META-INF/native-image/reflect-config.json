@@ -22,6 +22,9 @@
   "fields":[{"name":"address", "allowUnsafeAccess":true}]
 },
 {
+  "name":"org.eclipse.swt.widgets.Display"
+},
+{
   "name":"org.joml.Matrix2f",
   "fields":[
     {"name":"m00", "allowUnsafeAccess":true}, 
@@ -544,6 +547,14 @@
 },
 {
   "name":"org.lwjgl.demo.opengl.shadow.ShadowMappingDemo20",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.opengl.swt.SwtAndGlfwDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.opengl.swt.SwtDemo",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {

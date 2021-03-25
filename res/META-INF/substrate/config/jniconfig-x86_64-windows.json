@@ -1,0 +1,289 @@
+[
+{
+  "name":"org.eclipse.swt.internal.opengl.win32.PIXELFORMATDESCRIPTOR",
+  "fields":[
+    {"name":"bReserved"}, 
+    {"name":"cAccumAlphaBits"}, 
+    {"name":"cAccumBits"}, 
+    {"name":"cAccumBlueBits"}, 
+    {"name":"cAccumGreenBits"}, 
+    {"name":"cAccumRedBits"}, 
+    {"name":"cAlphaBits"}, 
+    {"name":"cAlphaShift"}, 
+    {"name":"cAuxBuffers"}, 
+    {"name":"cBlueBits"}, 
+    {"name":"cBlueShift"}, 
+    {"name":"cColorBits"}, 
+    {"name":"cDepthBits"}, 
+    {"name":"cGreenBits"}, 
+    {"name":"cGreenShift"}, 
+    {"name":"cRedBits"}, 
+    {"name":"cRedShift"}, 
+    {"name":"cStencilBits"}, 
+    {"name":"dwDamageMask"}, 
+    {"name":"dwFlags"}, 
+    {"name":"dwLayerMask"}, 
+    {"name":"dwVisibleMask"}, 
+    {"name":"iLayerType"}, 
+    {"name":"iPixelType"}, 
+    {"name":"nSize"}, 
+    {"name":"nVersion"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.ACTCTX",
+  "fields":[
+    {"name":"cbSize"}, 
+    {"name":"dwFlags"}, 
+    {"name":"hModule"}, 
+    {"name":"lpApplicationName"}, 
+    {"name":"lpAssemblyDirectory"}, 
+    {"name":"lpResourceName"}, 
+    {"name":"lpSource"}, 
+    {"name":"wLangId"}, 
+    {"name":"wProcessorArchitecture"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.DLLVERSIONINFO",
+  "fields":[
+    {"name":"cbSize"}, 
+    {"name":"dwBuildNumber"}, 
+    {"name":"dwMajorVersion"}, 
+    {"name":"dwMinorVersion"}, 
+    {"name":"dwPlatformID"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.HIGHCONTRAST",
+  "fields":[
+    {"name":"cbSize"}, 
+    {"name":"dwFlags"}, 
+    {"name":"lpszDefaultScheme"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.LOGFONT",
+  "fields":[
+    {"name":"lfCharSet"}, 
+    {"name":"lfClipPrecision"}, 
+    {"name":"lfEscapement"}, 
+    {"name":"lfHeight"}, 
+    {"name":"lfItalic"}, 
+    {"name":"lfOrientation"}, 
+    {"name":"lfOutPrecision"}, 
+    {"name":"lfPitchAndFamily"}, 
+    {"name":"lfQuality"}, 
+    {"name":"lfStrikeOut"}, 
+    {"name":"lfUnderline"}, 
+    {"name":"lfWeight"}, 
+    {"name":"lfWidth"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.LOGFONTW",
+  "fields":[{"name":"lfFaceName"}]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.MENUITEMINFO",
+  "fields":[
+    {"name":"cbSize"}, 
+    {"name":"cch"}, 
+    {"name":"dwItemData"}, 
+    {"name":"dwTypeData"}, 
+    {"name":"fMask"}, 
+    {"name":"fState"}, 
+    {"name":"fType"}, 
+    {"name":"hSubMenu"}, 
+    {"name":"hbmpChecked"}, 
+    {"name":"hbmpItem"}, 
+    {"name":"hbmpUnchecked"}, 
+    {"name":"wID"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.MINMAXINFO",
+  "fields":[
+    {"name":"ptMaxPosition_x"}, 
+    {"name":"ptMaxPosition_y"}, 
+    {"name":"ptMaxSize_x"}, 
+    {"name":"ptMaxSize_y"}, 
+    {"name":"ptMaxTrackSize_x"}, 
+    {"name":"ptMaxTrackSize_y"}, 
+    {"name":"ptMinTrackSize_x"}, 
+    {"name":"ptMinTrackSize_y"}, 
+    {"name":"ptReserved_x"}, 
+    {"name":"ptReserved_y"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.MSG",
+  "fields":[
+    {"name":"hwnd"}, 
+    {"name":"lParam"}, 
+    {"name":"message"}, 
+    {"name":"time"}, 
+    {"name":"wParam"}, 
+    {"name":"x"}, 
+    {"name":"y"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.NONCLIENTMETRICS",
+  "fields":[
+    {"name":"cbSize"}, 
+    {"name":"iBorderWidth"}, 
+    {"name":"iCaptionHeight"}, 
+    {"name":"iCaptionWidth"}, 
+    {"name":"iMenuHeight"}, 
+    {"name":"iMenuWidth"}, 
+    {"name":"iScrollHeight"}, 
+    {"name":"iScrollWidth"}, 
+    {"name":"iSmCaptionHeight"}, 
+    {"name":"iSmCaptionWidth"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.NONCLIENTMETRICSW",
+  "fields":[
+    {"name":"lfCaptionFont"}, 
+    {"name":"lfMenuFont"}, 
+    {"name":"lfMessageFont"}, 
+    {"name":"lfSmCaptionFont"}, 
+    {"name":"lfStatusFont"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.OSVERSIONINFO",
+  "fields":[
+    {"name":"dwBuildNumber"}, 
+    {"name":"dwMajorVersion"}, 
+    {"name":"dwMinorVersion"}, 
+    {"name":"dwOSVersionInfoSize"}, 
+    {"name":"dwPlatformId"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.OSVERSIONINFOW",
+  "fields":[{"name":"szCSDVersion"}]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.PAINTSTRUCT",
+  "fields":[
+    {"name":"bottom"}, 
+    {"name":"fErase"}, 
+    {"name":"fIncUpdate"}, 
+    {"name":"fRestore"}, 
+    {"name":"hdc"}, 
+    {"name":"left"}, 
+    {"name":"rgbReserved"}, 
+    {"name":"right"}, 
+    {"name":"top"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.POINT",
+  "fields":[
+    {"name":"x"}, 
+    {"name":"y"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.RECT",
+  "fields":[
+    {"name":"bottom"}, 
+    {"name":"left"}, 
+    {"name":"right"}, 
+    {"name":"top"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.STARTUPINFO",
+  "fields":[
+    {"name":"cb"}, 
+    {"name":"cbReserved2"}, 
+    {"name":"dwFillAttribute"}, 
+    {"name":"dwFlags"}, 
+    {"name":"dwX"}, 
+    {"name":"dwXCountChars"}, 
+    {"name":"dwXSize"}, 
+    {"name":"dwY"}, 
+    {"name":"dwYCountChars"}, 
+    {"name":"dwYSize"}, 
+    {"name":"hStdError"}, 
+    {"name":"hStdInput"}, 
+    {"name":"hStdOutput"}, 
+    {"name":"lpDesktop"}, 
+    {"name":"lpReserved"}, 
+    {"name":"lpReserved2"}, 
+    {"name":"lpTitle"}, 
+    {"name":"wShowWindow"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.TEXTMETRIC",
+  "fields":[
+    {"name":"tmAscent"}, 
+    {"name":"tmAveCharWidth"}, 
+    {"name":"tmCharSet"}, 
+    {"name":"tmDescent"}, 
+    {"name":"tmDigitizedAspectX"}, 
+    {"name":"tmDigitizedAspectY"}, 
+    {"name":"tmExternalLeading"}, 
+    {"name":"tmHeight"}, 
+    {"name":"tmInternalLeading"}, 
+    {"name":"tmItalic"}, 
+    {"name":"tmMaxCharWidth"}, 
+    {"name":"tmOverhang"}, 
+    {"name":"tmPitchAndFamily"}, 
+    {"name":"tmStruckOut"}, 
+    {"name":"tmUnderlined"}, 
+    {"name":"tmWeight"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.TEXTMETRICW",
+  "fields":[
+    {"name":"tmBreakChar"}, 
+    {"name":"tmDefaultChar"}, 
+    {"name":"tmFirstChar"}, 
+    {"name":"tmLastChar"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.WINDOWPOS",
+  "fields":[
+    {"name":"cx"}, 
+    {"name":"cy"}, 
+    {"name":"flags"}, 
+    {"name":"hwnd"}, 
+    {"name":"hwndInsertAfter"}, 
+    {"name":"x"}, 
+    {"name":"y"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.win32.WNDCLASS",
+  "fields":[
+    {"name":"cbClsExtra"}, 
+    {"name":"cbWndExtra"}, 
+    {"name":"hCursor"}, 
+    {"name":"hIcon"}, 
+    {"name":"hInstance"}, 
+    {"name":"hbrBackground"}, 
+    {"name":"lpfnWndProc"}, 
+    {"name":"lpszClassName"}, 
+    {"name":"lpszMenuName"}, 
+    {"name":"style"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.widgets.Display",
+  "methods":[
+    {"name":"foregroundIdleProc","parameterTypes":["long","long","long"] }, 
+    {"name":"messageProc","parameterTypes":["long","long","long","long"] }, 
+    {"name":"msgFilterProc","parameterTypes":["long","long","long"] }, 
+    {"name":"windowProc","parameterTypes":["long","long","long","long"] }
+  ]
+}
+]

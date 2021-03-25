@@ -1,6 +1,10 @@
 {
   "resources":{
   "includes":[
+    {"pattern":"\\Qlibswt-cairo-gtk-4626.so\\E"}, 
+    {"pattern":"\\Qlibswt-glx-gtk-4626.so\\E"}, 
+    {"pattern":"\\Qlibswt-gtk-4626.so\\E"}, 
+    {"pattern":"\\Qlibswt-pi3-gtk-4626.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/assimp/libassimp.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/glfw/libglfw.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/glfw/libglfw_wayland.so\\E"}, 
