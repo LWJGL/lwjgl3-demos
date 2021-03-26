@@ -392,14 +392,14 @@ public class SimpleTriangle {
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
                         .pNext(NULL);
-                VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeaturesKHR = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+                VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                         .pNext(accelerationStructureFeatures.address());
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
-                        .pNext(rayTracingPipelineFeaturesKHR.address());
+                        .pNext(rayTracingPipelineFeatures.address());
                 VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
@@ -408,8 +408,8 @@ public class SimpleTriangle {
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
-                    !accelerationStructureFeatures.accelerationStructure() ||
-                    !bufferDeviceAddressFeatures.bufferDeviceAddress())
+                    !rayTracingPipelineFeatures.rayTracingPipeline() ||
+                    !accelerationStructureFeatures.accelerationStructure())
                     continue;
 
                 // Retrieve physical device properties (limits, offsets, alignments, ...)

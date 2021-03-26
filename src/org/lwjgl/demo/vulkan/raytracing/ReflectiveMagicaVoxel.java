@@ -432,14 +432,14 @@ public class ReflectiveMagicaVoxel {
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
                         .pNext(bitStorageFeatures.address());
-                VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeaturesKHR = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+                VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                         .pNext(accelerationStructureFeatures.address());
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
-                        .pNext(rayTracingPipelineFeaturesKHR.address());
+                        .pNext(rayTracingPipelineFeatures.address());
                 VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
@@ -448,8 +448,8 @@ public class ReflectiveMagicaVoxel {
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
+                    !rayTracingPipelineFeatures.rayTracingPipeline() ||
                     !accelerationStructureFeatures.accelerationStructure() ||
-                    !bufferDeviceAddressFeatures.bufferDeviceAddress() ||
                     !bitStorageFeatures.storageBuffer16BitAccess())
                     continue;
 
@@ -502,14 +502,14 @@ public class ReflectiveMagicaVoxel {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDevice16BitStorageFeaturesKHR bitStorageFeaturesKHR = VkPhysicalDevice16BitStorageFeaturesKHR
+            VkPhysicalDevice16BitStorageFeaturesKHR bitStorageFeatures = VkPhysicalDevice16BitStorageFeaturesKHR
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES)
                     .storageBuffer16BitAccess(true);
             VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
-                    .pNext(bitStorageFeaturesKHR.address())
+                    .pNext(bitStorageFeatures.address())
                     .bufferDeviceAddress(true);
             VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
                     .callocStack(stack)
