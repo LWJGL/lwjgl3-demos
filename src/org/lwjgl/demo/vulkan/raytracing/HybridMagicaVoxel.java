@@ -710,7 +710,12 @@ public class HybridMagicaVoxel {
 
     private static int determineDepthFormat() {
         try (MemoryStack stack = stackPush()) {
-            int[] depthFormats = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+            // prefer any 32-bit signed float depth, and then 24-bit integer depth
+            int[] depthFormats = {
+                VK_FORMAT_D32_SFLOAT,
+                VK_FORMAT_D32_SFLOAT_S8_UINT,
+                VK_FORMAT_D24_UNORM_S8_UINT
+            };
             VkFormatProperties formatProps = VkFormatProperties
                     .mallocStack(stack);
             int depthFormat = -1;
@@ -1286,7 +1291,7 @@ public class HybridMagicaVoxel {
                     .sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
                     .depthTestEnable(true)
                     .depthWriteEnable(true)
-                    .depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL)
+                    .depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL) // <- we use reverse depth
                     .back(stencil -> stencil
                             .failOp(VK_STENCIL_OP_KEEP)
                             .passOp(VK_STENCIL_OP_KEEP)
@@ -2181,15 +2186,12 @@ public class HybridMagicaVoxel {
 
     private static VkCommandBuffer[] createRasterCommandBuffers() {
         try (MemoryStack stack = stackPush()) {
-            VkClearValue.Buffer clearValues = VkClearValue
-                    .callocStack(2, stack);
-            clearValues.apply(0, v -> v.color().uint32(0, 0).uint32(1, 0).uint32(2, 0).uint32(3, 0))
-                       .apply(1, v -> v.depthStencil().depth(0.0f).stencil(0));
             VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
                     .renderPass(renderPass)
-                    .pClearValues(clearValues)
+                    .pClearValues(VkClearValue
+                            .callocStack(2, stack)) // <- all zeroes, we use reverse depth
                     .renderArea(a -> a.extent().set(swapchain.width, swapchain.height));
             VkViewport.Buffer viewport = VkViewport
                     .callocStack(1, stack)
@@ -2248,8 +2250,8 @@ public class HybridMagicaVoxel {
         projMatrix.scaling(1, -1, 1)
                   .perspective(toRadians(45.0f),
                                (float) windowAndCallbacks.width / windowAndCallbacks.height,
-                               1000.0f,
-                               0.1f,
+                               1000.0f, // <- near plane (we use reverse depth)
+                               0.1f,    // <- far plane (we use reverse depth)
                                true);
         projMatrix.invert(invProjMatrix);
         projMatrix.mul(viewMatrix, mvpMatrix).scale(POSITION_SCALE);
