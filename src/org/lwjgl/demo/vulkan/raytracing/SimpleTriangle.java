@@ -1069,7 +1069,7 @@ public class SimpleTriangle {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(stack)
+                            .callocStack(1, stack)
                             .primitiveCount(geometry.numPrimities)));
 
             // Finally submit command buffer and register callback when fence signals to 
@@ -1196,7 +1196,7 @@ public class SimpleTriangle {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(stack)
+                            .callocStack(1, stack)
                             .primitiveCount(1))); // <- number of BLASes!
 
             // insert barrier to let tracing wait for the TLAS build

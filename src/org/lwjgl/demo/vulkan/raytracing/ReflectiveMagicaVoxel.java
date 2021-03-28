@@ -1157,7 +1157,7 @@ public class ReflectiveMagicaVoxel {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(stack)
+                            .callocStack(1, stack)
                             .primitiveCount(geometry.numFaces * 2)));
 
             // barrier for compressing the BLAS
@@ -1359,7 +1359,7 @@ public class ReflectiveMagicaVoxel {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(stack)
+                            .callocStack(1, stack)
                             .primitiveCount(1))); // <- number of BLASes!
 
             // insert barrier to let tracing wait for the TLAS build
