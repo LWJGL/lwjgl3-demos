@@ -745,7 +745,8 @@ public class HybridMagicaVoxel {
                     .arrayLayers(1)
                     .samples(VK_SAMPLE_COUNT_1_BIT)
                     .tiling(VK_IMAGE_TILING_OPTIMAL)
-                    .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+                    .usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT // <- write to depth when rasterizing
+                         | VK_IMAGE_USAGE_SAMPLED_BIT) // <- read from depth when ray tracing
                     .extent(e -> e.set(swapchain.width, swapchain.height, 1));
             VkImageViewCreateInfo depthStencilViewCreateInfo = VkImageViewCreateInfo
                     .callocStack(stack)
@@ -769,7 +770,9 @@ public class HybridMagicaVoxel {
                 depthStencilViewCreateInfo.image(pDepthStencilImage.get(0));
                 _CHECK_(vkCreateImageView(device, depthStencilViewCreateInfo, null, pDepthStencilView),
                         "Failed to create image view for depth stencil image");
-                allocations[i] = new AllocationAndImage(pAllocation.get(0), pDepthStencilImage.get(0), 
+                allocations[i] = new AllocationAndImage(
+                        pAllocation.get(0),
+                        pDepthStencilImage.get(0), 
                         pDepthStencilView.get(0));
             }
             return allocations;
@@ -979,7 +982,8 @@ public class HybridMagicaVoxel {
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
-                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT))
+                    // must wait before COLOR_ATTACHMENT_OUTPUT to output color values
+                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT))
                     .pCommandBuffers(stack.pointers(rasterCommandBuffers[idx]))
                     .waitSemaphoreCount(1)
                     .pSignalSemaphores(stack.longs(rasterCompleteSemaphores[idx])),
