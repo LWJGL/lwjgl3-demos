@@ -10,7 +10,6 @@ layout(triangle_strip, max_vertices = 4) out;
 
 layout(std140) uniform Uniforms {
   mat4 mvp;
-  mat4 mv;
   vec4 tmvp;
   ivec4 camPos;
 };

@@ -875,7 +875,7 @@ public class VoxelGameGL {
     private int chunksProgramUboBlockIndex;
     private int chunksProgramUbo;
     private long chunksProgramUboAddr;
-    private static final int chunksProgramUboSize = 4 * (2 * 16 + 2 * 4);
+    private static final int chunksProgramUboSize = 4 * (16 + 2 * 4);
 
     /* Resources for generating draw commands on the GPU */
     private int boundingBoxesVao;
@@ -3243,8 +3243,6 @@ public class VoxelGameGL {
                 uboPos = 0L;
             }
             mvpMat.getToAddress(ubo + uboPos);
-            uboPos += 16 * Float.BYTES;
-            vMat.getToAddress(ubo + uboPos);
             uboPos += 16 * Float.BYTES;
             mvpMat.getRow(3, tmpv4f).getToAddress(ubo + uboPos);
             uboPos += 4 * Float.BYTES;

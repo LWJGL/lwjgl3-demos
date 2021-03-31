@@ -7,7 +7,6 @@
 
 layout(std140) uniform Uniforms {
   mat4 mvp;
-  mat4 mv;
   vec4 tmvp;
   ivec4 camPos;
 };
@@ -62,7 +61,7 @@ void main(void) {
                    aos[sideAndAoFactors.y >> 6u & 3u]);
   vs_out.surfacePos = surfpos();
   vec3 p = positionAndType.xyz + relChunkPos();
-  float w = dot(transpose(mvp)[3], vec4(p, 1.0));
+  float w = dot(tmvp, vec4(p, 1.0));
   vs_out.matIndex = int(positionAndType.w & 0xFFu);
   gl_Position = mvp * vec4(p + offset() * 2E-4 * w, 1.0);
 }
