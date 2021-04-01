@@ -352,37 +352,18 @@ public class VoxelLightmapping2 {
             int n00 = aoFactor(f.v >>>  8 & 7), n10 = aoFactor(f.v >>> 11 & 7);
             int n01 = aoFactor(f.v >>> 14 & 7), n11 = aoFactor(f.v >>> 17 & 7);
             generateSidesAndOffsets(f, n00, n10, n01, n11, sidesAndOffsets);
-            int ao00 = n00 >>> 4, ao10 = n10 >>> 4, ao01 = n01 >>> 4, ao11 = n11 >>> 4;
             generateTexCoords(f, lightmapCoords);
-            generateIndices(f, i, ao00 + ao11 > ao10 + ao01, indices);
+            generateIndices(f, i, indices);
         }
     }
 
-    private static void generateIndices(Face f, int i, boolean swap, ShortBuffer indices) {
+    private static void generateIndices(Face f, int i, ShortBuffer indices) {
         if (isPositiveSide(f.s))
-            generateIndicesPositive(i, swap, indices);
-        else
-            generateIndicesNegative(i, swap, indices);
-    }
-
-    private static void generateIndicesNegative(int i, boolean swap, ShortBuffer indices) {
-        if (swap) {
-            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
-                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
-        } else {
-            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
-                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
-        }
-    }
-
-    private static void generateIndicesPositive(int i, boolean swap, ShortBuffer indices) {
-        if (swap) {
             indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
                    .put((short) ((i << 2) + 2)).put((short) PRIMITIVE_RESTART_INDEX);
-        } else {
-            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
-                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
-        }
+        else
+            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
     }
 
     private void generateTexCoords(Face f, ShortBuffer lightmapCoords) {
