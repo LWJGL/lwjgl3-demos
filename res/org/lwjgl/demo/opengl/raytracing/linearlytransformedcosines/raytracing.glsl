@@ -71,72 +71,72 @@ struct hitinfo {
 /**
  * Adapted from: https://eheitzresearch.wordpress.com/415-2/
  */
-int clipQuadToHorizon(inout vec3 L[5]) {
-  int config = int(L[0].z > 0.0)<<0 | int(L[1].z > 0.0)<<1
-             | int(L[2].z > 0.0)<<2 | int(L[3].z > 0.0)<<3;
+int clipQuadToHorizon(inout vec3 L0, inout vec3 L1, inout vec3 L2, inout vec3 L3, inout vec3 L4) {
+  int config = int(L0.z > 0.0)<<0 | int(L1.z > 0.0)<<1
+             | int(L2.z > 0.0)<<2 | int(L3.z > 0.0)<<3;
   switch (config) {
   case 1:
-    L[1] = -L[1].z * L[0] + L[0].z * L[1];
-    L[2] = -L[3].z * L[0] + L[0].z * L[3];
-    L[3] =  L[0];
+    L1 = -L1.z * L0 + L0.z * L1;
+    L2 = -L3.z * L0 + L0.z * L3;
+    L3 =  L0;
     return 3;
   case 2:
-    L[0] = -L[0].z * L[1] + L[1].z * L[0];
-    L[2] = -L[2].z * L[1] + L[1].z * L[2];
-    L[3] =  L[0];
+    L0 = -L0.z * L1 + L1.z * L0;
+    L2 = -L2.z * L1 + L1.z * L2;
+    L3 =  L0;
     return 3;
   case 3:
-    L[2] = -L[2].z * L[1] + L[1].z * L[2];
-    L[3] = -L[3].z * L[0] + L[0].z * L[3];
-    L[4] =  L[0];
+    L2 = -L2.z * L1 + L1.z * L2;
+    L3 = -L3.z * L0 + L0.z * L3;
+    L4 =  L0;
     return 4;
   case 4:
-    L[0] = -L[3].z * L[2] + L[2].z * L[3];
-    L[1] = -L[1].z * L[2] + L[2].z * L[1];
-    L[3] =  L[0];
+    L0 = -L3.z * L2 + L2.z * L3;
+    L1 = -L1.z * L2 + L2.z * L1;
+    L3 =  L0;
     return 3;
   case 6:
-    L[0] = -L[0].z * L[1] + L[1].z * L[0];
-    L[3] = -L[3].z * L[2] + L[2].z * L[3];
-    L[4] =  L[0];
+    L0 = -L0.z * L1 + L1.z * L0;
+    L3 = -L3.z * L2 + L2.z * L3;
+    L4 =  L0;
     return 4;
   case 7:
-    L[4] = -L[3].z * L[0] + L[0].z * L[3];
-    L[3] = -L[3].z * L[2] + L[2].z * L[3];
+    L4 = -L3.z * L0 + L0.z * L3;
+    L3 = -L3.z * L2 + L2.z * L3;
     return 5;
   case 8:
-    L[0] = -L[0].z * L[3] + L[3].z * L[0];
-    L[1] = -L[2].z * L[3] + L[3].z * L[2];
-    L[2] =  L[3];
-    L[3] =  L[0];
+    L0 = -L0.z * L3 + L3.z * L0;
+    L1 = -L2.z * L3 + L3.z * L2;
+    L2 =  L3;
+    L3 =  L0;
     return 3;
   case 9:
-    L[1] = -L[1].z * L[0] + L[0].z * L[1];
-    L[2] = -L[2].z * L[3] + L[3].z * L[2];
-    L[4] =  L[0];
+    L1 = -L1.z * L0 + L0.z * L1;
+    L2 = -L2.z * L3 + L3.z * L2;
+    L4 =  L0;
     return 4;
   case 11:
-    L[4] = L[3];
-    L[3] = -L[2].z * L[3] + L[3].z * L[2];
-    L[2] = -L[2].z * L[1] + L[1].z * L[2];
+    L4 = L3;
+    L3 = -L2.z * L3 + L3.z * L2;
+    L2 = -L2.z * L1 + L1.z * L2;
     return 5;
   case 12:
-    L[1] = -L[1].z * L[2] + L[2].z * L[1];
-    L[0] = -L[0].z * L[3] + L[3].z * L[0];
-    L[4] =  L[0];
+    L1 = -L1.z * L2 + L2.z * L1;
+    L0 = -L0.z * L3 + L3.z * L0;
+    L4 =  L0;
     return 4;
   case 13:
-    L[4] =  L[3];
-    L[3] =  L[2];
-    L[2] = -L[1].z * L[2] + L[2].z * L[1];
-    L[1] = -L[1].z * L[0] + L[0].z * L[1];
+    L4 =  L3;
+    L3 =  L2;
+    L2 = -L1.z * L2 + L2.z * L1;
+    L1 = -L1.z * L0 + L0.z * L1;
     return 5;
   case 14:
-    L[4] = -L[0].z * L[3] + L[3].z * L[0];
-    L[0] = -L[0].z * L[1] + L[1].z * L[0];
+    L4 = -L0.z * L3 + L3.z * L0;
+    L0 = -L0.z * L1 + L1.z * L0;
     return 5;
   case 15:
-    L[4] = L[0];
+    L4 = L0;
     return 4;
   default:
     return 0;
@@ -152,33 +152,36 @@ float integrateEdge(vec3 v1, vec3 v2) {
   float b = 3.4175940 + (4.1616724 + y)*y;
   float v = a / b;
   return (v1.x * v2.y - v1.y * v2.x)
-       * mix(v, 0.5 * inversesqrt(max(1.0 - x * x, 1E-7)) - v, x <= 0.0);
+       * mix(v, 0.5 * inversesqrt(max(1.0 - x * x, 1E-7)) - v, float(x <= 0.0));
 }
 
 /**
  * Adapted from: https://eheitzresearch.wordpress.com/415-2/
  */
+float ltcEvaluateAboveHemisphere(vec3 L0, vec3 L1, vec3 L2, vec3 L3, vec3 L4, int n) {
+  L0 = normalize(L0);
+  L1 = normalize(L1);
+  L2 = normalize(L2);
+  L3 = normalize(L3);
+  L4 = normalize(L4);
+  return abs(integrateEdge(L0, L1)
+           + integrateEdge(L1, L2)
+           + integrateEdge(L2, L3)
+           + mix(integrateEdge(L3, L4), 0.0, float(n < 4))
+           + mix(integrateEdge(L4, L0), 0.0, float(n != 5)));
+}
 float ltcEvaluate(vec3 N, vec3 V, vec3 P, mat3 M, rectangle r) {
   vec3 T1 = normalize(V - N * dot(V, N)), T2 = cross(T1, N);
   mat3 Mt = mat3(T1, T2, N)*M;
-  vec3 L[5];
-  L[0] = (r.c - P)*Mt;
-  L[1] = (r.c + r.x - P)*Mt;
-  L[2] = (r.c + r.x + r.y - P)*Mt;
-  L[3] = (r.c + r.y - P)*Mt;
-  int n = clipQuadToHorizon(L);
+  vec3 L0, L1, L2, L3, L4;
+  L0 = (r.c - P)*Mt;
+  L1 = (r.c + r.x - P)*Mt;
+  L2 = (r.c + r.x + r.y - P)*Mt;
+  L3 = (r.c + r.y - P)*Mt;
+  int n = clipQuadToHorizon(L0, L1, L2, L3, L4);
   if (n == 0)
       return 0.0;
-  L[0] = normalize(L[0]);
-  L[1] = normalize(L[1]);
-  L[2] = normalize(L[2]);
-  L[3] = normalize(L[3]);
-  L[4] = normalize(L[4]);
-  return abs(integrateEdge(L[0], L[1])
-           + integrateEdge(L[1], L[2])
-           + integrateEdge(L[2], L[3])
-           + mix(integrateEdge(L[3], L[4]), 0.0, n < 4)
-           + mix(integrateEdge(L[4], L[0]), 0.0, n != 5));
+  return ltcEvaluateAboveHemisphere(L0, L1, L2, L3, L4, n);
 }
 
 ivec2 px;
