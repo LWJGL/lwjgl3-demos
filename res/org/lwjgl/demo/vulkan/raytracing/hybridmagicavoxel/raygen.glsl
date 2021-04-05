@@ -31,8 +31,8 @@ void main(void) {
   vec2  ndc       = tex * 2.0 - vec2(1.0);
   float z         = textureLod(depthImage, tex, 0.0).r;
   vec4  vc        = cam.projInverse * vec4(ndc, z, 1.0);
-  vec3  direction = (cam.viewInverse * vec4(vc.xyz / vc.z, 0.0)).xyz;
-  vec3  origin    = cam.viewInverse[3].xyz + direction * vc.z / vc.w;
+  vec3  direction = (cam.viewInverse * vec4(vc.xyz, 0.0)).xyz;
+  vec3  origin    = cam.viewInverse[3].xyz + direction / vc.w;
   uint  rayFlags  = gl_RayFlagsOpaqueEXT |
                     gl_RayFlagsCullBackFacingTrianglesEXT |
                     gl_RayFlagsSkipClosestHitShaderEXT |

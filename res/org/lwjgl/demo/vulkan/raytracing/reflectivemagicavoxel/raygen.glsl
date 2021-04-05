@@ -27,7 +27,7 @@ void main(void) {
   vec2  ndc       = (px / vec2(gl_LaunchSizeEXT.xy)) * 2.0 - vec2(1.0);
   vec3  origin    = cam.viewInverse[3].xyz;
   vec4  target    = cam.projInverse[0] * ndc.xxxx + cam.projInverse[1] * ndc.yyyy + cam.projInverse[3];
-  vec4  direction = cam.viewInverse * vec4(normalize(target.xyz), 0.0);
+  vec4  direction = cam.viewInverse * vec4(target.xyz, 0.0);
   uint  rayFlags  = gl_RayFlagsOpaqueEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin      = 1E-4;
   float tMax      = 1E+4;
