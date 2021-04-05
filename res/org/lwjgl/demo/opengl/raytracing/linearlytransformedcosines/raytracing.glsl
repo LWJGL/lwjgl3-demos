@@ -266,7 +266,8 @@ vec3 trace(vec3 origin, vec3 dir) {
   );
   vec3 col = vec3(0.0);
   for (int i = 0; i < NUM_RECTANGLES; i++) {
-    col += ltcEvaluate(normal, -dir, point, M, rectangles[i]) * f.x;
+    col += ltcEvaluate(normal, -dir, point, M, rectangles[i]) * f.x * f.y + 
+           ltcEvaluate(normal, -dir, point, mat3(1.0), rectangles[i]) * f.x * (1.0 - f.y);
   }
   return col * albedo * LIGHT_INTENSITY;
 }
