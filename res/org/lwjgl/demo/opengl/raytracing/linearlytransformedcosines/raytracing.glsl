@@ -18,7 +18,7 @@ layout(binding=1) uniform sampler2D ltc_mag;
 #define EPSILON 1E-4
 #define LIGHT_INTENSITY 6.0
 
-#define LUT_SIZE 64.0
+#define LUT_SIZE 16.0
 #define LUT_SCALE ((LUT_SIZE - 1.0) / LUT_SIZE)
 #define LUT_BIAS (0.5 / LUT_SIZE)
 

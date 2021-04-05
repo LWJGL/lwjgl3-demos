@@ -160,18 +160,18 @@ public class LinearlyTransformedCosines {
     private void createLtcMatTexture() throws IOException {
         try (MemoryStack frame = MemoryStack.stackPush()) {
             ltcMatTexture = glGenTextures();
-            int size = 64;
+            int size = 16;
             glBindTexture(GL_TEXTURE_2D, ltcMatTexture);
             ByteBuffer data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/ltc1.data",
                     64 * 1024);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, data);
             ltcMagTexture = glGenTextures();
             glBindTexture(GL_TEXTURE_2D, ltcMagTexture);
             data = ioResourceToByteBuffer("org/lwjgl/demo/opengl/raytracing/linearlytransformedcosines/ltc2.data",
                     64 * 1024);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, size, size);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 64, 64, GL_RGBA, GL_FLOAT, data);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, data);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     }
