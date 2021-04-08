@@ -199,30 +199,26 @@ vec3 trace(vec3 origin, vec3 dir) {
     vec4 s;
     float wl = PROBABILITY_OF_LIGHT_SAMPLE;
     vec3 ps = vec3(wl, specularFactor, 1.0 - specularFactor);
-    vec3 np = ps / (ps.x + ps.y + ps.z);
-    vec2 cdf = vec2(np.x, np.x + np.y);
-    vec3 p, c;
-    vec3 r = reflect(dir, normal);
+    vec3 p = ps / (ps.x + ps.y + ps.z);
+    vec2 cdf = vec2(p.x, p.x + p.y);
+    vec3 w, r = reflect(dir, normal);
     if (rand.z < cdf.x) {
       s = randomRectangleAreaDirection(origin, li.c, li.x, li.y, rand.xy);
-      p = vec3(s.w,
-               randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz),
-               randomPhongWeightedHemisphereDirectionPDF(r, phongExponent, s.xyz));
-      c = np.xzy;
+      w = vec3(s.w,
+               randomPhongWeightedHemisphereDirectionPDF(r, phongExponent, s.xyz),
+               randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz));
     } else if (rand.z < cdf.y) {
       s = randomPhongWeightedHemisphereDirection(r, phongExponent, rand.xy);
-      p = vec3(s.w,
-               randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz),
-               randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz));
-      c = np.yzx;
+      w = vec3(randomCosineWeightedHemisphereDirectionPDF(normal, s.xyz),
+               randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz),
+               s.w);
     } else {
       s = randomCosineWeightedHemisphereDirection(normal, rand.xy);
-      p = vec3(s.w,
+      w = vec3(randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz),
                randomPhongWeightedHemisphereDirectionPDF(r, phongExponent, s.xyz),
-               randomRectangleAreaDirectionPDF(origin, li.c, li.x, li.y, s.xyz));
-      c = np.zyx;
+               s.w);
     }
-    s.w = dot(p, c);
+    s.w = dot(w, p);
     att *= brdf(albedo, s.xyz, -dir, normal);
     dir = s.xyz;
     att *= max(0.0, dot(dir, normal));
