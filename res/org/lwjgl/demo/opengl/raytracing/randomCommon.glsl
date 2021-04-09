@@ -78,8 +78,8 @@ vec3 randomHemispherePoint(vec3 rand, vec3 n) {
 }
 
 vec3 ortho(vec3 v) {
-    //  See : http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
-    return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
+  // See: http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
+  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
 }
 
 /**

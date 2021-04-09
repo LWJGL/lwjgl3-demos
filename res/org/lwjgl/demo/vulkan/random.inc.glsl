@@ -3,7 +3,7 @@
 #define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 vec3 ortho(vec3 v) {
-  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), abs(v.x) < abs(v.z) ? 1.0 : 0.0));
+  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
 }
 uint hash2(uint x, uint y) {
   x += x >> 11;
