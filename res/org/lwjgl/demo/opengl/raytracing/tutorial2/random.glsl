@@ -75,7 +75,7 @@ vec3 random3(vec3 f) {
  */
 vec3 around(vec3 v, vec3 z) {
   vec3 t = ortho(z), b = cross(z, t);
-  return t * v.x + b * v.y + z * v.z;
+  return fma(t, vec3(v.x), fma(b, vec3(v.y), z * v.z));
 }
 
 /**
