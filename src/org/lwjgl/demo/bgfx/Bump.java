@@ -331,7 +331,7 @@ public class Bump extends Demo {
                 bgfx_encoder_set_instance_data_buffer(encoder, idb, 0, numInstances);
 
                 // Set vertex and index buffer.
-                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+                bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24, BGFX_INVALID_HANDLE);
                 bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
                 // Bind textures.
@@ -346,7 +346,7 @@ public class Bump extends Demo {
                         | BGFX_STATE_MSAA, 0);
 
                 // Submit primitive for rendering to view 0.
-                bgfx_encoder_submit(encoder, 0, program, 0, 0);
+                bgfx_encoder_submit(encoder, 0, program, 0, false);
                 idb.free();
             }
         } else {
@@ -359,7 +359,7 @@ public class Bump extends Demo {
                                .get4x4(mtxBuf));
 
                     // Set vertex and index buffer.
-                    bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24);
+                    bgfx_encoder_set_vertex_buffer(encoder, 0, vbh, 0, 24, BGFX_INVALID_HANDLE);
                     bgfx_encoder_set_index_buffer(encoder, ibh, 0, 36);
 
                     // Bind textures.
@@ -374,7 +374,7 @@ public class Bump extends Demo {
                             | BGFX_STATE_MSAA, 0);
 
                     // Submit primitive for rendering to view 0.
-                    bgfx_encoder_submit(encoder, 0, program, 0, 0);
+                    bgfx_encoder_submit(encoder, 0, program, 0, false);
                 }
             }
         }

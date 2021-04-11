@@ -372,18 +372,12 @@ public class DemoSsboTrianglesStacklessKdTree {
 
     /**
      * Create the tracing compute shader program.
-     *
-     * @throws IOException
      */
     void createComputeProgram() throws IOException {
         int program = glCreateProgram();
         int cshader = createShader("org/lwjgl/demo/opengl/raytracing/ssboTriangleStacklessKdTree.glsl",
                 GL_COMPUTE_SHADER);
-        int random = createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
-        int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
         glAttachShader(program, cshader);
-        glAttachShader(program, random);
-        glAttachShader(program, randomCommon);
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);

@@ -27,24 +27,22 @@ vec3 ortho(vec3 v) {
 }
 
 /**
- * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html?showComment=1507064059398#c5427444543794991219
+ * http://www.jcgt.org/published/0009/03/02/
  */
-uint hash3(uint x, uint y, uint z) {
-  x += x >> 11;
-  x ^= x << 7;
-  x += y;
-  x ^= x << 3;
-  x += z ^ (x >> 14);
-  x ^= x << 6;
-  x += x >> 15;
-  x ^= x << 5;
-  x += x >> 12;
-  x ^= x << 9;
-  return x;
+uvec3 pcg3d(uvec3 v) {
+  v = v * 1664525u + 1013904223u;
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+  v ^= v >> 16u;
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+  return v;
 }
 
 /**
- * Generate a floating-point pseudo-random number in [0, 1).
+ * Generate a floating-point pseudo-random number vector in [0, 1).
  *
  * With Monte Carlo sampling we need random numbers to generate random
  * vectors for shooting rays.
@@ -58,19 +56,13 @@ uint hash3(uint x, uint y, uint z) {
  * This function however has very very good properties exhibiting no
  * patterns in the distribution of the random numbers, no matter the
  * magnitude of the input values.
- * 
- * http://amindforeverprogramming.blogspot.de/2013/07/random-floats-in-glsl-330.html
  *
  * @param f some input vector of numbers to generate a single
  *          pseudo-random number from
- * @returns a single pseudo-random number in [0, 1)
+ * @returns a vector of pseudo-random numbers in [0, 1)
  */
-float random(vec3 f) {
-  uint mantissaMask = 0x007FFFFFu;
-  uint one = 0x3F800000u;
-  uvec3 u = floatBitsToUint(f);
-  uint h = hash3(u.x, u.y, u.z);
-  return uintBitsToFloat((h & mantissaMask) | one) - 1.0;
+vec3 random3(vec3 f) {
+  return uintBitsToFloat((pcg3d(floatBitsToUint(f)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 }
 
 /**

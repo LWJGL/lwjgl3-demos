@@ -633,13 +633,13 @@ public class Metaballs extends Demo {
             bgfx_encoder_set_transform(encoder, model.get4x4(modelBuf));
 
             // Set vertex and index buffer.
-            bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, numVertices);
+            bgfx_encoder_set_transient_vertex_buffer(encoder, 0, tvb, 0, numVertices, BGFX_INVALID_HANDLE);
 
             // Set render states.
             bgfx_encoder_set_state(encoder, BGFX_STATE_DEFAULT, 0);
 
             // Submit primitive for rendering to view 0.
-            bgfx_encoder_submit(encoder, 0, program, 0, 0);
+            bgfx_encoder_submit(encoder, 0, program, 0, false);
 
             bgfx_encoder_end(encoder);
 

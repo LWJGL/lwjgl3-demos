@@ -310,6 +310,133 @@
   "allPublicClasses":true
 },
 {
+  "name":"org.lwjgl.bgfx.BGFXCaps",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXInit",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXInstanceDataBuffer",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXMemory",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXPlatformData",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXResolution",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXTransientIndexBuffer",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXTransientVertexBuffer",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.bgfx.BGFXVertexLayout",
+  "allDeclaredFields":true,
+  "allPublicFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true,
+  "allDeclaredClasses":true,
+  "allPublicClasses":true
+},
+{
+  "name":"org.lwjgl.demo.bgfx.Bump",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.bgfx.Cubes",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.bgfx.Metaballs",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.bgfx.Raymarch",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.cuda.OpenGLExample",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.cuda.SequencePTX",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.game.VoxelGameGL",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
   "name":"org.lwjgl.demo.opengl.SimpleDrawElements",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
@@ -590,6 +717,42 @@
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {
+  "name":"org.lwjgl.demo.vulkan.ClearScreenDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.ColoredRotatingQuadDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.ColoredTriangleDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.InstancedSpheresDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.NvRayTracingExample",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.NvRayTracingHybridExample",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.TriangleDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.TwoRotatingTrianglesDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"org.lwjgl.demo.vulkan.TwoRotatingTrianglesInvDepthDemo",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
   "name":"org.lwjgl.glfw.GLFW",
   "allDeclaredFields":true
 },
@@ -665,6 +828,10 @@
 {
   "name":"org.lwjgl.system.Struct",
   "fields":[{"name":"container", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.lwjgl.system.jemalloc.JEmallocAllocator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"sun.misc.Unsafe",

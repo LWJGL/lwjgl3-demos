@@ -49,7 +49,7 @@ uniform float blendFactor;
  * 
  * See random.glsl for more explanation of these functions.
  */
-float random(vec3 f);
+vec3 random3(vec3 f);
 vec3 randomHemispherePoint(vec3 n, vec2 rand);
 
 /**
@@ -157,9 +157,7 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
  *          numbers, each in the range [0, 1)
  */
 vec2 randvec2(int s) {
-  return vec2(
-    random(vec3(px + ivec2(s), time)),
-    random(vec3(px + ivec2(s), time + 1.1)));
+  return random3(vec3(px + ivec2(s), time)).xy;
 }
 
 /**

@@ -7,4 +7,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'lwjgl3-opengl-demos'
+rootProject.name = 'lwjgl3-demos'

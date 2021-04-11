@@ -38,7 +38,7 @@ vec3 trace(vec3 origin, vec3 normal, vec3 dir) {
 
 void main(void) {
   float blendIdx = texelFetch(blendIndices, ivec2(gl_FragCoord.xy), 0).r;
-  vec4 s = randomCosineWeightedHemisphereDirection(normal_varying, randvec2(time, blendIdx));
+  vec4 s = randomCosineWeightedHemisphereDirection(normal_varying, randvec2(1.7, blendIdx));
   float blendFactor = blendIdx / (blendIdx+1.0);
   color = vec4(trace(position_varying + normal_varying*1E-4, normal_varying, s.xyz) / s.w, blendFactor);
   blendIndex_out = blendIdx + 1.0;

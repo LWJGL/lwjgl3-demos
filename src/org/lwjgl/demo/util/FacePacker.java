@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.util;
 
-import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.compare;
 import static java.lang.Math.ceil;
 import static java.lang.Math.max;
@@ -39,12 +38,12 @@ public class FacePacker {
 
     public static PackResult pack(List<Face> fs) {
         class S {
-            int x, y, w, h;
+            short x, y, w, h;
             S(int x, int y, int w, int h) {
-                this.x = x;
-                this.y = y;
-                this.w = w;
-                this.h = h;
+                this.x = (short) x;
+                this.y = (short) y;
+                this.w = (short) w;
+                this.h = (short) h;
             }
         }
         fs.sort((f0, f1) -> compare(f1.th(), f0.th()));
@@ -56,7 +55,7 @@ public class FacePacker {
             mw = max(mw, face.tw());
         }
         sw = max((int) ceil(sqrt(a)), mw);
-        s.add(new S(0, 0, sw, MAX_VALUE));
+        s.add(new S(0, 0, sw, Short.MAX_VALUE));
         for (int i = 0; i < fs.size(); i++) {
             Face f = fs.get(i);
             for (int j = s.size() - 1; j >= 0; j--) {

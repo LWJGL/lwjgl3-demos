@@ -9,7 +9,7 @@ wrapper {
 }
 
 group = 'org.lwjgl'
-description = 'LWJGL3 OpenGL demos with native image by GraalVM'
+description = 'LWJGL3 demos with native image by GraalVM'
 //version = '0.0.1-SNAPSHOT'
 
 ext {
@@ -18,8 +18,14 @@ ext {
     swtVersion = '4.6.1'
     graalvmVersion = '21.0.0.2'
 
-    //LWJGL modules used: minimal OpenGL
-    lwjglModules = ['lwjgl', 'lwjgl-assimp', 'lwjgl-glfw', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-stb']
+    //LWJGL modules used: minimal OpenGL, plus bgfx, cuda, jemalloc, shaderc, vma, vulkan
+    lwjglModules = [
+        'lwjgl', 'lwjgl-assimp', 'lwjgl-glfw', 'lwjgl-openal', 'lwjgl-opengl', 'lwjgl-stb',  //for OpenGL demos
+        'lwjgl-bgfx',                                  //for BGFX demos
+        'lwjgl-cuda',                                  //for CUDA demos (require NVIDIA hardware)
+        'lwjgl-jemalloc',                              //utilities
+        'lwjgl-shaderc', 'lwjgl-vma', 'lwjgl-vulkan',  //for Vulkan demos (run on Mac platform only)
+    ]
 
     mainClassName = 'org.lwjgl.demo.DemoLauncher'
 }
@@ -39,7 +45,7 @@ private static String getCurrentPlatform() {
     } else if (currentOS.isMacOsX()) {
         return 'macos'
     }
-    return null
+    return 'unknown'
 }
 
 dependencies {
@@ -50,20 +56,27 @@ dependencies {
     def currentOS = getCurrentPlatform()
 
     //OS-specific SWT library (64-bit Intel/AMD hardware only)
-    if (currentOS == 'windows')
-        implementation "org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:$swtVersion"
-    else if (currentOS == 'linux')
-        implementation "org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:$swtVersion"
-    else if (currentOS == 'macos')
-        implementation "org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:$swtVersion"
+    switch (currentOS) {
+        case 'linux':
+            implementation "org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:$swtVersion"
+            break
+        case 'macos':
+            implementation "org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:$swtVersion"
+            break
+        case 'windows':
+            implementation "org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:$swtVersion"
+            break
+        default:
+            throw new GradleException('Unknown OS: ' + currentOS)
+    }
 
     //get recommended dependency versions from the LWJGL BOM
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
 
-    //add LWJGL modules and the current OS's natives to the compile and runtime classpaths
+    //add LWJGL modules and their natives of current OS to the compile and runtime classpaths
     lwjglModules.each {
         implementation "org.lwjgl:$it"
-        if (it != 'lwjgl-egl') { //lwjgl-egl has no native libraries
+        if (it != 'lwjgl-cuda' && it != 'lwjgl-egl') { //cuda, egl have no native modules
             //use natives for 64-bit Intel/AMD platforms only
             if (it == 'lwjgl-vulkan') {
                 if (currentOS == 'macos') {
@@ -81,20 +94,9 @@ sourceSets {
     main {
         java {
             srcDirs = ['src']
-            //include launcher & GraalVM substitution code
-            include 'org/lwjgl/demo/DemoLauncher.java', 'org/lwjgl/graalvm/*'
-            //restrict to opengl demo source code & utilities
-            include 'org/lwjgl/demo/opengl/**'
-            include 'org/lwjgl/demo/intro/*'
-            include 'org/lwjgl/demo/util/*'
         }
         resources {
             srcDirs = ['res']
-            //include the GraalVM native-image configuration files
-            include 'META-INF/**'
-            //restrict to opengl demo resources only
-            include 'org/lwjgl/demo/*'
-            include 'org/lwjgl/demo/opengl/**'
         }
     }
 }
@@ -109,12 +111,10 @@ compileJava {
     options.encoding = 'UTF-8'
 }
 
-jar.archiveBaseName = 'lwjgl3-opengl-demos'
-
 run {
-    //default demo is opengl.SimpleDrawElements
+    //default demo to be run is bgfx.Bump
     //(the package "org.lwjgl.demo." is prepended automatically)
-    args 'opengl.SimpleDrawElements'
+    args 'bgfx.Bump'
 
     //get system properties specified from the command line (for debugging, etc.)
     //and pass them on to the running application's JVM

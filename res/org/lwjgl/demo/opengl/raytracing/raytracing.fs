@@ -55,7 +55,7 @@ const box boxes[] = box[7](
 const vec3 lightCenterPosition = vec3(1.5, 2.9, 3);
 const vec4 lightColor = vec4(1);
 
-float random(vec2 f, float time);
+vec3 random3(vec3 v);
 vec3 randomDiskPoint(vec3 rand, vec3 n);
 vec3 randomHemispherePoint(vec3 rand, vec3 n);
 vec3 randomCosineWeightedHemispherePoint(vec3 rand, vec3 n);
@@ -157,11 +157,8 @@ void main(void) {
   vec4 newColor = vec4(0.0, 0.0, 0.0, 1.0);
   cameraUp = normalize(ray01 - ray00);
   for (int s = 0; s < 1; s++) {
-    float rand1 = random(pos, time + float(s));
-    float rand2 = random(pos + vec2(1, 2), time + float(s));
-    float rand3 = random(pos - vec2(3, 4), time - float(s));
-    rand = vec3(rand1, rand2, rand3);
-    vec2 jitter = vec2(rand1, rand2) / vec2(width, height);
+    rand = random3(vec3(pos, time + float(s)));
+    vec2 jitter = rand.xy / vec2(width, height);
     vec2 p = pos + jitter;
     vec3 dir = mix(mix(ray00, ray01, p.y), mix(ray10, ray11, p.y), p.x);
     newColor += trace(eye, dir);

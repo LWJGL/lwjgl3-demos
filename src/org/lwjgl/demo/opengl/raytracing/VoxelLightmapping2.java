@@ -41,7 +41,8 @@ import org.lwjgl.system.*;
 public class VoxelLightmapping2 {
     private static final int NOT_USED = 0;
     private static final int VERTICES_PER_FACE = 4;
-    private static final int INDICES_PER_FACE = 6;
+    private static final int INDICES_PER_FACE = 5;
+    private static final int PRIMITIVE_RESTART_INDEX = 0xFFFF;
 
     private long window;
     private int width = 1600;
@@ -157,6 +158,8 @@ public class VoxelLightmapping2 {
     private static void configureGlobalGlState() {
         // for accumulating sampled light onto lightmap texels baded on blendFactor
         glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(PRIMITIVE_RESTART_INDEX);
     }
 
     private void init() throws IOException {
@@ -273,6 +276,10 @@ public class VoxelLightmapping2 {
         glBindFragDataLocation(program, 0, "color");
         glBindFragDataLocation(program, 1, "blendIndex_out");
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(random);
+        glDeleteShader(trace);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)
@@ -299,6 +306,9 @@ public class VoxelLightmapping2 {
         glAttachShader(program, trace);
         glAttachShader(program, fshader);
         glLinkProgram(program);
+        glDeleteShader(vshader);
+        glDeleteShader(trace);
+        glDeleteShader(fshader);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
         if (programLog.trim().length() > 0)
@@ -322,103 +332,128 @@ public class VoxelLightmapping2 {
         return (side & 1) != 0;
     }
 
-    private static short materialAndOffset(byte m, int x, int y, int z) {
-        return (short) ((m & 0xFF) | ((x + 1) << 8) | ((y + 1) << 10) | ((z + 1) << 12));
-    }
-
-    public void triangulate(ArrayList<Face> faces, ShortBuffer positions, ByteBuffer normals,
-            ShortBuffer lightmapCoords, IntBuffer indices) {
+    public void triangulate(List<Face> faces, ByteBuffer positionsAndTypes,
+                            ByteBuffer sidesAndOffsets, ShortBuffer lightmapCoords, ShortBuffer indices) {
+        if (faces.size() << 2 > PRIMITIVE_RESTART_INDEX)
+            throw new AssertionError();
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
             switch (f.s >>> 1) {
             case 0:
-                generatePositionsAndNormalsX(f, positions, normals);
+                generatePositionsAndTypesX(f, positionsAndTypes);
                 break;
             case 1:
-                generatePositionsAndNormalsY(f, positions, normals);
+                generatePositionsAndTypesY(f, positionsAndTypes);
                 break;
             case 2:
-                generatePositionsAndNormalsZ(f, positions, normals);
+                generatePositionsAndTypesZ(f, positionsAndTypes);
                 break;
             }
+            int n00 = aoFactor(f.v >>>  8 & 7), n10 = aoFactor(f.v >>> 11 & 7);
+            int n01 = aoFactor(f.v >>> 14 & 7), n11 = aoFactor(f.v >>> 17 & 7);
+            generateSidesAndOffsets(f, n00, n10, n01, n11, sidesAndOffsets);
+            int ao00 = n00 >>> 4, ao10 = n10 >>> 4, ao01 = n01 >>> 4, ao11 = n11 >>> 4;
             generateTexCoords(f, lightmapCoords);
-            generateIndices(f, i, indices);
+            generateIndices(f, i, ao00 + ao11 > ao10 + ao01, indices);
         }
     }
 
-    private static void generateIndices(Face f, int i, IntBuffer indices) {
-        if (isPositiveSide(f.s)) {
-            indices.put((i << 2) + 1).put((i << 2) + 2).put(i << 2);
-            indices.put((i << 2) + 2).put((i << 2) + 3).put(i << 2);
+    private static void generateIndices(Face f, int i, boolean swap, ShortBuffer indices) {
+        if (isPositiveSide(f.s))
+            generateIndicesPositive(i, swap, indices);
+        else
+            generateIndicesNegative(i, swap, indices);
+    }
+
+    private static void generateIndicesNegative(int i, boolean swap, ShortBuffer indices) {
+        if (swap) {
+            indices.put((short) ((i << 2) + 2)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 1)).put((short) PRIMITIVE_RESTART_INDEX);
         } else {
-            indices.put((i << 2) + 2).put((i << 2) + 1).put(i << 2);
-            indices.put((i << 2) + 3).put((i << 2) + 2).put(i << 2);
+            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
+                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
+        }
+    }
+
+    private static void generateIndicesPositive(int i, boolean swap, ShortBuffer indices) {
+        if (swap) {
+            indices.put((short) ((i << 2) + 1)).put((short) ((i << 2) + 3)).put((short) ((i << 2) + 0))
+                   .put((short) ((i << 2) + 2)).put((short) PRIMITIVE_RESTART_INDEX);
+        } else {
+            indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
+                   .put((short) ((i << 2) + 0)).put((short) PRIMITIVE_RESTART_INDEX);
         }
     }
 
     private void generateTexCoords(Face f, ShortBuffer lightmapCoords) {
         lightmapCoords
-                .put((short) f.tx).put((short) f.ty).put((short) 0).put((short) 0)
-                .put((short) (f.tx + f.w())).put((short) f.ty).put((short) 1).put((short) 0)
-                .put((short) (f.tx + f.w())).put((short) (f.ty + f.h())).put((short) 1).put((short) 1)
-                .put((short) f.tx).put((short) (f.ty + f.h())).put((short) 0).put((short) 1);
+                .put((short) f.tx).put((short) f.ty)
+                .put((short) (f.tx + f.w())).put((short) f.ty)
+                .put((short) f.tx).put((short) (f.ty + f.h()))
+                .put((short) (f.tx + f.w())).put((short) (f.ty + f.h()));
     }
 
-    private static void generatePositionsAndNormalsZ(Face f, ShortBuffer positions, ByteBuffer normals) {
-        positions.put(f.u0).put(f.v0).put(f.p).put(materialAndOffset(f.v, -1, -1, 0));
-        positions.put(f.u1).put(f.v0).put(f.p).put(materialAndOffset((byte) 0, +1, -1, 0));
-        positions.put(f.u1).put(f.v1).put(f.p).put(materialAndOffset((byte) 0, +1, +1, 0));
-        positions.put(f.u0).put(f.v1).put(f.p).put(materialAndOffset((byte) 0, -1, +1, 0));
-        normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
-        normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
-        normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
-        normals.put((byte) 0).put((byte) 0).put((byte) (127 * ((f.s << 1) - 9)));
+    private static byte aoFactor(int n) {
+        boolean b1 = (n & 1) != 0, b2 = (n & 2) != 0, b4 = (n & 4) != 0;
+        int f = b1 && b4 ? 0 : (3 - Integer.bitCount(n));
+        int x = b1 && !b2 && !b4 ? 1 : b4 || b2 && !b1 ? -1 : 0,
+            y = b4 && !b2 && !b1 ? 1 : b1 || b2 && !b4 ? -1 : 0;
+        return (byte) ((x + 1) | (y + 1) << 2 | f << 4);
     }
 
-    private static void generatePositionsAndNormalsY(Face f, ShortBuffer positions, ByteBuffer normals) {
-        positions.put(f.v0).put(f.p).put(f.u0).put(materialAndOffset(f.v, -1, 0, -1));
-        positions.put(f.v0).put(f.p).put(f.u1).put(materialAndOffset((byte) 0, -1, 0, +1));
-        positions.put(f.v1).put(f.p).put(f.u1).put(materialAndOffset((byte) 0, +1, 0, +1));
-        positions.put(f.v1).put(f.p).put(f.u0).put(materialAndOffset((byte) 0, +1, 0, -1));
-        normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
-        normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
-        normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
-        normals.put((byte) 0).put((byte) (127 * ((f.s << 1) - 5))).put((byte) 0);
+    private static void generateSidesAndOffsets(Face f, int ao00, int ao10, int ao01, int ao11, ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.put(f.s).put((byte) ao00);
+        sidesAndOffsets.put(f.s).put((byte) ao10);
+        sidesAndOffsets.put(f.s).put((byte) ao01);
+        sidesAndOffsets.put(f.s).put((byte) ao11);
     }
 
-    private static void generatePositionsAndNormalsX(Face f, ShortBuffer positions, ByteBuffer normals) {
-        positions.put(f.p).put(f.u0).put(f.v0).put(materialAndOffset(f.v, 0, -1, -1));
-        positions.put(f.p).put(f.u1).put(f.v0).put(materialAndOffset((byte) 0, 0, +1, -1));
-        positions.put(f.p).put(f.u1).put(f.v1).put(materialAndOffset((byte) 0, 0, +1, +1));
-        positions.put(f.p).put(f.u0).put(f.v1).put(materialAndOffset((byte) 0, 0, -1, +1));
-        normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
-        normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
-        normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
-        normals.put((byte) (127 * ((f.s << 1) - 1))).put((byte) 0).put((byte) 0);
+    private static void generatePositionsAndTypesZ(Face f, ByteBuffer positions) {
+        positions.put((byte) f.u0).put((byte) f.v0).put((byte) f.p).put((byte) f.v);
+        positions.put((byte) f.u1).put((byte) f.v0).put((byte) f.p).put((byte) f.v);
+        positions.put((byte) f.u0).put((byte) f.v1).put((byte) f.p).put((byte) f.v);
+        positions.put((byte) f.u1).put((byte) f.v1).put((byte) f.p).put((byte) f.v);
+    }
+
+    private static void generatePositionsAndTypesY(Face f, ByteBuffer positions) {
+        positions.put((byte) f.v0).put((byte) f.p).put((byte) f.u0).put((byte) f.v);
+        positions.put((byte) f.v0).put((byte) f.p).put((byte) f.u1).put((byte) f.v);
+        positions.put((byte) f.v1).put((byte) f.p).put((byte) f.u0).put((byte) f.v);
+        positions.put((byte) f.v1).put((byte) f.p).put((byte) f.u1).put((byte) f.v);
+    }
+
+    private static void generatePositionsAndTypesX(Face f, ByteBuffer positions) {
+        positions.put((byte) f.p).put((byte) f.u0).put((byte) f.v0).put((byte) f.v);
+        positions.put((byte) f.p).put((byte) f.u1).put((byte) f.v0).put((byte) f.v);
+        positions.put((byte) f.p).put((byte) f.u0).put((byte) f.v1).put((byte) f.v);
+        positions.put((byte) f.p).put((byte) f.u1).put((byte) f.v1).put((byte) f.v);
     }
 
     private void createSceneVbos(ArrayList<Face> faces) {
-        ShortBuffer positions = memAllocShort(4 * Short.BYTES * faces.size() * VERTICES_PER_FACE);
-        ByteBuffer normals = memAlloc(3 * Byte.BYTES * faces.size() * VERTICES_PER_FACE);
-        ShortBuffer lightmapCoords = memAllocShort(4 * Short.BYTES * faces.size() * VERTICES_PER_FACE);
-        IntBuffer indices = memAllocInt(Integer.BYTES * faces.size() * INDICES_PER_FACE);
-        triangulate(faces, positions, normals, lightmapCoords, indices);
+        ByteBuffer positionsAndTypes = memAlloc(4 * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer sidesAndOffsets = memAlloc(2 * faces.size() * VERTICES_PER_FACE);
+        ShortBuffer lightmapCoords = memAllocShort(2 * faces.size() * VERTICES_PER_FACE);
+        ShortBuffer indices = memAllocShort(faces.size() * INDICES_PER_FACE);
+        triangulate(faces, positionsAndTypes, sidesAndOffsets, lightmapCoords, indices);
         vao = glGenVertexArrays();
         glBindVertexArray(vao);
-        int positionsBufferObject = setupPositions(positions);
-        int normalsBufferObject = setupNormals(normals);
+        int positionsAndTypesBufferObject = setupPositionsAndTypes(positionsAndTypes);
+        int sidesAndOffsetsBufferObject = setupSidesAndOffsets(sidesAndOffsets);
         int lightmapCoordsBufferObject = setupLightmapCoords(lightmapCoords);
         int indicesBufferObject = setupIndices(indices);
+        memFree(positionsAndTypes);
+        memFree(sidesAndOffsets);
+        memFree(lightmapCoords);
+        memFree(indices);
         glBindVertexArray(0);
-        glDeleteBuffers(new int[] {positionsBufferObject, normalsBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
+        glDeleteBuffers(new int[] {positionsAndTypesBufferObject, sidesAndOffsetsBufferObject, lightmapCoordsBufferObject, indicesBufferObject});
     }
 
-    private int setupIndices(IntBuffer indices) {
+    private int setupIndices(ShortBuffer indices) {
         indices.flip();
         int indicesBufferObject = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBufferObject);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
-        memFree(indices);
         return indicesBufferObject;
     }
 
@@ -427,32 +462,29 @@ public class VoxelLightmapping2 {
         int lightmapCoordsBufferObject = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, lightmapCoordsBufferObject);
         glBufferData(GL_ARRAY_BUFFER, lightmapCoords, GL_STATIC_DRAW);
-        memFree(lightmapCoords);
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
+        glVertexAttribPointer(2, 2, GL_UNSIGNED_SHORT, false, 0, 0L);
         return lightmapCoordsBufferObject;
     }
 
-    private int setupNormals(ByteBuffer normals) {
-        normals.flip();
-        int normalsBufferObject = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, normalsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW);
-        memFree(normals);
+    private int setupSidesAndOffsets(ByteBuffer sidesAndOffsets) {
+        sidesAndOffsets.flip();
+        int sidesAndOffsetsBufferObject = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, sidesAndOffsetsBufferObject);
+        glBufferData(GL_ARRAY_BUFFER, sidesAndOffsets, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_BYTE, true, 0, 0L);
-        return normalsBufferObject;
+        glVertexAttribIPointer(1, 2, GL_UNSIGNED_BYTE, 0, 0L);
+        return sidesAndOffsetsBufferObject;
     }
 
-    private int setupPositions(ShortBuffer positions) {
-        positions.flip();
-        int positionsBufferObject = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, positionsBufferObject);
-        glBufferData(GL_ARRAY_BUFFER, positions, GL_STATIC_DRAW);
-        memFree(positions);
+    private int setupPositionsAndTypes(ByteBuffer positionsAndTypes) {
+        positionsAndTypes.flip();
+        int positionsAndTypesBufferObject = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, positionsAndTypesBufferObject);
+        glBufferData(GL_ARRAY_BUFFER, positionsAndTypes, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 4, GL_UNSIGNED_SHORT, false, 0, 0L);
-        return positionsBufferObject;
+        glVertexAttribPointer(0, 4, GL_UNSIGNED_BYTE, false, 0, 0L);
+        return positionsAndTypesBufferObject;
     }
 
     private void createSceneTBOs(ArrayList<Face> faces) {
@@ -573,30 +605,22 @@ public class VoxelLightmapping2 {
         float factor = 10.0f;
         if (keydown[GLFW_KEY_LEFT_SHIFT])
             factor = 40.0f;
-        if (keydown[GLFW_KEY_W]) {
+        if (keydown[GLFW_KEY_W])
             vMat.translateLocal(0, 0, factor * dt);
-        }
-        if (keydown[GLFW_KEY_S]) {
+        if (keydown[GLFW_KEY_S])
             vMat.translateLocal(0, 0, -factor * dt);
-        }
-        if (keydown[GLFW_KEY_A]) {
+        if (keydown[GLFW_KEY_A])
             vMat.translateLocal(factor * dt, 0, 0);
-        }
-        if (keydown[GLFW_KEY_D]) {
+        if (keydown[GLFW_KEY_D])
             vMat.translateLocal(-factor * dt, 0, 0);
-        }
-        if (keydown[GLFW_KEY_Q]) {
+        if (keydown[GLFW_KEY_Q])
             vMat.rotateLocalZ(-factor * dt);
-        }
-        if (keydown[GLFW_KEY_E]) {
+        if (keydown[GLFW_KEY_E])
             vMat.rotateLocalZ(factor * dt);
-        }
-        if (keydown[GLFW_KEY_LEFT_CONTROL]) {
+        if (keydown[GLFW_KEY_LEFT_CONTROL])
             vMat.translateLocal(0, factor * dt, 0);
-        }
-        if (keydown[GLFW_KEY_SPACE]) {
+        if (keydown[GLFW_KEY_SPACE])
             vMat.translateLocal(0, -factor * dt, 0);
-        }
     }
 
     private void update(float dt) {
@@ -630,7 +654,7 @@ public class VoxelLightmapping2 {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_BUFFER, facesTexture);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_SHORT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -653,7 +677,7 @@ public class VoxelLightmapping2 {
         glBindTexture(GL_TEXTURE_2D, blendIndexTexture);
         glViewport(0, 0, lightmapTexWidth, lightmapTexHeight);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, faceCount * INDICES_PER_FACE, GL_UNSIGNED_INT, 0L);
+        glDrawElements(GL_TRIANGLE_STRIP, faceCount * INDICES_PER_FACE, GL_UNSIGNED_SHORT, 0L);
         glBindVertexArray(0);
         glUseProgram(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
