@@ -71,6 +71,8 @@ public class VoxelGameGL {
             System.setProperty("org.lwjgl.util.DebugLoader", "true");
             System.setProperty("org.lwjgl.util.DebugAllocator", "true");
             System.setProperty("org.lwjgl.util.DebugStack", "true");
+        } else {
+            System.setProperty("org.lwjgl.util.NoChecks", "true");
         }
         /* Configure LWJGL MemoryStack to 1024KB */
         Configuration.STACK_SIZE.set(1024);
