@@ -106,6 +106,7 @@ vec3 around(vec3 v, vec3 z) {
  * @returns the cartesian direction vector
  */
 vec3 isotropic(float rp, float c) {
+  // sin(a) = sqrt(1.0 - cos(a)^2) , in the interval [0, PI/2] relevant for us
   float p = TWO_PI * rp, s = sqrt(1.0 - c*c);
   return vec3(cos(p) * s, sin(p) * s, c);
 }
