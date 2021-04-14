@@ -17,15 +17,15 @@
 #define spatialrand vec2
 
 /**
- * Compute an arbitrary unit vector orthogonal to any vector 'v'.
+ * Compute an arbitrary vector orthogonal to any vector 'v'.
  *
  * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
  *
- * @param v the vector to compute an orthogonal unit vector from
- * @returns the unit vector orthogonal to 'v'
+ * @param v the vector to compute an orthogonal vector from
+ * @returns the vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
+  return mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z)));
 }
 
 /**

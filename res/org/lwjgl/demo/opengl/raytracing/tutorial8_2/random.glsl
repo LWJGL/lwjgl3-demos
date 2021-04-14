@@ -9,7 +9,7 @@
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 #define spatialrand vec2
 vec3 ortho(vec3 v) {
-  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
+  return mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z)));
 }
 uint hash3(uint x, uint y, uint z) {
   x += x >> 11;

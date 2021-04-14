@@ -9,7 +9,7 @@
 #define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
 vec3 ortho(vec3 v) {
-  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
+  return mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z)));
 }
 vec3 around(vec3 v, vec3 z) {
   vec3 t = ortho(z), b = cross(z, t);
