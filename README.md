@@ -2,10 +2,10 @@
 
 Demos for LWJGL 3, compiled to native executable by GraalVM native-image utility.
 
-All demos in [src](src) are included in the build. Most demos are portable across different OSes,
-but some are platform-specific, like the [Vulkan demos](src/org/lwjgl/demo/vulkan) which work
-only on Mac platform, or the [CUDA demos](src/org/lwjgl/demo/cuda) which require a NVIDIA graphics
-card to run.
+All demos in [src](src/org/lwjgl/demo) are included in the build. Most demos are portable
+across different OSes, but some are GPU-specific, like the [Vulkan demos](src/org/lwjgl/demo/vulkan)
+which need a discrete GPU with supporting Vulkan driver, or the [CUDA demos](src/org/lwjgl/demo/cuda)
+which require a NVIDIA graphics card to run.
 
 Gradle and Maven build scripts are provided for building the project,
 which requires JDK 11+ or GraalVM 21+ (for native image).
@@ -182,5 +182,5 @@ can be further reduced in size via compression using the [UPX](https://upx.githu
 as described [here](https://medium.com/graalvm/compressed-graalvm-native-images-4d233766a214).
 
 For example, the resulting `lwjgl3-demos.exe` native application file produced in Windows
-is normally 79MB in size, but is compressed to 26MB with the UPX command: `upx --best lwjgl3-demos.exe`
+is normally 109MB in size, but is compressed to 33MB with the UPX command: `upx --best lwjgl3-demos.exe`
 

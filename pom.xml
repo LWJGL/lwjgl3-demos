@@ -215,7 +215,7 @@
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>svm</artifactId>
             <version>${graalvm.version}</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <!-- LWJGL modules used: minimal OpenGL, plus bgfx, jemalloc, shaderc, vma, vulkan -->
         <dependency>
