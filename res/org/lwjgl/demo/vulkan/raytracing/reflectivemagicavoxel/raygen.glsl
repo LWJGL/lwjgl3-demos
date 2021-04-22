@@ -18,15 +18,15 @@ layout(location = 0) rayPayloadEXT hitPayload payload;
 layout(binding = 0, set = 0) uniform accelerationStructureEXT acc;
 layout(binding = 1, set = 0, rgba8) uniform image2D image;
 layout(binding = 2, set = 0) uniform Camera {
-  mat4 projInverse;
+  vec3 corners[4];
   mat4 viewInverse;
 } cam;
 
 void main(void) {
   vec2  px        = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-  vec2  ndc       = (px / vec2(gl_LaunchSizeEXT.xy)) * 2.0 - vec2(1.0);
+  vec2  p         = px / vec2(gl_LaunchSizeEXT.xy);
   vec3  origin    = cam.viewInverse[3].xyz;
-  vec4  target    = cam.projInverse[0] * ndc.xxxx + cam.projInverse[1] * ndc.yyyy + cam.projInverse[3];
+  vec3  target    = mix(mix(cam.corners[0], cam.corners[2], p.y), mix(cam.corners[1], cam.corners[3], p.y), p.x);
   vec4  direction = cam.viewInverse * vec4(target.xyz, 0.0);
   uint  rayFlags  = gl_RayFlagsOpaqueEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin      = 1E-4;

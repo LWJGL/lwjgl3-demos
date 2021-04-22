@@ -85,6 +85,7 @@ public class SimpleTriangle {
     private static final Matrix4x3f viewMatrix = new Matrix4x3f();
     private static final Matrix4f invProjMatrix = new Matrix4f();
     private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
+    private static final Vector3f tmpv3 = new Vector3f();
 
     private static void onKey(long window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE)
@@ -1528,7 +1529,10 @@ public class SimpleTriangle {
         viewMatrix.setLookAt(0, 0, 10, 0, 0, 0, 0, 1, 0);
         projMatrix.invert(invProjMatrix);
         viewMatrix.invert(invViewMatrix);
-        invProjMatrix.get(0, rayTracingUbos[idx].mapped);
+        invProjMatrix.transformProject(-1, -1, 0, 1, tmpv3).get(rayTracingUbos[idx].mapped);
+        invProjMatrix.transformProject(+1, -1, 0, 1, tmpv3).get(4*Float.BYTES, rayTracingUbos[idx].mapped);
+        invProjMatrix.transformProject(-1, +1, 0, 1, tmpv3).get(8*Float.BYTES, rayTracingUbos[idx].mapped);
+        invProjMatrix.transformProject(+1, +1, 0, 1, tmpv3).get(12*Float.BYTES, rayTracingUbos[idx].mapped);
         invViewMatrix.get4x4(Float.BYTES * 16, rayTracingUbos[idx].mapped);
         rayTracingUbos[idx].flushMapped(0, Float.BYTES * 16 * 2);
     }
