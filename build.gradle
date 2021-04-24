@@ -1,6 +1,7 @@
 plugins {
     id 'application'
-    id 'com.gluonhq.client-gradle-plugin' version '0.1.36'  //requires GraalVM 21+
+    id 'org.openjfx.javafxplugin' version '0.0.9'  //requires JDK11+
+    id 'com.gluonhq.client-gradle-plugin' version '0.1.39'  //requires GraalVM 21.1+
 }
 
 wrapper {
@@ -16,7 +17,7 @@ ext {
     lwjglVersion = '3.2.3'
     jomlVersion = '1.10.1'
     swtVersion = '4.6.1'
-    graalvmVersion = '21.0.0.2'
+    graalvmVersion = '21.1.0'
 
     //LWJGL modules used: minimal OpenGL, plus bgfx, cuda, jemalloc, shaderc, vma, vulkan
     lwjglModules = [
@@ -24,7 +25,7 @@ ext {
         'lwjgl-bgfx',                                  //for BGFX demos
         'lwjgl-cuda',                                  //for CUDA demos (require NVIDIA hardware)
         'lwjgl-jemalloc',                              //utilities
-        'lwjgl-shaderc', 'lwjgl-vma', 'lwjgl-vulkan',  //for Vulkan demos (run on Mac platform only)
+        'lwjgl-shaderc', 'lwjgl-vma', 'lwjgl-vulkan',  //for Vulkan demos (requires discrete GPU with Vulkan driver)
     ]
 
     mainClassName = 'org.lwjgl.demo.DemoLauncher'
