@@ -124,6 +124,8 @@ public class Multithreaded {
                 }
             }
         }
+        
+        GL.setCapabilities(null);
     }
 
     void winProcLoop() {
