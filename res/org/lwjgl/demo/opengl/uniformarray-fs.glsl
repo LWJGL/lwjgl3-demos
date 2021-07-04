@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 130
+#version 150 core
 
 uniform vec3 cols[4];
 uniform int chosen;
