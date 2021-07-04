@@ -779,6 +779,7 @@ public class VoxelGameGL {
     private final Material[] materials = new Material[512];
     private float nxX, nxY, nxZ, nxW, pxX, pxY, pxZ, pxW, nyX, nyY, nyZ, nyW, pyX, pyY, pyZ, pyW;
     private Callback debugProc;
+    private GLCapabilities caps;
 
     /* All the different features we are using */
     private boolean useDirectStateAccess;
@@ -1219,7 +1220,7 @@ public class VoxelGameGL {
      * LWJGL's {@link GLCapabilities}.
      */
     private void determineOpenGLCapabilities() {
-        GLCapabilities caps = GL.createCapabilities();
+        caps = GL.createCapabilities();
         useDirectStateAccess = caps.GL_ARB_direct_state_access/* 4.5 */ && caps.GL_ARB_vertex_attrib_binding/* 4.3 */ || caps.OpenGL45;
         useMultiDrawIndirect = caps.GL_ARB_multi_draw_indirect || caps.OpenGL43;
         useBufferStorage = caps.GL_ARB_buffer_storage || caps.OpenGL44;
@@ -3392,6 +3393,8 @@ public class VoxelGameGL {
      * {@link GLFW#glfwPollEvents()}).
      */
     private void runUpdateAndRenderLoop() {
+        glfwMakeContextCurrent(window);
+        GL.setCapabilities(caps);
         long lastTime = System.nanoTime();
         while (!glfwWindowShouldClose(window)) {
             /*
@@ -3680,7 +3683,7 @@ public class VoxelGameGL {
     /**
      * Initialize and run the game/demo.
      */
-    private void run() throws InterruptedException {
+    private void run() throws InterruptedException, IOException {
         if (!glfwInit())
             throw new IllegalStateException("Unable to initialize GLFW");
 
@@ -3689,64 +3692,13 @@ public class VoxelGameGL {
         setWindowPosition();
         queryFramebufferSizeForHiDPI();
 
-        /*
-         * We will queue any action requiring an OpenGL context to be processed later by the render thread.
-         * Use a latch to synchronize finishing of these render thread actions with initially showing the
-         * GLFW window.
-         */
-        final CountDownLatch latch = new CountDownLatch(1);
-        updateAndRenderRunnables.add(new DelayedRunnable(() -> {
-            glfwMakeContextCurrent(window);
-
-            /* Determine, which additional OpenGL capabilities we have. */
-            determineOpenGLCapabilities();
-
-            /*
-             * Compute number of vertices per face and number of bytes per vertex. These depend on the features
-             * we are going to use.
-             */
-            verticesPerFace = drawPointsWithGS ? 1 : 4;
-            indicesPerFace = drawPointsWithGS ? 1 : 5;
-            voxelVertexSize = drawPointsWithGS ? 2 * Integer.BYTES : Integer.BYTES + Short.BYTES + (!useMultiDrawIndirect ? Integer.BYTES : 0);
-
-            if (DEBUG || GLDEBUG) {
-                installDebugCallback();
-            }
-            glfwSwapInterval(VSYNC ? 1 : 0);
-
-            /* Configure OpenGL state and create all necessary resources */
-            configureGlobalGlState();
-            createSelectionProgram();
-            createSelectionProgramUbo();
-            createNullVao();
-            createMaterials();
-            createMultiDrawIndirectBuffer();
-            createChunkInfoBuffers();
-            createChunksProgram();
-            createChunksProgramUbo();
-            if (generateDrawCallsViaShader) {
-                createOcclusionCullingBufferObjects();
-                createBoundingBoxesProgram();
-                createCollectDrawCallsProgram();
-                createBoundingBoxesProgramUbo();
-                createBoundingBoxesVao();
-            }
-            createFramebufferObject();
-
-            /* Make sure everything is ready before we show the window */
-            glFlush();
-            glFinish();
-            /* Notify the latch so that the window can be shown */
-            latch.countDown();
-            return null;
-        }, "Init", 0));
+        initGLResources();
 
         /* Run logic updates and rendering in a separate thread */
         Thread updateAndRenderThread = createAndStartUpdateAndRenderThread();
         /* Process OS/window event messages in this main thread */
         Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
         /* Wait for the latch to signal that init render thread actions are done */
-        latch.await();
         runWndProcLoop();
         /*
          * After the wnd loop exited (because the window was closed), wait for render thread to complete
@@ -3760,7 +3712,51 @@ public class VoxelGameGL {
         glfwTerminate();
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    private void initGLResources() throws IOException {
+        glfwMakeContextCurrent(window);
+
+        /* Determine, which additional OpenGL capabilities we have. */
+        determineOpenGLCapabilities();
+
+        /*
+         * Compute number of vertices per face and number of bytes per vertex. These depend on the features
+         * we are going to use.
+         */
+        verticesPerFace = drawPointsWithGS ? 1 : 4;
+        indicesPerFace = drawPointsWithGS ? 1 : 5;
+        voxelVertexSize = drawPointsWithGS ? 2 * Integer.BYTES : Integer.BYTES + Short.BYTES + (!useMultiDrawIndirect ? Integer.BYTES : 0);
+
+        if (DEBUG || GLDEBUG) {
+            installDebugCallback();
+        }
+        glfwSwapInterval(VSYNC ? 1 : 0);
+
+        /* Configure OpenGL state and create all necessary resources */
+        configureGlobalGlState();
+        createSelectionProgram();
+        createSelectionProgramUbo();
+        createNullVao();
+        createMaterials();
+        createMultiDrawIndirectBuffer();
+        createChunkInfoBuffers();
+        createChunksProgram();
+        createChunksProgramUbo();
+        if (generateDrawCallsViaShader) {
+            createOcclusionCullingBufferObjects();
+            createBoundingBoxesProgram();
+            createCollectDrawCallsProgram();
+            createBoundingBoxesProgramUbo();
+            createBoundingBoxesVao();
+        }
+        createFramebufferObject();
+
+        /* Make sure everything is ready before we show the window */
+        glFlush();
+        glfwMakeContextCurrent(NULL);
+        GL.setCapabilities(null);
+    }
+
+    public static void main(String[] args) throws Exception {
         new VoxelGameGL().run();
     }
 }
