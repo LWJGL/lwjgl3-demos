@@ -23,9 +23,9 @@ in VS_OUT {
 out FS_IN {
   vec4 ao;
   vec2 surfacePos;
-  vec2 uv;
   flat int matIndex;
 } gs_out;
+centroid out vec2 uv;
 
 const float aos[4] = float[4](AO_FACTORS);
 const vec3 N[6] = vec3[6](vec3(1,0,0), vec3(-1,0,0), vec3(0,1,0), vec3(0,-1,0), vec3(0,0,1), vec3(0,0,-1));
@@ -57,28 +57,28 @@ void main(void) {
   vec3 ox = 2E-4 * Ox[sd], oy = 2E-4 * Oy[sd], p = p0u0v0.yxz + rp;
   {
     gs_out.surfacePos = sp + u;
-    gs_out.uv = vec2(1.0, 0.0);
+    uv = vec2(1.0, 0.0);
     w = dot(tmvp, vec4(p + up, 1.0));
     gl_Position = mvp * vec4(p + up + ox*w - oy*w, 1.0);
     EmitVertex();
   }
   {
     gs_out.surfacePos = sp + u + v;
-    gs_out.uv = vec2(1.0);
+    uv = vec2(1.0);
     w = dot(tmvp, vec4(p + up + vp, 1.0));
     gl_Position = mvp * vec4(p + up + vp + ox*w + oy*w, 1.0);
     EmitVertex();
   }
   {
     gs_out.surfacePos = sp;
-    gs_out.uv = vec2(0.0);
+    uv = vec2(0.0);
     w = dot(tmvp, vec4(p, 1.0));
     gl_Position = mvp * vec4(p - ox*w - oy*w, 1.0);
     EmitVertex();
   }
   {
     gs_out.surfacePos = sp + v;
-    gs_out.uv = vec2(0.0, 1.0);
+    uv = vec2(0.0, 1.0);
     w = dot(tmvp, vec4(p + vp, 1.0));
     gl_Position = mvp * vec4(p + vp - ox*w + oy*w, 1.0);
     EmitVertex();

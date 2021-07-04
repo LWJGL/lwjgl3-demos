@@ -9,9 +9,9 @@ uniform samplerBuffer materials;
 in FS_IN {
   vec4 ao;
   vec2 surfacePos;
-  vec2 uv;
   flat int matIndex;
 } fs_in;
+centroid in vec2 uv;
 
 layout(location=0) out vec4 color;
 
@@ -34,7 +34,7 @@ float gridSmooth() {
 
 void main(void) {
   vec3 col = texelFetch(materials, fs_in.matIndex).rgb;
-  vec2 cuv = clamp(fs_in.uv, vec2(0.0), vec2(1.0));
+  vec2 cuv = clamp(uv, vec2(0.0), vec2(1.0));
   float aom = mix(mix(fs_in.ao.x, fs_in.ao.z, cuv.y), mix(fs_in.ao.y, fs_in.ao.w, cuv.y), cuv.x);
   float g = gridSmooth();
   color = aom * g * vec4(col, 0.5);

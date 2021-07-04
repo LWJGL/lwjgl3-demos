@@ -28,9 +28,9 @@ layout(location=2) in uint chunkIndex;
 out FS_IN {
   vec4 ao;
   vec2 surfacePos;
-  centroid vec2 uv;
   flat int matIndex;
 } vs_out;
+centroid out vec2 uv;
 
 vec3 offset() {
   uint s = sideAndAoFactors.x;
@@ -54,7 +54,7 @@ vec3 relChunkPos() {
 }
 
 void main(void) {
-  vs_out.uv = vec2(gl_VertexID & 1, gl_VertexID >> 1 & 1);
+  uv = vec2(gl_VertexID & 1, gl_VertexID >> 1 & 1);
   vs_out.ao = vec4(aos[sideAndAoFactors.y & 3u],
                    aos[sideAndAoFactors.y >> 2u & 3u],
                    aos[sideAndAoFactors.y >> 4u & 3u],
