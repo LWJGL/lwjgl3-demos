@@ -3374,6 +3374,10 @@ public class VoxelGameGL {
         glfwShowWindow(window);
         while (!glfwWindowShouldClose(window)) {
             glfwWaitEvents();
+            if (updateWindowTitle) {
+                glfwSetWindowTitle(window, windowStatsString);
+                updateWindowTitle = false;
+            }
         }
     }
 
@@ -3541,9 +3545,11 @@ public class VoxelGameGL {
 
     private int statsFrames;
     private float statsTotalFramesTime;
+    private volatile boolean updateWindowTitle;
+    private String windowStatsString;
 
     /**
-     * When in windowed mode, this method will be called to update certain statistics in the window
+     * When in windowed mode, this method will be called to update certain statistics that are shown in the window
      * title.
      */
     private void updateStatsInWindowTitle(float dt) {
@@ -3551,12 +3557,13 @@ public class VoxelGameGL {
             int px = (int) floor(playerPosition.x);
             int py = (int) floor(playerPosition.y);
             int pz = (int) floor(playerPosition.z);
-            glfwSetWindowTitle(window,
-                    statsFrames * 2 + " FPS, " + INT_FORMATTER.format(allChunks.size()) + " act. chunks, " + INT_FORMATTER.format(numChunksInFrustum)
-                            + " chunks in frustum, GPU mem. " + INT_FORMATTER.format(computePerFaceBufferObjectSize() / 1024 / 1024) + " MB @ " + px + " , "
-                            + py + " , " + pz);
+            windowStatsString = statsFrames * 2 + " FPS, " + INT_FORMATTER.format(allChunks.size()) + " act. chunks, " + INT_FORMATTER.format(numChunksInFrustum)
+                + " chunks in frustum, GPU mem. " + INT_FORMATTER.format(computePerFaceBufferObjectSize() / 1024 / 1024) + " MB @ " + px + " , "
+                + py + " , " + pz;
             statsFrames = 0;
             statsTotalFramesTime = 0f;
+            updateWindowTitle = true;
+            glfwPostEmptyEvent();
         }
         statsFrames++;
         statsTotalFramesTime += dt;
