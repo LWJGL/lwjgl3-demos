@@ -789,10 +789,10 @@ public class VoxelGameGL {
     private boolean drawPointsWithGS;
     private boolean useInverseDepth;
     private boolean useNvMultisampleCoverage;
-    private boolean generateDrawCallsViaShader;
+    private boolean canGenerateDrawCallsViaShader;
     private boolean useOcclusionCulling;
     private boolean useTemporalCoherenceOcclusionCulling;
-    private boolean sourceIndirectDrawCallCountFromBuffer;
+    private boolean canSourceIndirectDrawCallCountFromBuffer;
     private boolean useRepresentativeFragmentTest;
     private boolean canUseSynchronousDebugCallback;
     /* Other queried OpenGL state/configuration */
@@ -1229,11 +1229,11 @@ public class VoxelGameGL {
         useInverseDepth = caps.GL_ARB_clip_control || caps.OpenGL45;
         useNvMultisampleCoverage = caps.GL_NV_framebuffer_multisample_coverage;
         canUseSynchronousDebugCallback = caps.GL_ARB_debug_output || caps.OpenGL43;
-        generateDrawCallsViaShader = caps.GL_ARB_shader_image_load_store/* 4.2 */ && caps.GL_ARB_shader_storage_buffer_object/* 4.3 */
+        canGenerateDrawCallsViaShader = caps.GL_ARB_shader_image_load_store/* 4.2 */ && caps.GL_ARB_shader_storage_buffer_object/* 4.3 */
                 && caps.GL_ARB_shader_atomic_counters/* 4.2 */ || caps.OpenGL43;
-        useOcclusionCulling = generateDrawCallsViaShader && useMultiDrawIndirect;
-        useTemporalCoherenceOcclusionCulling = true;
-        sourceIndirectDrawCallCountFromBuffer = generateDrawCallsViaShader && (caps.GL_ARB_indirect_parameters || caps.OpenGL46);
+        useOcclusionCulling = canGenerateDrawCallsViaShader && useMultiDrawIndirect;
+        useTemporalCoherenceOcclusionCulling = useOcclusionCulling && true;
+        canSourceIndirectDrawCallCountFromBuffer = canGenerateDrawCallsViaShader && (caps.GL_ARB_indirect_parameters || caps.OpenGL46);
         useRepresentativeFragmentTest = caps.GL_NV_representative_fragment_test;
         /* Query the necessary UBO alignment which we need for multi-buffering */
         uniformBufferOffsetAlignment = glGetInteger(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT);
@@ -1245,10 +1245,10 @@ public class VoxelGameGL {
         System.out.println("useInverseDepth: " + useInverseDepth);
         System.out.println("useNvMultisampleCoverage: " + useNvMultisampleCoverage);
         System.out.println("canUseSynchronousDebugCallback: " + canUseSynchronousDebugCallback);
-        System.out.println("generateDrawCallsViaShader: " + generateDrawCallsViaShader);
+        System.out.println("canGenerateDrawCallsViaShader: " + canGenerateDrawCallsViaShader);
         System.out.println("useOcclusionCulling: " + useOcclusionCulling);
         System.out.println("useTemporalCoherenceOcclusionCulling: " + useTemporalCoherenceOcclusionCulling);
-        System.out.println("sourceIndirectDrawCallCountFromBuffer: " + sourceIndirectDrawCallCountFromBuffer);
+        System.out.println("canSourceIndirectDrawCallCountFromBuffer: " + canSourceIndirectDrawCallCountFromBuffer);
         System.out.println("useRepresentativeFragmentTest: " + useRepresentativeFragmentTest);
         System.out.println("uniformBufferOffsetAlignment: " + uniformBufferOffsetAlignment);
     }
@@ -3108,7 +3108,7 @@ public class VoxelGameGL {
          */
         int uboSize = roundUpToNextMultiple(chunksProgramUboSize, uniformBufferOffsetAlignment);
         glBindBufferRange(GL_UNIFORM_BUFFER, chunksProgramUboBlockIndex, chunksProgramUbo, (long) currentDynamicBufferIndex * uboSize, uboSize);
-        if (sourceIndirectDrawCallCountFromBuffer) {
+        if (canSourceIndirectDrawCallCountFromBuffer) {
             /*
              * Bind the atomic counter buffer to the indirect parameter count binding point, to source the
              * drawcall count from that buffer.
@@ -3206,7 +3206,7 @@ public class VoxelGameGL {
          * If we use temporal coherence occlusion culling, we have two sections in each buffer. One for all
          * non-occluded in-frustum chunks, and one for newly disoccluded chunks.
          */
-        if (sourceIndirectDrawCallCountFromBuffer) {
+        if (canSourceIndirectDrawCallCountFromBuffer) {
             /*
              * We use the atomic counter buffer bound to GL_PARAMETER_BUFFER_ARB to source the drawcall count.
              */
@@ -3748,7 +3748,7 @@ public class VoxelGameGL {
         createChunkInfoBuffers();
         createChunksProgram();
         createChunksProgramUbo();
-        if (generateDrawCallsViaShader) {
+        if (canGenerateDrawCallsViaShader) {
             createOcclusionCullingBufferObjects();
             createBoundingBoxesProgram();
             createCollectDrawCallsProgram();
