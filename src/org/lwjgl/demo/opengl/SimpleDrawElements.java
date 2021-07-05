@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.opengl;
 
-import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -25,6 +24,8 @@ public class SimpleDrawElements {
  
     // The window handle
     private long window;
+
+    // Window size
     private int width, height;
  
     public void run() {
@@ -36,7 +37,7 @@ public class SimpleDrawElements {
             glfwDestroyWindow(window);
             keyCallback.free();
             wsCallback.free();
-            if (debugProc != null)
+            if ( debugProc != null )
                 debugProc.free();
         } finally {
             // Terminate GLFW and release the GLFWerrorfun
@@ -48,7 +49,7 @@ public class SimpleDrawElements {
     private void init() {
         // Setup an error callback. The default implementation
         // will print the error message in System.err.
-        glfwSetErrorCallback(errorCallback = GLFWErrorCallback.createPrint(System.err));
+        errorCallback = GLFWErrorCallback.createPrint().set();
  
         // Initialize GLFW. Most GLFW functions will not work before doing this.
         if ( !glfwInit() )
@@ -80,7 +81,7 @@ public class SimpleDrawElements {
         glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
             @Override
             public void invoke(long window, int w, int h) {
-                if (w > 0 && h > 0) {
+                if ( w > 0 && h > 0 ) {
                     width = w;
                     height = h;
                 }
@@ -89,7 +90,7 @@ public class SimpleDrawElements {
  
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
-        try (MemoryStack frame = MemoryStack.stackPush()) {
+        try ( MemoryStack frame = MemoryStack.stackPush() ) {
             IntBuffer framebufferSize = frame.mallocInt(2);
             nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
             width = framebufferSize.get(0);
@@ -116,15 +117,30 @@ public class SimpleDrawElements {
         // Set the clear color
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
 
+        // Generate vertex and index buffers
         int vbo = glGenBuffers();
         int ibo = glGenBuffers();
+
+        // Vertex and index data
         float[] vertices = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f};
         int[] indices = {0, 1, 2};
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils.createFloatBuffer(vertices.length).put(vertices).flip(), GL_STATIC_DRAW);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (IntBuffer) BufferUtils.createIntBuffer(indices.length).put(indices).flip(), GL_STATIC_DRAW);
+
+        // Here we need to send the vertex and index data to OpenGL via Buffers.
+        // We will use the MemoryStack api as this is a small amount of data
+        // and is not short lived. But if larger data and/or data that is longer lived
+        // is needed, It is recommended to use the memAlloc/memFree methods in the MemoryUtil class
+        // Note: Before sending off data, call the flip() method to finish putting data in
+        try ( MemoryStack stack = MemoryStack.stackPush() ) {
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            FloatBuffer verticesBuffer = (FloatBuffer) stack.mallocFloat(vertices.length).put(vertices).flip();
+            glBufferData(GL_ARRAY_BUFFER, verticesBuffer, GL_STATIC_DRAW);
+
+            glEnableClientState(GL_VERTEX_ARRAY);
+            IntBuffer indicesBuffer = (IntBuffer) stack.mallocInt(indices.length).put(indices).flip();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        }
+        // Specifies number of coordinates per vertex, in this case there are 2 and of type GL_FLOAT
         glVertexPointer(2, GL_FLOAT, 0, 0L);
 
         // Run the rendering loop until the user has attempted to close
@@ -134,7 +150,7 @@ public class SimpleDrawElements {
  
             glViewport(0, 0, width, height);
             glMatrixMode(GL_PROJECTION);
-            float aspect = (float)width/height;
+            float aspect = (float) width/height;
             glLoadIdentity();
             glOrtho(-aspect, aspect, -1, 1, -1, 1);
             glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0L);
