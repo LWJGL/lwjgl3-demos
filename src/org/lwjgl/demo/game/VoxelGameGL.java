@@ -168,8 +168,7 @@ public class VoxelGameGL {
          */
         private static final int[] NEIGHBOR_CONFIGS = computeNeighborConfigs();
         /**
-         * We limit the length of merged faces to 32, to be able to store 31 as 5 bits. This is actually
-         * only necessary for the Y coordinate, since chunks are 32x256x32.
+         * We limit the length of merged faces to 32, to be able to store 31 as 5 bits.
          */
         private static final int MAX_MERGE_LENGTH = 32;
 
