@@ -17,16 +17,12 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
-import static org.lwjgl.vulkan.EXTDescriptorIndexing.*;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.*;
-import static org.lwjgl.vulkan.KHRBufferDeviceAddress.*;
 import static org.lwjgl.vulkan.KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRRayTracingPipeline.*;
-import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME;
-import static org.lwjgl.vulkan.KHRSpirv14.VK_KHR_SPIRV_1_4_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
-import static org.lwjgl.vulkan.VK11.*;
+import static org.lwjgl.vulkan.VK12.*;
 
 import java.io.*;
 import java.nio.*;
@@ -307,7 +303,7 @@ public class HybridMagicaVoxel {
                     .pApplicationInfo(VkApplicationInfo
                             .callocStack(stack)
                             .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                            .apiVersion(VK_API_VERSION_1_1))
+                            .apiVersion(VK_API_VERSION_1_2))
                     .ppEnabledLayerNames(enabledLayers)
                     .ppEnabledExtensionNames(ppEnabledExtensionNames);
             PointerBuffer pInstance = stack.mallocPointer(1);
@@ -449,18 +445,18 @@ public class HybridMagicaVoxel {
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                         .pNext(accelerationStructureFeatures.address());
-                VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+                VkPhysicalDeviceVulkan12Features vulkan12Features = VkPhysicalDeviceVulkan12Features
                         .mallocStack(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
+                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES)
                         .pNext(rayTracingPipelineFeatures.address());
                 VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
                         .mallocStack(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
-                        .pNext(bufferDeviceAddressFeatures.address());
+                        .pNext(vulkan12Features.address());
                 vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
 
                 // If any of the above is not supported, we continue with the next physical device
-                if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
+                if (!vulkan12Features.bufferDeviceAddress() ||
                     !rayTracingPipelineFeatures.rayTracingPipeline() ||
                     !accelerationStructureFeatures.accelerationStructure())
                     continue;
@@ -514,29 +510,24 @@ public class HybridMagicaVoxel {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
-                    .callocStack(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
-                    .bufferDeviceAddress(true);
-            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
-                    .callocStack(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT)
-                    .pNext(bufferDeviceAddressFeatures.address())
-                    .runtimeDescriptorArray(true);
             VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
-                    .pNext(indexingFeatures.address())
                     .accelerationStructure(true);
             VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                     .pNext(accelerationStructureFeatures.address())
                     .rayTracingPipeline(true);
+            VkPhysicalDeviceVulkan12Features vulkan12Features = VkPhysicalDeviceVulkan12Features
+                    .callocStack(stack)
+                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES)
+                    .pNext(rayTracingFeatures.address())
+                    .bufferDeviceAddress(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-                    .pNext(rayTracingFeatures.address())
+                    .pNext(vulkan12Features.address())
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .callocStack(1, stack)
                             .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
@@ -547,7 +538,7 @@ public class HybridMagicaVoxel {
             PointerBuffer pDevice = stack.mallocPointer(1);
             _CHECK_(vkCreateDevice(deviceAndQueueFamilies.physicalDevice, pCreateInfo, null, pDevice),
                     "Failed to create device");
-            return new VkDevice(pDevice.get(0), deviceAndQueueFamilies.physicalDevice, pCreateInfo, VK_API_VERSION_1_1);
+            return new VkDevice(pDevice.get(0), deviceAndQueueFamilies.physicalDevice, pCreateInfo, VK_API_VERSION_1_2);
         }
     }
 
@@ -1405,12 +1396,12 @@ public class HybridMagicaVoxel {
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, positionsAndTypes, Short.BYTES, null);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, positionsAndTypes, Short.BYTES, null);
         memFree(positionsAndTypes);
         AllocationAndBuffer indicesBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, indices, Short.BYTES, null);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, indices, Short.BYTES, null);
         memFree(indices);
 
         return new Geometry(positionsBuffer, indicesBuffer, faces.size());
@@ -1439,9 +1430,9 @@ public class HybridMagicaVoxel {
     private static long bufferAddress(long buffer, long alignment) {
         long address;
         try (MemoryStack stack = stackPush()) {
-            address = vkGetBufferDeviceAddressKHR(device, VkBufferDeviceAddressInfo
+            address = vkGetBufferDeviceAddress(device, VkBufferDeviceAddressInfo
                     .callocStack(stack)
-                    .sType(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR)
+                    .sType(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO)
                     .buffer(buffer));
         }
         // check alignment
@@ -1506,7 +1497,7 @@ public class HybridMagicaVoxel {
 
             // Create a buffer that will hold the final BLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(),
                     null, 256, null);
 
@@ -1522,7 +1513,7 @@ public class HybridMagicaVoxel {
 
             // Create a scratch buffer for the BLAS build
             AllocationAndBuffer scratchBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, buildSizesInfo.buildScratchSize(), null,
                     deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment, null);
 
@@ -1590,7 +1581,7 @@ public class HybridMagicaVoxel {
 
             // Create a buffer that will hold the compacted BLAS
             AllocationAndBuffer accelerationStructureCompactedBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
                     compactedSize.get(0), null, 256, null);
 
@@ -1667,7 +1658,7 @@ public class HybridMagicaVoxel {
             // This instance data also needs to reside in a GPU buffer, so copy it
             AllocationAndBuffer instanceData = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                     memByteBuffer(instance.address(), VkAccelerationStructureInstanceKHR.SIZEOF),
                     16, // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                     null);
@@ -1706,7 +1697,7 @@ public class HybridMagicaVoxel {
 
             // Create a buffer that will hold the final TLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
                     256,
                     null);
@@ -1723,7 +1714,7 @@ public class HybridMagicaVoxel {
 
             // Create a scratch buffer for the TLAS build
             AllocationAndBuffer scratchBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, buildSizesInfo.buildScratchSize(), null,
                     deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment,
                     null);
@@ -1907,7 +1898,7 @@ public class HybridMagicaVoxel {
 
             // and upload to a new GPU buffer
             return createBuffer(VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-                                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, handlesForGpu,
+                                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, handlesForGpu,
                                 deviceAndQueueFamilies.shaderGroupBaseAlignment, (cmdBuf) -> {
                                     // insert memory barrier to let ray tracing shader wait for SBT transfer
                                     try (MemoryStack s = stackPush()) {
@@ -2392,11 +2383,7 @@ public class HybridMagicaVoxel {
                 asList(VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
                        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                       VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-                       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-                       VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-                       VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME));
+                       VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME));
         vmaAllocator = createVmaAllocator();
         queue = retrieveQueue();
         swapchain = createSwapchain();
