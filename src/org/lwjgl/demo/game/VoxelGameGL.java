@@ -2494,10 +2494,6 @@ public class VoxelGameGL {
         pMat.mulPerspectiveAffine(vMat, mvpMat);
         mvpMat.invert(imvpMat);
         updateFrustumPlanes();
-        while (createInRenderDistanceAndDestroyOutOfRenderDistanceChunks())
-            ;
-        /* Determine selected voxel */
-        determineSelectedVoxel();
     }
 
     /**
@@ -3440,6 +3436,13 @@ public class VoxelGameGL {
                      * Update player's position and matrices.
                      */
                     updatePlayerPositionAndMatrices(dt);
+                    /*
+                     * Create new in-view chunks and destroy out-of-view chunks.
+                     */
+                    while (createInRenderDistanceAndDestroyOutOfRenderDistanceChunks())
+                      ;
+                    // Determine the selected voxel in the center of the viewport.
+                    determineSelectedVoxel();
                     /*
                      * Draw the same chunks that were visible last frame by using last frame's dynamic buffer index, so
                      * we use last frame's MDI draw structs. Newly disoccluded chunks that were not visible last frame
