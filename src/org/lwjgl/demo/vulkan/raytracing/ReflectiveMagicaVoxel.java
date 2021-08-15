@@ -93,9 +93,9 @@ public class ReflectiveMagicaVoxel {
     private static AllocationAndBuffer materialsBuffer;
     private static DescriptorSets rayTracingDescriptorSets;
     private static final Matrix4f projMatrix = new Matrix4f();
-    private static final Matrix4f viewMatrix = new Matrix4f().setLookAt(-40, 50, 140, 90, -10, 40, 0, 1, 0);
+    private static final Matrix4x3f viewMatrix = new Matrix4x3f().setLookAt(-40, 50, 140, 90, -10, 40, 0, 1, 0);
     private static final Matrix4f invProjMatrix = new Matrix4f();
-    private static final Matrix4f invViewMatrix = new Matrix4f();
+    private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
     private static final Vector3f tmpv3 = new Vector3f();
     private static final Material[] materials = new Material[512];
     private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
@@ -1790,7 +1790,7 @@ public class ReflectiveMagicaVoxel {
         invProjMatrix.transformProject(+1, -1, 0, 1, tmpv3).get(4*Float.BYTES, rayTracingUbos[idx].mapped);
         invProjMatrix.transformProject(-1, +1, 0, 1, tmpv3).get(8*Float.BYTES, rayTracingUbos[idx].mapped);
         invProjMatrix.transformProject(+1, +1, 0, 1, tmpv3).get(12*Float.BYTES, rayTracingUbos[idx].mapped);
-        invViewMatrix.get(Float.BYTES * 16, rayTracingUbos[idx].mapped);
+        invViewMatrix.get4x4(Float.BYTES * 16, rayTracingUbos[idx].mapped);
         rayTracingUbos[idx].flushMapped(0, Float.BYTES * 16 * 2);
     }
 

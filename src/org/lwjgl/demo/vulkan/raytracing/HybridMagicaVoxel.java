@@ -102,10 +102,10 @@ public class HybridMagicaVoxel {
     private static final Vector3f cameraPosition = new Vector3f(10, 40, 150);
     private static final Quaternionf cameraRotation = new Quaternionf();
     private static float cameraRotationX = 0.3f, cameraRotationY = 0.5f;
-    private static final Matrix4f viewMatrix = new Matrix4f();
+    private static final Matrix4x3f viewMatrix = new Matrix4x3f();
     private static final Matrix4f mvpMatrix = new Matrix4f();
     private static final Matrix4f invProjMatrix = new Matrix4f();
-    private static final Matrix4f invViewMatrix = new Matrix4f();
+    private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
     private static final Vector3f tmpv3 = new Vector3f();
     private static final Material[] materials = new Material[512];
     private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
@@ -2257,7 +2257,7 @@ public class HybridMagicaVoxel {
     private static void updateUniformBufferObject(int idx) {
         mvpMatrix.get(0, ubos[idx].mapped);
         invProjMatrix.get(Float.BYTES * 16, ubos[idx].mapped);
-        invViewMatrix.get(Float.BYTES * 16 * 2, ubos[idx].mapped);
+        invViewMatrix.get4x4(Float.BYTES * 16 * 2, ubos[idx].mapped);
         ubos[idx].flushMapped(0, Float.BYTES * 16 * 3);
     }
 

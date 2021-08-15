@@ -770,7 +770,7 @@ public class VoxelGameGL {
     private final Vector3d playerPosition = new Vector3d(0, 240, 0);
     private float angx, angy, dangx, dangy;
     private final Matrix4f pMat = new Matrix4f();
-    private final Matrix4f vMat = new Matrix4f();
+    private final Matrix4x3f vMat = new Matrix4x3f();
     private final Matrix4f mvpMat = new Matrix4f();
     private final Matrix4f imvpMat = new Matrix4f();
     private final Matrix4f tmpMat = new Matrix4f();
