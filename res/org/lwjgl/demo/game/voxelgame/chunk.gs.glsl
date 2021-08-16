@@ -45,9 +45,9 @@ void main(void) {
     return; 
   uvec2 du1v1  = uvec2(gs_in[0].pu0v0u1v1 >> 20u & 0x1Fu, gs_in[0].pu0v0u1v1 >> 25u & 0x1Fu);
   uvec2 u = uvec2(du1v1.x + 1u, 0u), v = uvec2(0u, du1v1.y + 1u);
-  vec3 up = sd == 0u ? vec3(u.yxy) : sd == 1u ? vec3(u.yyx) : vec3(u.xyy);
-  vec3 vp = sd == 0u ? vec3(v.xxy) : sd == 1u ? vec3(v.yxx) : vec3(v.xyx);
-  vec2 sp = sd == 0u ? p0u0v0.xz : sd == 1u ? p0u0v0.yz : p0u0v0.xy;
+  vec3 up = mix(vec3(u.yxy), mix(vec3(u.yyx), vec3(u.xyy), step(2.0, float(sd))), step(1.0, float(sd)));
+  vec3 vp = mix(vec3(v.xxy), mix(vec3(v.yxx), vec3(v.xyx), step(2.0, float(sd))), step(1.0, float(sd)));
+  vec2 sp = mix(p0u0v0.xz, mix(p0u0v0.yz, p0u0v0.xy, step(2.0, float(sd))), step(1.0, float(sd)));
   gs_out.matIndex = int(gs_in[0].typeSideAndAoFactors.x) & 0xFF;
   gs_out.ao = vec4(aos[gs_in[0].typeSideAndAoFactors.z & 3u],
                    aos[gs_in[0].typeSideAndAoFactors.z >> 2u & 3u],

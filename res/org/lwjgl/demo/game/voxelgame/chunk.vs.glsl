@@ -35,12 +35,12 @@ centroid out vec2 uv;
 vec3 offset() {
   uint s = sideAndAoFactors.x;
   vec3 r = vec3(gl_VertexID & 1, gl_VertexID >> 1 & 1, 0.5) * 2.0 - vec3(1.0);
-  return s < 2u ? r.zxy : s < 4u ? r.yzx : r.xyz;
+  return mix(r.zxy, mix(r.yzx, r.xyz, step(4.0, float(s))), step(2.0, float(s)));
 }
 
 vec2 surfpos() {
   uint s = sideAndAoFactors.x;
-  return s < 2u ? positionAndType.yz : s < 4u ? positionAndType.zx : positionAndType.xy;
+  return mix(positionAndType.yz, mix(positionAndType.zx, positionAndType.xy, step(4.0, float(s))), step(2.0, float(s)));
 }
 
 vec3 relChunkPos() {
