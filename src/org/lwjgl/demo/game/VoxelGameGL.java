@@ -3335,6 +3335,13 @@ public class VoxelGameGL {
                      */
                     updatePlayerPositionAndMatrices(dt);
                     /*
+                     * Create new in-view chunks and destroy out-of-view chunks.
+                     */
+                    while (createInRenderDistanceAndDestroyOutOfRenderDistanceChunks())
+                      ;
+                    // Determine the selected voxel in the center of the viewport.
+                    determineSelectedVoxel();
+                    /*
                      * Collect MDI structs for in-frustum chunks marked visible by the bounding boxes draw.
                      */
                     collectDrawCommands();
@@ -3353,6 +3360,13 @@ public class VoxelGameGL {
                  * Update player's position and matrices.
                  */
                 updatePlayerPositionAndMatrices(dt);
+                /*
+                 * Create new in-view chunks and destroy out-of-view chunks.
+                 */
+                while (createInRenderDistanceAndDestroyOutOfRenderDistanceChunks())
+                  ;
+                // Determine the selected voxel in the center of the viewport.
+                determineSelectedVoxel();
                 /*
                  * Check if we support MDI.
                  */
