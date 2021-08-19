@@ -18,7 +18,6 @@ import static org.lwjgl.opengl.ARBClearBufferObject.*;
 import static org.lwjgl.opengl.ARBClipControl.glClipControl;
 import static org.lwjgl.opengl.ARBClipControl.GL_ZERO_TO_ONE;
 import static org.lwjgl.opengl.ARBDebugOutput.GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB;
-import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER;
 import static org.lwjgl.opengl.ARBIndirectParameters.*;
 import static org.lwjgl.opengl.ARBMultiDrawIndirect.glMultiDrawElementsIndirect;
@@ -752,7 +751,6 @@ public class VoxelGameGL {
     private GLCapabilities caps;
 
     /* All the different features we are using */
-    private boolean useDirectStateAccess;
     private boolean useMultiDrawIndirect;
     private boolean useBufferStorage;
     private boolean useClearBuffer;
@@ -1196,7 +1194,6 @@ public class VoxelGameGL {
      */
     private void determineOpenGLCapabilities() {
         caps = GL.createCapabilities();
-        useDirectStateAccess = caps.GL_ARB_direct_state_access/* 4.5 */ && caps.GL_ARB_vertex_attrib_binding/* 4.3 */ || caps.OpenGL45;
         useMultiDrawIndirect = caps.GL_ARB_multi_draw_indirect || caps.OpenGL43;
         useBufferStorage = caps.GL_ARB_buffer_storage || caps.OpenGL44;
         useClearBuffer = caps.GL_ARB_clear_buffer_object || caps.OpenGL43;
@@ -1213,7 +1210,6 @@ public class VoxelGameGL {
         /* Query the necessary UBO alignment which we need for multi-buffering */
         uniformBufferOffsetAlignment = glGetInteger(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
-        System.out.println("useDirectStateAccess: " + useDirectStateAccess);
         System.out.println("useMultiDrawIndirect: " + useMultiDrawIndirect);
         System.out.println("useBufferStorage: " + useBufferStorage);
         System.out.println("drawPointsWithGS: " + drawPointsWithGS);
@@ -2049,108 +2045,56 @@ public class VoxelGameGL {
      */
     private void enlargePerFaceBuffers(int perFaceBufferCapacity, int newPerFaceBufferCapacity) {
         int vao;
-        if (useDirectStateAccess) {
-            vao = glCreateVertexArrays();
-        } else {
-            vao = glGenVertexArrays();
-            glBindVertexArray(vao);
-        }
+        vao = glGenVertexArrays();
+        glBindVertexArray(vao);
         int vertexDataBufferObject;
         long vertexDataBufferSize = (long) voxelVertexSize * verticesPerFace * newPerFaceBufferCapacity;
         /* Create the new vertex buffer */
         if (useBufferStorage) {
-            if (useDirectStateAccess) {
-                vertexDataBufferObject = glCreateBuffers();
-                glNamedBufferStorage(vertexDataBufferObject, vertexDataBufferSize, GL_DYNAMIC_STORAGE_BIT);
-            } else {
-                vertexDataBufferObject = glGenBuffers();
-                glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
-                glBufferStorage(GL_ARRAY_BUFFER, vertexDataBufferSize, GL_DYNAMIC_STORAGE_BIT);
-            }
+            vertexDataBufferObject = glGenBuffers();
+            glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
+            glBufferStorage(GL_ARRAY_BUFFER, vertexDataBufferSize, GL_DYNAMIC_STORAGE_BIT);
         } else {
-            if (useDirectStateAccess) {
-                vertexDataBufferObject = glCreateBuffers();
-                glNamedBufferData(vertexDataBufferObject, vertexDataBufferSize, GL_STATIC_DRAW);
-            } else {
-                vertexDataBufferObject = glGenBuffers();
-                glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
-                glBufferData(GL_ARRAY_BUFFER, vertexDataBufferSize, GL_STATIC_DRAW);
-            }
+            vertexDataBufferObject = glGenBuffers();
+            glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
+            glBufferData(GL_ARRAY_BUFFER, vertexDataBufferSize, GL_STATIC_DRAW);
         }
         /* Setup the vertex specifications */
-        if (useDirectStateAccess) {
-            glEnableVertexArrayAttrib(vao, 0);
-            glEnableVertexArrayAttrib(vao, 1);
-            glEnableVertexArrayAttrib(vao, 2);
-            glVertexArrayAttribBinding(vao, 0, 0);
-            glVertexArrayAttribBinding(vao, 1, 1);
-            glVertexArrayAttribBinding(vao, 2, 2);
-            glVertexArrayVertexBuffer(vao, 0, vertexDataBufferObject, 0L, voxelVertexSize);
-            glVertexArrayAttribIFormat(vao, 0, drawPointsWithGS ? 1 : 4, drawPointsWithGS ? GL_UNSIGNED_INT : GL_UNSIGNED_BYTE, 0);
-            glVertexArrayVertexBuffer(vao, 1, vertexDataBufferObject, 4L, voxelVertexSize);
-            glVertexArrayAttribIFormat(vao, 1, drawPointsWithGS ? 4 : 2, GL_UNSIGNED_BYTE, 0);
-            if (useMultiDrawIndirect) {
-                glVertexArrayVertexBuffer(vao, 2, chunkInfoBufferObject, 0L, 4 * Integer.BYTES);
-                glVertexArrayAttribIFormat(vao, 2, 4, GL_INT, 0);
-                glVertexArrayBindingDivisor(vao, 2, 1);
-            } else {
-                glVertexArrayVertexBuffer(vao, 2, vertexDataBufferObject, drawPointsWithGS ? 8L : 6L, voxelVertexSize);
-                glVertexArrayAttribIFormat(vao, 2, 1, GL_UNSIGNED_INT, 0);
-            }
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glVertexAttribIPointer(0, drawPointsWithGS ? 1 : 4, drawPointsWithGS ? GL_UNSIGNED_INT : GL_UNSIGNED_BYTE, voxelVertexSize, 0L);
+        glVertexAttribIPointer(1, drawPointsWithGS ? 4 : 2, GL_UNSIGNED_BYTE, voxelVertexSize, 4L);
+        if (useMultiDrawIndirect) {
+            glBindBuffer(GL_ARRAY_BUFFER, chunkInfoBufferObject);
+            glVertexAttribIPointer(2, 4, GL_INT, 0, 0L);
+            glVertexAttribDivisor(2, 1);
         } else {
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            glEnableVertexAttribArray(2);
-            glVertexAttribIPointer(0, drawPointsWithGS ? 1 : 4, drawPointsWithGS ? GL_UNSIGNED_INT : GL_UNSIGNED_BYTE, voxelVertexSize, 0L);
-            glVertexAttribIPointer(1, drawPointsWithGS ? 4 : 2, GL_UNSIGNED_BYTE, voxelVertexSize, 4L);
-            if (useMultiDrawIndirect) {
-                glBindBuffer(GL_ARRAY_BUFFER, chunkInfoBufferObject);
-                glVertexAttribIPointer(2, 4, GL_INT, 0, 0L);
-                glVertexAttribDivisor(2, 1);
-            } else {
-                glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, voxelVertexSize, drawPointsWithGS ? 8L : 6L);
-            }
+            glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, voxelVertexSize, drawPointsWithGS ? 8L : 6L);
         }
         /* Setup the index buffer */
         long indexBufferSize = (long) Short.BYTES * indicesPerFace * newPerFaceBufferCapacity;
         int indexBufferObject;
-        if (useDirectStateAccess) {
-            indexBufferObject = glCreateBuffers();
-            glVertexArrayElementBuffer(vao, indexBufferObject);
-            if (useBufferStorage) {
-                glNamedBufferStorage(indexBufferObject, indexBufferSize, GL_DYNAMIC_STORAGE_BIT);
-            } else {
-                glNamedBufferData(indexBufferObject, indexBufferSize, GL_STATIC_DRAW);
-            }
+        indexBufferObject = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
+        if (useBufferStorage) {
+            glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, GL_DYNAMIC_STORAGE_BIT);
         } else {
-            indexBufferObject = glGenBuffers();
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
-            if (useBufferStorage) {
-                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, GL_DYNAMIC_STORAGE_BIT);
-            } else {
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, GL_STATIC_DRAW);
-            }
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferSize, GL_STATIC_DRAW);
         }
         if (chunksVao != 0) {
             if (DEBUG) {
                 System.out.println("Copying old buffer objects [" + perFaceBufferCapacity + "] to new");
             }
             /* Copy old buffer objects to new buffer objects */
-            long vertexBufferCopySize = (long) voxelVertexSize * perFaceBufferCapacity * verticesPerFace;
-            long indexBufferCopySize = (long) Short.BYTES * perFaceBufferCapacity * indicesPerFace;
-            if (useDirectStateAccess) {
-                glCopyNamedBufferSubData(this.vertexDataBufferObject, vertexDataBufferObject, 0L, 0L, vertexBufferCopySize);
-                glCopyNamedBufferSubData(this.indexBufferObject, indexBufferObject, 0L, 0L, indexBufferCopySize);
-            } else {
-                glBindBuffer(GL_COPY_READ_BUFFER, this.vertexDataBufferObject);
-                glBindBuffer(GL_COPY_WRITE_BUFFER, vertexDataBufferObject);
-                glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0L, 0L, (long) voxelVertexSize * perFaceBufferCapacity * verticesPerFace);
-                glBindBuffer(GL_COPY_READ_BUFFER, this.indexBufferObject);
-                glBindBuffer(GL_COPY_WRITE_BUFFER, indexBufferObject);
-                glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0L, 0L, (long) Short.BYTES * perFaceBufferCapacity * indicesPerFace);
-                glBindBuffer(GL_COPY_READ_BUFFER, 0);
-                glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-            }
+            glBindBuffer(GL_COPY_READ_BUFFER, this.vertexDataBufferObject);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, vertexDataBufferObject);
+            glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0L, 0L, (long) voxelVertexSize * perFaceBufferCapacity * verticesPerFace);
+            glBindBuffer(GL_COPY_READ_BUFFER, this.indexBufferObject);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, indexBufferObject);
+            glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0L, 0L, (long) Short.BYTES * perFaceBufferCapacity * indicesPerFace);
+            glBindBuffer(GL_COPY_READ_BUFFER, 0);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
             /* Delete old buffers */
             glDeleteBuffers(new int[] { this.vertexDataBufferObject, this.indexBufferObject });
             glDeleteVertexArrays(chunksVao);
@@ -2234,20 +2178,12 @@ public class VoxelGameGL {
      */
     private void updateChunkVertexAndIndexDataInBufferObjects(Chunk chunk, DynamicByteBuffer vertexData, DynamicByteBuffer indices) {
         long vertexOffset = (long) chunk.r.off * voxelVertexSize * verticesPerFace;
-        if (useDirectStateAccess) {
-            nglNamedBufferSubData(vertexDataBufferObject, vertexOffset, vertexData.pos, vertexData.addr);
-        } else {
-            glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
-            nglBufferSubData(GL_ARRAY_BUFFER, vertexOffset, vertexData.pos, vertexData.addr);
-        }
+        glBindBuffer(GL_ARRAY_BUFFER, vertexDataBufferObject);
+        nglBufferSubData(GL_ARRAY_BUFFER, vertexOffset, vertexData.pos, vertexData.addr);
         updateChunkInfo(chunk);
         long indexOffset = (long) chunk.r.off * Short.BYTES * indicesPerFace;
-        if (useDirectStateAccess) {
-            nglNamedBufferSubData(indexBufferObject, indexOffset, indices.pos, indices.addr);
-        } else {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
-            nglBufferSubData(GL_ELEMENT_ARRAY_BUFFER, indexOffset, indices.pos, indices.addr);
-        }
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
+        nglBufferSubData(GL_ELEMENT_ARRAY_BUFFER, indexOffset, indices.pos, indices.addr);
         if (DEBUG) {
             System.out.println("Number of chunks: " + INT_FORMATTER.format(allChunks.size()) + " ("
                     + INT_FORMATTER.format(computePerFaceBufferObjectSize() / 1024 / 1024) + " MB)");
@@ -2264,16 +2200,10 @@ public class VoxelGameGL {
     private void updateChunkInfo(Chunk chunk) {
         try (MemoryStack stack = stackPush()) {
             int bindTarget = useMultiDrawIndirect ? GL_ARRAY_BUFFER : GL_TEXTURE_BUFFER;
-            if (!useDirectStateAccess) {
-                glBindBuffer(bindTarget, chunkInfoBufferObject);
-            }
+            glBindBuffer(bindTarget, chunkInfoBufferObject);
             IntBuffer data = stack.mallocInt(4);
             data.put(0, chunk.cx << CHUNK_SIZE_SHIFT).put(1, chunk.minY | chunk.maxY << 16).put(2, chunk.cz << CHUNK_SIZE_SHIFT).put(3, chunk.index);
-            if (useDirectStateAccess) {
-                glNamedBufferSubData(chunkInfoBufferObject, (long) chunk.index * 4 * Integer.BYTES, data);
-            } else {
-                glBufferSubData(bindTarget, (long) chunk.index * 4 * Integer.BYTES, data);
-            }
+            glBufferSubData(bindTarget, (long) chunk.index * 4 * Integer.BYTES, data);
         }
     }
 
@@ -2828,25 +2758,15 @@ public class VoxelGameGL {
         long boundingBoxesOffset = (long) currentDynamicBufferIndex * MAX_ACTIVE_CHUNKS * 4 * Integer.BYTES;
         long boundingBoxesSize = (long) numVisible * 4 * Integer.BYTES;
         if (useBufferStorage) {
-            if (useDirectStateAccess) {
-                glFlushMappedNamedBufferRange(indirectDrawBuffer, faceOffsetsAndCountsOffset, faceOffsetsAndCountsSize);
-                glFlushMappedNamedBufferRange(boundingBoxesVertexBufferObject, boundingBoxesOffset, boundingBoxesSize);
-            } else {
-                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
-                glBindBuffer(GL_ARRAY_BUFFER, boundingBoxesVertexBufferObject);
-                glFlushMappedBufferRange(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCountsSize);
-                glFlushMappedBufferRange(GL_ARRAY_BUFFER, boundingBoxesOffset, boundingBoxesSize);
-            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
+            glBindBuffer(GL_ARRAY_BUFFER, boundingBoxesVertexBufferObject);
+            glFlushMappedBufferRange(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCountsSize);
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER, boundingBoxesOffset, boundingBoxesSize);
         } else {
-            if (useDirectStateAccess) {
-                nglNamedBufferSubData(indirectDrawBuffer, faceOffsetsAndCountsOffset, faceOffsetsAndCountsPos, faceOffsetsAndCounts);
-                nglNamedBufferSubData(boundingBoxesVertexBufferObject, boundingBoxesOffset, bbPos, bb);
-            } else {
-                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
-                glBindBuffer(GL_ARRAY_BUFFER, boundingBoxesVertexBufferObject);
-                nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCountsPos, faceOffsetsAndCounts);
-                nglBufferSubData(GL_ARRAY_BUFFER, boundingBoxesOffset, bbPos, bb);
-            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
+            glBindBuffer(GL_ARRAY_BUFFER, boundingBoxesVertexBufferObject);
+            nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, faceOffsetsAndCountsOffset, faceOffsetsAndCountsPos, faceOffsetsAndCounts);
+            nglBufferSubData(GL_ARRAY_BUFFER, boundingBoxesOffset, bbPos, bb);
             nmemFree(faceOffsetsAndCounts);
             nmemFree(bb);
         }
@@ -2891,19 +2811,11 @@ public class VoxelGameGL {
             numChunks++;
         }
         if (useBufferStorage) {
-            if (useDirectStateAccess) {
-                glFlushMappedNamedBufferRange(indirectDrawBuffer, offset, (long) numChunks * 5 * Integer.BYTES);
-            } else {
-                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
-                glFlushMappedBufferRange(GL_DRAW_INDIRECT_BUFFER, offset, (long) numChunks * 5 * Integer.BYTES);
-            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
+            glFlushMappedBufferRange(GL_DRAW_INDIRECT_BUFFER, offset, (long) numChunks * 5 * Integer.BYTES);
         } else {
-            if (useDirectStateAccess) {
-                nglNamedBufferSubData(indirectDrawBuffer, offset, indirectPos, indirect);
-            } else {
-                glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
-                nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, indirectPos, indirect);
-            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectDrawBuffer);
+            nglBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, indirectPos, indirect);
             nmemFree(indirect);
         }
         return numChunks;
@@ -3101,19 +3013,11 @@ public class VoxelGameGL {
             memPutInt(ubo + uboPos + Integer.BYTES, (int) floor(playerPosition.y));
             memPutInt(ubo + uboPos + Integer.BYTES * 2, (int) floor(playerPosition.z));
             uboPos += 3 * Float.BYTES;
-            if (useDirectStateAccess) {
-                if (useBufferStorage) {
-                    glFlushMappedNamedBufferRange(chunksProgramUbo, (long) currentDynamicBufferIndex * size, size);
-                } else {
-                    nglNamedBufferSubData(chunksProgramUbo, (long) currentDynamicBufferIndex * size, uboPos, ubo);
-                }
+            glBindBuffer(GL_UNIFORM_BUFFER, chunksProgramUbo);
+            if (useBufferStorage) {
+                glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
             } else {
-                glBindBuffer(GL_UNIFORM_BUFFER, chunksProgramUbo);
-                if (useBufferStorage) {
-                    glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
-                } else {
-                    nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
-                }
+                nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
             }
         }
     }
@@ -3139,18 +3043,10 @@ public class VoxelGameGL {
             memPutInt(ubo + uboPos + Integer.BYTES * 2, (int) floor(playerPosition.z));
             uboPos += 3 * Integer.BYTES;
             glBindBuffer(GL_UNIFORM_BUFFER, boundingBoxesProgramUbo);
-            if (useDirectStateAccess) {
-                if (useBufferStorage) {
-                    glFlushMappedNamedBufferRange(boundingBoxesProgramUbo, (long) currentDynamicBufferIndex * size, size);
-                } else {
-                    nglNamedBufferSubData(boundingBoxesProgramUbo, (long) currentDynamicBufferIndex * size, uboPos, ubo);
-                }
+            if (useBufferStorage) {
+                glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
             } else {
-                if (useBufferStorage) {
-                    glFlushMappedBufferRange(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, size);
-                } else {
-                    nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
-                }
+                nglBufferSubData(GL_UNIFORM_BUFFER, (long) currentDynamicBufferIndex * size, uboPos, ubo);
             }
         }
     }
@@ -3360,13 +3256,7 @@ public class VoxelGameGL {
                  * Update player's position and matrices.
                  */
                 updatePlayerPositionAndMatrices(dt);
-                /*
-                 * Create new in-view chunks and destroy out-of-view chunks.
-                 */
-                while (createInRenderDistanceAndDestroyOutOfRenderDistanceChunks())
-                  ;
-                // Determine the selected voxel in the center of the viewport.
-                determineSelectedVoxel();
+                
                 /*
                  * Check if we support MDI.
                  */
@@ -3394,12 +3284,8 @@ public class VoxelGameGL {
             /*
              * Blit FBO to the window.
              */
-            if (useDirectStateAccess) {
-                glBlitNamedFramebuffer(fbo, 0, 0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-            } else {
-                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-                glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-            }
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             glfwSwapBuffers(window);
         }
         executorService.shutdown();
