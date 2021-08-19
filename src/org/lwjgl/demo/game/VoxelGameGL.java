@@ -504,13 +504,9 @@ public class VoxelGameGL {
          */
         private int maxY;
         /**
-         * The offset in per-face buffers.
+         * The region associated with this chunk.
          */
-        private int faceOffset;
-        /**
-         * The number of faces.
-         */
-        private int faceCount;
+        private Allocator.Region r;
         /**
          * The index in per-chunk buffers.
          */
@@ -528,31 +524,6 @@ public class VoxelGameGL {
         @Override
         public String toString() {
             return "[" + index + " @" + cx + "," + cz + "]";
-        }
-    }
-
-    /**
-     * Represents a region in a buffer, such as per-face buffers.
-     */
-    private static class BufferRegion {
-        /**
-         * Align region allocations to reduce fragmentation at the cost of increased memory consumption.
-         * <p>
-         * i.e.: Allocate bigger regions to avoid having to skip slightly too small regions.
-         */
-        public static final int ALIGNMENT = 1024;
-        /**
-         * The offset (unit depends on the kind of buffer used, but is the same unit as for {@link #len}).
-         */
-        private int off;
-        /**
-         * The length (unit depends on the kind of buffer used, but is the same unit as for {@link #off}).
-         */
-        private int len;
-
-        @Override
-        public String toString() {
-            return "[" + INT_FORMATTER.format(off) + " | " + INT_FORMATTER.format(len) + " B]";
         }
     }
 
@@ -847,10 +818,16 @@ public class VoxelGameGL {
         }
     };
 
-    /**
-     * Maintains a "free list" of free buffer regions for per-face buffer objects.
-     */
-    private final List<BufferRegion> faceBuffersFreeList = new ArrayList<>();
+    private final Allocator allocator = new Allocator(new Allocator.OutOfCapacityCallback() {
+      public int onCapacityIncrease(int currentCapacity) {
+        int newPerFaceBufferCapacity = max(currentCapacity << 1, INITIAL_PER_FACE_BUFFER_CAPACITY);
+        updateAndRenderRunnables.add(new DelayedRunnable(() -> {
+            enlargePerFaceBuffers(currentCapacity, newPerFaceBufferCapacity);
+            return null;
+        }, "Enlarge per-face buffers", 0));
+        return newPerFaceBufferCapacity;
+      }
+    });
 
     /**
      * Simple {@link BitSet} to find and allocate indexes for per-chunk arrays/buffers.
@@ -858,7 +835,6 @@ public class VoxelGameGL {
     private final BitSet chunkIndexes = new BitSet(MAX_ACTIVE_CHUNKS);
 
     /* Resources for drawing the chunks */
-    private int perFaceBufferCapacity;
     private int chunkInfoBufferObject;
     private int chunkInfoTexture;
     private int vertexDataBufferObject;
@@ -1414,7 +1390,7 @@ public class VoxelGameGL {
         deallocatePerFaceBufferRegion(chunk);
         deallocatePerChunkIndex(chunk);
         allChunks.remove(chunk);
-        activeFaceCount -= chunk.faceCount;
+        activeFaceCount -= chunk.r.len;
         if (DEBUG) {
             System.out.println("Number of chunks: " + INT_FORMATTER.format(allChunks.size()) + " ("
                     + INT_FORMATTER.format(computePerFaceBufferObjectSize() / 1024 / 1024) + " MB)");
@@ -1472,7 +1448,8 @@ public class VoxelGameGL {
     private int computePerFaceBufferObjectSize() {
         int bytes = 0;
         for (Chunk c : allChunks) {
-            bytes += c.faceCount * (verticesPerFace * voxelVertexSize + indicesPerFace * Short.BYTES);
+          if (c.r != null)
+            bytes += c.r.len * (verticesPerFace * voxelVertexSize + indicesPerFace * Short.BYTES);
         }
         return bytes;
     }
@@ -2054,117 +2031,23 @@ public class VoxelGameGL {
      * Allocate a free buffer region with enough space to hold all buffer data for the given number of
      * voxel faces.
      */
-    private BufferRegion allocatePerFaceBufferRegion(int faceCount) {
-        /* find a free buffer region */
-        synchronized (faceBuffersFreeList) {
-            Iterator<BufferRegion> it = faceBuffersFreeList.iterator();
-            int skip = 0;
-            while (it.hasNext()) {
-                BufferRegion itr = it.next();
-                if (itr.len >= faceCount) {
-                    /* found */
-                    BufferRegion bufferRegion = new BufferRegion();
-                    bufferRegion.off = itr.off;
-                    bufferRegion.len = faceCount;
-                    if (DEBUG) {
-                        System.out.println("Allocated buffer region " + bufferRegion + " from " + itr);
-                    }
-                    /* reduce size by aligned allocated amount */
-                    int alignedCount = roundUpToNextMultiple(faceCount, BufferRegion.ALIGNMENT);
-                    itr.off += alignedCount;
-                    itr.len -= alignedCount;
-                    if (itr.len == 0) {
-                        /* if region is exhausted, remove it */
-                        if (DEBUG) {
-                            System.out.println("Free buffer region exhaused: " + itr);
-                        }
-                        it.remove();
-                    }
-                    if (DEBUG) {
-                        System.out.println("Found " + itr.len + " after skipping " + skip + " too small free regions");
-                    }
-                    return bufferRegion;
-                } else {
-                    skip++;
-                }
-            }
-            /* if we did not find any free region, we must enlarge face buffers */
-            long time1 = System.nanoTime();
-            enlargePerFaceBuffers();
-            long time2 = System.nanoTime();
-            if (DEBUG) {
-                System.out.println("Enlarged per-face buffers in " + INT_FORMATTER.format((time2 - time1) / (long) 1E3) + " µs");
-            }
-        }
-        /* and simply recursively try to find a free region now */
-        return allocatePerFaceBufferRegion(faceCount);
+    private Allocator.Region allocatePerFaceBufferRegion(int faceCount) {
+      return allocator.allocate(faceCount);
     }
 
     /**
      * Update the chunk's buffer objects with the given voxel field.
      */
     private void updateChunk(Chunk c, VoxelField f) {
-        activeFaceCount -= c.faceCount;
+        activeFaceCount -= c.r.len;
         deallocatePerFaceBufferRegion(c);
         meshChunkFacesAndWriteToBuffers(c, f);
     }
 
     /**
-     * Enlarge the per-face buffer objects.
-     */
-    private void enlargePerFaceBuffers() {
-        int newPerFaceBufferCapacity = max(perFaceBufferCapacity << 1, INITIAL_PER_FACE_BUFFER_CAPACITY);
-        if (DEBUG) {
-            System.out.println("Enlarging per-face buffers from capacity " + INT_FORMATTER.format(perFaceBufferCapacity) + " faces to "
-                    + INT_FORMATTER.format(newPerFaceBufferCapacity) + " faces");
-        }
-        /* Enlarge a free BufferRegion at the end of the list of create a new one */
-        enlargePerFaceBuffersFreeList(newPerFaceBufferCapacity);
-        /* Add task into render queue to enlarge the buffer objects */
-        updateAndRenderRunnables.add(new DelayedRunnable(() -> {
-            enlargePerFaceBuffers(newPerFaceBufferCapacity);
-            return null;
-        }, "Enlarge per-face buffers", 0));
-    }
-
-    /**
-     * Mark an additional buffer region as free in the {@link #faceBuffersFreeList}.
-     * <p>
-     * This can be done by either expanding a free region at the very end of the list/buffer, or adding
-     * a new region.
-     */
-    private void enlargePerFaceBuffersFreeList(int newPerFaceBufferCapacity) {
-        if (!faceBuffersFreeList.isEmpty()) {
-            BufferRegion r = faceBuffersFreeList.get(faceBuffersFreeList.size() - 1);
-            if (r.off + r.len == perFaceBufferCapacity) {
-                r.len += newPerFaceBufferCapacity - perFaceBufferCapacity;
-                if (DEBUG) {
-                    System.out.println("Enlarged last free region: " + r);
-                }
-            } else {
-                r = new BufferRegion();
-                r.off = perFaceBufferCapacity;
-                r.len = newPerFaceBufferCapacity - perFaceBufferCapacity;
-                faceBuffersFreeList.add(r);
-                if (DEBUG) {
-                    System.out.println("Created new free region: " + r);
-                }
-            }
-        } else {
-            BufferRegion r = new BufferRegion();
-            r.off = perFaceBufferCapacity;
-            r.len = newPerFaceBufferCapacity - perFaceBufferCapacity;
-            faceBuffersFreeList.add(r);
-            if (DEBUG) {
-                System.out.println("Add free region: " + r);
-            }
-        }
-    }
-
-    /**
      * Enlarge the per-face buffer objects and build a VAO for it.
      */
-    private void enlargePerFaceBuffers(int newPerFaceBufferCapacity) {
+    private void enlargePerFaceBuffers(int perFaceBufferCapacity, int newPerFaceBufferCapacity) {
         int vao;
         if (useDirectStateAccess) {
             vao = glCreateVertexArrays();
@@ -2250,7 +2133,7 @@ public class VoxelGameGL {
         }
         if (chunksVao != 0) {
             if (DEBUG) {
-                System.out.println("Copying old buffer objects [" + this.perFaceBufferCapacity + "] to new");
+                System.out.println("Copying old buffer objects [" + perFaceBufferCapacity + "] to new");
             }
             /* Copy old buffer objects to new buffer objects */
             long vertexBufferCopySize = (long) voxelVertexSize * perFaceBufferCapacity * verticesPerFace;
@@ -2276,7 +2159,7 @@ public class VoxelGameGL {
         this.vertexDataBufferObject = vertexDataBufferObject;
         this.indexBufferObject = indexBufferObject;
         this.chunksVao = vao;
-        this.perFaceBufferCapacity = newPerFaceBufferCapacity;
+        perFaceBufferCapacity = newPerFaceBufferCapacity;
         if (DEBUG) {
             System.out.println("Total size of face buffers: "
                     + INT_FORMATTER.format(newPerFaceBufferCapacity * ((4L + 2) * verticesPerFace + (long) Short.BYTES * indicesPerFace) / 1024 / 1024)
@@ -2296,9 +2179,8 @@ public class VoxelGameGL {
      * Instead, we delay marking buffer regions as free for one frame.
      */
     private void deallocatePerFaceBufferRegion(Chunk chunk) {
-        int chunkFaceOffset = chunk.faceOffset;
-        int chunkFaceCount = chunk.faceCount;
-        int alignedCount = roundUpToNextMultiple(chunkFaceCount, BufferRegion.ALIGNMENT);
+        int chunkFaceOffset = chunk.r.off;
+        int chunkFaceCount = chunk.r.len;
         /*
          * If we use temporal coherence occlusion culling, we must delay deallocating the buffer region by 1
          * frame, because the next frame still wants to potentially draw the chunk when it was visible last
@@ -2309,34 +2191,7 @@ public class VoxelGameGL {
             if (DEBUG) {
                 System.out.println("Deallocate buffer region for chunk: " + chunk);
             }
-            synchronized (faceBuffersFreeList) {
-                /* Try to find an existing free region whose either end we can enlarge */
-                for (BufferRegion r : faceBuffersFreeList) {
-                    if (r.off + r.len == chunkFaceOffset) {
-                        r.len += alignedCount;
-                        if (DEBUG) {
-                            System.out.println("Enlarged end of buffer region: " + r);
-                        }
-                        return null;
-                    } else if (r.off == chunkFaceOffset + alignedCount) {
-                        r.off -= alignedCount;
-                        r.len += alignedCount;
-                        if (DEBUG) {
-                            System.out.println("Enlarged beginning of buffer region: " + r);
-                        }
-                        return null;
-                    }
-                }
-                /* No free region found, create one */
-                BufferRegion r = new BufferRegion();
-                r.off = chunkFaceOffset;
-                r.len = alignedCount;
-                if (DEBUG) {
-                    System.out.println("Create new free buffer region: " + r);
-                }
-                faceBuffersFreeList.add(r);
-                faceBuffersFreeList.sort((r1, r2) -> Integer.compareUnsigned(r1.off, r2.off));
-            }
+            allocator.free(new Allocator.Region(chunkFaceOffset, chunkFaceCount));
             return null;
         }, "Deallocate buffer region for chunk " + chunk, delayFrames));
     }
@@ -2357,16 +2212,15 @@ public class VoxelGameGL {
                 appendFaceVertexAndIndexData(chunk, i++, u0, v0, u1, v1, p, s, v, vertexData, indices);
             }
         });
-        BufferRegion r = allocatePerFaceBufferRegion(faceCount);
+        Allocator.Region r = allocatePerFaceBufferRegion(faceCount);
         long time = System.nanoTime();
 
         /* Issue render thread task to update the buffer objects */
         updateAndRenderRunnables.add(new DelayedRunnable(() -> {
             chunk.minY = vf.ny;
             chunk.maxY = vf.py;
-            chunk.faceOffset = r.off;
-            chunk.faceCount = faceCount;
-            activeFaceCount += chunk.faceCount;
+            chunk.r = r;
+            activeFaceCount += chunk.r.len;
             updateChunkVertexAndIndexDataInBufferObjects(chunk, vertexData, indices);
             vertexData.free();
             indices.free();
@@ -2379,7 +2233,7 @@ public class VoxelGameGL {
      * Update the chunk's per-face buffer region with the given vertex and index data.
      */
     private void updateChunkVertexAndIndexDataInBufferObjects(Chunk chunk, DynamicByteBuffer vertexData, DynamicByteBuffer indices) {
-        long vertexOffset = (long) chunk.faceOffset * voxelVertexSize * verticesPerFace;
+        long vertexOffset = (long) chunk.r.off * voxelVertexSize * verticesPerFace;
         if (useDirectStateAccess) {
             nglNamedBufferSubData(vertexDataBufferObject, vertexOffset, vertexData.pos, vertexData.addr);
         } else {
@@ -2387,7 +2241,7 @@ public class VoxelGameGL {
             nglBufferSubData(GL_ARRAY_BUFFER, vertexOffset, vertexData.pos, vertexData.addr);
         }
         updateChunkInfo(chunk);
-        long indexOffset = (long) chunk.faceOffset * Short.BYTES * indicesPerFace;
+        long indexOffset = (long) chunk.r.off * Short.BYTES * indicesPerFace;
         if (useDirectStateAccess) {
             nglNamedBufferSubData(indexBufferObject, indexOffset, indices.pos, indices.addr);
         } else {
@@ -3004,8 +2858,8 @@ public class VoxelGameGL {
      * given chunk).
      */
     private int putChunkFaceOffsetAndCount(Chunk c, long faceOffsetsAndCounts) {
-        memPutInt(faceOffsetsAndCounts, c.faceOffset);
-        memPutInt(faceOffsetsAndCounts + Integer.BYTES, c.faceCount);
+        memPutInt(faceOffsetsAndCounts, c.r.off);
+        memPutInt(faceOffsetsAndCounts + Integer.BYTES, c.r.len);
         return Integer.BYTES << 1;
     }
 
@@ -3028,10 +2882,10 @@ public class VoxelGameGL {
             Chunk c = allChunks.get(i);
             if (!c.ready || chunkNotInFrustum(c))
                 continue;
-            memPutInt(indirect + indirectPos, c.faceCount * indicesPerFace);
+            memPutInt(indirect + indirectPos, c.r.len * indicesPerFace);
             memPutInt(indirect + indirectPos + Integer.BYTES, 1);
-            memPutInt(indirect + indirectPos + Integer.BYTES * 2, c.faceOffset * indicesPerFace);
-            memPutInt(indirect + indirectPos + Integer.BYTES * 3, c.faceOffset * verticesPerFace);
+            memPutInt(indirect + indirectPos + Integer.BYTES * 2, c.r.off * indicesPerFace);
+            memPutInt(indirect + indirectPos + Integer.BYTES * 3, c.r.off * verticesPerFace);
             memPutInt(indirect + indirectPos + Integer.BYTES * 4, c.index);
             indirectPos += Integer.BYTES * 5;
             numChunks++;
@@ -3147,9 +3001,9 @@ public class VoxelGameGL {
             for (Chunk c : allChunks) {
                 if (!c.ready || chunkNotInFrustum(c))
                     continue;
-                indices.put((long) Short.BYTES * c.faceOffset * indicesPerFace);
-                count.put(c.faceCount * indicesPerFace);
-                basevertex.put(c.faceOffset * verticesPerFace);
+                indices.put((long) Short.BYTES * c.r.off * indicesPerFace);
+                count.put(c.r.len * indicesPerFace);
+                basevertex.put(c.r.off * verticesPerFace);
             }
             indices.flip();
             count.flip();
