@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-package org.lwjgl.demo.game;
+package org.lwjgl.demo.util;
 
 /**
  * Simple first-fit free-list allocator, allocating integer ranges from within a
@@ -10,7 +10,7 @@ package org.lwjgl.demo.game;
  * 
  * @author Kai Burjack
  */
-public class Allocator {
+public class FreeListAllocator {
   @FunctionalInterface
   public interface OutOfCapacityCallback {
     int onCapacityIncrease(int currentCapacity);
@@ -31,7 +31,6 @@ public class Allocator {
   }
 
   private static class Node {
-    public static final int ALIGNMENT = 4096;
     private Node prev;
     private Node next;
     private int off;
@@ -48,11 +47,13 @@ public class Allocator {
     }
   }
 
+  public static final int DEFAULT_ALIGNMENT = 1024;
   private final OutOfCapacityCallback callback;
   private Node listStart;
   private int capacity;
+  private int alignment = DEFAULT_ALIGNMENT;
 
-  public Allocator(OutOfCapacityCallback callback) {
+  public FreeListAllocator(OutOfCapacityCallback callback) {
     this.callback = callback;
   }
 
@@ -60,15 +61,19 @@ public class Allocator {
     return num + factor - 1 - (num + factor - 1) % factor;
   }
 
+  public void setAlignment(int alignment) {
+    this.alignment = alignment;
+  }
+
   public synchronized Region allocate(int size) {
     Node n = listStart;
-    int roundedSize = roundUpToNextMultiple(size, Node.ALIGNMENT);
+    int roundedSize = roundUpToNextMultiple(size, alignment);
     while (n != null) {
       if (n.len >= roundedSize) {
         Region r = new Region(n.off, size);
         n.off += roundedSize;
         n.len -= roundedSize;
-        if (n.len < Node.ALIGNMENT)
+        if (n.len < alignment)
           remove(n);
         return r;
       }
@@ -82,7 +87,7 @@ public class Allocator {
 
   private void outOfCapacity(Node last) {
     int newCapacity = callback.onCapacityIncrease(capacity);
-    insertAfter(capacity, roundUpToNextMultiple(newCapacity - capacity, Node.ALIGNMENT), last);
+    insertAfter(capacity, roundUpToNextMultiple(newCapacity - capacity, alignment), last);
     capacity = newCapacity;
   }
 
@@ -124,7 +129,7 @@ public class Allocator {
   }
 
   public synchronized void free(Region reg) {
-    int size = roundUpToNextMultiple(reg.len, Node.ALIGNMENT);
+    int size = roundUpToNextMultiple(reg.len, alignment);
     Node n = listStart;
     while (n != null) {
       if (n.off > reg.off) {

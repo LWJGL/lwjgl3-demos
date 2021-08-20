@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import org.joml.*;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.game.VoxelGameGL.GreedyMeshing.FaceConsumer;
+import org.lwjgl.demo.util.FreeListAllocator;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -505,7 +506,7 @@ public class VoxelGameGL {
         /**
          * The region associated with this chunk.
          */
-        private Allocator.Region r;
+        private FreeListAllocator.Region r;
         /**
          * The index in per-chunk buffers.
          */
@@ -816,7 +817,7 @@ public class VoxelGameGL {
         }
     };
 
-    private final Allocator allocator = new Allocator(new Allocator.OutOfCapacityCallback() {
+    private final FreeListAllocator allocator = new FreeListAllocator(new FreeListAllocator.OutOfCapacityCallback() {
       public int onCapacityIncrease(int currentCapacity) {
         int newPerFaceBufferCapacity = max(currentCapacity << 1, INITIAL_PER_FACE_BUFFER_CAPACITY);
         updateAndRenderRunnables.add(new DelayedRunnable(() -> {
@@ -2027,7 +2028,7 @@ public class VoxelGameGL {
      * Allocate a free buffer region with enough space to hold all buffer data for the given number of
      * voxel faces.
      */
-    private Allocator.Region allocatePerFaceBufferRegion(int faceCount) {
+    private FreeListAllocator.Region allocatePerFaceBufferRegion(int faceCount) {
       return allocator.allocate(faceCount);
     }
 
@@ -2135,7 +2136,7 @@ public class VoxelGameGL {
             if (DEBUG) {
                 System.out.println("Deallocate buffer region for chunk: " + chunk);
             }
-            allocator.free(new Allocator.Region(chunkFaceOffset, chunkFaceCount));
+            allocator.free(new FreeListAllocator.Region(chunkFaceOffset, chunkFaceCount));
             return null;
         }, "Deallocate buffer region for chunk " + chunk, delayFrames));
     }
@@ -2156,7 +2157,7 @@ public class VoxelGameGL {
                 appendFaceVertexAndIndexData(chunk, i++, u0, v0, u1, v1, p, s, v, vertexData, indices);
             }
         });
-        Allocator.Region r = allocatePerFaceBufferRegion(faceCount);
+        FreeListAllocator.Region r = allocatePerFaceBufferRegion(faceCount);
         long time = System.nanoTime();
 
         /* Issue render thread task to update the buffer objects */
