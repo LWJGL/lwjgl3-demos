@@ -50,7 +50,6 @@ public class Allocator {
 
   private final OutOfCapacityCallback callback;
   private Node listStart;
-  private Node listEnd;
   private int capacity;
 
   public Allocator(OutOfCapacityCallback callback) {
@@ -73,15 +72,18 @@ public class Allocator {
           remove(n);
         return r;
       }
+      if (n.next == null)
+        break;
       n = n.next;
     }
-    outOfCapacity();
+    outOfCapacity(n);
     return allocate(size);
   }
 
-  private void outOfCapacity() {
+  private void outOfCapacity(Node last) {
     int newCapacity = callback.onCapacityIncrease(capacity);
-    insertEnd(capacity, roundUpToNextMultiple(newCapacity - capacity, Node.ALIGNMENT));
+    insertAfter(capacity, roundUpToNextMultiple(newCapacity - capacity, Node.ALIGNMENT), last);
+    capacity = newCapacity;
   }
 
   private void remove(Node n) {
@@ -91,8 +93,6 @@ public class Allocator {
       n.next.prev = n.prev;
     if (listStart == n)
       listStart = n.next;
-    if (listEnd == n)
-      listEnd = n.prev;
   }
 
   private void insertBefore(int off, int len, Node p) {
@@ -109,16 +109,17 @@ public class Allocator {
     }
   }
 
-  private void insertEnd(int off, int len) {
-    if (listEnd != null) {
-      if (listEnd.off + listEnd.len == off) {
-        listEnd.len += len;
+  private void insertAfter(int off, int len, Node p) {
+    if (p != null) {
+      if (p.off + p.len == off) {
+        p.len += len;
       } else {
-        Node n = listEnd.next = new Node(off, len);
-        n.prev = listEnd;
+        Node n = p.next = p.next.prev = new Node(off, len);
+        n.prev = p;
       }
     } else {
-      listStart = listEnd = new Node(off, len);
+      Node n = listStart = new Node(off, len);
+      n.prev = p;
     }
   }
 
@@ -130,9 +131,11 @@ public class Allocator {
         insertBefore(reg.off, size, n);
         return;
       }
+      if (n.next == null)
+        break;
       n = n.next;
     }
-    insertEnd(reg.off, size);
+    insertAfter(reg.off, size, n);
   }
 
   public String toString() {
