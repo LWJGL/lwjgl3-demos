@@ -5,12 +5,12 @@
 package org.lwjgl.demo.util;
 
 /**
- * Simple first-fit free-list allocator, allocating integer ranges from within a
+ * Simple first-fit explicit free-list allocator, allocating integer ranges from within a
  * given capacity.
  * 
  * @author Kai Burjack
  */
-public class FreeListAllocator {
+public class FirstFitFreeListAllocator {
   @FunctionalInterface
   public interface OutOfCapacityCallback {
     int onCapacityIncrease(int currentCapacity);
@@ -47,22 +47,18 @@ public class FreeListAllocator {
     }
   }
 
-  public static final int DEFAULT_ALIGNMENT = 1024;
   private final OutOfCapacityCallback callback;
   private Node listStart;
   private int capacity;
-  private int alignment = DEFAULT_ALIGNMENT;
+  private final int alignment;
 
-  public FreeListAllocator(OutOfCapacityCallback callback) {
+  public FirstFitFreeListAllocator(int alignment, OutOfCapacityCallback callback) {
     this.callback = callback;
+    this.alignment = alignment;
   }
 
   private static int roundUpToNextMultiple(int num, int factor) {
     return num + factor - 1 - (num + factor - 1) % factor;
-  }
-
-  public void setAlignment(int alignment) {
-    this.alignment = alignment;
   }
 
   public synchronized Region allocate(int size) {
@@ -73,8 +69,14 @@ public class FreeListAllocator {
         Region r = new Region(n.off, size);
         n.off += roundedSize;
         n.len -= roundedSize;
-        if (n.len < alignment)
-          remove(n);
+        if (n.len < alignment) {
+          if (n.prev != null)
+            n.prev.next = n.next;
+          if (n.next != null)
+            n.next.prev = n.prev;
+          if (listStart == n)
+            listStart = n.next;
+        }
         return r;
       }
       if (n.next == null)
@@ -87,44 +89,47 @@ public class FreeListAllocator {
 
   private void outOfCapacity(Node last) {
     int newCapacity = callback.onCapacityIncrease(capacity);
-    insertAfter(capacity, roundUpToNextMultiple(newCapacity - capacity, alignment), last);
+    insertEnd(capacity, roundUpToNextMultiple(newCapacity - capacity, alignment), last);
     capacity = newCapacity;
   }
 
-  private void remove(Node n) {
-    if (n.prev != null)
-      n.prev.next = n.next;
-    if (n.next != null)
-      n.next.prev = n.prev;
-    if (listStart == n)
-      listStart = n.next;
-  }
-
   private void insertBefore(int off, int len, Node p) {
-    if (p.prev != null) {
+    if (off + len == p.off) {
+      p.len += len;
+      p.off = off;
+      if (p.prev != null && p.prev.off + p.prev.len == p.off) {
+        p.prev.len += p.len;
+        p.prev.next = p.next;
+        if (p.next != null)
+          p.next.prev = p.prev;
+      }
+    } else if (p.prev != null) {
       if (p.prev.off + p.prev.len == off) {
         p.prev.len += len;
       } else {
-        Node n = p.prev = p.prev.next = new Node(off, len);
+        Node n = p.prev.next = new Node(off, len);
+        n.prev = p.prev;
+        p.prev = n;
         n.next = p;
       }
     } else {
-      Node n = listStart = p.prev = new Node(off, len);
+      Node n = listStart = new Node(off, len);
+      if (p != null)
+        p.prev = n;
       n.next = p;
     }
   }
 
-  private void insertAfter(int off, int len, Node p) {
+  private void insertEnd(int off, int len, Node p) {
     if (p != null) {
       if (p.off + p.len == off) {
         p.len += len;
       } else {
-        Node n = p.next = p.next.prev = new Node(off, len);
+        Node n = p.next = new Node(off, len);
         n.prev = p;
       }
     } else {
-      Node n = listStart = new Node(off, len);
-      n.prev = p;
+      listStart = new Node(off, len);
     }
   }
 
@@ -140,7 +145,7 @@ public class FreeListAllocator {
         break;
       n = n.next;
     }
-    insertAfter(reg.off, size, n);
+    insertEnd(reg.off, size, n);
   }
 
   public String toString() {

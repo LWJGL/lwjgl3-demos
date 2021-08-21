@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 import org.joml.*;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.game.VoxelGameGL.GreedyMeshing.FaceConsumer;
-import org.lwjgl.demo.util.FreeListAllocator;
+import org.lwjgl.demo.util.FirstFitFreeListAllocator;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
@@ -506,7 +506,7 @@ public class VoxelGameGL {
         /**
          * The region associated with this chunk.
          */
-        private FreeListAllocator.Region r;
+        private FirstFitFreeListAllocator.Region r;
         /**
          * The index in per-chunk buffers.
          */
@@ -817,7 +817,7 @@ public class VoxelGameGL {
         }
     };
 
-    private final FreeListAllocator allocator = new FreeListAllocator(new FreeListAllocator.OutOfCapacityCallback() {
+    private final FirstFitFreeListAllocator allocator = new FirstFitFreeListAllocator(1024*4, new FirstFitFreeListAllocator.OutOfCapacityCallback() {
       public int onCapacityIncrease(int currentCapacity) {
         int newPerFaceBufferCapacity = max(currentCapacity << 1, INITIAL_PER_FACE_BUFFER_CAPACITY);
         updateAndRenderRunnables.add(new DelayedRunnable(() -> {
@@ -2028,7 +2028,7 @@ public class VoxelGameGL {
      * Allocate a free buffer region with enough space to hold all buffer data for the given number of
      * voxel faces.
      */
-    private FreeListAllocator.Region allocatePerFaceBufferRegion(int faceCount) {
+    private FirstFitFreeListAllocator.Region allocatePerFaceBufferRegion(int faceCount) {
       return allocator.allocate(faceCount);
     }
 
@@ -2136,7 +2136,7 @@ public class VoxelGameGL {
             if (DEBUG) {
                 System.out.println("Deallocate buffer region for chunk: " + chunk);
             }
-            allocator.free(new FreeListAllocator.Region(chunkFaceOffset, chunkFaceCount));
+            allocator.free(new FirstFitFreeListAllocator.Region(chunkFaceOffset, chunkFaceCount));
             return null;
         }, "Deallocate buffer region for chunk " + chunk, delayFrames));
     }
@@ -2157,7 +2157,7 @@ public class VoxelGameGL {
                 appendFaceVertexAndIndexData(chunk, i++, u0, v0, u1, v1, p, s, v, vertexData, indices);
             }
         });
-        FreeListAllocator.Region r = allocatePerFaceBufferRegion(faceCount);
+        FirstFitFreeListAllocator.Region r = allocatePerFaceBufferRegion(faceCount);
         long time = System.nanoTime();
 
         /* Issue render thread task to update the buffer objects */
