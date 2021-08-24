@@ -1,10 +1,10 @@
 {
   "resources":{
   "includes":[
-    {"pattern":"\\Qlibswt-cairo-gtk-4626.so\\E"}, 
-    {"pattern":"\\Qlibswt-glx-gtk-4626.so\\E"}, 
-    {"pattern":"\\Qlibswt-gtk-4626.so\\E"}, 
-    {"pattern":"\\Qlibswt-pi3-gtk-4626.so\\E"}, 
+    {"pattern":"\\Qlibswt-cairo-gtk-4629.so\\E"}, 
+    {"pattern":"\\Qlibswt-glx-gtk-4629.so\\E"}, 
+    {"pattern":"\\Qlibswt-gtk-4629.so\\E"}, 
+    {"pattern":"\\Qlibswt-pi3-gtk-4629.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/assimp/libassimp.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/bgfx/libbgfx.so\\E"}, 
     {"pattern":"\\Qlinux/x64/org/lwjgl/glfw/libglfw.so\\E"}, 
@@ -283,6 +283,8 @@
     {"pattern":"\\Qorg/lwjgl/demo/vulkan/twoRotatingTriangles.frag\\E"}, 
     {"pattern":"\\Qorg/lwjgl/demo/vulkan/twoRotatingTriangles.vert\\E"}, 
     {"pattern":"\\Qorg/lwjgl/system/APIUtil.class\\E"}, 
+    {"pattern":"\\Qswt-wgl-win32-4629.dll\\E"}, 
+    {"pattern":"\\Qswt-win32-4629.dll\\E"}, 
     {"pattern":"\\Qwindows/x64/org/lwjgl/assimp/assimp.dll\\E"}, 
     {"pattern":"\\Qwindows/x64/org/lwjgl/bgfx/bgfx.dll\\E"}, 
     {"pattern":"\\Qwindows/x64/org/lwjgl/glfw/glfw.dll\\E"}, 

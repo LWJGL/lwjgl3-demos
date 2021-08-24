@@ -1,5 +1,18 @@
 [
 {
+  "name":"java.lang.ClassLoader",
+  "methods":[
+    {"name":"getPlatformClassLoader","parameterTypes":[] }, 
+    {"name":"loadClass","parameterTypes":["java.lang.String"] }
+  ]
+},
+{
+  "name":"java.lang.NoSuchMethodError"
+},
+{
+  "name":"jdk.internal.loader.ClassLoaders$PlatformClassLoader"
+},
+{
   "name":"org.eclipse.swt.internal.opengl.win32.PIXELFORMATDESCRIPTOR",
   "fields":[
     {"name":"bReserved"}, 
@@ -251,6 +264,22 @@
   ]
 },
 {
+  "name":"org.eclipse.swt.internal.win32.WINDOWPLACEMENT",
+  "fields":[
+    {"name":"bottom"}, 
+    {"name":"flags"}, 
+    {"name":"left"}, 
+    {"name":"length"}, 
+    {"name":"ptMaxPosition_x"}, 
+    {"name":"ptMaxPosition_y"}, 
+    {"name":"ptMinPosition_x"}, 
+    {"name":"ptMinPosition_y"}, 
+    {"name":"right"}, 
+    {"name":"showCmd"}, 
+    {"name":"top"}
+  ]
+},
+{
   "name":"org.eclipse.swt.internal.win32.WINDOWPOS",
   "fields":[
     {"name":"cx"}, 
@@ -285,5 +314,49 @@
     {"name":"msgFilterProc","parameterTypes":["long","long","long"] }, 
     {"name":"windowProc","parameterTypes":["long","long","long","long"] }
   ]
+},
+{
+  "name":"org.graalvm.nativebridge.jni.JNIExceptionWrapperEntryPoints",
+  "methods":[{"name":"getClassName","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$B",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$D",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$F",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$I",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$J",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$N",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$P",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$S",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$V",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$Z",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
 }
 ]

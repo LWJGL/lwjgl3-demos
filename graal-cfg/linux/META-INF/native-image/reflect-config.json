@@ -1,5 +1,8 @@
 [
 {
+  "name":"byte[]"
+},
+{
   "name":"float[]"
 },
 {
@@ -18,8 +21,31 @@
   "name":"java.lang.Object"
 },
 {
+  "name":"java.lang.String"
+},
+{
+  "name":"java.lang.String[]"
+},
+{
   "name":"java.nio.Buffer",
-  "fields":[{"name":"address", "allowUnsafeAccess":true}]
+  "fields":[{"name":"address"}]
+},
+{
+  "name":"java.security.MessageDigestSpi"
+},
+{
+  "name":"java.security.interfaces.RSAPrivateKey"
+},
+{
+  "name":"java.security.interfaces.RSAPublicKey"
+},
+{
+  "name":"java.util.Date"
+},
+{
+  "name":"javax.security.auth.x500.X500Principal",
+  "fields":[{"name":"thisX500Name"}],
+  "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
 },
 {
   "name":"org.eclipse.swt.widgets.Display"
@@ -27,165 +53,165 @@
 {
   "name":"org.joml.Matrix2f",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}
   ]
 },
 {
   "name":"org.joml.Matrix3d",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m02", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m12", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}, 
-    {"name":"m22", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m02"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m12"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}, 
+    {"name":"m22"}
   ]
 },
 {
   "name":"org.joml.Matrix3f",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m02", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m12", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}, 
-    {"name":"m22", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m02"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m12"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}, 
+    {"name":"m22"}
   ]
 },
 {
   "name":"org.joml.Matrix3x2f",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}
   ]
 },
 {
   "name":"org.joml.Matrix4d",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m02", "allowUnsafeAccess":true}, 
-    {"name":"m03", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m12", "allowUnsafeAccess":true}, 
-    {"name":"m13", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}, 
-    {"name":"m22", "allowUnsafeAccess":true}, 
-    {"name":"m23", "allowUnsafeAccess":true}, 
-    {"name":"m30", "allowUnsafeAccess":true}, 
-    {"name":"m31", "allowUnsafeAccess":true}, 
-    {"name":"m32", "allowUnsafeAccess":true}, 
-    {"name":"m33", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m02"}, 
+    {"name":"m03"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m12"}, 
+    {"name":"m13"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}, 
+    {"name":"m22"}, 
+    {"name":"m23"}, 
+    {"name":"m30"}, 
+    {"name":"m31"}, 
+    {"name":"m32"}, 
+    {"name":"m33"}
   ]
 },
 {
   "name":"org.joml.Matrix4f",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m02", "allowUnsafeAccess":true}, 
-    {"name":"m03", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m12", "allowUnsafeAccess":true}, 
-    {"name":"m13", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}, 
-    {"name":"m22", "allowUnsafeAccess":true}, 
-    {"name":"m23", "allowUnsafeAccess":true}, 
-    {"name":"m30", "allowUnsafeAccess":true}, 
-    {"name":"m31", "allowUnsafeAccess":true}, 
-    {"name":"m32", "allowUnsafeAccess":true}, 
-    {"name":"m33", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m02"}, 
+    {"name":"m03"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m12"}, 
+    {"name":"m13"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}, 
+    {"name":"m22"}, 
+    {"name":"m23"}, 
+    {"name":"m30"}, 
+    {"name":"m31"}, 
+    {"name":"m32"}, 
+    {"name":"m33"}
   ]
 },
 {
   "name":"org.joml.Matrix4x3f",
   "fields":[
-    {"name":"m00", "allowUnsafeAccess":true}, 
-    {"name":"m01", "allowUnsafeAccess":true}, 
-    {"name":"m02", "allowUnsafeAccess":true}, 
-    {"name":"m10", "allowUnsafeAccess":true}, 
-    {"name":"m11", "allowUnsafeAccess":true}, 
-    {"name":"m12", "allowUnsafeAccess":true}, 
-    {"name":"m20", "allowUnsafeAccess":true}, 
-    {"name":"m21", "allowUnsafeAccess":true}, 
-    {"name":"m22", "allowUnsafeAccess":true}, 
-    {"name":"m30", "allowUnsafeAccess":true}, 
-    {"name":"m31", "allowUnsafeAccess":true}, 
-    {"name":"m32", "allowUnsafeAccess":true}
+    {"name":"m00"}, 
+    {"name":"m01"}, 
+    {"name":"m02"}, 
+    {"name":"m10"}, 
+    {"name":"m11"}, 
+    {"name":"m12"}, 
+    {"name":"m20"}, 
+    {"name":"m21"}, 
+    {"name":"m22"}, 
+    {"name":"m30"}, 
+    {"name":"m31"}, 
+    {"name":"m32"}
   ]
 },
 {
   "name":"org.joml.Quaternionf",
   "fields":[
-    {"name":"w", "allowUnsafeAccess":true}, 
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}, 
-    {"name":"z", "allowUnsafeAccess":true}
+    {"name":"w"}, 
+    {"name":"x"}, 
+    {"name":"y"}, 
+    {"name":"z"}
   ]
 },
 {
   "name":"org.joml.Vector2f",
   "fields":[
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}
+    {"name":"x"}, 
+    {"name":"y"}
   ]
 },
 {
   "name":"org.joml.Vector2i",
   "fields":[
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}
+    {"name":"x"}, 
+    {"name":"y"}
   ]
 },
 {
   "name":"org.joml.Vector3f",
   "fields":[
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}, 
-    {"name":"z", "allowUnsafeAccess":true}
+    {"name":"x"}, 
+    {"name":"y"}, 
+    {"name":"z"}
   ]
 },
 {
   "name":"org.joml.Vector3i",
   "fields":[
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}, 
-    {"name":"z", "allowUnsafeAccess":true}
+    {"name":"x"}, 
+    {"name":"y"}, 
+    {"name":"z"}
   ]
 },
 {
   "name":"org.joml.Vector4f",
   "fields":[
-    {"name":"w", "allowUnsafeAccess":true}, 
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}, 
-    {"name":"z", "allowUnsafeAccess":true}
+    {"name":"w"}, 
+    {"name":"x"}, 
+    {"name":"y"}, 
+    {"name":"z"}
   ]
 },
 {
   "name":"org.joml.Vector4i",
   "fields":[
-    {"name":"w", "allowUnsafeAccess":true}, 
-    {"name":"x", "allowUnsafeAccess":true}, 
-    {"name":"y", "allowUnsafeAccess":true}, 
-    {"name":"z", "allowUnsafeAccess":true}
+    {"name":"w"}, 
+    {"name":"x"}, 
+    {"name":"y"}, 
+    {"name":"z"}
   ]
 },
 {
@@ -826,20 +852,20 @@
 {
   "name":"org.lwjgl.system.CustomBuffer",
   "fields":[
-    {"name":"capacity", "allowUnsafeAccess":true}, 
-    {"name":"container", "allowUnsafeAccess":true}, 
-    {"name":"limit", "allowUnsafeAccess":true}, 
-    {"name":"mark", "allowUnsafeAccess":true}, 
-    {"name":"position", "allowUnsafeAccess":true}
+    {"name":"capacity"}, 
+    {"name":"container"}, 
+    {"name":"limit"}, 
+    {"name":"mark"}, 
+    {"name":"position"}
   ]
 },
 {
   "name":"org.lwjgl.system.Pointer$Default",
-  "fields":[{"name":"address", "allowUnsafeAccess":true}]
+  "fields":[{"name":"address"}]
 },
 {
   "name":"org.lwjgl.system.Struct",
-  "fields":[{"name":"container", "allowUnsafeAccess":true}]
+  "fields":[{"name":"container"}]
 },
 {
   "name":"org.lwjgl.system.jemalloc.JEmallocAllocator",
@@ -2513,5 +2539,74 @@
     {"name":"getLong","parameterTypes":["java.lang.Object","long"] }, 
     {"name":"putLong","parameterTypes":["java.lang.Object","long","long"] }
   ]
+},
+{
+  "name":"sun.security.pkcs.SignerInfo[]"
+},
+{
+  "name":"sun.security.provider.SHA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.SHA2$SHA256",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.X509Factory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSAKeyFactory$Legacy",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSASignature$SHA1withRSA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSASignature$SHA256withRSA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.util.ObjectIdentifier"
+},
+{
+  "name":"sun.security.x509.AuthorityInfoAccessExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.AuthorityKeyIdentifierExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.BasicConstraintsExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CRLDistributionPointsExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CertificateExtensions"
+},
+{
+  "name":"sun.security.x509.CertificatePoliciesExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.ExtendedKeyUsageExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.KeyUsageExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.SubjectAlternativeNameExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.SubjectKeyIdentifierExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
 }
 ]

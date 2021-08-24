@@ -1,5 +1,18 @@
 [
 {
+  "name":"java.lang.ClassLoader",
+  "methods":[
+    {"name":"getPlatformClassLoader","parameterTypes":[] }, 
+    {"name":"loadClass","parameterTypes":["java.lang.String"] }
+  ]
+},
+{
+  "name":"java.lang.NoSuchMethodError"
+},
+{
+  "name":"jdk.internal.loader.ClassLoaders$PlatformClassLoader"
+},
+{
   "name":"org.eclipse.swt.graphics.Device",
   "methods":[{"name":"logProc","parameterTypes":["long","long","long","long"] }]
 },
@@ -101,6 +114,21 @@
     {"name":"state"}, 
     {"name":"time"}, 
     {"name":"window"}
+  ]
+},
+{
+  "name":"org.eclipse.swt.internal.gtk.GdkEventScroll",
+  "fields":[
+    {"name":"device"}, 
+    {"name":"direction"}, 
+    {"name":"send_event"}, 
+    {"name":"state"}, 
+    {"name":"time"}, 
+    {"name":"window"}, 
+    {"name":"x"}, 
+    {"name":"x_root"}, 
+    {"name":"y"}, 
+    {"name":"y_root"}
   ]
 },
 {
@@ -256,5 +284,49 @@
     {"name":"windowProc","parameterTypes":["long","long","long","long","long"] }, 
     {"name":"windowTimerProc","parameterTypes":["long"] }
   ]
+},
+{
+  "name":"org.graalvm.nativebridge.jni.JNIExceptionWrapperEntryPoints",
+  "methods":[{"name":"getClassName","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$B",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$D",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$F",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$I",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$J",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$N",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$P",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$S",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$V",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
+},
+{
+  "name":"org.lwjgl.system.CallbackI$Z",
+  "methods":[{"name":"callback","parameterTypes":["long"] }]
 }
 ]
