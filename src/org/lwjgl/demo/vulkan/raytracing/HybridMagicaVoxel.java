@@ -7,7 +7,6 @@ package org.lwjgl.demo.vulkan.raytracing;
 import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.IntStream.range;
 import static org.joml.Math.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -273,11 +272,7 @@ public class HybridMagicaVoxel {
             VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
             _CHECK_(vkEnumerateInstanceExtensionProperties((ByteBuffer) null, pPropertyCount, pProperties),
                     "Could not enumerate instance extensions");
-            List<String> res = new ArrayList<>(propertyCount);
-            for (int i = 0; i < propertyCount; i++) {
-                res.add(pProperties.get(i).extensionNameString());
-            }
-            return res;
+            return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
         }
     }
 
@@ -551,7 +546,7 @@ public class HybridMagicaVoxel {
             VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, pProperties),
                     "Failed to enumerate the device extensions");
-            return range(0, propertyCount).mapToObj(i -> pProperties.get(i).extensionNameString()).collect(toList());
+            return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
         }
     }
 
@@ -567,7 +562,7 @@ public class HybridMagicaVoxel {
                                 .callocStack(stack)
                                 .set(instance, device))
                         .instance(instance)
-                        .vulkanApiVersion(VK_API_VERSION_1_1), pAllocator),
+                        .vulkanApiVersion(VK_API_VERSION_1_2), pAllocator),
                     "Failed to create VMA allocator");
             return pAllocator.get(0);
         }
