@@ -57,7 +57,7 @@ public class Raymarch extends Demo {
             BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
             BGFXTransientIndexBuffer tib = BGFXTransientIndexBuffer.callocStack(stack);
 
-            if (bgfx_alloc_transient_buffers(tvb, layout, 4, tib, 6)) {
+            if (bgfx_alloc_transient_buffers(tvb, layout, 4, tib, 6, false)) {
                 ByteBuffer vertex = tvb.data();
 
                 float zz = 0.0f;
