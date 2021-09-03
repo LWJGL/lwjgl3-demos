@@ -49,7 +49,7 @@ public class HybridMagicaVoxel {
     private static final int INDICES_PER_FACE = 6;
     private static final int BITS_FOR_POSITIONS = 7; // <- allow for a position maximum of 128
     private static final int POSITION_SCALE = 1 << BITS_FOR_POSITIONS;
-    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "false"));
+    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
         if (DEBUG) {
             /* When we are in debug mode, enable all LWJGL debug flags */
@@ -553,7 +553,8 @@ public class HybridMagicaVoxel {
             PointerBuffer pAllocator = stack.mallocPointer(1);
             _CHECK_(vmaCreateAllocator(VmaAllocatorCreateInfo
                         .callocStack(stack)
-                        .flags(VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT)
+                        .flags(VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT | 
+                               VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT)
                         .physicalDevice(deviceAndQueueFamilies.physicalDevice)
                         .device(device)
                         .pVulkanFunctions(VmaVulkanFunctions
