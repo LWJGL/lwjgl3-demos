@@ -1323,9 +1323,8 @@ public class HybridMagicaVoxel {
                     .callocStack(1, stack)
                     .apply(0, d -> d.binding(0).stride(4 * Short.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX));
             VkVertexInputAttributeDescription.Buffer attributeDescriptions = VkVertexInputAttributeDescription
-                    .callocStack(2, stack)
-                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16_UNORM).offset(0))
-                    .apply(1, d -> d.binding(0).location(1).format(VK_FORMAT_R16_UINT).offset(3 * Short.BYTES));
+                    .callocStack(1, stack)
+                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16A16_UNORM).offset(0));
             VkPipelineVertexInputStateCreateInfo pVertexInputState = VkPipelineVertexInputStateCreateInfo
                     .callocStack(stack)
                     .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
