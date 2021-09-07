@@ -413,6 +413,12 @@ public class SimpleTriangle {
                     !accelerationStructureFeatures.accelerationStructure())
                     continue;
 
+                // Check if the physical device supports the VK_FORMAT_R32G32B32_SFLOAT vertexFormat for acceleration structure geometry
+                VkFormatProperties formatProperties = VkFormatProperties.mallocStack(stack);
+                vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R32G32B32_SFLOAT, formatProperties);
+                if ((formatProperties.bufferFeatures() & VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR) == 0)
+                    continue;
+
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
                         .mallocStack(stack)
