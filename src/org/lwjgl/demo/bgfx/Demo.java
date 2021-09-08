@@ -84,7 +84,7 @@ abstract class Demo {
                 }
             });
 
-            BGFXPlatformData platformData = BGFXPlatformData.callocStack(stack);
+            BGFXPlatformData platformData = BGFXPlatformData.calloc(stack);
 
             switch (Platform.get()) {
                 case LINUX:
@@ -111,7 +111,7 @@ abstract class Demo {
 
             /* Initialize bgfx */
 
-            BGFXInit init = BGFXInit.mallocStack(stack);
+            BGFXInit init = BGFXInit.malloc(stack);
             bgfx_init_ctor(init);
             init
                 .type(renderer)
@@ -266,8 +266,8 @@ abstract class Demo {
     }
 
     private static BGFXCallbackInterface createCallbacks(MemoryStack stack) {
-        return BGFXCallbackInterface.callocStack(stack)
-            .vtbl(BGFXCallbackVtbl.callocStack(stack)
+        return BGFXCallbackInterface.calloc(stack)
+            .vtbl(BGFXCallbackVtbl.calloc(stack)
                 .fatal((_this, _filePath, _line, _code, _str) -> {
                     if (_code == BGFX_FATAL_DEBUG_CHECK) {
                         System.out.println("BREAK"); // set debugger breakpoint
@@ -328,8 +328,8 @@ abstract class Demo {
 
     private static long NATURAL_ALIGNMENT = 8L;
     private static BGFXAllocatorInterface createAllocator(MemoryStack stack) {
-        return BGFXAllocatorInterface.callocStack(stack)
-            .vtbl(BGFXAllocatorVtbl.callocStack(stack)
+        return BGFXAllocatorInterface.calloc(stack)
+            .vtbl(BGFXAllocatorVtbl.calloc(stack)
                 .realloc((_this, _ptr, _size, _align, _file, _line) -> {
                     long ptr;
                     if (_size == 0) {

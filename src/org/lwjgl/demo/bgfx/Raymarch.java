@@ -54,8 +54,8 @@ public class Raymarch extends Demo {
 
     private void renderScreenSpaceQuad(long encoder, int _view, short _program, float _x, float _y, float _width, float _height) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
-            BGFXTransientIndexBuffer tib = BGFXTransientIndexBuffer.callocStack(stack);
+            BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.calloc(stack);
+            BGFXTransientIndexBuffer tib = BGFXTransientIndexBuffer.calloc(stack);
 
             if (bgfx_alloc_transient_buffers(tvb, layout, 4, tib, 6, false)) {
                 ByteBuffer vertex = tvb.data();

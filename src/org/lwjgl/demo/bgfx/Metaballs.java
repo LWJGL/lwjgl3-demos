@@ -510,7 +510,7 @@ public class Metaballs extends Demo {
 
             // Allocate 32K vertices in transient vertex buffer.
             int maxVertices = (32 << 10);
-            BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.callocStack(stack);
+            BGFXTransientVertexBuffer tvb = BGFXTransientVertexBuffer.calloc(stack);
             bgfx_alloc_transient_vertex_buffer(tvb, maxVertices, layout);
 
             int numSpheres = 16;

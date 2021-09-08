@@ -205,7 +205,7 @@ public class VKUtil {
 
         try (final MemoryStack stack = MemoryStack.stackPush()) {
             if (count > 0) {
-                final VkLayerProperties.Buffer instanceLayers = VkLayerProperties.mallocStack(count, stack);
+                final VkLayerProperties.Buffer instanceLayers = VkLayerProperties.malloc(count, stack);
                 vkEnumerateInstanceLayerProperties(ip, instanceLayers);
                 for (int i = 0; i < count; i++) {
                     final String layerName = instanceLayers.get(i).layerNameString();

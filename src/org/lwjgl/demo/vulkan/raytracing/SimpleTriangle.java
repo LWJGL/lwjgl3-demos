@@ -226,7 +226,7 @@ public class SimpleTriangle {
             _CHECK_(vkEnumerateInstanceExtensionProperties((ByteBuffer) null, pPropertyCount, null),
                     "Could not enumerate number of instance extensions");
             int propertyCount = pPropertyCount.get(0);
-            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
+            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount, stack);
             _CHECK_(vkEnumerateInstanceExtensionProperties((ByteBuffer) null, pPropertyCount, pProperties),
                     "Could not enumerate instance extensions");
             List<String> res = new ArrayList<>(propertyCount);
@@ -252,10 +252,10 @@ public class SimpleTriangle {
                 enabledLayers = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                     .pApplicationInfo(VkApplicationInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
                             .apiVersion(VK_API_VERSION_1_1))
                     .ppEnabledLayerNames(enabledLayers)
@@ -316,7 +316,7 @@ public class SimpleTriangle {
             LongBuffer pMessenger = stack.mallocLong(1);
             _CHECK_(vkCreateDebugUtilsMessengerEXT(instance,
                     VkDebugUtilsMessengerCreateInfoEXT
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
                         .messageSeverity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
@@ -344,7 +344,7 @@ public class SimpleTriangle {
             int numQueueFamilies = pQueueFamilyPropertyCount.get(0);
             if (numQueueFamilies == 0)
                 throw new AssertionError("No queue families found");
-            VkQueueFamilyProperties.Buffer familyProperties = VkQueueFamilyProperties.mallocStack(numQueueFamilies, stack);
+            VkQueueFamilyProperties.Buffer familyProperties = VkQueueFamilyProperties.malloc(numQueueFamilies, stack);
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, familyProperties);
             int queueFamilyIndex = 0;
             IntBuffer pSupported = stack.mallocInt(1);
@@ -390,19 +390,19 @@ public class SimpleTriangle {
                 VkPhysicalDevice dev = new VkPhysicalDevice(pPhysicalDevices.get(i), instance);
                 // Check if the device supports all needed features
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
                         .pNext(NULL);
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                         .pNext(accelerationStructureFeatures.address());
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
                         .pNext(rayTracingPipelineFeatures.address());
                 VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
                         .pNext(bufferDeviceAddressFeatures.address());
                 vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
@@ -414,22 +414,22 @@ public class SimpleTriangle {
                     continue;
 
                 // Check if the physical device supports the VK_FORMAT_R32G32B32_SFLOAT vertexFormat for acceleration structure geometry
-                VkFormatProperties formatProperties = VkFormatProperties.mallocStack(stack);
+                VkFormatProperties formatProperties = VkFormatProperties.malloc(stack);
                 vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R32G32B32_SFLOAT, formatProperties);
                 if ((formatProperties.bufferFeatures() & VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR) == 0)
                     continue;
 
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)
                         .pNext(NULL);
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR)
                         .pNext(accelerationStructureProperties.address());
                 VkPhysicalDeviceProperties2 props = VkPhysicalDeviceProperties2
-                        .mallocStack(stack)
+                        .malloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2)
                         .pNext(rayTracingProperties.address());
                 vkGetPhysicalDeviceProperties2(dev, props);
@@ -463,30 +463,30 @@ public class SimpleTriangle {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
             VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
                     .bufferDeviceAddress(true);
             VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT)
                     .pNext(bufferDeviceAddressFeatures.address())
                     .runtimeDescriptorArray(true);
             VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
                     .pNext(indexingFeatures.address())
                     .accelerationStructure(true);
             VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
                     .pNext(accelerationStructureFeatures.address())
                     .rayTracingPipeline(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
                     .pNext(rayTracingFeatures.address())
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
-                            .callocStack(1, stack)
+                            .calloc(1, stack)
                             .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
                             .queueFamilyIndex(queueFamily)
                             .pQueuePriorities(stack.floats(1.0f)))
@@ -505,7 +505,7 @@ public class SimpleTriangle {
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, null),
                     "Failed to get number of device extensions");
             int propertyCount = pPropertyCount.get(0);
-            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(propertyCount, stack);
+            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount, stack);
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, pProperties),
                     "Failed to enumerate the device extensions");
             return range(0, propertyCount).mapToObj(i -> pProperties.get(i).extensionNameString()).collect(toList());
@@ -516,13 +516,13 @@ public class SimpleTriangle {
         try (MemoryStack stack = stackPush()) {
             PointerBuffer pAllocator = stack.mallocPointer(1);
             _CHECK_(vmaCreateAllocator(VmaAllocatorCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .flags(VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT | 
                                VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT)
                         .physicalDevice(deviceAndQueueFamilies.physicalDevice)
                         .device(device)
                         .pVulkanFunctions(VmaVulkanFunctions
-                                .callocStack(stack)
+                                .calloc(stack)
                                 .set(instance, device))
                         .instance(instance)
                         .vulkanApiVersion(VK_API_VERSION_1_1), pAllocator),
@@ -545,7 +545,7 @@ public class SimpleTriangle {
             _CHECK_(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pSurfaceFormatCount, null),
                     "Failed to get number of device surface formats");
             VkSurfaceFormatKHR.Buffer pSurfaceFormats = VkSurfaceFormatKHR
-                    .mallocStack(pSurfaceFormatCount.get(0), stack);
+                    .malloc(pSurfaceFormatCount.get(0), stack);
             _CHECK_(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pSurfaceFormatCount, pSurfaceFormats),
                     "Failed to get device surface formats");
             for (VkSurfaceFormatKHR surfaceFormat : pSurfaceFormats) {
@@ -570,7 +570,7 @@ public class SimpleTriangle {
     private static Swapchain createSwapchain() {
         try (MemoryStack stack = stackPush()) {
             VkSurfaceCapabilitiesKHR pSurfaceCapabilities = VkSurfaceCapabilitiesKHR
-                    .mallocStack(stack);
+                    .malloc(stack);
             _CHECK_(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceAndQueueFamilies.physicalDevice, surface, pSurfaceCapabilities),
                     "Failed to get physical device surface capabilities");
             IntBuffer pPresentModeCount = stack.mallocInt(1);
@@ -584,7 +584,7 @@ public class SimpleTriangle {
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             VkSwapchainCreateInfoKHR pCreateInfo = VkSwapchainCreateInfoKHR
-                .callocStack(stack)
+                .calloc(stack)
                 .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
                 .surface(surface)
                 .minImageCount(imageCount)
@@ -620,7 +620,7 @@ public class SimpleTriangle {
             for (int i = 0; i < actualImageCount; i++) {
                 _CHECK_(vkCreateImageView(device,
                         VkImageViewCreateInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
                             .image(pSwapchainImages.get(i))
                             .viewType(VK_IMAGE_TYPE_2D)
@@ -641,7 +641,7 @@ public class SimpleTriangle {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pCmdPool = stack.mallocLong(1);
             _CHECK_(vkCreateCommandPool(device, VkCommandPoolCreateInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
                     .flags(flags)
                     .queueFamilyIndex(queueFamily), null, pCmdPool),
@@ -655,7 +655,7 @@ public class SimpleTriangle {
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
             _CHECK_(vkAllocateCommandBuffers(device,
                     VkCommandBufferAllocateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
                         .commandPool(pool)
                         .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
@@ -663,7 +663,7 @@ public class SimpleTriangle {
                     "Failed to create command buffer");
             VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
             _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)),
                     "Failed to begin command buffer");
             return cmdBuffer;
@@ -678,7 +678,7 @@ public class SimpleTriangle {
             try (MemoryStack stack = stackPush()) {
                 LongBuffer pSemaphore = stack.mallocLong(1);
                 VkSemaphoreCreateInfo pCreateInfo = VkSemaphoreCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
                 _CHECK_(vkCreateSemaphore(device, pCreateInfo, null, pSemaphore),
                         "Failed to create image acquire semaphore");
@@ -688,7 +688,7 @@ public class SimpleTriangle {
                 renderCompleteSemaphores[i] = pSemaphore.get(0);
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
                         .flags(VK_FENCE_CREATE_SIGNALED_BIT), null, pFence),
                         "Failed to create fence");
@@ -735,7 +735,7 @@ public class SimpleTriangle {
     private static boolean submitAndPresent(int imageIndex, int idx) {
         try (MemoryStack stack = stackPush()) {
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR))
@@ -745,7 +745,7 @@ public class SimpleTriangle {
                     renderFences[idx]),
                     "Failed to submit command buffer");
             int result = vkQueuePresentKHR(queue, VkPresentInfoKHR
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
                     .pWaitSemaphores(stack.longs(renderCompleteSemaphores[idx]))
                     .swapchainCount(1)
@@ -821,11 +821,11 @@ public class SimpleTriangle {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pFence = stack.mallocLong(1);
             _CHECK_(vkCreateFence(device, VkFenceCreateInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO), null, pFence),
                     "Failed to create fence");
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                     .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
                     "Failed to submit command buffer");
@@ -843,12 +843,12 @@ public class SimpleTriangle {
             PointerBuffer pAllocation = stack.mallocPointer(1);
             _CHECK_(vmaCreateBuffer(vmaAllocator,
                     VkBufferCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
                         .size(size)
                         .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
                     VmaAllocationCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .usage(VMA_MEMORY_USAGE_GPU_ONLY), pBuffer, pAllocation, null),
                     "Failed to allocate buffer");
 
@@ -863,12 +863,12 @@ public class SimpleTriangle {
                 LongBuffer pBufferStage = stack.mallocLong(1);
                 PointerBuffer pAllocationStage = stack.mallocPointer(1);
                 _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
                             .size(data.remaining())
                             .usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                         VmaAllocationCreateInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .usage(VMA_MEMORY_USAGE_CPU_ONLY), pBufferStage, pAllocationStage, null),
                         "Failed to allocate stage buffer");
 
@@ -882,7 +882,7 @@ public class SimpleTriangle {
                 // issue copy buffer command
                 VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
                 vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), pBuffer.get(0), VkBufferCopy
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .size(data.remaining()));
                 long bufferStage = pBufferStage.get(0);
                 long allocationStage = pAllocationStage.get(0);
@@ -909,14 +909,14 @@ public class SimpleTriangle {
             try (MemoryStack stack = stackPush()) {
                 LongBuffer pBuffer = stack.mallocLong(1);
                 PointerBuffer pAllocation = stack.mallocPointer(1);
-                VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.mallocStack(stack);
+                VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
                 _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
                             .size(size)
                             .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
                         VmaAllocationCreateInfo
-                            .callocStack(stack)
+                            .calloc(stack)
                             .usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, pAllocationInfo),
                         "Failed to allocate buffer");
 
@@ -952,19 +952,19 @@ public class SimpleTriangle {
 
     private static VkDeviceOrHostAddressKHR deviceAddress(MemoryStack stack, long buffer, long alignment) {
         return VkDeviceOrHostAddressKHR
-                .mallocStack(stack)
+                .malloc(stack)
                 .deviceAddress(bufferAddress(buffer, alignment));
     }
     private static VkDeviceOrHostAddressConstKHR deviceAddressConst(MemoryStack stack, long buffer, long alignment) {
         return VkDeviceOrHostAddressConstKHR
-                .mallocStack(stack)
+                .malloc(stack)
                 .deviceAddress(bufferAddress(buffer, alignment));
     }
     private static long bufferAddress(long buffer, long alignment) {
         long address;
         try (MemoryStack stack = stackPush()) {
             address = vkGetBufferDeviceAddressKHR(device, VkBufferDeviceAddressInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR)
                     .buffer(buffer));
         }
@@ -993,19 +993,19 @@ public class SimpleTriangle {
             // Create the build geometry info holding the vertex and index data
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos = 
                     VkAccelerationStructureBuildGeometryInfoKHR
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR)
                         .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR)
                         .geometryCount(1)
                         .pGeometries(VkAccelerationStructureGeometryKHR
-                                .callocStack(1, stack)
+                                .calloc(1, stack)
                                 .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR)
                                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_KHR)
                                 .geometry(VkAccelerationStructureGeometryDataKHR
-                                        .callocStack(stack)
+                                        .calloc(stack)
                                         .triangles(VkAccelerationStructureGeometryTrianglesDataKHR
-                                                .callocStack(stack)
+                                                .calloc(stack)
                                                 .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR)
                                                 .vertexFormat(VK_FORMAT_R32G32B32_SFLOAT)
                                                 .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Float.BYTES))
@@ -1017,7 +1017,7 @@ public class SimpleTriangle {
 
             // Query necessary sizes for the acceleration structure buffer and for the scratch buffer
             VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo = VkAccelerationStructureBuildSizesInfoKHR
-                    .mallocStack(stack)
+                    .malloc(stack)
                     .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)
                     .pNext(NULL);
             vkGetAccelerationStructureBuildSizesKHR(
@@ -1036,7 +1036,7 @@ public class SimpleTriangle {
             // Create a BLAS object (not currently built)
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
                         .buffer(accelerationStructureBuffer.buffer)
                         .size(buildSizesInfo.accelerationStructureSize())
@@ -1062,7 +1062,7 @@ public class SimpleTriangle {
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, // <- accessing the buffer for acceleration structure build
                     0, // <- no dependency flags
                     VkMemoryBarrier
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
                         .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT) // <- GPU buffer was written to during the transfer
                         .dstAccessMask(
@@ -1077,7 +1077,7 @@ public class SimpleTriangle {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(1, stack)
+                            .calloc(1, stack)
                             .primitiveCount(geometry.numPrimities)));
 
             // Finally submit command buffer and register callback when fence signals to 
@@ -1099,18 +1099,18 @@ public class SimpleTriangle {
             // Query the BLAS device address to reference in the TLAS instance
             long blasDeviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device, 
                     VkAccelerationStructureDeviceAddressInfoKHR
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR)
                         .accelerationStructure(blas.accelerationStructure));
 
             // Create a single instance for our TLAS
             VkAccelerationStructureInstanceKHR instance = VkAccelerationStructureInstanceKHR
-                    .callocStack(stack)
+                    .calloc(stack)
                     .accelerationStructureReference(blasDeviceAddress)
                     .mask(~0) // <- we do not want to mask-away any geometry, so use 0b11111111
                     .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
                     .transform(VkTransformMatrixKHR
-                            .callocStack(stack)
+                            .calloc(stack)
                             .matrix(new Matrix4x3f().getTransposed(stack.mallocFloat(12))));
 
             // This instance data also needs to reside in a GPU buffer, so copy it
@@ -1124,18 +1124,18 @@ public class SimpleTriangle {
             // Create the build geometry info holding the BLAS reference
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos = 
                     VkAccelerationStructureBuildGeometryInfoKHR
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
                         .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR)
                         .pGeometries(VkAccelerationStructureGeometryKHR
-                                .callocStack(1, stack)
+                                .calloc(1, stack)
                                 .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR)
                                 .geometryType(VK_GEOMETRY_TYPE_INSTANCES_KHR)
                                 .geometry(VkAccelerationStructureGeometryDataKHR
-                                        .callocStack(stack)
+                                        .calloc(stack)
                                         .instances(VkAccelerationStructureGeometryInstancesDataKHR
-                                                .callocStack(stack)
+                                                .calloc(stack)
                                                 .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR)
                                                 .data(deviceAddressConst(stack, instanceData.buffer, 16)))) // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR))
@@ -1143,7 +1143,7 @@ public class SimpleTriangle {
 
             // Query necessary sizes for the acceleration structure buffer and for the scratch buffer
             VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo = VkAccelerationStructureBuildSizesInfoKHR
-                    .mallocStack(stack)
+                    .malloc(stack)
                     .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)
                     .pNext(NULL);
             vkGetAccelerationStructureBuildSizesKHR(
@@ -1163,7 +1163,7 @@ public class SimpleTriangle {
             // Create a TLAS object (not currently built)
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
                         .size(buildSizesInfo.accelerationStructureSize())
@@ -1189,7 +1189,7 @@ public class SimpleTriangle {
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, // <- accessing the buffer for acceleration structure build
                     0, // <- no dependency flags
                     VkMemoryBarrier
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
                         .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT) // <- GPU buffer was written to during the transfer
                         .dstAccessMask(
@@ -1204,7 +1204,7 @@ public class SimpleTriangle {
                     pInfos,
                     stack.pointers(
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .callocStack(1, stack)
+                            .calloc(1, stack)
                             .primitiveCount(1))); // <- number of BLASes!
 
             // insert barrier to let tracing wait for the TLAS build
@@ -1213,7 +1213,7 @@ public class SimpleTriangle {
                     VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
                     0, // <- no dependency flags
                     VkMemoryBarrier
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
                         .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
                         .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
@@ -1241,10 +1241,10 @@ public class SimpleTriangle {
             // create the descriptor set layout
             // we have one acceleration structure, one storage image and one uniform buffer
             _CHECK_(vkCreateDescriptorSetLayout(device, VkDescriptorSetLayoutCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
                         .pBindings(VkDescriptorSetLayoutBinding
-                                .callocStack(numDescriptors, stack)
+                                .calloc(numDescriptors, stack)
                                 .apply(dslb -> dslb
                                         .binding(0)
                                         .descriptorType(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
@@ -1265,12 +1265,12 @@ public class SimpleTriangle {
                     "Failed to create descriptor set layout");
             LongBuffer pPipelineLayout = stack.mallocLong(1);
             _CHECK_(vkCreatePipelineLayout(device, VkPipelineLayoutCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
                         .pSetLayouts(pSetLayout), null, pPipelineLayout),
                     "Failed to create pipeline layout");
             VkPipelineShaderStageCreateInfo.Buffer pStages = VkPipelineShaderStageCreateInfo
-                    .callocStack(3, stack);
+                    .calloc(3, stack);
 
             // load shaders
             String pkg = SimpleTriangle.class.getName().toLowerCase().replace('.', '/') + "/";
@@ -1288,7 +1288,7 @@ public class SimpleTriangle {
                     null, stack, device, pkg + "closesthit.glsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
 
             VkRayTracingShaderGroupCreateInfoKHR.Buffer groups = VkRayTracingShaderGroupCreateInfoKHR
-                    .callocStack(3, stack);
+                    .calloc(3, stack);
             groups.forEach(g -> g
                     .sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR)
                     .generalShader(VK_SHADER_UNUSED_KHR)
@@ -1306,7 +1306,7 @@ public class SimpleTriangle {
                          .closestHitShader(2));
             LongBuffer pPipelines = stack.mallocLong(1);
             _CHECK_(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, VkRayTracingPipelineCreateInfoKHR
-                        .callocStack(1, stack)
+                        .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)
                         .pStages(pStages)
                         .maxPipelineRayRecursionDepth(1)
@@ -1357,7 +1357,7 @@ public class SimpleTriangle {
                                                 VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
                                                 0,
                                                 VkMemoryBarrier
-                                                    .callocStack(1, s)
+                                                    .calloc(1, s)
                                                     .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
                                                     .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
                                                     .dstAccessMask(VK_ACCESS_SHADER_READ_BIT),
@@ -1385,10 +1385,10 @@ public class SimpleTriangle {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pDescriptorPool = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo
-                        .callocStack(stack)
+                        .calloc(stack)
                         .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
                         .pPoolSizes(VkDescriptorPoolSize
-                                .callocStack(numDescriptors, stack)
+                                .calloc(numDescriptors, stack)
                                 .apply(0, dps -> dps
                                         .type(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
                                         .descriptorCount(numSets))
@@ -1401,7 +1401,7 @@ public class SimpleTriangle {
                         .maxSets(numSets), null, pDescriptorPool),
                     "Failed to create descriptor pool");
             VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VkDescriptorSetAllocateInfo
-                    .callocStack(stack)
+                    .calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
                     .descriptorPool(pDescriptorPool.get(0))
                     .pSetLayouts(repeat(stack, rayTracingPipeline.descriptorSetLayout, numSets));
@@ -1411,7 +1411,7 @@ public class SimpleTriangle {
             long[] sets = new long[pDescriptorSets.remaining()];
             pDescriptorSets.get(sets, 0, sets.length);
             VkWriteDescriptorSet.Buffer writeDescriptorSet = VkWriteDescriptorSet
-                    .callocStack(numDescriptors * numSets, stack);
+                    .calloc(numDescriptors * numSets, stack);
             for (int i = 0; i < numSets; i++) {
                 final int idx = i;
                 writeDescriptorSet
@@ -1422,7 +1422,7 @@ public class SimpleTriangle {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pNext(VkWriteDescriptorSetAccelerationStructureKHR
-                                        .callocStack(stack)
+                                        .calloc(stack)
                                         .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)
                                         .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
                                         .address()))
@@ -1433,7 +1433,7 @@ public class SimpleTriangle {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pImageInfo(VkDescriptorImageInfo
-                                        .callocStack(1, stack)
+                                        .calloc(1, stack)
                                         .imageView(swapchain.imageViews[idx])
                                         .imageLayout(VK_IMAGE_LAYOUT_GENERAL)))
                         .apply(wds -> wds
@@ -1443,7 +1443,7 @@ public class SimpleTriangle {
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo
-                                        .callocStack(1, stack)
+                                        .calloc(1, stack)
                                         .buffer(rayTracingUbos[idx].buffer)
                                         .range(VK_WHOLE_SIZE)));
             }
@@ -1472,7 +1472,7 @@ public class SimpleTriangle {
                         null,
                         null,
                         VkImageMemoryBarrier
-                            .callocStack(1, stack)
+                            .calloc(1, stack)
                             .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
                             .srcAccessMask(0)
                             .dstAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
@@ -1496,10 +1496,10 @@ public class SimpleTriangle {
 
                 // and issue a tracing command
                 vkCmdTraceRaysKHR(cmdBuf,
-                        VkStridedDeviceAddressRegionKHR.callocStack(stack).deviceAddress(sbtAddress).stride(groupSize).size(groupSize),
-                        VkStridedDeviceAddressRegionKHR.callocStack(stack).deviceAddress(sbtAddress + groupSize).stride(groupSize).size(groupSize),
-                        VkStridedDeviceAddressRegionKHR.callocStack(stack).deviceAddress(sbtAddress + 2L * groupSize).stride(groupSize).size(groupSize),
-                        VkStridedDeviceAddressRegionKHR.callocStack(stack), swapchain.width, swapchain.height, 1);
+                        VkStridedDeviceAddressRegionKHR.calloc(stack).deviceAddress(sbtAddress).stride(groupSize).size(groupSize),
+                        VkStridedDeviceAddressRegionKHR.calloc(stack).deviceAddress(sbtAddress + groupSize).stride(groupSize).size(groupSize),
+                        VkStridedDeviceAddressRegionKHR.calloc(stack).deviceAddress(sbtAddress + 2L * groupSize).stride(groupSize).size(groupSize),
+                        VkStridedDeviceAddressRegionKHR.calloc(stack), swapchain.width, swapchain.height, 1);
 
                 // insert barrier to transition the image from general to present source,
                 // and wait for the tracing to complete.
@@ -1511,7 +1511,7 @@ public class SimpleTriangle {
                         null,
                         null,
                         VkImageMemoryBarrier
-                            .callocStack(1, stack)
+                            .calloc(1, stack)
                             .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
                             .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
                             .dstAccessMask(0)

@@ -241,7 +241,7 @@ public class NvRayTracingExample {
             IntBuffer pPropertyCount = stack.mallocInt(1);
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, null),
                     "Failed to enumerate device extensions");
-            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.mallocStack(pPropertyCount.get(0), stack);
+            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(pPropertyCount.get(0), stack);
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount,
                     pProperties),
                     "Failed to enumerate device extensions");
@@ -976,7 +976,7 @@ public class NvRayTracingExample {
         }
 
         VkMemoryRequirements memoryRequirementsOfSize(MemoryStack stack, long size) {
-            VkMemoryRequirements res = VkMemoryRequirements.mallocStack(stack);
+            VkMemoryRequirements res = VkMemoryRequirements.malloc(stack);
             memPutLong(res.address() + VkMemoryRequirements.SIZE, size);
             memPutLong(res.address() + VkMemoryRequirements.ALIGNMENT, alignment);
             memPutInt(res.address() + VkMemoryRequirements.MEMORYTYPEBITS, memoryTypeBits);
