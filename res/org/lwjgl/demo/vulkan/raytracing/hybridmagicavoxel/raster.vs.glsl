@@ -22,7 +22,7 @@ const vec3 N[6] = vec3[6](vec3(-1,0,0), vec3(1,0,0), vec3(0,-1,0), vec3(0,1,0), 
  * to an uint in the range [0..65536].
  */
 uint unorm16toUint(float unorm16) {
-  return uint(unorm16 * 65536.0);
+  return uint(unorm16 * 65535.0);
 }
 
 void main(void) {
