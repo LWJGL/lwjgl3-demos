@@ -595,9 +595,11 @@ public class TwoRotatingTrianglesInvDepthDemo {
 
         VkSubpassDependency.Buffer dependency = VkSubpassDependency.calloc(1)
                 .srcSubpass(VK_SUBPASS_EXTERNAL)
-                .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-                .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+                .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT)
+                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)
+                .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | 
+                        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT)
                 .dependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
