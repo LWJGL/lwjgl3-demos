@@ -777,37 +777,14 @@ public class VoxelLightmapping {
         /* Cull voxels */
         System.out.println("Building voxels...");
         int numVoxels = 0, numRetainedVoxels = 0;
-        boolean[] culled = new boolean[(field.w + 2) * (field.h() + 2) * (field.d + 2)];
-        for (int y = field.ny; y < field.h(); y++) {
-            for (int z = 0; z < field.d; z++) {
-                for (int x = 0; x < field.w; x++) {
-                    int idx = idx(x, y, z, field.w, field.d);
-                    byte c = field.field[idx];
-                    if (c == 0)
-                        continue;
-                    numVoxels++;
-                    boolean left = (field.field[idx(x - 1, y, z, field.w, field.d)]) != 0;
-                    boolean right = (field.field[idx(x + 1, y, z, field.w, field.d)]) != 0;
-                    boolean down = (field.field[idx(x, y - 1, z, field.w, field.d)]) != 0;
-                    boolean up = (field.field[idx(x, y + 1, z, field.w, field.d)]) != 0;
-                    boolean back = (field.field[idx(x, y, z - 1, field.w, field.d)]) != 0;
-                    boolean front = (field.field[idx(x, y, z + 1, field.w, field.d)]) != 0;
-                    if (left && right && down && up && back && front) {
-                        culled[idx] = true;
-                    } else {
-                        numRetainedVoxels++;
-                    }
-                }
-            }
-        }
         System.out.println("Num voxels: " + numVoxels);
         System.out.println("Num voxels after culling: " + numRetainedVoxels);
         /* Greedy voxeling */
         ArrayList<Voxel> voxels = new ArrayList<>();
         GreedyVoxels gv = new GreedyVoxels(field.ny, field.py, field.w, field.d, (x, y, z, w, h, d, v) ->
                 voxels.add(new Voxel(x, y, z, w - 1, h - 1, d - 1, v)));
-        gv.setSingleOpaque(true);
-        gv.merge(field.field, culled);
+        gv.singleOpaque = true;
+        gv.merge(field.field);
         System.out.println("Num voxels after merge: " + voxels.size());
         return voxels;
     }

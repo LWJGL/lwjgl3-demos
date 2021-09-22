@@ -48,6 +48,8 @@ public class VKUtil {
             return shaderc_miss_shader;
         case VK_SHADER_STAGE_ANY_HIT_BIT_NV:
             return shaderc_anyhit_shader;
+        case VK_SHADER_STAGE_INTERSECTION_BIT_NV:
+            return shaderc_intersection_shader;
         default:
             throw new IllegalArgumentException("Stage: " + stage);
         }

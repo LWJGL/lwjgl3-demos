@@ -298,39 +298,12 @@ public class GL33KdTreeTrace {
           materials[i] = mat;
       }
     });
-    boolean[] culled = new boolean[(dims.x+2) * (dims.y+2) * (dims.z+2)];
-    // Cull voxels
-    int numVoxels = 0, numRetainedVoxels = 0;
-    for (int z = 0; z < dims.z; z++) {
-        for (int y = 0; y < dims.y; y++) {
-            for (int x = 0; x < dims.x; x++) {
-                int idx = idx(x, y, z, dims.x, dims.z);
-                byte c = field[idx];
-                if (c == 0)
-                    continue;
-                numVoxels++;
-                boolean left = x > 0 && (field[idx(x - 1, y, z, dims.x, dims.z)]) != 0;
-                boolean right = x < dims.x - 1 && (field[idx(x + 1, y, z, dims.x, dims.z)]) != 0;
-                boolean down = y > 0 && (field[idx(x, y - 1, z, dims.x, dims.z)]) != 0;
-                boolean up = y < dims.y - 1 && (field[idx(x, y + 1, z, dims.x, dims.z)]) != 0;
-                boolean back = z > 0 && (field[idx(x, y, z - 1, dims.x, dims.z)]) != 0;
-                boolean front = z < dims.z - 1 && (field[idx(x, y, z + 1, dims.x, dims.z)]) != 0;
-                if (left && right && down && up && back && front) {
-                    culled[idx] = true;
-                } else {
-                    numRetainedVoxels++;
-                }
-            }
-        }
-    }
-    System.out.println("Num voxels: " + numVoxels);
-    System.out.println("Num voxels after culling: " + numRetainedVoxels);
     /* Merge voxels */
     List<Voxel> voxels = new ArrayList<>();
     GreedyVoxels gv = new GreedyVoxels(0, dims.y - 1, dims.x, dims.z, (x, y, z, w, h, d, v) -> {
       voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
     });
-    gv.merge(field, culled);
+    gv.merge(field);
     System.out.println("Num voxels after merge: " + voxels.size());
     return voxels;
   }
