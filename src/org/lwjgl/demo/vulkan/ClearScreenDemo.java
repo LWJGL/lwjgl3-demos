@@ -282,7 +282,7 @@ public class ClearScreenDemo {
             int numQueueFamilies = memGetInt(pQueueFamilyPropertyCount);
             if (numQueueFamilies == 0)
                 throw new AssertionError("No queue families found");
-            VkQueueFamilyProperties.Buffer familyProperties = VkQueueFamilyProperties.calloc(numQueueFamilies);
+            VkQueueFamilyProperties.Buffer familyProperties = VkQueueFamilyProperties.calloc(numQueueFamilies, stack);
             nvkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, familyProperties.address());
             int queueFamilyIndex = 0;
             long pSupported = stack.nmalloc(Integer.BYTES);
