@@ -22,7 +22,7 @@ layout(binding = 5, set = 0) uniform sampler2D normalAndTypeImage;
  * to an uint in the range [0..255].
  */
 uint snorm8toUint(float snorm8) {
-  return uint((snorm8 + 1.0) * 127.0);
+  return uint(round((snorm8 + 1.0) * 127.0));
 }
 
 void main(void) {

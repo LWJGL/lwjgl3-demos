@@ -1215,7 +1215,7 @@ public class SimpleTriangle {
                     VkMemoryBarrier
                         .calloc(1, stack)
                         .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
-                        .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
+                        .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
                         .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
                     null,
                     null);

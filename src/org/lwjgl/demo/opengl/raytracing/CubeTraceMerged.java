@@ -207,7 +207,6 @@ public class CubeTraceMerged {
         int width = levelWidth, height = levelHeight, depth = levelDepth;
         float xzScale = 0.02343f * scale, yScale = 0.0212f * scale;
         byte[] field = new byte[(width+2) * (depth+2) * (height+2)];
-        boolean[] culled = new boolean[field.length];
         int numVoxels = 0;
         for (int z = 0; z < depth; z++)
             for (int y = 0; y < height; y++)
@@ -219,32 +218,12 @@ public class CubeTraceMerged {
                     }
                 }
         System.out.println("Num voxels: " + numVoxels);
-        /* Remove voxels that have neighbors at all sides */
-        for (int z = 0; z < depth; z++) {
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int idx = idx(x, y, z, width, depth);
-                    int left = idx(x - 1, y, z, width, depth);
-                    int right = idx(x + 1, y, z, width, depth);
-                    int up = idx(x, y + 1, z, width, depth);
-                    int down = idx(x, y - 1, z, width, depth);
-                    int front = idx(x, y, z - 1, width, depth);
-                    int back = idx(x, y, z + 1, width, depth);
-                    if (field[idx] == 1 && (x == 0 || field[left] == 1)
-                            && (x == width - 1 || field[right] == 1) && (y == height - 1 || field[up] == 1)
-                            && (y == 0 || field[down] == 1) && (z == 0 || field[front] == 1)
-                            && (z == depth - 1 || field[back] == 1)) {
-                        culled[idx] = true;
-                    }
-                }
-            }
-        }
         /* Merge voxels */
         List<KDTreei.Voxel> voxels = new ArrayList<>();
         GreedyVoxels gv = new GreedyVoxels(0, height - 1, width, depth, (x, y, z, w, h, d, v) -> {
             voxels.add(new Voxel(x, y, z, w-1, h-1, d-1, v));
         });
-        gv.merge(field, culled);
+        gv.merge(field);
         System.out.println("Num voxels after culling: " + voxels.size());
         return voxels;
     }

@@ -11,31 +11,14 @@ package org.lwjgl.demo.util;
  */
 public class GreedyVoxels {
     @FunctionalInterface
-    public static interface Callback {
+    public interface Callback {
         void voxel(int x0, int y0, int z0, int w, int h, int d, int v);
     }
 
     private final short[] m;
     private final Callback callback;
     private final int dx, dy, dz, ny;
-    private boolean mergeCulled;
-    private boolean singleOpaque;
-
-    public boolean isMergeCulled() {
-        return mergeCulled;
-    }
-
-    public void setMergeCulled(boolean mergeCulled) {
-        this.mergeCulled = mergeCulled;
-    }
-
-    public boolean isSingleOpaque() {
-        return singleOpaque;
-    }
-
-    public void setSingleOpaque(boolean singleOpaque) {
-        this.singleOpaque = singleOpaque;
-    }
+    public boolean singleOpaque;
 
     public GreedyVoxels(int ny, int py, int dx, int dz, Callback callback) {
         if (dx < 1 || dx > Short.MAX_VALUE)
@@ -51,19 +34,19 @@ public class GreedyVoxels {
         this.dx = dx;
         this.dy = py - ny + 1;
         this.dz = dz;
-        this.m = new short[(dx+2) * (dy+2) * (dz+2)];
+        this.m = new short[(dx + 2) * (dy + 2) * (dz + 2)];
     }
 
     private int idx(int x, int y, int z) {
-        return (x+1) + (dx+2) * ((z+1) + (y+1) * (dz+2));
+        return x + 1 + (dx + 2) * (z + 1 + (y + 1) * (dz + 2));
     }
 
-    public void merge(byte[] vs, boolean[] culled) {
+    public void merge(byte[] vs) {
         for (int y = ny; y < dy; y++)
             for (int z = 0; z < dz; z++)
                 for (int x = 0; x < dx; x++) {
                     int i = idx(x, y, z);
-                    m[i] = (short) (culled[i] ? -1 : vs[i] & 0xFF);
+                    m[i] = (short) (vs[i] & 0xFF);
                 }
         for (int y = ny; y < dy; y++)
             for (int z = 0; z < dz; z++)
@@ -91,7 +74,7 @@ public class GreedyVoxels {
     }
 
     private boolean sameOrOccluded(int c, int mn) {
-        return c == mn || (mergeCulled && mn == -1) || (singleOpaque && mn > 0);
+        return c == mn || (singleOpaque && mn > 0);
     }
 
     private int determineWidth(int c, int x, int y, int z) {
