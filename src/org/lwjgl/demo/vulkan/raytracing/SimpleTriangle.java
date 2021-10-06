@@ -139,16 +139,13 @@ public class SimpleTriangle {
     private static class DeviceAndQueueFamilies {
         private final VkPhysicalDevice physicalDevice;
         private final QueueFamilies queuesFamilies;
-        private final int shaderGroupHandleSize;
         private final int shaderGroupBaseAlignment;
         private final int minAccelerationStructureScratchOffsetAlignment;
         private DeviceAndQueueFamilies(VkPhysicalDevice physicalDevice, QueueFamilies queuesFamilies,
-                int shaderGroupHandleSize,
                 int shaderGroupBaseAlignment,
                 int minAccelerationStructureScratchOffsetAlignment) {
             this.physicalDevice = physicalDevice;
             this.queuesFamilies = queuesFamilies;
-            this.shaderGroupHandleSize = shaderGroupHandleSize;
             this.shaderGroupBaseAlignment = shaderGroupBaseAlignment;
             this.minAccelerationStructureScratchOffsetAlignment = minAccelerationStructureScratchOffsetAlignment;
         }
@@ -438,7 +435,6 @@ public class SimpleTriangle {
                 QueueFamilies queuesFamilies = obtainQueueFamilies(dev);
                 if (isDeviceSuitable(queuesFamilies)) {
                     return new DeviceAndQueueFamilies(dev, queuesFamilies,
-                            rayTracingProperties.shaderGroupHandleSize(),
                             rayTracingProperties.shaderGroupBaseAlignment(),
                             accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment());
                 }
@@ -1327,7 +1323,7 @@ public class SimpleTriangle {
             sbt.free();
         try (MemoryStack stack = stackPush()) {
             int groupCount = 3;
-            int groupHandleSize = deviceAndQueueFamilies.shaderGroupHandleSize;
+            int groupHandleSize = 32 /* shaderGroupHandleSize is exactly 32 bytes, by definition */;
             // group handles must be properly aligned when writing them to the final GPU buffer, so compute
             // the aligned group handle size
             int groupSizeAligned = alignUp(groupHandleSize, deviceAndQueueFamilies.shaderGroupBaseAlignment);
@@ -1491,7 +1487,7 @@ public class SimpleTriangle {
                         stack.longs(rayTracingDescriptorSets.sets[i]), null);
 
                 // calculate shader group offsets and sizes in the SBT
-                int groupSize = alignUp(deviceAndQueueFamilies.shaderGroupHandleSize, deviceAndQueueFamilies.shaderGroupBaseAlignment);
+                int groupSize = alignUp(32/*shaderGroupHandleSize is exactly 32 bytes, by definition*/, deviceAndQueueFamilies.shaderGroupBaseAlignment);
                 long sbtAddress = bufferAddress(sbt.buffer, deviceAndQueueFamilies.shaderGroupBaseAlignment);
 
                 // and issue a tracing command
