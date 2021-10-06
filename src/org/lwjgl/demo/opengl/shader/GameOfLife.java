@@ -37,14 +37,16 @@ public class GameOfLife {
     private static final boolean DEBUG = has("debug", false);
     static {
         if (DEBUG) {
-            /* When we are in debug mode, enable all LWJGL debug flags */
-            System.setProperty("org.lwjgl.util.Debug", "true");
-            System.setProperty("org.lwjgl.util.NoChecks", "false");
-            System.setProperty("org.lwjgl.util.DebugLoader", "true");
-            System.setProperty("org.lwjgl.util.DebugAllocator", "true");
-            System.setProperty("org.lwjgl.util.DebugStack", "true");
+            // When we are in debug mode, enable all LWJGL debug flags
+            Configuration.DEBUG.set(true);
+            Configuration.DISABLE_CHECKS.set(false);
+            Configuration.DEBUG_FUNCTIONS.set(true);
+            Configuration.DEBUG_LOADER.set(true);
+            Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
+            Configuration.DEBUG_MEMORY_ALLOCATOR_INTERNAL.set(true);
+            Configuration.DEBUG_STACK.set(true);
         } else {
-            System.setProperty("org.lwjgl.util.NoChecks", "true");
+            Configuration.DISABLE_CHECKS.set(true);
         }
     }
 
