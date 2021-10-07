@@ -766,7 +766,7 @@ public class VoxelLightmapping {
     private ArrayList<Face> buildFaces(VoxelField vf) {
         System.out.println("Building faces...");
         /* Greedy-meshing */
-        GreedyMeshing gm = new GreedyMeshing(0, vf.ny, 0, vf.py, vf.w, vf.d);
+        GreedyMeshing gm = new GreedyMeshing(0, vf.ny, 0, vf.w - 1, vf.py, vf.d - 1, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
         gm.mesh(vf.field, faces);
         System.out.println("Num faces: " + faces.size());

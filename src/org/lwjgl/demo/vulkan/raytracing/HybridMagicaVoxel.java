@@ -2303,7 +2303,7 @@ public class HybridMagicaVoxel {
     }
 
     private static ArrayList<Face> buildFaces(VoxelField vf) {
-        GreedyMeshingNoAo gm = new GreedyMeshingNoAo(0, vf.ny, 0, vf.py, vf.w, vf.d);
+        GreedyMeshingNoAo gm = new GreedyMeshingNoAo(0, vf.ny, 0, vf.w - 1, vf.py, vf.d - 1, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
         gm.mesh(vf.field, faces);
         return faces;

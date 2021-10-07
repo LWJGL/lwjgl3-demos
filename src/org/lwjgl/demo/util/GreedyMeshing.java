@@ -244,16 +244,13 @@ public class GreedyMeshing {
 
     private final int[] m;
     private byte[] vs;
-    private int dx, dy, dz, nx, ny, nz;
-    private boolean singleOpaque;
-    private int maxMergeLength = Integer.MAX_VALUE;
-    private int splitShift = 16;
-    private int splitMask = (1 << splitShift) - 1;
+    private final int dx, dy, dz, nx, ny, nz, px, py, pz, vdx, vdz;
+    public boolean singleOpaque;
 
     private static int[] computeNeighborConfigs() {
         int[] offs = new int[256];
         for (int i = 0; i < 256; i++) {
-            boolean cxny = (i & 1<<0) == 1<<0, nxny = (i & 1<<1) == 1<<1, nxcy = (i & 1<<2) == 1<<2, nxpy = (i & 1<<3) == 1<<3;
+            boolean cxny = (i & 1)    == 1,    nxny = (i & 1<<1) == 1<<1, nxcy = (i & 1<<2) == 1<<2, nxpy = (i & 1<<3) == 1<<3;
             boolean cxpy = (i & 1<<4) == 1<<4, pxpy = (i & 1<<5) == 1<<5, pxcy = (i & 1<<6) == 1<<6, pxny = (i & 1<<7) == 1<<7;
             int fnunv = (cxny ? 1 : 0) + (nxny ? 2 : 0) + (nxcy ? 4 : 0);
             int fpunv = (cxny ? 1 : 0) + (pxny ? 2 : 0) + (pxcy ? 4 : 0);
@@ -264,39 +261,19 @@ public class GreedyMeshing {
         return offs;
     }
 
-    public GreedyMeshing(int nx, int ny, int nz, int py, int dx, int dz) {
-        if (dx < 1 || dx > Short.MAX_VALUE)
-            throw new IllegalArgumentException("dx");
-        if (ny < 0 || ny > Short.MAX_VALUE)
-            throw new IllegalArgumentException("ny");
-        if (py < 0 || py > Short.MAX_VALUE)
-            throw new IllegalArgumentException("py");
-        if (dz < 1 || dz > Short.MAX_VALUE)
-            throw new IllegalArgumentException("dz");
-        this.dx = dx;
+    public GreedyMeshing(int nx, int ny, int nz, int px, int py, int pz, int vdx, int vdz) {
+        this.vdx = vdx;
+        this.vdz = vdz;
+        this.dx = px - nx + 1;
         this.dy = py - ny + 1;
-        this.dz = dz;
+        this.dz = pz - nz + 1;
         this.nx = nx;
         this.ny = ny;
         this.nz = nz;
+        this.px = px;
+        this.py = py;
+        this.pz = pz;
         this.m = new int[max(dx, dy) * max(dy, dz)];
-    }
-
-    public void setMaxMergeLength(int maxMergeLength) {
-        this.maxMergeLength = maxMergeLength;
-    }
-
-    public void setSingleOpaque(boolean singleOpaque) {
-        this.singleOpaque = singleOpaque;
-    }
-
-    public void setSplitShift(int splitShift) {
-        this.splitShift = splitShift;
-        this.splitMask = (1 << splitShift) - 1;
-    }
-
-    public boolean isSingleOpaque() {
-        return singleOpaque;
     }
 
     private byte at(int x, int y, int z) {
@@ -304,7 +281,7 @@ public class GreedyMeshing {
     }
 
     private int idx(int x, int y, int z) {
-        return x + 1 + (dx + 2) * (z + 1 + (dz + 2) * (y + 1));
+        return x + 1 + (vdx + 2) * (z + 1 + (vdz + 2) * (y + 1));
     }
 
     public void mesh(byte[] vs, List<Face> faces) {
@@ -326,21 +303,21 @@ public class GreedyMeshing {
     }
 
     private void meshX(List<Face>[] faces) {
-        for (int x0 = nx - 1; x0 < dx;) {
-            generateMaskX(x0);
-            mergeAndGenerateFacesX(faces, ++x0);
+        for (int x = nx - 1; x <= px;) {
+            generateMaskX(x);
+            mergeAndGenerateFacesX(faces, ++x);
         }
     }
 
     private void meshY(List<Face>[] faces) {
-        for (int y = ny - 1; y < dy;) {
+        for (int y = ny - 1; y <= py;) {
             generateMaskY(y);
             mergeAndGenerateFacesY(faces, ++y);
         }
     }
 
     private void meshZ(List<Face>[] faces) {
-        for (int z = nz - 1; z < dz;) {
+        for (int z = nz - 1; z <= pz;) {
             generateMaskZ(z);
             mergeAndGenerateFacesZ(faces, ++z);
         }
@@ -348,22 +325,22 @@ public class GreedyMeshing {
 
     private void generateMaskX(int x) {
         int n = 0;
-        for (int z = 0; z < dz; z++)
-            for (int y = ny; y < dy; y++, n++)
+        for (int z = nz; z <= pz; z++)
+            for (int y = ny; y <= py; y++, n++)
                 generateMaskX(x, y, z, n);
     }
 
     private void generateMaskY(int y) {
         int n = 0;
-        for (int x = 0; x < dx; x++)
-            for (int z = 0; z < dz; z++, n++)
+        for (int x = nx; x <= px; x++)
+            for (int z = nz; z <= pz; z++, n++)
                 generateMaskY(x, y, z, n);
     }
 
     private void generateMaskZ(int z) {
         int n = 0;
-        for (int y = ny; y < dy; y++)
-            for (int x = 0; x < dx; x++, n++)
+        for (int y = ny; y <= py; y++)
+            for (int x = nx; x <= px; x++, n++)
                 generateMaskZ(x, y, z, n);
     }
 
@@ -441,22 +418,22 @@ public class GreedyMeshing {
 
     private void mergeAndGenerateFacesX(List<Face>[] faces, int x) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dz; j++)
-            for (i = ny; i < dy; i += incr, n += incr)
+        for (j = nz, n = 0; j <= pz; j++)
+            for (i = ny; i <= py; i += incr, n += incr)
                 incr = mergeAndGenerateFaceX(faces, x, n, i, j);
     }
 
     private void mergeAndGenerateFacesY(List<Face>[] faces, int y) {
         int i, j, n, incr;
-        for (j = 0, n = 0; j < dx; j++)
-            for (i = 0; i < dz; i += incr, n += incr)
+        for (j = nx, n = 0; j <= px; j++)
+            for (i = nz; i <= pz; i += incr, n += incr)
                 incr = mergeAndGenerateFaceY(faces, y, n, i, j);
     }
 
     private void mergeAndGenerateFacesZ(List<Face>[] faces, int z) {
         int i, j, n, incr;
-        for (j = ny, n = 0; j < dy; j++)
-            for (i = 0; i < dx; i += incr, n += incr)
+        for (j = ny, n = 0; j <= py; j++)
+            for (i = nx; i <= px; i += incr, n += incr)
                 incr = mergeAndGenerateFaceZ(faces, z, n, i, j);
     }
 
@@ -466,7 +443,7 @@ public class GreedyMeshing {
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x, 0 + (mn > 0 ? 1 : 0), mn);
+        Face f = new Face(i, j, i + w, j + h, x, mn > 0 ? 1 : 0, mn);
         faces[f.s].add(f);
         eraseMaskX(n, w, h);
         return w;
@@ -516,28 +493,28 @@ public class GreedyMeshing {
 
     private int determineWidthX(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dy * dz && ((i + w) & splitMask) != 0 && i + w < dy && c == m[n + w])
+        while (i + w <= py && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthY(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dz * dx && ((i + w) & splitMask) != 0 && i + w < dz && c == m[n + w])
+        while (i + w <= pz && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineWidthZ(int c, int n, int i) {
         int w = 1;
-        while (w < maxMergeLength && n + w < dx * dy && ((i + w) & splitMask) != 0 && i + w < dx && c == m[n + w])
+        while (i + w <= px && c == m[n + w])
             w++;
         return w;
     }
 
     private int determineHeightX(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dz; h++)
+        for (h = 1; j + h <= pz; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dy])
                     return h;
@@ -546,7 +523,7 @@ public class GreedyMeshing {
 
     private int determineHeightY(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dx; h++)
+        for (h = 1; j + h <= px; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dz])
                     return h;
@@ -555,7 +532,7 @@ public class GreedyMeshing {
 
     private int determineHeightZ(int c, int n, int j, int w) {
         int h;
-        for (h = 1; h < maxMergeLength && ((j + h) & splitMask) != 0 && j + h < dy; h++)
+        for (h = 1; j + h <= py; h++)
             for (int k = 0; k < w; k++)
                 if (c != m[n + k + h * dx])
                     return h;

@@ -723,7 +723,7 @@ public class NvRayTracingExample {
                     }
                 }
         List<Face> faces = new ArrayList<>();
-        GreedyMeshing gm = new GreedyMeshing(0, 0, 0, h - 1, w, d);
+        GreedyMeshing gm = new GreedyMeshing(0, 0, 0, w - 1, h - 1, d - 1, w, d);
         gm.mesh(ds, faces);
         return faces;
     }
