@@ -720,7 +720,9 @@ public class VoxelLightmapping {
     }
 
     private static class VoxelField {
-        int ny, py, w, d;
+        int w, d;
+        Vector3i min;
+        Vector3i max;
         byte[] field;
     }
 
@@ -756,8 +758,8 @@ public class VoxelLightmapping {
         VoxelField res = new VoxelField();
         res.w = dims.x;
         res.d = dims.z;
-        res.ny = min.y;
-        res.py = max.y;
+        res.min = min;
+        res.max = max;
         res.field = field;
         return res;
     }
@@ -765,7 +767,7 @@ public class VoxelLightmapping {
     private ArrayList<Face> buildFaces(VoxelField vf) {
         System.out.println("Building faces...");
         /* Greedy-meshing */
-        GreedyMeshing gm = new GreedyMeshing(0, vf.ny, 0, vf.w - 1, vf.py, vf.d - 1, vf.w, vf.d);
+        GreedyMeshing gm = new GreedyMeshing(vf.min.x, vf.min.y, vf.min.z, vf.max.x, vf.max.y, vf.max.z, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
         gm.mesh(vf.field, new GreedyMeshing.FaceConsumer() {
             public void consume(int u0, int v0, int u1, int v1, int p, int s, int v) {
@@ -784,7 +786,7 @@ public class VoxelLightmapping {
         System.out.println("Num voxels after culling: " + numRetainedVoxels);
         /* Greedy voxeling */
         ArrayList<Voxel> voxels = new ArrayList<>();
-        GreedyVoxels gv = new GreedyVoxels(field.ny, field.py, field.w, field.d, (x, y, z, w, h, d, v) ->
+        GreedyVoxels gv = new GreedyVoxels(field.min.y, field.max.y, field.w, field.d, (x, y, z, w, h, d, v) ->
                 voxels.add(new Voxel(x, y, z, w - 1, h - 1, d - 1, v)));
         gv.singleOpaque = true;
         gv.merge(field.field);

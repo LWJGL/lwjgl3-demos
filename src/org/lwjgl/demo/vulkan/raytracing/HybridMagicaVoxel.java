@@ -2265,7 +2265,9 @@ public class HybridMagicaVoxel {
     }
 
     private static class VoxelField {
-        int ny, py, w, d;
+        int w, d;
+        Vector3i min;
+        Vector3i max;
         byte[] field;
     }
 
@@ -2296,14 +2298,14 @@ public class HybridMagicaVoxel {
         VoxelField res = new VoxelField();
         res.w = dims.x;
         res.d = dims.z;
-        res.ny = min.y;
-        res.py = max.y;
+        res.min = min;
+        res.max = max;
         res.field = field;
         return res;
     }
 
     private static ArrayList<Face> buildFaces(VoxelField vf) {
-        GreedyMeshingNoAo gm = new GreedyMeshingNoAo(0, vf.ny, 0, vf.w - 1, vf.py, vf.d - 1, vf.w, vf.d);
+        GreedyMeshingNoAo gm = new GreedyMeshingNoAo(vf.min.x, vf.min.y, vf.min.z, vf.max.x, vf.max.y, vf.max.z, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
         gm.mesh(vf.field, new GreedyMeshingNoAo.FaceConsumer() {
             public void consume(int u0, int v0, int u1, int v1, int p, int s, int v) {
