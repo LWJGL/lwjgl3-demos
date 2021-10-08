@@ -6,15 +6,12 @@ package org.lwjgl.demo.util;
 
 import static java.lang.Math.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Greedy meshing based on the JavaScript code from
  * https://0fps.net/2012/07/07/meshing-minecraft-part-2/
  * <p>
  * Instances of this class are <i>not</i> thread-safe, so calls to
- * {@link #mesh(byte[], List)} on the same instance must be externally
+ * {@link #mesh(byte[], FaceConsumer)} on the same instance must be externally
  * synchronized.
  * 
  * @author Kai Burjack
@@ -33,6 +30,10 @@ public class GreedyMeshingNoAo {
             this.s = (byte) s;
             this.v = v;
         }
+    }
+    @FunctionalInterface
+    public interface FaceConsumer {
+        void consume(int u0, int v0, int u1, int v1, int p, int s, int v);
     }
 
     private final int[] m;
@@ -62,42 +63,31 @@ public class GreedyMeshingNoAo {
         return x + 1 + (vdx + 2) * (z + 1 + (vdz + 2) * (y + 1));
     }
 
-    public void mesh(byte[] vs, List<Face> faces) {
-        @SuppressWarnings("unchecked")
-        List<Face>[] fs = new List[] {
-                new ArrayList<Face>(), new ArrayList<Face>(),
-                new ArrayList<Face>(), new ArrayList<Face>(),
-                new ArrayList<Face>(), new ArrayList<Face>()};
-        mesh(vs, fs);
-        for (int i = 0; i < 6; i++)
-            faces.addAll(fs[i]);
-    }
-
-    public void mesh(byte[] vs, List<Face>[] faces) {
+    public void mesh(byte[] vs, FaceConsumer consumer) {
         this.vs = vs;
-        meshX(faces);
-        meshY(faces);
-        meshZ(faces);
+        meshX(consumer);
+        meshY(consumer);
+        meshZ(consumer);
     }
 
-    private void meshX(List<Face>[] faces) {
+    private void meshX(FaceConsumer consumer) {
         for (int x = nx - 1; x <= px;) {
             generateMaskX(x);
-            mergeAndGenerateFacesX(faces, ++x);
+            mergeAndGenerateFacesX(consumer, ++x);
         }
     }
 
-    private void meshY(List<Face>[] faces) {
+    private void meshY(FaceConsumer consumer) {
         for (int y = ny - 1; y <= py;) {
             generateMaskY(y);
-            mergeAndGenerateFacesY(faces, ++y);
+            mergeAndGenerateFacesY(consumer, ++y);
         }
     }
 
-    private void meshZ(List<Face>[] faces) {
+    private void meshZ(FaceConsumer consumer) {
         for (int z = nz - 1; z <= pz;) {
             generateMaskZ(z);
-            mergeAndGenerateFacesZ(faces, ++z);
+            mergeAndGenerateFacesZ(consumer, ++z);
         }
     }
 
@@ -155,59 +145,56 @@ public class GreedyMeshingNoAo {
             m[n] = b | 0x80000000;
     }
 
-    private void mergeAndGenerateFacesX(List<Face>[] faces, int x) {
+    private void mergeAndGenerateFacesX(FaceConsumer consumer, int x) {
         int i, j, n, incr;
         for (j = nz, n = 0; j <= pz; j++)
             for (i = ny; i <= py; i += incr, n += incr)
-                incr = mergeAndGenerateFaceX(faces, x, n, i, j);
+                incr = mergeAndGenerateFaceX(consumer, x, n, i, j);
     }
 
-    private void mergeAndGenerateFacesY(List<Face>[] faces, int y) {
+    private void mergeAndGenerateFacesY(FaceConsumer consumer, int y) {
         int i, j, n, incr;
         for (j = nx, n = 0; j <= px; j++)
             for (i = nz; i <= pz; i += incr, n += incr)
-                incr = mergeAndGenerateFaceY(faces, y, n, i, j);
+                incr = mergeAndGenerateFaceY(consumer, y, n, i, j);
     }
 
-    private void mergeAndGenerateFacesZ(List<Face>[] faces, int z) {
+    private void mergeAndGenerateFacesZ(FaceConsumer consumer, int z) {
         int i, j, n, incr;
         for (j = ny, n = 0; j <= py; j++)
             for (i = nx; i <= px; i += incr, n += incr)
-                incr = mergeAndGenerateFaceZ(faces, z, n, i, j);
+                incr = mergeAndGenerateFaceZ(consumer, z, n, i, j);
     }
 
-    private int mergeAndGenerateFaceX(List<Face>[] faces, int x, int n, int i, int j) {
+    private int mergeAndGenerateFaceX(FaceConsumer consumer, int x, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthX(mn, n, i);
         int h = determineHeightX(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, x, mn > 0 ? 1 : 0, mn);
-        faces[f.s].add(f);
+        consumer.consume(i, j, i + w, j + h, x, mn > 0 ? 1 : 0, mn);
         eraseMaskX(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceY(List<Face>[] faces, int y, int n, int i, int j) {
+    private int mergeAndGenerateFaceY(FaceConsumer consumer, int y, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthY(mn, n, i);
         int h = determineHeightY(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, y, 2 + (mn > 0 ? 1 : 0), mn);
-        faces[f.s].add(f);
+        consumer.consume(i, j, i + w, j + h, y, 2 + (mn > 0 ? 1 : 0), mn);
         eraseMaskY(n, w, h);
         return w;
     }
 
-    private int mergeAndGenerateFaceZ(List<Face>[] faces, int z, int n, int i, int j) {
+    private int mergeAndGenerateFaceZ(FaceConsumer consumer, int z, int n, int i, int j) {
         int mn = m[n];
         if (mn == 0)
             return 1;
         int w = determineWidthZ(mn, n, i);
         int h = determineHeightZ(mn, n, j, w);
-        Face f = new Face(i, j, i + w, j + h, z, 4 + (mn > 0 ? 1 : 0), mn);
-        faces[f.s].add(f);
+        consumer.consume(i, j, i + w, j + h, z, 4 + (mn > 0 ? 1 : 0), mn);
         eraseMaskZ(n, w, h);
         return w;
     }

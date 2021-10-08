@@ -716,7 +716,11 @@ public class VoxelLightmapping2 {
         /* Greedy-meshing */
         GreedyMeshing gm = new GreedyMeshing(0, vf.ny, 0, vf.w - 1, vf.py, vf.d - 1, vf.w, vf.d);
         ArrayList<Face> faces = new ArrayList<>();
-        gm.mesh(vf.field, faces);
+        gm.mesh(vf.field, new GreedyMeshing.FaceConsumer() {
+            public void consume(int u0, int v0, int u1, int v1, int p, int s, int v) {
+                faces.add(new Face(u0, v0, u1, v1, p, s, v));
+            }
+        });
         System.out.println("Num faces: " + faces.size());
         return faces;
     }

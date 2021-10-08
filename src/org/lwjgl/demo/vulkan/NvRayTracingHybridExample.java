@@ -915,7 +915,11 @@ public class NvRayTracingHybridExample {
                 }
         List<Face> faces = new ArrayList<>();
         GreedyMeshing gm = new GreedyMeshing(0, 0, 0, w - 1, h - 1, d - 1, w, d);
-        gm.mesh(ds, faces);
+        gm.mesh(ds, new GreedyMeshing.FaceConsumer() {
+            public void consume(int u0, int v0, int u1, int v1, int p, int s, int v) {
+                faces.add(new Face(u0, v0, u1, v1, p, s, v));
+            }
+        });
         System.out.println("Faces: " + faces.size());
         return faces;
     }
