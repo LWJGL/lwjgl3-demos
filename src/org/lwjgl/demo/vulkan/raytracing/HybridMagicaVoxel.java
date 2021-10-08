@@ -108,7 +108,7 @@ public class HybridMagicaVoxel {
     private static final Matrix4f invProjMatrix = new Matrix4f();
     private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
     private static final Vector3f tmpv3 = new Vector3f();
-    private static final Material[] materials = new Material[512];
+    private static final Material[] materials = new Material[256];
     private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private static boolean mouseDown;
     private static int mouseX, mouseY;
@@ -1408,8 +1408,8 @@ public class HybridMagicaVoxel {
 
     private static AllocationAndBuffer createMaterialsBuffer() {
         ByteBuffer bb = memAlloc(materials.length * Integer.BYTES);
-        for (Material m : materials)
-            bb.putInt(m != null ? m.color : 0);
+        for (int i = 0; i < materials.length; i++)
+            bb.putInt(materials[i] == null ? MagicaVoxelLoader.DEFAULT_PALETTE[i] : materials[i].color);
         bb.flip();
         AllocationAndBuffer buf = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bb, Integer.BYTES, null);
         memFree(bb);

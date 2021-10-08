@@ -50,7 +50,7 @@ public class VoxelLightmapping {
     private final Matrix4f pMat = new Matrix4f();
     private final Matrix4x3f vMat = new Matrix4x3f().lookAt(-40, 60, 140, 90, 0, 40, 0, 1, 0);
     private final Matrix4f mvpMat = new Matrix4f();
-    private final Material[] materials = new Material[512];
+    private final Material[] materials = new Material[256];
     private Callback debugProc;
 
     /* OpenGL resources for kd-tree */
@@ -528,8 +528,8 @@ public class VoxelLightmapping {
 
     private void createMaterialsTexture() {
         ByteBuffer materialsBuffer = memAlloc(Integer.BYTES * materials.length);
-        for (Material mat : materials)
-            materialsBuffer.putInt(mat == null ? 0 : mat.color);
+        for (int i = 0; i < materials.length; i++)
+            materialsBuffer.putInt(materials[i] == null ? MagicaVoxelLoader.DEFAULT_PALETTE[i] : materials[i].color);
         materialsBuffer.flip();
         materialsBufferObject = glGenBuffers();
         glBindBuffer(GL_TEXTURE_BUFFER, materialsBufferObject);
