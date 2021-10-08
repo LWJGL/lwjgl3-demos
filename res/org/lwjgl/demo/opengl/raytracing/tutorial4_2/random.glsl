@@ -116,7 +116,8 @@ vec3 isotropic(float rp, float c) {
  *          value
  */
 vec4 randomHemisphereDirection(vec3 n, spatialrand rand) {
-  return vec4(around(isotropic(rand.x, rand.y), n), ONE_OVER_2PI);
+  vec3 v = isotropic(rand.x, rand.y);
+  return vec4(dot(n, v) < 0.0 ? -v : v, ONE_OVER_2PI);
 }
 /**
  * Compute the probability density value of randomHemisphereDirection()

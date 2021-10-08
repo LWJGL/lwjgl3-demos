@@ -113,6 +113,6 @@ vec3 isotropic(float rp, float c) {
  *          value
  */
 vec3 randomHemispherePoint(vec3 n, spatialrand rand) {
-  float c = rand.y;
-  return around(isotropic(rand.x, c), n);
+  vec3 v = isotropic(rand.x, rand.y);
+  return dot(n, v) < 0.0 ? -v : v;
 }
