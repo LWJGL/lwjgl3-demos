@@ -150,9 +150,9 @@ public class Planet {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, texW, texH, 0, GL_RED, GL_FLOAT, fb);
 
         Matrix4f viewProj = new Matrix4f();
-        Matrix4f planetTransform = new Matrix4f();
-        Matrix4f cloudTransform = new Matrix4f();
-        Matrix4f cloudDirTransform = new Matrix4f();
+        Matrix4x3f planetTransform = new Matrix4x3f();
+        Matrix4x3f cloudTransform = new Matrix4x3f();
+        Matrix4x3f cloudDirTransform = new Matrix4x3f();
         float angle = 0.0f;
         long lastTime = System.nanoTime();
 
@@ -187,7 +187,7 @@ public class Planet {
             glEnable(GL_CULL_FACE);
             glUniform1i(cloudsUniform, 0);
             try (MemoryStack stack = stackPush()) {
-                glUniformMatrix4fv(transformUniform, false, planetTransform.get(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformUniform, false, planetTransform.get4x4(stack.mallocFloat(16)));
             }
             glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0L);
 
@@ -195,8 +195,8 @@ public class Planet {
             glDisable(GL_CULL_FACE);
             glUniform1i(cloudsUniform, 1);
             try (MemoryStack stack = stackPush()) {
-                glUniformMatrix4fv(transformUniform, false, cloudTransform.get(stack.mallocFloat(16)));
-                glUniformMatrix4fv(transformDirUniform, false, cloudDirTransform.get(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformUniform, false, cloudTransform.get4x4(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformDirUniform, false, cloudDirTransform.get4x4(stack.mallocFloat(16)));
             }
             glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0L);
             glfwSwapBuffers(window);

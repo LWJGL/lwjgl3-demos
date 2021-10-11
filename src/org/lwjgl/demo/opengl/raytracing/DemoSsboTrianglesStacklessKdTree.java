@@ -16,6 +16,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -87,7 +88,7 @@ public class DemoSsboTrianglesStacklessKdTree {
 
     float cameraRadius = 4.0f;
     float cameraHeight = 2.0f;
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f invViewProjMatrix = new Matrix4f();
     Vector3f tmpVector = new Vector3f();

@@ -16,6 +16,7 @@ import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.*;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -91,10 +92,10 @@ public class TransformFeedbackDemo {
     long lastTime;
 
     float cameraRadius = 9.0f;
-    Matrix4f modelMatrix = new Matrix4f();
+    Matrix4x3f modelMatrix = new Matrix4x3f();
     Matrix4f projMatrix = new Matrix4f();
-    Matrix4f viewMatrix = new Matrix4f();
-    Matrix4f modelViewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
+    Matrix4x3f modelViewMatrix = new Matrix4x3f();
     Matrix3f normalMatrix = new Matrix3f();
     Matrix4f invProjMatrix = new Matrix4f();
     Vector3f tmpVector = new Vector3f();
@@ -476,7 +477,7 @@ public class TransformFeedbackDemo {
         glUseProgram(feedbackProgram);
 
         /* Upload model-independent matrices */
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
         /* Bind buffer into which to transform the vertices */
@@ -487,9 +488,9 @@ public class TransformFeedbackDemo {
         {
             modelMatrix.identity().rotateY(elapsedTime);
             /* Compute normal matrix */
-            viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
-            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(matrixBuffer));
+            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get4x4(matrixBuffer));
             glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
             glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
         }
@@ -500,9 +501,9 @@ public class TransformFeedbackDemo {
                        .scale(0.2f)
                        .scale(1.0f, (float) Math.abs(Math.sin(elapsedTime)), 1.0f);
             /* Compute normal matrix */
-            viewMatrix.mulAffine(modelMatrix, modelViewMatrix).normal(normalMatrix);
+            viewMatrix.mul(modelMatrix, modelViewMatrix).normal(normalMatrix);
             /* Update matrices in shader */
-            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(matrixBuffer));
+            glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get4x4(matrixBuffer));
             glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
             glDrawArrays(GL_TRIANGLES, 0, mesh.numVertices);
         }

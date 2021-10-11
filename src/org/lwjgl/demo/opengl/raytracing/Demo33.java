@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -70,7 +71,7 @@ public class Demo33 {
     private int bounceCount = 1;
 
     private Matrix4f projMatrix = new Matrix4f();
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
     private Vector3f tmpVector = new Vector3f();
     private Vector3f cameraPosition = new Vector3f();

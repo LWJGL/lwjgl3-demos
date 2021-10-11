@@ -17,6 +17,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.ByteArrayOutputStream;
@@ -255,7 +256,7 @@ public class Tutorial7 {
     private Model model;
     private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
     private Matrix4f projMatrix = new Matrix4f();
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
     private Vector3f tmpVector = new Vector3f();
     private FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
@@ -819,7 +820,7 @@ public class Tutorial7 {
      */
     private void rasterize() {
         glUseProgram(rasterProgram);
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
         glBindFramebuffer(GL_FRAMEBUFFER, rasterFBO);
         glEnable(GL_DEPTH_TEST);
@@ -882,7 +883,7 @@ public class Tutorial7 {
          * compute the direction from the eye through a framebuffer's pixel center for a
          * given shader work item.
          */
-        viewMatrix.originAffine(cameraPosition);
+        viewMatrix.origin(cameraPosition);
         glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
         invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
         glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);

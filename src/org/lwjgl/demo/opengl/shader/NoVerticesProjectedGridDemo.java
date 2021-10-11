@@ -12,6 +12,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 import java.io.IOException;
 import java.nio.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -52,7 +53,7 @@ public class NoVerticesProjectedGridDemo {
     Callback debugProc;
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    Matrix4f view = new Matrix4f();
+    Matrix4x3f view = new Matrix4x3f();
     Matrix4f proj = new Matrix4f();
     Matrix4f viewproj = new Matrix4f();
     int sizeX = 128;

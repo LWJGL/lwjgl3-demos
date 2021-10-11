@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ public class LinearlyTransformedCosines {
     private float roughness = 0.5f;
     private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
     private Matrix4f projMatrix = new Matrix4f();
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Matrix4f invViewProjMatrix = new Matrix4f();
     private Vector3f tmpVector = new Vector3f();
     private Vector3f cameraPosition = new Vector3f(-4.0f, 3.0f, -4.0f);
@@ -291,7 +292,7 @@ public class LinearlyTransformedCosines {
         }
         glUniform1f(roughnessUniform, roughness);
         projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix);
-        viewMatrix.originAffine(cameraPosition);
+        viewMatrix.origin(cameraPosition);
         glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
         invViewProjMatrix.transformProject(tmpVector.set(-1, -1, 0)).sub(cameraPosition);
         glUniform3f(ray00Uniform, tmpVector.x, tmpVector.y, tmpVector.z);

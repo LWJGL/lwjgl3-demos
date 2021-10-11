@@ -1517,7 +1517,7 @@ public class SimpleSphere {
 
     private static void updateRayTracingUniformBufferObject(int idx) {
         projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 100.0f, true);
-        viewMatrix.setLookAt(0, 0, 5, 0, 0, 0, 0, 1, 0);
+        viewMatrix.setLookAt(0, 0, 4, 0, 0, 0, 0, 1, 0);
         projMatrix.invert(invProjMatrix);
         viewMatrix.invert(invViewMatrix);
         invProjMatrix.transformProject(-1, -1, 0, 1, tmpv3).get(rayTracingUbos[idx].mapped);

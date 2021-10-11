@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.opengl.NVDrawTexture;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -91,7 +92,7 @@ public class HybridDemoSsboTriangles {
 
     private float cameraRadius = 4.0f;
     private float cameraHeight = 2.0f;
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Matrix4f projMatrix = new Matrix4f();
     private Vector3f cameraPosition = new Vector3f(0.0f, 0.0f, 0.0f);
     private Vector3f cameraLookAt = new Vector3f(-0.2f, 0.25f, -0.2f);
@@ -559,7 +560,7 @@ public class HybridDemoSsboTriangles {
         glUseProgram(rasterProgram);
 
         /* Update matrices in shader */
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
         /* Rasterize the boxes into the FBO */

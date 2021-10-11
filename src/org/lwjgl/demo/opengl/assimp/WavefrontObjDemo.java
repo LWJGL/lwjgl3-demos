@@ -6,6 +6,7 @@ package org.lwjgl.demo.opengl.assimp;
 
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
@@ -63,8 +64,8 @@ public class WavefrontObjDemo {
 
     Model model;
 
-    Matrix4f modelMatrix = new Matrix4f().rotateY(0.5f * (float) Math.PI).scale(1.5f, 1.5f, 1.5f);
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f modelMatrix = new Matrix4x3f().rotateY(0.5f * (float) Math.PI).scale(1.5f, 1.5f, 1.5f);
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f projectionMatrix = new Matrix4f();
     Matrix4f viewProjectionMatrix = new Matrix4f();
     Vector3f viewPosition = new Vector3f();
@@ -289,7 +290,7 @@ public class WavefrontObjDemo {
             glBindBufferARB(GL_ARRAY_BUFFER_ARB, mesh.normalArrayBuffer);
             glVertexAttribPointerARB(normalAttribute, 3, GL_FLOAT, false, 0, 0);
 
-            glUniformMatrix4fvARB(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
+            glUniformMatrix4fvARB(modelMatrixUniform, false, modelMatrix.get4x4(modelMatrixBuffer));
             glUniformMatrix4fvARB(viewProjectionMatrixUniform, false,
                     viewProjectionMatrix.get(viewProjectionMatrixBuffer));
             normalMatrix.set(modelMatrix).invert().transpose();

@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.*;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.util.WavefrontMeshLoader;
 import org.lwjgl.demo.util.WavefrontMeshLoader.Mesh;
@@ -63,7 +64,7 @@ public class DepthEdgeShaderDemo20 {
     int invHeightUniform;
     int showEdgeUniform;
 
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f projMatrix = new Matrix4f();
     Matrix4f invMatrix = new Matrix4f();
     Matrix3f normalMatrix = new Matrix3f();
@@ -324,7 +325,7 @@ public class DepthEdgeShaderDemo20 {
         glEnable(GL_DEPTH_TEST);
         glUseProgram(this.normalProgram);
 
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
         glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(matrixBuffer));
 

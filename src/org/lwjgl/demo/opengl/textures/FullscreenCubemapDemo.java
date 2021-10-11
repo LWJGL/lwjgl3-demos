@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -51,7 +52,7 @@ public class FullscreenCubemapDemo {
 
     Vector3f tmp = new Vector3f();
     Matrix4f projMatrix = new Matrix4f();
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f invViewProjMatrix = new Matrix4f();
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
@@ -259,7 +260,7 @@ public class FullscreenCubemapDemo {
                              0.0f, 0.0f, 0.0f,
                              0.0f, 1.0f, 0.0f)
                   .rotateY(rot).rotateX(rot*0.23f).rotateZ(rot*-0.562f)
-                  .originAffine(tmp);
+                  .origin(tmp);
         projMatrix.invertPerspectiveView(viewMatrix, invViewProjMatrix).get(matrixBuffer);
         glUniformMatrix4fvARB(invViewProjUniform, false, matrixBuffer);
         glUniform3fARB(cameraPositionUniform, tmp.x, tmp.y, tmp.z);

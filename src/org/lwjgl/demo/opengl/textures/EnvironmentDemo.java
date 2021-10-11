@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -50,7 +51,7 @@ public class EnvironmentDemo {
     int invViewProjUniform;
 
     Matrix4f projMatrix = new Matrix4f();
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f invViewProjMatrix = new Matrix4f();
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 

@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class EnvironmentTeapotDemo {
     int cameraPositionUniform;
 
     Matrix4f projectionMatrix = new Matrix4f();
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f viewProjMatrix = new Matrix4f();
     Matrix4f invViewProjMatrix = new Matrix4f();
     Vector3f cameraPosition = new Vector3f();
@@ -283,7 +284,7 @@ public class EnvironmentTeapotDemo {
         viewMatrix.translation(0, 0, -10.0f)
                   .rotateX(rotX)
                   .rotateY(rotY);
-        viewMatrix.originAffine(cameraPosition);
+        viewMatrix.origin(cameraPosition);
         projectionMatrix.mulPerspectiveAffine(viewMatrix, viewProjMatrix).invert(invViewProjMatrix);
         glUseProgramObjectARB(environmentProgram);
         glUniformMatrix4fvARB(invViewProjUniform, false, invViewProjMatrix.get(matrixBuffer));

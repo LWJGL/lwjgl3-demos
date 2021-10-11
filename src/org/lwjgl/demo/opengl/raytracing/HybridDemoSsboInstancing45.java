@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -87,7 +88,7 @@ public class HybridDemoSsboInstancing45 {
     private int bounceCount = 1;
 
     private Matrix4f projMatrix = new Matrix4f();
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Vector3f cameraPosition = new Vector3f();
     private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
     private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
@@ -574,6 +575,11 @@ public class HybridDemoSsboInstancing45 {
             resizeFramebufferTexture();
             resetFramebuffer = false;
         }
+    }
+
+    private static void putMatrix(Matrix4x3f value, FloatBuffer fb) {
+        value.get4x4(fb);
+        fb.position(fb.position() + 16);
     }
 
     private static void putMatrix(Matrix4f value, FloatBuffer fb) {

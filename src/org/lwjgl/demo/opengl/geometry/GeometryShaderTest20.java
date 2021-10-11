@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
@@ -35,7 +36,7 @@ public class GeometryShaderTest20 {
     int projMatrixUniform;
     int viewportSizeUniform;
 
-    Matrix4f viewMatrix = new Matrix4f();
+    Matrix4x3f viewMatrix = new Matrix4x3f();
     Matrix4f projMatrix = new Matrix4f();
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
@@ -241,7 +242,7 @@ public class GeometryShaderTest20 {
     void render() {
         glUseProgram(this.program);
 
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projMatrixUniform, false, projMatrix.get(matrixBuffer));
         glUniform2f(viewportSizeUniform, width, height);
 

@@ -39,7 +39,7 @@ public class GL33KdTreeTrace {
   private int rayTracingProgram;
   private int camUniform;
   private Matrix4f pMat = new Matrix4f();
-  private Matrix4f vMat = new Matrix4f().lookAt(70, 60, 180, 60, 20, 80, 0, 1, 0);
+  private Matrix4x3f vMat = new Matrix4x3f().lookAt(70, 60, 180, 60, 20, 80, 0, 1, 0);
   private Matrix4f ivpMat = new Matrix4f();
   private Vector3f camPos = new Vector3f();
   private Vector3f v = new Vector3f();
@@ -252,7 +252,7 @@ public class GL33KdTreeTrace {
 
   private void trace() {
     glUseProgram(rayTracingProgram);
-    glUniform3fv(camUniform, vMat.originAffine(camPos).get(vbuf));
+    glUniform3fv(camUniform, vMat.origin(camPos).get(vbuf));
     glUniform3fv(camUniform + 1, ivpMat.transformProject(v.set(-1, -1, 0)).sub(camPos).get(vbuf));
     glUniform3fv(camUniform + 2, ivpMat.transformProject(v.set(-1, +1, 0)).sub(camPos).get(vbuf));
     glUniform3fv(camUniform + 3, ivpMat.transformProject(v.set(+1, -1, 0)).sub(camPos).get(vbuf));

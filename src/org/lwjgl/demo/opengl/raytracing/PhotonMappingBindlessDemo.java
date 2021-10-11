@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.*;
 import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -113,7 +114,7 @@ public class PhotonMappingBindlessDemo {
     private float lightRadius = 0.2f;
 
     private Matrix4f projMatrix = new Matrix4f();
-    private Matrix4f viewMatrix = new Matrix4f();
+    private Matrix4x3f viewMatrix = new Matrix4x3f();
     private Vector3f cameraPosition = new Vector3f();
     private Vector3f cameraLookAt = new Vector3f(0.0f, 0.5f, 0.0f);
     private Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
@@ -668,7 +669,7 @@ public class PhotonMappingBindlessDemo {
         glUseProgram(rasterProgram);
 
         /* Update matrices in shader */
-        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get(matrixBuffer));
+        glUniformMatrix4fv(viewMatrixUniform, false, viewMatrix.get4x4(matrixBuffer));
         glUniformMatrix4fv(projectionMatrixUniform, false, projMatrix.get(matrixBuffer));
 
         glBindVertexArray(vaoScene);

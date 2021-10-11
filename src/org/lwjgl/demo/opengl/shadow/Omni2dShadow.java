@@ -122,7 +122,6 @@ public class Omni2dShadow {
 
     FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
-    Matrix4f identity = new Matrix4f();
     Matrix4f lightProjection = new Matrix4f().setFrustum(-near, near, near * -1E-4f, near * 1E-4f, near, far);
     Matrix4f camera = new Matrix4f();
     Matrix4f lightTexProjection = new Matrix4f(lightProjection).translateLocal(1, 1, 1).scaleLocal(0.5f);
