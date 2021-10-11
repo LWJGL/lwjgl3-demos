@@ -6,7 +6,6 @@ package org.lwjgl.demo.vulkan;
 
 import static org.lwjgl.BufferUtils.createByteBuffer;
 import static org.lwjgl.demo.util.IOUtils.ioResourceToByteBuffer;
-import static org.lwjgl.demo.vulkan.VKFactory.VkShaderModuleCreateInfo;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.shaderc.Shaderc.*;
 import static org.lwjgl.vulkan.EXTDebugReport.VK_ERROR_VALIDATION_FAILED_EXT;
@@ -114,7 +113,7 @@ public class VKUtil {
             int stage) throws IOException {
         ByteBuffer shaderCode = glslToSpirv(classPath, stage);
         LongBuffer pShaderModule = stack.mallocLong(1);
-        _CHECK_(vkCreateShaderModule(device, VkShaderModuleCreateInfo(stack).pCode(shaderCode).flags(0), null, pShaderModule),
+        _CHECK_(vkCreateShaderModule(device, VkShaderModuleCreateInfo.calloc(stack).sType$Default().pCode(shaderCode).flags(0), null, pShaderModule),
                 "Failed to create shader module");
         info.stage(stage).pSpecializationInfo(specInfo).module(pShaderModule.get(0)).pName(stack.UTF8("main"));
     }
