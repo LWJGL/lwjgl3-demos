@@ -52,7 +52,7 @@ public class TwoRotatingTrianglesDemo {
      */
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                .sType$Default()
                 .apiVersion(VK_API_VERSION_1_0);
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(requiredExtensions.remaining() + 1);
         ppEnabledExtensionNames.put(requiredExtensions);
@@ -61,7 +61,7 @@ public class TwoRotatingTrianglesDemo {
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = debug ? allocateLayerBuffer(layers) : null;
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                .sType$Default()
                 .pApplicationInfo(appInfo)
                 .ppEnabledExtensionNames(ppEnabledExtensionNames)
                 .ppEnabledLayerNames(ppEnabledLayerNames);
@@ -85,7 +85,7 @@ public class TwoRotatingTrianglesDemo {
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
+                .sType$Default()
                 .pfnCallback(callback)
                 .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
@@ -138,7 +138,7 @@ public class TwoRotatingTrianglesDemo {
         FloatBuffer pQueuePriorities = memAllocFloat(1).put(0.0f);
         pQueuePriorities.flip();
         VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                .sType$Default()
                 .queueFamilyIndex(graphicsQueueFamilyIndex)
                 .pQueuePriorities(pQueuePriorities);
 
@@ -148,7 +148,7 @@ public class TwoRotatingTrianglesDemo {
         extensions.flip();
 
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                .sType$Default()
                 .pQueueCreateInfos(queueCreateInfo)
                 .ppEnabledExtensionNames(extensions);
 
@@ -298,7 +298,7 @@ public class TwoRotatingTrianglesDemo {
 
     private static long createCommandPool(VkDevice device, int queueNodeIndex) {
         VkCommandPoolCreateInfo cmdPoolInfo = VkCommandPoolCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+                .sType$Default()
                 .queueFamilyIndex(queueNodeIndex)
                 .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
         LongBuffer pCmdPool = memAllocLong(1);
@@ -322,7 +322,7 @@ public class TwoRotatingTrianglesDemo {
 
     private static VkCommandBuffer createCommandBuffer(VkDevice device, long commandPool) {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                .sType$Default()
                 .commandPool(commandPool)
                 .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
                 .commandBufferCount(1);
@@ -406,7 +406,7 @@ public class TwoRotatingTrianglesDemo {
         surfCaps.free();
 
         VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc()
-                .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+                .sType$Default()
                 .surface(surface)
                 .minImageCount(desiredNumberOfSwapchainImages)
                 .imageFormat(colorFormat)
@@ -455,7 +455,7 @@ public class TwoRotatingTrianglesDemo {
         long[] imageViews = new long[imageCount];
         LongBuffer pBufferView = memAllocLong(1);
         VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                .sType$Default()
                 .format(colorFormat)
                 .viewType(VK_IMAGE_VIEW_TYPE_2D);
         colorAttachmentView.subresourceRange()
@@ -488,7 +488,7 @@ public class TwoRotatingTrianglesDemo {
 
     private static DepthStencil createDepthStencil(VkDevice device, VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties, int depthFormat, VkCommandBuffer setupCmdBuffer) {
         VkImageCreateInfo imageCreateInfo = VkImageCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
+                .sType$Default()
                 .imageType(VK_IMAGE_TYPE_2D)
                 .format(depthFormat)
                 .mipLevels(1)
@@ -499,10 +499,10 @@ public class TwoRotatingTrianglesDemo {
         imageCreateInfo.extent().width(width).height(height).depth(1);
 
         VkMemoryAllocateInfo mem_alloc = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
+                .sType$Default();
 
         VkImageViewCreateInfo depthStencilViewCreateInfo = VkImageViewCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                .sType$Default()
                 .viewType(VK_IMAGE_VIEW_TYPE_2D)
                 .format(depthFormat);
         depthStencilViewCreateInfo.subresourceRange()
@@ -602,7 +602,7 @@ public class TwoRotatingTrianglesDemo {
                 .dependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
+                .sType$Default()
                 .pAttachments(attachments)
                 .pSubpasses(subpass)
                 .pDependencies(dependency)
@@ -628,7 +628,7 @@ public class TwoRotatingTrianglesDemo {
         LongBuffer attachments = memAllocLong(2);
         attachments.put(1, depthStencil.view);
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+                .sType$Default()
                 .pAttachments(attachments)
                 .height(height)
                 .width(width)
@@ -656,7 +656,7 @@ public class TwoRotatingTrianglesDemo {
         if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+                .sType$Default();
         PointerBuffer pCommandBuffers = memAllocPointer(1)
                 .put(commandBuffer)
                 .flip();
@@ -673,7 +673,7 @@ public class TwoRotatingTrianglesDemo {
         ByteBuffer shaderCode = glslToSpirv(classPath, stage);
         int err;
         VkShaderModuleCreateInfo moduleCreateInfo = VkShaderModuleCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
+                .sType$Default()
                 .pCode(shaderCode);
         LongBuffer pShaderModule = memAllocLong(1);
         err = vkCreateShaderModule(device, moduleCreateInfo, null, pShaderModule);
@@ -687,7 +687,7 @@ public class TwoRotatingTrianglesDemo {
 
     private static VkPipelineShaderStageCreateInfo loadShader(VkDevice device, String classPath, int stage) throws IOException {
         VkPipelineShaderStageCreateInfo shaderStage = VkPipelineShaderStageCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
+                .sType$Default()
                 .stage(stage)
                 .module(loadShader(classPath, device, stage))
                 .pName(memUTF8("main"));
@@ -726,7 +726,7 @@ public class TwoRotatingTrianglesDemo {
         fb.put( 0.0f).put( 0.5f).put(-0.5f).put(1.0f).put(0.0f).put(1.0f);
 
         VkMemoryAllocateInfo memAlloc = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
+                .sType$Default();
         VkMemoryRequirements memReqs = VkMemoryRequirements.calloc();
 
         int err;
@@ -734,7 +734,7 @@ public class TwoRotatingTrianglesDemo {
         // Generate vertex buffer
         //  Setup
         VkBufferCreateInfo bufInfo = VkBufferCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                .sType$Default()
                 .size(vertexBuffer.remaining())
                 .usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         LongBuffer pBuffer = memAllocLong(1);
@@ -803,7 +803,7 @@ public class TwoRotatingTrianglesDemo {
 
         // Assign to vertex buffer
         VkPipelineVertexInputStateCreateInfo vi = VkPipelineVertexInputStateCreateInfo.calloc()
-            .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
+            .sType$Default()
             .pVertexBindingDescriptions(bindingDescriptor)
             .pVertexAttributeDescriptions(attributeDescriptions);
 
@@ -828,7 +828,7 @@ public class TwoRotatingTrianglesDemo {
         // Create the global descriptor pool
         // All descriptors used in this example are allocated from this pool
         VkDescriptorPoolCreateInfo descriptorPoolInfo = VkDescriptorPoolCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
+                .sType$Default()
                 .pPoolSizes(typeCounts)
                 // Set the max. number of sets that can be requested
                 // Requesting descriptors beyond maxSets will result in an error
@@ -857,7 +857,7 @@ public class TwoRotatingTrianglesDemo {
         int err;
         // Create a new buffer
         VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                .sType$Default()
                 .size(16 * 4)
                 .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
         LongBuffer pUniformDataVSBuffer = memAllocLong(1);
@@ -884,7 +884,7 @@ public class TwoRotatingTrianglesDemo {
         // Allocate memory for the uniform buffer
         LongBuffer pUniformDataVSMemory = memAllocLong(1);
         VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
+                .sType$Default()
                 .allocationSize(memSize)
                 .memoryTypeIndex(memoryTypeIndex);
         err = vkAllocateMemory(device, allocInfo, null, pUniformDataVSMemory);
@@ -913,7 +913,7 @@ public class TwoRotatingTrianglesDemo {
         LongBuffer pDescriptorSetLayout = memAllocLong(1);
         pDescriptorSetLayout.put(0, descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo = VkDescriptorSetAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
+                .sType$Default()
                 .descriptorPool(descriptorPool)
                 .pSetLayouts(pDescriptorSetLayout);
 
@@ -936,7 +936,7 @@ public class TwoRotatingTrianglesDemo {
                 .offset(uniformDataVSDescriptor.offset);
         // Binding 0 : Uniform buffer
         VkWriteDescriptorSet.Buffer writeDescriptorSet = VkWriteDescriptorSet.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                .sType$Default()
                 .dstSet(descriptorSet)
                 .descriptorCount(1)
                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
@@ -959,7 +959,7 @@ public class TwoRotatingTrianglesDemo {
                 .stageFlags(VK_SHADER_STAGE_VERTEX_BIT);
         // Build a create-info struct to create the descriptor set layout
         VkDescriptorSetLayoutCreateInfo descriptorLayout = VkDescriptorSetLayoutCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
+                .sType$Default()
                 .pBindings(layoutBinding);
 
         LongBuffer pDescriptorSetLayout = memAllocLong(1);
@@ -984,12 +984,12 @@ public class TwoRotatingTrianglesDemo {
         // Vertex input state
         // Describes the topoloy used with this pipeline
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VkPipelineInputAssemblyStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO)
+                .sType$Default()
                 .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
         // Rasterization state
         VkPipelineRasterizationStateCreateInfo rasterizationState = VkPipelineRasterizationStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO)
+                .sType$Default()
                 .polygonMode(VK_POLYGON_MODE_FILL)
                 .cullMode(VK_CULL_MODE_NONE) // <- VK_CULL_MODE_BACK_BIT would work here, too!
                 .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
@@ -1000,12 +1000,12 @@ public class TwoRotatingTrianglesDemo {
         VkPipelineColorBlendAttachmentState.Buffer colorWriteMask = VkPipelineColorBlendAttachmentState.calloc(1)
                 .colorWriteMask(0xF); // <- RGBA
         VkPipelineColorBlendStateCreateInfo colorBlendState = VkPipelineColorBlendStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
+                .sType$Default()
                 .pAttachments(colorWriteMask);
 
         // Viewport state
         VkPipelineViewportStateCreateInfo viewportState = VkPipelineViewportStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO)
+                .sType$Default()
                 .viewportCount(1) // <- one viewport
                 .scissorCount(1); // <- one scissor rectangle
 
@@ -1018,14 +1018,14 @@ public class TwoRotatingTrianglesDemo {
         pDynamicStates.put(VK_DYNAMIC_STATE_VIEWPORT).put(VK_DYNAMIC_STATE_SCISSOR).flip();
         VkPipelineDynamicStateCreateInfo dynamicState = VkPipelineDynamicStateCreateInfo.calloc()
                 // The dynamic state properties themselves are stored in the command buffer
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
+                .sType$Default()
                 .pDynamicStates(pDynamicStates);
 
         // Depth and stencil state
         // Describes depth and stenctil test and compare ops
         VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc()
                 // No depth test/write and no stencil used 
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO)
+                .sType$Default()
                 .depthTestEnable(true)
                 .depthWriteEnable(true)
                 .depthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -1038,7 +1038,7 @@ public class TwoRotatingTrianglesDemo {
         // Multi sampling state
         // No multi sampling used in this example
         VkPipelineMultisampleStateCreateInfo multisampleState = VkPipelineMultisampleStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
+                .sType$Default()
                 .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
 
         // Load shaders
@@ -1050,7 +1050,7 @@ public class TwoRotatingTrianglesDemo {
         // are based on this descriptor set layout
         LongBuffer pDescriptorSetLayout = memAllocLong(1).put(0, descriptorSetLayout);
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
+                .sType$Default()
                 .pSetLayouts(pDescriptorSetLayout);
 
         LongBuffer pPipelineLayout = memAllocLong(1);
@@ -1065,7 +1065,7 @@ public class TwoRotatingTrianglesDemo {
 
         // Assign states
         VkGraphicsPipelineCreateInfo.Buffer pipelineCreateInfo = VkGraphicsPipelineCreateInfo.calloc(1)
-                .sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO)
+                .sType$Default()
                 .layout(layout) // <- the layout used for this pipeline (NEEDS TO BE SET! even though it is basically empty)
                 .renderPass(renderPass) // <- renderpass this pipeline is attached to
                 .pVertexInputState(vi)
@@ -1106,7 +1106,7 @@ public class TwoRotatingTrianglesDemo {
             Pipeline pipeline, long descriptorSet, long verticesBuf) {
         // Create the render command buffers (one command buffer per framebuffer image)
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                .sType$Default()
                 .commandPool(commandPool)
                 .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
                 .commandBufferCount(framebuffers.length);
@@ -1124,7 +1124,7 @@ public class TwoRotatingTrianglesDemo {
 
         // Create the command buffer begin structure
         VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+                .sType$Default();
 
         // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(2);
@@ -1138,7 +1138,7 @@ public class TwoRotatingTrianglesDemo {
 
         // Specify everything to begin a render pass
         VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
+                .sType$Default()
                 .renderPass(renderPass)
                 .pClearValues(clearValues);
         VkRect2D renderArea = renderPassBeginInfo.renderArea();
@@ -1303,7 +1303,7 @@ public class TwoRotatingTrianglesDemo {
             void recreate() {
                 // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc()
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+                        .sType$Default();
                 int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
                 cmdBufInfo.free();
                 if (err != VK_SUCCESS) {
@@ -1363,13 +1363,13 @@ public class TwoRotatingTrianglesDemo {
 
         // Info struct to create a semaphore
         VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+                .sType$Default();
 
         // Info struct to submit a command buffer which will wait on the semaphore
         IntBuffer pWaitDstStageMask = memAllocInt(1);
         pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                .sType$Default()
                 .waitSemaphoreCount(pImageAcquiredSemaphore.remaining())
                 .pWaitSemaphores(pImageAcquiredSemaphore)
                 .pWaitDstStageMask(pWaitDstStageMask)
@@ -1378,7 +1378,7 @@ public class TwoRotatingTrianglesDemo {
 
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc()
-                .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+                .sType$Default()
                 .pWaitSemaphores(pRenderCompleteSemaphore)
                 .swapchainCount(pSwapchains.remaining())
                 .pSwapchains(pSwapchains)

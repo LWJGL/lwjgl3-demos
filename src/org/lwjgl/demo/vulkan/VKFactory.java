@@ -35,55 +35,55 @@ public class VKFactory {
     }
 
     static VkInstanceCreateInfo VkInstanceCreateInfo(MemoryStack stack) {
-        return VkInstanceCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
+        return VkInstanceCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkApplicationInfo VkApplicationInfo(MemoryStack stack) {
-        return VkApplicationInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
+        return VkApplicationInfo.calloc(stack).sType$Default();
     }
 
     static VkDebugReportCallbackCreateInfoEXT VkDebugReportCallbackCreateInfoEXT(MemoryStack stack) {
-        return VkDebugReportCallbackCreateInfoEXT.calloc(stack).sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT);
+        return VkDebugReportCallbackCreateInfoEXT.calloc(stack).sType$Default();
     }
 
     static VkDebugUtilsMessengerCreateInfoEXT VkDebugUtilsMessengerCreateInfoEXT(MemoryStack stack) {
-        return VkDebugUtilsMessengerCreateInfoEXT.calloc(stack).sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT);
+        return VkDebugUtilsMessengerCreateInfoEXT.calloc(stack).sType$Default();
     }
 
     static VkDeviceCreateInfo VkDeviceCreateInfo(MemoryStack stack) {
-        return VkDeviceCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+        return VkDeviceCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkDeviceQueueCreateInfo.Buffer VkDeviceQueueCreateInfo(MemoryStack stack) {
-        return VkDeviceQueueCreateInfo.calloc(1, stack).sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+        return VkDeviceQueueCreateInfo.calloc(1, stack).sType$Default();
     }
 
     static VkPhysicalDevice8BitStorageFeaturesKHR VkPhysicalDevice8BitStorageFeaturesKHR(MemoryStack stack) {
-        return VkPhysicalDevice8BitStorageFeaturesKHR.calloc(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR);
+        return VkPhysicalDevice8BitStorageFeaturesKHR.calloc(stack).sType$Default();
     }
 
     static VkPhysicalDeviceFloat16Int8FeaturesKHR VkPhysicalDeviceFloat16Int8FeaturesKHR(MemoryStack stack) {
-        return VkPhysicalDeviceFloat16Int8FeaturesKHR.calloc(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR);
+        return VkPhysicalDeviceFloat16Int8FeaturesKHR.calloc(stack).sType$Default();
     }
 
     static VkPhysicalDeviceProperties2 VkPhysicalDeviceProperties2(MemoryStack stack) {
-        return VkPhysicalDeviceProperties2.calloc(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR);
+        return VkPhysicalDeviceProperties2.calloc(stack).sType$Default();
     }
 
     static VkPhysicalDeviceRayTracingPropertiesNV VkPhysicalDeviceRayTracingPropertiesNV(MemoryStack stack) {
-        return VkPhysicalDeviceRayTracingPropertiesNV.calloc(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV);
+        return VkPhysicalDeviceRayTracingPropertiesNV.calloc(stack).sType$Default();
     }
 
     static VkSwapchainCreateInfoKHR VkSwapchainCreateInfoKHR(MemoryStack stack) {
-        return VkSwapchainCreateInfoKHR.calloc(stack).sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+        return VkSwapchainCreateInfoKHR.calloc(stack).sType$Default();
     }
 
     static VkImageViewCreateInfo VkImageViewCreateInfo(MemoryStack stack) {
-        return VkImageViewCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+        return VkImageViewCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkCommandPoolCreateInfo VkCommandPoolCreateInfo(MemoryStack stack) {
-        return VkCommandPoolCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+        return VkCommandPoolCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkMemoryRequirements VkMemoryRequirements(MemoryStack stack) {
@@ -91,76 +91,76 @@ public class VKFactory {
     }
 
     static VkImageCreateInfo VkImageCreateInfo(MemoryStack stack) {
-        return VkImageCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
+        return VkImageCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkImageMemoryBarrier.Buffer VkImageMemoryBarrier(MemoryStack stack) {
-        return VkImageMemoryBarrier.calloc(1, stack).sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+        return VkImageMemoryBarrier.calloc(1, stack).sType$Default();
     }
 
     static VkFenceCreateInfo VkFenceCreateInfo(MemoryStack stack) {
-        return VkFenceCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
+        return VkFenceCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkSubmitInfo VkSubmitInfo(MemoryStack stack) {
-        return VkSubmitInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+        return VkSubmitInfo.calloc(stack).sType$Default();
     }
 
     static VkCommandBufferBeginInfo VkCommandBufferBeginInfo(MemoryStack stack) {
-        return VkCommandBufferBeginInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+        return VkCommandBufferBeginInfo.calloc(stack).sType$Default();
     }
 
     static VkCommandBufferAllocateInfo VkCommandBufferAllocateInfo(MemoryStack stack) {
-        return VkCommandBufferAllocateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+        return VkCommandBufferAllocateInfo.calloc(stack).sType$Default();
     }
 
     static VkMemoryAllocateInfo VkMemoryAllocateInfo(MemoryStack stack) {
-        return VkMemoryAllocateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
+        return VkMemoryAllocateInfo.calloc(stack).sType$Default();
     }
 
     static VkBufferCreateInfo VkBufferCreateInfo(MemoryStack stack) {
-        return VkBufferCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
+        return VkBufferCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkGeometryAABBNV VkGeometryAABBNV(VkGeometryAABBNV geometry) {
-        return geometry.sType(VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV);
+        return geometry.sType$Default();
     }
 
     static VkGeometryTrianglesNV VkGeometryTrianglesNV(VkGeometryTrianglesNV geometry) {
-        return geometry.sType(VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV);
+        return geometry.sType$Default();
     }
 
     static VkGeometryNV VkGeometryNV(MemoryStack stack) {
-        return VkGeometryNV.calloc(stack).sType(VK_STRUCTURE_TYPE_GEOMETRY_NV);
+        return VkGeometryNV.calloc(stack).sType$Default();
     }
 
     static VkMemoryBarrier.Buffer VkMemoryBarrier(MemoryStack stack) {
-        return VkMemoryBarrier.calloc(1, stack).sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER);
+        return VkMemoryBarrier.calloc(1, stack).sType$Default();
     }
 
     static VkBindAccelerationStructureMemoryInfoNV.Buffer VkBindAccelerationStructureMemoryInfoNV(MemoryStack stack) {
-        return VkBindAccelerationStructureMemoryInfoNV.calloc(1, stack).sType(VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV);
+        return VkBindAccelerationStructureMemoryInfoNV.calloc(1, stack).sType$Default();
     }
 
     static VkAccelerationStructureInfoNV VkAccelerationStructureInfoNV(MemoryStack stack) {
-        return VkAccelerationStructureInfoNV.calloc(stack).sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV);
+        return VkAccelerationStructureInfoNV.calloc(stack).sType$Default();
     }
 
     static VkMemoryRequirements2KHR VkMemoryRequirements2KHR(MemoryStack stack) {
-        return VkMemoryRequirements2KHR.calloc(stack).sType(VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR);
+        return VkMemoryRequirements2KHR.calloc(stack).sType$Default();
     }
 
     static VkAccelerationStructureMemoryRequirementsInfoNV VkAccelerationStructureMemoryRequirementsInfoNV(MemoryStack stack) {
-        return VkAccelerationStructureMemoryRequirementsInfoNV.calloc(stack).sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV);
+        return VkAccelerationStructureMemoryRequirementsInfoNV.calloc(stack).sType$Default();
     }
 
     static VkAccelerationStructureCreateInfoNV VkAccelerationStructureCreateInfoNV(MemoryStack stack) {
-        return VkAccelerationStructureCreateInfoNV.calloc(stack).sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV);
+        return VkAccelerationStructureCreateInfoNV.calloc(stack).sType$Default();
     }
 
     static VkPipelineShaderStageCreateInfo.Buffer VkPipelineShaderStageCreateInfo(MemoryStack stack, int count) {
         VkPipelineShaderStageCreateInfo.Buffer ret = VkPipelineShaderStageCreateInfo.calloc(count, stack);
-        ret.forEach(sci -> sci.sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO));
+        ret.forEach(sci -> sci.sType$Default());
         return ret;
     }
 
@@ -173,22 +173,22 @@ public class VKFactory {
     }
 
     static VkRayTracingPipelineCreateInfoNV.Buffer VkRayTracingPipelineCreateInfoNV(MemoryStack stack) {
-        return VkRayTracingPipelineCreateInfoNV.calloc(1, stack).sType(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV);
+        return VkRayTracingPipelineCreateInfoNV.calloc(1, stack).sType$Default();
     }
 
     static VkRayTracingShaderGroupCreateInfoNV.Buffer VkRayTracingShaderGroupCreateInfoNV(int size, MemoryStack stack) {
         VkRayTracingShaderGroupCreateInfoNV.Buffer buf = VkRayTracingShaderGroupCreateInfoNV.calloc(size, stack);
-        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV).anyHitShader(VK_SHADER_UNUSED_NV)
+        buf.forEach(info -> info.sType$Default().anyHitShader(VK_SHADER_UNUSED_NV)
                 .closestHitShader(VK_SHADER_UNUSED_NV).generalShader(VK_SHADER_UNUSED_NV).intersectionShader(VK_SHADER_UNUSED_NV));
         return buf;
     }
 
     static VkPipelineLayoutCreateInfo VkPipelineLayoutCreateInfo(MemoryStack stack) {
-        return VkPipelineLayoutCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
+        return VkPipelineLayoutCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkDescriptorSetLayoutCreateInfo VkDescriptorSetLayoutCreateInfo(MemoryStack stack) {
-        return VkDescriptorSetLayoutCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
+        return VkDescriptorSetLayoutCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkDescriptorBufferInfo.Buffer VkDescriptorBufferInfo(MemoryStack stack, int count) {
@@ -204,31 +204,31 @@ public class VKFactory {
     }
 
     static VkWriteDescriptorSetAccelerationStructureNV VkWriteDescriptorSetAccelerationStructureNV(MemoryStack stack) {
-        return VkWriteDescriptorSetAccelerationStructureNV.calloc(stack).sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV);
+        return VkWriteDescriptorSetAccelerationStructureNV.calloc(stack).sType$Default();
     }
 
     static VkWriteDescriptorSet VkWriteDescriptorSet(MemoryStack stack) {
-        return VkWriteDescriptorSet.calloc(stack).sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
+        return VkWriteDescriptorSet.calloc(stack).sType$Default();
     }
 
     static VkDescriptorSetAllocateInfo VkDescriptorSetAllocateInfo(MemoryStack stack) {
-        return VkDescriptorSetAllocateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
+        return VkDescriptorSetAllocateInfo.calloc(stack).sType$Default();
     }
 
     static VkDescriptorPoolCreateInfo VkDescriptorPoolCreateInfo(MemoryStack stack) {
-        return VkDescriptorPoolCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
+        return VkDescriptorPoolCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPresentInfoKHR VkPresentInfoKHR(MemoryStack stack) {
-        return VkPresentInfoKHR.calloc(stack).sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+        return VkPresentInfoKHR.calloc(stack).sType$Default();
     }
 
     static VkSemaphoreCreateInfo VkSemaphoreCreateInfo(MemoryStack stack) {
-        return VkSemaphoreCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+        return VkSemaphoreCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkSemaphoreTypeCreateInfoKHR VkSemaphoreTypeCreateInfo(MemoryStack stack) {
-        return VkSemaphoreTypeCreateInfoKHR.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR);
+        return VkSemaphoreTypeCreateInfoKHR.calloc(stack).sType$Default();
     }
 
     static VkQueueFamilyProperties.Buffer VkQueueFamilyProperties(int count) {
@@ -240,7 +240,7 @@ public class VKFactory {
     }
 
     static VkPhysicalDeviceFeatures2 VkPhysicalDeviceFeatures2(MemoryStack stack) {
-        return VkPhysicalDeviceFeatures2.calloc(stack).sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR);
+        return VkPhysicalDeviceFeatures2.calloc(stack).sType$Default();
     }
 
     static VkPhysicalDeviceProperties VkPhysicalDeviceProperties(MemoryStack stack) {
@@ -249,22 +249,22 @@ public class VKFactory {
 
     static VkGeometryNV.Buffer VkGeometryNV(MemoryStack stack, int count) {
         VkGeometryNV.Buffer buf = VkGeometryNV.calloc(count, stack);
-        buf.forEach(info -> info.sType(VK_STRUCTURE_TYPE_GEOMETRY_NV));
+        buf.forEach(info -> info.sType$Default());
         return buf;
     }
 
     static VkWriteDescriptorSet.Buffer VkWriteDescriptorSet(MemoryStack stack, int count) {
         Buffer ret = VkWriteDescriptorSet.calloc(count, stack);
-        ret.forEach(wds -> wds.sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET));
+        ret.forEach(wds -> wds.sType$Default());
         return ret;
     }
 
     static VkPipelineShaderStageCreateInfo VkPipelineShaderStageCreateInfo(MemoryStack stack) {
-        return VkPipelineShaderStageCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO);
+        return VkPipelineShaderStageCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkShaderModuleCreateInfo VkShaderModuleCreateInfo(MemoryStack stack) {
-        return VkShaderModuleCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+        return VkShaderModuleCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkSurfaceCapabilitiesKHR VkSurfaceCapabilitiesKHR(MemoryStack stack) {
@@ -288,7 +288,7 @@ public class VKFactory {
     }
 
     static VkSamplerCreateInfo VkSamplerCreateInfo(MemoryStack stack) {
-        return VkSamplerCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+        return VkSamplerCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkBufferImageCopy.Buffer VkBufferImageCopy(MemoryStack stack) {
@@ -320,7 +320,7 @@ public class VKFactory {
     }
 
     static VkRenderPassCreateInfo VkRenderPassCreateInfo(MemoryStack stack) {
-        return VkRenderPassCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
+        return VkRenderPassCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkOffset3D VkOffset3D(MemoryStack stack) {
@@ -340,15 +340,15 @@ public class VKFactory {
     }
 
     static VkQueryPoolCreateInfo VkQueryPoolCreateInfo(MemoryStack stack) {
-        return VkQueryPoolCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
+        return VkQueryPoolCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkGeometryNV.Buffer VkGeometryNV(int count) {
-        return VkGeometryNV.calloc(count).sType(VK_STRUCTURE_TYPE_GEOMETRY_NV);
+        return VkGeometryNV.calloc(count).sType$Default();
     }
 
     static VkFramebufferCreateInfo VkFramebufferCreateInfo(MemoryStack stack) {
-        return VkFramebufferCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
+        return VkFramebufferCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkVertexInputBindingDescription.Buffer VkVertexInputBindingDescription(MemoryStack stack, int count) {
@@ -360,15 +360,15 @@ public class VKFactory {
     }
 
     static VkPipelineVertexInputStateCreateInfo VkPipelineVertexInputStateCreateInfo(MemoryStack stack) {
-        return VkPipelineVertexInputStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
+        return VkPipelineVertexInputStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineInputAssemblyStateCreateInfo VkPipelineInputAssemblyStateCreateInfo(MemoryStack stack) {
-        return VkPipelineInputAssemblyStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
+        return VkPipelineInputAssemblyStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineRasterizationStateCreateInfo VkPipelineRasterizationStateCreateInfo(MemoryStack stack) {
-        return VkPipelineRasterizationStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO);
+        return VkPipelineRasterizationStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineColorBlendAttachmentState.Buffer VkPipelineColorBlendAttachmentState(MemoryStack stack, int count) {
@@ -376,28 +376,28 @@ public class VKFactory {
     }
 
     static VkPipelineColorBlendStateCreateInfo VkPipelineColorBlendStateCreateInfo(MemoryStack stack) {
-        return VkPipelineColorBlendStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO);
+        return VkPipelineColorBlendStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineViewportStateCreateInfo VkPipelineViewportStateCreateInfo(MemoryStack stack) {
-        return VkPipelineViewportStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO);
+        return VkPipelineViewportStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineDynamicStateCreateInfo VkPipelineDynamicStateCreateInfo(MemoryStack stack) {
-        return VkPipelineDynamicStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO);
+        return VkPipelineDynamicStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineDepthStencilStateCreateInfo VkPipelineDepthStencilStateCreateInfo(MemoryStack stack) {
-        return VkPipelineDepthStencilStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO);
+        return VkPipelineDepthStencilStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkPipelineMultisampleStateCreateInfo VkPipelineMultisampleStateCreateInfo(MemoryStack stack) {
-        return VkPipelineMultisampleStateCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO);
+        return VkPipelineMultisampleStateCreateInfo.calloc(stack).sType$Default();
     }
 
     static VkGraphicsPipelineCreateInfo.Buffer VkGraphicsPipelineCreateInfo(MemoryStack stack, int count) {
         VkGraphicsPipelineCreateInfo.Buffer ret = VkGraphicsPipelineCreateInfo.calloc(count, stack);
-        ret.forEach(pci -> pci.sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO));
+        ret.forEach(pci -> pci.sType$Default());
         return ret;
     }
 
@@ -406,7 +406,7 @@ public class VKFactory {
     }
 
     static VkRenderPassBeginInfo VkRenderPassBeginInfo(MemoryStack stack) {
-        return VkRenderPassBeginInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
+        return VkRenderPassBeginInfo.calloc(stack).sType$Default();
     }
 
     static VkViewport.Buffer VkViewport(MemoryStack stack, int count) {

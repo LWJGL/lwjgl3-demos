@@ -281,10 +281,10 @@ public class ReflectiveMagicaVoxel {
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                    .sType$Default()
                     .pApplicationInfo(VkApplicationInfo
                             .calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                            .sType$Default()
                             .apiVersion(VK_API_VERSION_1_1))
                     .ppEnabledLayerNames(enabledLayers)
                     .ppEnabledExtensionNames(ppEnabledExtensionNames);
@@ -347,7 +347,7 @@ public class ReflectiveMagicaVoxel {
             _CHECK_(vkCreateDebugUtilsMessengerEXT(instance,
                     VkDebugUtilsMessengerCreateInfoEXT
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
+                        .sType$Default()
                         .messageSeverity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -421,23 +421,23 @@ public class ReflectiveMagicaVoxel {
                 // Check if the device supports all needed features
                 VkPhysicalDevice16BitStorageFeatures bitStorageFeatures = VkPhysicalDevice16BitStorageFeatures
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES)
+                        .sType$Default()
                         .pNext(NULL);
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
+                        .sType$Default()
                         .pNext(bitStorageFeatures.address());
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
+                        .sType$Default()
                         .pNext(accelerationStructureFeatures.address());
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
+                        .sType$Default()
                         .pNext(rayTracingPipelineFeatures.address());
                 VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2)
+                        .sType$Default()
                         .pNext(bufferDeviceAddressFeatures.address());
                 vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
 
@@ -457,15 +457,15 @@ public class ReflectiveMagicaVoxel {
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)
+                        .sType$Default()
                         .pNext(NULL);
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = VkPhysicalDeviceRayTracingPipelinePropertiesKHR
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR)
+                        .sType$Default()
                         .pNext(accelerationStructureProperties.address());
                 VkPhysicalDeviceProperties2 props = VkPhysicalDeviceProperties2
                         .malloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2)
+                        .sType$Default()
                         .pNext(rayTracingProperties.address());
                 vkGetPhysicalDeviceProperties2(dev, props);
 
@@ -498,35 +498,35 @@ public class ReflectiveMagicaVoxel {
             }
             VkPhysicalDevice16BitStorageFeaturesKHR bitStorageFeatures = VkPhysicalDevice16BitStorageFeaturesKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES)
+                    .sType$Default()
                     .storageBuffer16BitAccess(true);
             VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR)
+                    .sType$Default()
                     .pNext(bitStorageFeatures.address())
                     .bufferDeviceAddress(true);
             VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT)
+                    .sType$Default()
                     .pNext(bufferDeviceAddressFeatures.address())
                     .runtimeDescriptorArray(true);
             VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)
+                    .sType$Default()
                     .pNext(indexingFeatures.address())
                     .accelerationStructure(true);
             VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
+                    .sType$Default()
                     .pNext(accelerationStructureFeatures.address())
                     .rayTracingPipeline(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                    .sType$Default()
                     .pNext(rayTracingFeatures.address())
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .calloc(1, stack)
-                            .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                            .sType$Default()
                             .queueFamilyIndex(queueFamily)
                             .pQueuePriorities(stack.floats(1.0f)))
                     .ppEnabledLayerNames(ppEnabledLayerNames)
@@ -646,7 +646,7 @@ public class ReflectiveMagicaVoxel {
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             VkSwapchainCreateInfoKHR pCreateInfo = VkSwapchainCreateInfoKHR
                 .calloc(stack)
-                .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+                .sType$Default()
                 .surface(surface)
                 .minImageCount(imageCount)
                 .imageFormat(surfaceFormat.colorFormat)
@@ -682,7 +682,7 @@ public class ReflectiveMagicaVoxel {
                 _CHECK_(vkCreateImageView(device,
                         VkImageViewCreateInfo
                             .calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                            .sType$Default()
                             .image(pSwapchainImages.get(i))
                             .viewType(VK_IMAGE_TYPE_2D)
                             .format(surfaceFormat.colorFormat)
@@ -703,7 +703,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pCmdPool = stack.mallocLong(1);
             _CHECK_(vkCreateCommandPool(device, VkCommandPoolCreateInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+                    .sType$Default()
                     .flags(flags)
                     .queueFamilyIndex(queueFamily), null, pCmdPool),
                     "Failed to create command pool");
@@ -717,7 +717,7 @@ public class ReflectiveMagicaVoxel {
             _CHECK_(vkAllocateCommandBuffers(device,
                     VkCommandBufferAllocateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                        .sType$Default()
                         .commandPool(pool)
                         .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
                         .commandBufferCount(1), pCommandBuffer),
@@ -725,7 +725,7 @@ public class ReflectiveMagicaVoxel {
             VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
             _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)),
+                        .sType$Default()),
                     "Failed to begin command buffer");
             return cmdBuffer;
         }
@@ -740,7 +740,7 @@ public class ReflectiveMagicaVoxel {
                 LongBuffer pSemaphore = stack.mallocLong(1);
                 VkSemaphoreCreateInfo pCreateInfo = VkSemaphoreCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+                        .sType$Default();
                 _CHECK_(vkCreateSemaphore(device, pCreateInfo, null, pSemaphore),
                         "Failed to create image acquire semaphore");
                 imageAcquireSemaphores[i] = pSemaphore.get(0);
@@ -750,7 +750,7 @@ public class ReflectiveMagicaVoxel {
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
+                        .sType$Default()
                         .flags(VK_FENCE_CREATE_SIGNALED_BIT), null, pFence),
                         "Failed to create fence");
                 renderFences[i] = pFence.get(0);
@@ -797,7 +797,7 @@ public class ReflectiveMagicaVoxel {
         try (MemoryStack stack = stackPush()) {
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                    .sType$Default()
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR))
                     .pCommandBuffers(stack.pointers(commandBuffers[idx]))
@@ -807,7 +807,7 @@ public class ReflectiveMagicaVoxel {
                     "Failed to submit command buffer");
             int result = vkQueuePresentKHR(queue, VkPresentInfoKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+                    .sType$Default()
                     .pWaitSemaphores(stack.longs(renderCompleteSemaphores[idx]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
@@ -883,11 +883,11 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pFence = stack.mallocLong(1);
             _CHECK_(vkCreateFence(device, VkFenceCreateInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO), null, pFence),
+                    .sType$Default(), null, pFence),
                     "Failed to create fence");
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                    .sType$Default()
                     .pCommandBuffers(stack.pointers(commandBuffer)), pFence.get(0)),
                     "Failed to submit command buffer");
             long fence = pFence.get(0);
@@ -905,7 +905,7 @@ public class ReflectiveMagicaVoxel {
             _CHECK_(vmaCreateBuffer(vmaAllocator,
                     VkBufferCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                        .sType$Default()
                         .size(size)
                         .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
                     VmaAllocationCreateInfo
@@ -925,7 +925,7 @@ public class ReflectiveMagicaVoxel {
                 PointerBuffer pAllocationStage = stack.mallocPointer(1);
                 _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
                             .calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                            .sType$Default()
                             .size(data.remaining())
                             .usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                         VmaAllocationCreateInfo
@@ -973,7 +973,7 @@ public class ReflectiveMagicaVoxel {
                 VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
                 _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
                             .calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
+                            .sType$Default()
                             .size(size)
                             .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
                         VmaAllocationCreateInfo
@@ -1039,7 +1039,7 @@ public class ReflectiveMagicaVoxel {
         try (MemoryStack stack = stackPush()) {
             address = vkGetBufferDeviceAddressKHR(device, VkBufferDeviceAddressInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR)
+                    .sType$Default()
                     .buffer(buffer));
         }
         // check alignment
@@ -1068,20 +1068,20 @@ public class ReflectiveMagicaVoxel {
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos = 
                     VkAccelerationStructureBuildGeometryInfoKHR
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)
+                        .sType$Default()
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR)
                         .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | 
                                VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR)
                         .geometryCount(1)
                         .pGeometries(VkAccelerationStructureGeometryKHR
                                 .calloc(1, stack)
-                                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR)
+                                .sType$Default()
                                 .geometryType(VK_GEOMETRY_TYPE_TRIANGLES_KHR)
                                 .geometry(VkAccelerationStructureGeometryDataKHR
                                         .calloc(stack)
                                         .triangles(VkAccelerationStructureGeometryTrianglesDataKHR
                                                 .calloc(stack)
-                                                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR)
+                                                .sType$Default()
                                                 .vertexFormat(VK_FORMAT_R16G16B16_UNORM)
                                                 .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Short.BYTES))
                                                 .vertexStride(4 * Short.BYTES)
@@ -1093,7 +1093,7 @@ public class ReflectiveMagicaVoxel {
             // Query necessary sizes for the acceleration structure buffer and for the scratch buffer
             VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo = VkAccelerationStructureBuildSizesInfoKHR
                     .malloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)
+                    .sType$Default()
                     .pNext(NULL);
             vkGetAccelerationStructureBuildSizesKHR(
                     device,
@@ -1112,7 +1112,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
+                        .sType$Default()
                         .buffer(accelerationStructureBuffer.buffer)
                         .size(buildSizesInfo.accelerationStructureSize())
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR), null, pAccelerationStructure),
@@ -1138,7 +1138,7 @@ public class ReflectiveMagicaVoxel {
                     0, // <- no dependency flags
                     VkMemoryBarrier
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .sType$Default()
                         .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT) // <- GPU buffer was written to during the transfer
                         .dstAccessMask(
                                 VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | // <- Accesses to the destination acceleration structures, and the scratch buffers
@@ -1162,7 +1162,7 @@ public class ReflectiveMagicaVoxel {
                     0,
                     VkMemoryBarrier
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .sType$Default()
                         .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
                         .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
                     null, null);
@@ -1196,7 +1196,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pAccelerationStructureCompacted = stack.mallocLong(1);
             vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
+                    .sType$Default()
                     .buffer(accelerationStructureCompactedBuffer.buffer)
                     .size(compactedSize.get(0))
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR), null, pAccelerationStructureCompacted);
@@ -1207,7 +1207,7 @@ public class ReflectiveMagicaVoxel {
                     cmdBuf2,
                     VkCopyAccelerationStructureInfoKHR
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR)
+                        .sType$Default()
                         .src(pAccelerationStructure.get(0))
                         .dst(pAccelerationStructureCompacted.get(0))
                         .mode(VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR));
@@ -1219,7 +1219,7 @@ public class ReflectiveMagicaVoxel {
                     0,
                     VkMemoryBarrier
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .sType$Default()
                         .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
                         .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
                     null, null);
@@ -1249,7 +1249,7 @@ public class ReflectiveMagicaVoxel {
             long blasDeviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device, 
                     VkAccelerationStructureDeviceAddressInfoKHR
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR)
+                        .sType$Default()
                         .accelerationStructure(blas.accelerationStructure));
 
             // Create a single instance for our TLAS
@@ -1274,18 +1274,18 @@ public class ReflectiveMagicaVoxel {
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos = 
                     VkAccelerationStructureBuildGeometryInfoKHR
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)
+                        .sType$Default()
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
                         .flags(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR)
                         .pGeometries(VkAccelerationStructureGeometryKHR
                                 .calloc(1, stack)
-                                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR)
+                                .sType$Default()
                                 .geometryType(VK_GEOMETRY_TYPE_INSTANCES_KHR)
                                 .geometry(VkAccelerationStructureGeometryDataKHR
                                         .calloc(stack)
                                         .instances(VkAccelerationStructureGeometryInstancesDataKHR
                                                 .calloc(stack)
-                                                .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR)
+                                                .sType$Default()
                                                 .data(deviceAddressConst(stack, instanceData.buffer, 16)))) // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR))
                         .geometryCount(1);
@@ -1293,7 +1293,7 @@ public class ReflectiveMagicaVoxel {
             // Query necessary sizes for the acceleration structure buffer and for the scratch buffer
             VkAccelerationStructureBuildSizesInfoKHR buildSizesInfo = VkAccelerationStructureBuildSizesInfoKHR
                     .malloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)
+                    .sType$Default()
                     .pNext(NULL);
             vkGetAccelerationStructureBuildSizesKHR(
                     device,
@@ -1313,7 +1313,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
             _CHECK_(vkCreateAccelerationStructureKHR(device, VkAccelerationStructureCreateInfoKHR
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR)
+                        .sType$Default()
                         .type(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
                         .size(buildSizesInfo.accelerationStructureSize())
                         .buffer(accelerationStructureBuffer.buffer), null, pAccelerationStructure),
@@ -1340,7 +1340,7 @@ public class ReflectiveMagicaVoxel {
                     0, // <- no dependency flags
                     VkMemoryBarrier
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .sType$Default()
                         .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT) // <- GPU buffer was written to during the transfer
                         .dstAccessMask(
                                 VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | // <- Accesses to the destination acceleration structures, and the scratch buffers
@@ -1364,7 +1364,7 @@ public class ReflectiveMagicaVoxel {
                     0, // <- no dependency flags
                     VkMemoryBarrier
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                        .sType$Default()
                         .srcAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR)
                         .dstAccessMask(VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR),
                     null,
@@ -1392,7 +1392,7 @@ public class ReflectiveMagicaVoxel {
             // we have one acceleration structure, one storage image and one uniform buffer
             _CHECK_(vkCreateDescriptorSetLayout(device, VkDescriptorSetLayoutCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
+                        .sType$Default()
                         .pBindings(VkDescriptorSetLayoutBinding
                                 .calloc(numDescriptors, stack)
                                 .apply(dslb -> dslb
@@ -1431,7 +1431,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pPipelineLayout = stack.mallocLong(1);
             _CHECK_(vkCreatePipelineLayout(device, VkPipelineLayoutCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
+                        .sType$Default()
                         .pSetLayouts(pSetLayout), null, pPipelineLayout),
                     "Failed to create pipeline layout");
             VkPipelineShaderStageCreateInfo.Buffer pStages = VkPipelineShaderStageCreateInfo
@@ -1441,21 +1441,21 @@ public class ReflectiveMagicaVoxel {
             String pkg = ReflectiveMagicaVoxel.class.getName().toLowerCase().replace('.', '/') + "/";
             loadShader(pStages
                     .get(0)
-                    .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO), 
+                    .sType$Default(), 
                     null, stack, device, pkg + "raygen.glsl", VK_SHADER_STAGE_RAYGEN_BIT_KHR);
             loadShader(pStages
                     .get(1)
-                    .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO),
+                    .sType$Default(),
                     null, stack, device, pkg + "raymiss.glsl", VK_SHADER_STAGE_MISS_BIT_KHR);
             loadShader(pStages
                     .get(2)
-                    .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO),
+                    .sType$Default(),
                     null, stack, device, pkg + "closesthit.glsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
 
             VkRayTracingShaderGroupCreateInfoKHR.Buffer groups = VkRayTracingShaderGroupCreateInfoKHR
                     .calloc(3, stack);
             groups.forEach(g -> g
-                    .sType(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR)
+                    .sType$Default()
                     .generalShader(VK_SHADER_UNUSED_KHR)
                     .closestHitShader(VK_SHADER_UNUSED_KHR)
                     .anyHitShader(VK_SHADER_UNUSED_KHR)
@@ -1472,7 +1472,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pPipelines = stack.mallocLong(1);
             _CHECK_(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, VkRayTracingPipelineCreateInfoKHR
                         .calloc(1, stack)
-                        .sType(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)
+                        .sType$Default()
                         .pStages(pStages)
                         .maxPipelineRayRecursionDepth(1)
                         .pGroups(groups)
@@ -1523,7 +1523,7 @@ public class ReflectiveMagicaVoxel {
                                                 0,
                                                 VkMemoryBarrier
                                                     .calloc(1, s)
-                                                    .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+                                                    .sType$Default()
                                                     .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
                                                     .dstAccessMask(VK_ACCESS_SHADER_READ_BIT),
                                                 null,
@@ -1551,7 +1551,7 @@ public class ReflectiveMagicaVoxel {
             LongBuffer pDescriptorPool = stack.mallocLong(1);
             _CHECK_(vkCreateDescriptorPool(device, VkDescriptorPoolCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
+                        .sType$Default()
                         .pPoolSizes(VkDescriptorPoolSize
                                 .calloc(numDescriptors, stack)
                                 .apply(0, dps -> dps
@@ -1576,7 +1576,7 @@ public class ReflectiveMagicaVoxel {
                     "Failed to create descriptor pool");
             VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VkDescriptorSetAllocateInfo
                     .calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
+                    .sType$Default()
                     .descriptorPool(pDescriptorPool.get(0))
                     .pSetLayouts(repeat(stack, rayTracingPipeline.descriptorSetLayout, numSets));
             LongBuffer pDescriptorSets = stack.mallocLong(numSets);
@@ -1590,18 +1590,18 @@ public class ReflectiveMagicaVoxel {
                 final int idx = i;
                 writeDescriptorSet
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
                                 .dstBinding(0)
                                 .dstSet(pDescriptorSets.get(idx))
                                 .descriptorCount(1)
                                 .pNext(VkWriteDescriptorSetAccelerationStructureKHR
                                         .calloc(stack)
-                                        .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)
+                                        .sType$Default()
                                         .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
                                         .address()))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
                                 .dstBinding(1)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1611,7 +1611,7 @@ public class ReflectiveMagicaVoxel {
                                         .imageView(swapchain.imageViews[idx])
                                         .imageLayout(VK_IMAGE_LAYOUT_GENERAL)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
                                 .dstBinding(2)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1621,7 +1621,7 @@ public class ReflectiveMagicaVoxel {
                                         .buffer(rayTracingUbos[idx].buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                 .dstBinding(3)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1631,7 +1631,7 @@ public class ReflectiveMagicaVoxel {
                                         .buffer(geometry.positions.buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                 .dstBinding(4)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1641,7 +1641,7 @@ public class ReflectiveMagicaVoxel {
                                         .buffer(geometry.indices.buffer)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
-                                .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
+                                .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                 .dstBinding(5)
                                 .dstSet(pDescriptorSets.get(idx))
@@ -1662,7 +1662,7 @@ public class ReflectiveMagicaVoxel {
             _CHECK_(vkCreateQueryPool(device,
                     VkQueryPoolCreateInfo
                         .calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO)
+                        .sType$Default()
                         .queryCount(1)
                         .queryType(VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR),
                     null, pQueryPool), "Failed to create query pool");
@@ -1691,7 +1691,7 @@ public class ReflectiveMagicaVoxel {
                         null,
                         VkImageMemoryBarrier
                             .calloc(1, stack)
-                            .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+                            .sType$Default()
                             .srcAccessMask(0)
                             .dstAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
                             .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
@@ -1730,7 +1730,7 @@ public class ReflectiveMagicaVoxel {
                         null,
                         VkImageMemoryBarrier
                             .calloc(1, stack)
-                            .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+                            .sType$Default()
                             .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
                             .dstAccessMask(0)
                             .oldLayout(VK_IMAGE_LAYOUT_GENERAL)

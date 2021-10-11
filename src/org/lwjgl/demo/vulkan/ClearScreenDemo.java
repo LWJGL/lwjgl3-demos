@@ -191,9 +191,9 @@ public class ClearScreenDemo {
                 enabledLayers = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                    .sType$Default()
                     .pApplicationInfo(VkApplicationInfo.calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                            .sType$Default()
                             .apiVersion(VK_API_VERSION_1_1))
                     .ppEnabledExtensionNames(ppEnabledExtensionNames)
                     .ppEnabledLayerNames(enabledLayers);
@@ -262,7 +262,7 @@ public class ClearScreenDemo {
             long pMessenger = stack.nmalloc(Long.BYTES);
             _CHECK_(nvkCreateDebugUtilsMessengerEXT(instance,
                     VkDebugUtilsMessengerCreateInfoEXT.calloc(stack)
-                            .sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
+                            .sType$Default()
                             .messageSeverity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
                             .messageType(VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                                     | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
@@ -339,9 +339,9 @@ public class ClearScreenDemo {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                    .sType$Default()
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo.calloc(1, stack)
-                            .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                            .sType$Default()
                             .queueFamilyIndex(queueFamily)
                             .pQueuePriorities(stack.floats(1.0f)))
                     .ppEnabledExtensionNames(ppEnabledExtensionNames)
@@ -431,7 +431,7 @@ public class ClearScreenDemo {
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             VkSwapchainCreateInfoKHR pCreateInfo = VkSwapchainCreateInfoKHR.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+                    .sType$Default()
                     .surface(surface)
                     .minImageCount(imageCount)
                     .imageExtent(e -> e.set(swapchainExtents.x, swapchainExtents.y))
@@ -461,7 +461,7 @@ public class ClearScreenDemo {
             for (int i = 0; i < actualImageCount; i++) {
                 _CHECK_(nvkCreateImageView(device,
                         VkImageViewCreateInfo.calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                        .sType$Default()
                         .format(surfaceFormat.colorFormat)
                         .viewType(VK_IMAGE_TYPE_2D)
                         .subresourceRange(r -> r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
@@ -479,7 +479,7 @@ public class ClearScreenDemo {
         try (MemoryStack stack = stackPush()) {
             long pCommandPool = stack.nmalloc(Long.BYTES);
             _CHECK_(nvkCreateCommandPool(device, VkCommandPoolCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+                    .sType$Default()
                     .queueFamilyIndex(queueFamily)
                     .flags(0).address(), NULL, pCommandPool),
                     "Failed to create command pool");
@@ -490,7 +490,7 @@ public class ClearScreenDemo {
     private static long createRasterRenderPass() {
         try (MemoryStack stack = stackPush()) {
             VkRenderPassCreateInfo pCreateInfo = VkRenderPassCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
+                    .sType$Default()
                     .pAttachments(VkAttachmentDescription.calloc(1, stack)
                             .apply(0, d -> d
                                     .format(swapchain.surfaceFormat.colorFormat)
@@ -526,7 +526,7 @@ public class ClearScreenDemo {
         try (MemoryStack stack = stackPush()) {
             LongBuffer pAttachments = stack.mallocLong(1);
             VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+                    .sType$Default()
                     .pAttachments(pAttachments)
                     .width(swapchain.width)
                     .height(swapchain.height)
@@ -556,7 +556,7 @@ public class ClearScreenDemo {
             PointerBuffer pCommandBuffers = stack.mallocPointer(commandBufferCount);
             _CHECK_(vkAllocateCommandBuffers(device,
                     VkCommandBufferAllocateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+                    .sType$Default()
                     .commandBufferCount(commandBufferCount)
                     .commandPool(commandPool)
                     .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY),
@@ -565,7 +565,7 @@ public class ClearScreenDemo {
             for (int i = 0; i < commandBufferCount; i++) {
                 cmdBuffers[i] = new VkCommandBuffer(pCommandBuffers.get(i), device);
                 _CHECK_(nvkBeginCommandBuffer(cmdBuffers[i], VkCommandBufferBeginInfo.calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO).address()), "Failed to begin command buffers");
+                        .sType$Default().address()), "Failed to begin command buffers");
             }
             return cmdBuffers;
         }
@@ -576,7 +576,7 @@ public class ClearScreenDemo {
             VkClearValue.Buffer pClearValues = VkClearValue.calloc(1, stack);
             pClearValues.apply(0, v -> v.color().float32(0, 0.2f).float32(1, 0.4f).float32(2, 0.6f).float32(3, 1));
             VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
+                    .sType$Default()
                     .renderPass(renderPass)
                     .pClearValues(pClearValues)
                     .renderArea(a -> a.extent().set(swapchain.width, swapchain.height));
@@ -600,14 +600,14 @@ public class ClearScreenDemo {
             try (MemoryStack stack = stackPush()) {
                 long pSemaphore = stack.nmalloc(Long.BYTES);
                 long pCreateInfo = VkSemaphoreCreateInfo.calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO).address();
+                        .sType$Default().address();
                 _CHECK_(nvkCreateSemaphore(device, pCreateInfo, NULL, pSemaphore), "Failed to create image acquire semaphore");
                 imageAcquireSemaphores[i] = memGetLong(pSemaphore);
                 _CHECK_(nvkCreateSemaphore(device, pCreateInfo, NULL, pSemaphore), "Failed to create raster semaphore");
                 renderCompleteSemaphores[i] = memGetLong(pSemaphore);
                 LongBuffer pFence = stack.mallocLong(1);
                 _CHECK_(vkCreateFence(device, VkFenceCreateInfo.calloc(stack)
-                        .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
+                        .sType$Default()
                         .flags(VK_FENCE_CREATE_SIGNALED_BIT), null, pFence), "Failed to create fence");
                 renderFences[i] = pFence.get(0);
             }
@@ -659,7 +659,7 @@ public class ClearScreenDemo {
         try (MemoryStack stack = stackPush()) {
             _CHECK_(vkQueueSubmit(queue,
                     VkSubmitInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
+                    .sType$Default()
                     .pCommandBuffers(stack.pointers(commandBuffers[idx]))
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     .waitSemaphoreCount(1)
@@ -667,7 +667,7 @@ public class ClearScreenDemo {
                     .pSignalSemaphores(stack.longs(renderCompleteSemaphores[idx])),
                     renderFences[idx]), "Failed to submit command buffer");
             int result = vkQueuePresentKHR(queue, VkPresentInfoKHR.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
+                    .sType$Default()
                     .pWaitSemaphores(stack.longs(renderCompleteSemaphores[idx]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
