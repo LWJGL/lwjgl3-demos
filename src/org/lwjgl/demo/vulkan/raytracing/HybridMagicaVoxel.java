@@ -94,7 +94,8 @@ public class HybridMagicaVoxel {
     private static AccelerationStructure blas, tlas;
     private static RayTracingPipeline rayTracingPipeline;
     private static Pipeline rasterPipeline;
-    private static AllocationAndBuffer[] ubos;
+    private static final int uboStructSize = 3 * 16 * Float.BYTES;
+    private static AllocationAndBuffer ubo;
     private static AllocationAndBuffer sbt;
     private static AllocationAndBuffer materialsBuffer;
     private static DescriptorSets rayTracingDescriptorSets;
@@ -185,13 +186,16 @@ public class HybridMagicaVoxel {
         private final VkPhysicalDevice physicalDevice;
         private final QueueFamilies queuesFamilies;
         private final int shaderGroupBaseAlignment;
+        private final int minUniformBufferOffsetAlignment;
         private final int minAccelerationStructureScratchOffsetAlignment;
         private DeviceAndQueueFamilies(VkPhysicalDevice physicalDevice, QueueFamilies queuesFamilies,
                 int shaderGroupBaseAlignment,
+                int minUniformBufferOffsetAlignment,
                 int minAccelerationStructureScratchOffsetAlignment) {
             this.physicalDevice = physicalDevice;
             this.queuesFamilies = queuesFamilies;
             this.shaderGroupBaseAlignment = shaderGroupBaseAlignment;
+            this.minUniformBufferOffsetAlignment = minUniformBufferOffsetAlignment;
             this.minAccelerationStructureScratchOffsetAlignment = minAccelerationStructureScratchOffsetAlignment;
         }
     }
@@ -479,6 +483,7 @@ public class HybridMagicaVoxel {
                 if (isDeviceSuitable(queuesFamilies)) {
                     return new DeviceAndQueueFamilies(dev, queuesFamilies,
                             rayTracingProperties.shaderGroupBaseAlignment(),
+                            (int) props.properties().limits().minUniformBufferOffsetAlignment(),
                             accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment());
                 }
             }
@@ -1158,33 +1163,30 @@ public class HybridMagicaVoxel {
         return createBuffer(usageFlags, data.remaining(), data, alignment, beforeSubmit);
     }
 
-    private static AllocationAndBuffer[] createUniformBufferObjects(int size) {
-        AllocationAndBuffer[] ret = new AllocationAndBuffer[swapchain.imageViews.length];
-        for (int i = 0; i < ret.length; i++) {
-            try (MemoryStack stack = stackPush()) {
-                LongBuffer pBuffer = stack.mallocLong(1);
-                PointerBuffer pAllocation = stack.mallocPointer(1);
-                VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
-                _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
-                            .calloc(stack)
-                            .sType$Default()
-                            .size(size)
-                            .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
-                        VmaAllocationCreateInfo
-                            .calloc(stack)
-                            .usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, pAllocationInfo),
-                        "Failed to allocate buffer");
+    private static AllocationAndBuffer createUniformBufferObject(int size) {
+    	int totalSize = alignUp(size, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * swapchain.imageViews.length;
+        try (MemoryStack stack = stackPush()) {
+            LongBuffer pBuffer = stack.mallocLong(1);
+            PointerBuffer pAllocation = stack.mallocPointer(1);
+            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
+            _CHECK_(vmaCreateBuffer(vmaAllocator, VkBufferCreateInfo
+                        .calloc(stack)
+                        .sType$Default()
+                        .size(totalSize)
+                        .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+                    VmaAllocationCreateInfo
+                        .calloc(stack)
+                        .usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, pAllocationInfo),
+                    "Failed to allocate buffer");
 
-                // check whether the allocation is host-coherent
-                IntBuffer memTypeProperties = stack.mallocInt(1);
-                vmaGetMemoryTypeProperties(vmaAllocator, pAllocationInfo.memoryType(), memTypeProperties);
-                boolean isHostCoherent = (memTypeProperties.get(0) & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
-                AllocationAndBuffer a = new AllocationAndBuffer(pAllocation.get(0), pBuffer.get(0), isHostCoherent);
-                a.map(size);
-                ret[i] = a;
-            }
+            // check whether the allocation is host-coherent
+            IntBuffer memTypeProperties = stack.mallocInt(1);
+            vmaGetMemoryTypeProperties(vmaAllocator, pAllocationInfo.memoryType(), memTypeProperties);
+            boolean isHostCoherent = (memTypeProperties.get(0) & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+            AllocationAndBuffer a = new AllocationAndBuffer(pAllocation.get(0), pBuffer.get(0), isHostCoherent);
+            a.map(totalSize);
+            return a;
         }
-        return ret;
     }
 
     private static long createRasterRenderPass() {
@@ -2002,7 +2004,8 @@ public class HybridMagicaVoxel {
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo
                                         .calloc(1, stack)
-                                        .buffer(ubos[idx].buffer)
+                                        .buffer(ubo.buffer)
+                                        .offset(alignUp(uboStructSize, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * idx)
                                         .range(VK_WHOLE_SIZE)))
                         .apply(wds -> wds
                                 .sType$Default()
@@ -2081,7 +2084,8 @@ public class HybridMagicaVoxel {
                                 .descriptorCount(1)
                                 .pBufferInfo(VkDescriptorBufferInfo
                                         .calloc(1, stack)
-                                        .buffer(ubos[idx].buffer)
+                                        .buffer(ubo.buffer)
+                                        .offset(alignUp(uboStructSize, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * idx)
                                         .range(VK_WHOLE_SIZE)));
             }
             vkUpdateDescriptorSets(device, writeDescriptorSet.flip(), null);
@@ -2254,10 +2258,11 @@ public class HybridMagicaVoxel {
     }
 
     private static void updateUniformBufferObject(int idx) {
-        mvpMatrix.get(0, ubos[idx].mapped);
-        invProjMatrix.get(Float.BYTES * 16, ubos[idx].mapped);
-        invViewMatrix.get4x4(Float.BYTES * 16 * 2, ubos[idx].mapped);
-        ubos[idx].flushMapped(0, Float.BYTES * 16 * 3);
+    	int off = alignUp(uboStructSize, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * idx;
+        mvpMatrix.get(off, ubo.mapped);
+        invProjMatrix.get(off + Float.BYTES * 16, ubo.mapped);
+        invViewMatrix.get4x4(off + Float.BYTES * 16 * 2, ubo.mapped);
+        ubo.flushMapped(off, Float.BYTES * 16 * 3);
     }
 
     private static int idx(int x, int y, int z, int width, int depth) {
@@ -2406,7 +2411,7 @@ public class HybridMagicaVoxel {
         materialsBuffer = createMaterialsBuffer();
         blas = createBottomLevelAccelerationStructure(geometry);
         tlas = createTopLevelAccelerationStructure(blas);
-        ubos = createUniformBufferObjects(3 * 16 * Float.BYTES);
+        ubo = createUniformBufferObject(uboStructSize);
         rayTracingPipeline = createRayTracingPipeline();
         sbt = createRayTracingShaderBindingTable();
         rayTracingDescriptorSets = createRayTracingDescriptorSets();
@@ -2456,8 +2461,7 @@ public class HybridMagicaVoxel {
         _CHECK_(vkDeviceWaitIdle(device), "Failed to wait for device idle");
         rasterDescriptorSets.free();
         rasterPipeline.free();
-        for (AllocationAndBuffer rayTracingUbo : ubos)
-            rayTracingUbo.free();
+        ubo.free();
         rayTracingDescriptorSets.free();
         sbt.free();
         rayTracingPipeline.free();
