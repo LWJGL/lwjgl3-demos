@@ -419,14 +419,14 @@ public class ReflectiveMagicaVoxel {
             for (int i = 0; i < physicalDeviceCount; i++) {
                 VkPhysicalDevice dev = new VkPhysicalDevice(pPhysicalDevices.get(i), instance);
                 // Check if the device supports all needed features
-                VkPhysicalDevice16BitStorageFeatures bitStorageFeatures = VkPhysicalDevice16BitStorageFeatures
+                VkPhysicalDeviceVulkan11Features vulkan11Features = VkPhysicalDeviceVulkan11Features
                         .malloc(stack)
                         .sType$Default()
                         .pNext(NULL);
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .malloc(stack)
                         .sType$Default()
-                        .pNext(bitStorageFeatures.address());
+                        .pNext(vulkan11Features.address());
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .malloc(stack)
                         .sType$Default()
@@ -445,7 +445,7 @@ public class ReflectiveMagicaVoxel {
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
                     !rayTracingPipelineFeatures.rayTracingPipeline() ||
                     !accelerationStructureFeatures.accelerationStructure() ||
-                    !bitStorageFeatures.storageBuffer16BitAccess())
+                    !vulkan11Features.storageBuffer16BitAccess())
                     continue;
 
                 // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
@@ -496,14 +496,14 @@ public class ReflectiveMagicaVoxel {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDevice16BitStorageFeaturesKHR bitStorageFeatures = VkPhysicalDevice16BitStorageFeaturesKHR
+            VkPhysicalDeviceVulkan11Features vulkan11Features = VkPhysicalDeviceVulkan11Features
                     .calloc(stack)
                     .sType$Default()
                     .storageBuffer16BitAccess(true);
             VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                     .calloc(stack)
                     .sType$Default()
-                    .pNext(bitStorageFeatures.address())
+                    .pNext(vulkan11Features.address())
                     .bufferDeviceAddress(true);
             VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
                     .calloc(stack)

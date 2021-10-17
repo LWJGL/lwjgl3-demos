@@ -4,7 +4,7 @@
  */
 #version 460
 #extension GL_EXT_ray_tracing : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : enable
+#extension GL_EXT_shader_16bit_storage : enable
 
 struct hitPayload
 {
@@ -25,7 +25,7 @@ const vec3 normals[6] = vec3[6](vec3(-1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0),
 
 void main(void) {
   uint index = uint(indices.i[3u * gl_PrimitiveID]);
-  uint typeAndSide = positionsAndTypes.pt[4u * index + 3u];
+  uint typeAndSide = uint(positionsAndTypes.pt[4u * index + 3u]);
   uint type = typeAndSide & 0xFFu;
   uint side = typeAndSide >> 8u;
   vec3 col = unpackUnorm4x8(materials.m[type]).rgb;
