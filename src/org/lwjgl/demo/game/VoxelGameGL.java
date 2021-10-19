@@ -67,11 +67,9 @@ public class VoxelGameGL {
         if (DEBUG) {
             // When we are in debug mode, enable all LWJGL debug flags
             Configuration.DEBUG.set(true);
-            Configuration.DISABLE_CHECKS.set(false);
             Configuration.DEBUG_FUNCTIONS.set(true);
             Configuration.DEBUG_LOADER.set(true);
             Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
-            Configuration.DEBUG_MEMORY_ALLOCATOR_INTERNAL.set(true);
             Configuration.DEBUG_STACK.set(true);
         } else {
             Configuration.DISABLE_CHECKS.set(true);
