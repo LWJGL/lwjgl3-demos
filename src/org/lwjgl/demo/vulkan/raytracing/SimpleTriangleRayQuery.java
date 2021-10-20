@@ -384,21 +384,19 @@ public class SimpleTriangleRayQuery {
                 // Check if the device supports all needed features
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(NULL);
+                        .sType$Default();
                 VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = VkPhysicalDeviceRayQueryFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(accelerationStructureFeatures.address());
+                        .sType$Default();
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                         .malloc(stack)
+                        .sType$Default();
+                vkGetPhysicalDeviceFeatures2(dev, VkPhysicalDeviceFeatures2
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(rayQueryFeatures.address());
-                VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
-                        .malloc(stack)
-                        .sType$Default()
-                        .pNext(bufferDeviceAddressFeatures.address());
-                vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
+                        .pNext(bufferDeviceAddressFeatures)
+                        .pNext(rayQueryFeatures)
+                        .pNext(accelerationStructureFeatures));
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
@@ -415,13 +413,11 @@ public class SimpleTriangleRayQuery {
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
                         .malloc(stack)
+                        .sType$Default();
+                vkGetPhysicalDeviceProperties2(dev, VkPhysicalDeviceProperties2
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(NULL);
-                VkPhysicalDeviceProperties2 props = VkPhysicalDeviceProperties2
-                        .malloc(stack)
-                        .sType$Default()
-                        .pNext(accelerationStructureProperties.address());
-                vkGetPhysicalDeviceProperties2(dev, props);
+                        .pNext(accelerationStructureProperties));
 
                 // Check queue families
                 QueueFamilies queuesFamilies = obtainQueueFamilies(dev);
@@ -449,29 +445,25 @@ public class SimpleTriangleRayQuery {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .bufferDeviceAddress(true);
-            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(bufferDeviceAddressFeatures.address())
-                    .runtimeDescriptorArray(true);
-            VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(indexingFeatures.address())
-                    .accelerationStructure(true);
-            VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = VkPhysicalDeviceRayQueryFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(accelerationStructureFeatures.address())
-                    .rayQuery(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .calloc(stack)
                     .sType$Default()
-                    .pNext(rayQueryFeatures.address())
+                    .pNext(VkPhysicalDeviceRayQueryFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .rayQuery(true))
+                    .pNext(VkPhysicalDeviceAccelerationStructureFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .accelerationStructure(true))
+                    .pNext(VkPhysicalDeviceDescriptorIndexingFeaturesEXT
+                            .calloc(stack)
+                            .sType$Default()
+                            .runtimeDescriptorArray(true))
+                    .pNext(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .bufferDeviceAddress(true))
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .calloc(1, stack)
                             .sType$Default()
@@ -1331,8 +1323,7 @@ public class SimpleTriangleRayQuery {
                                 .pNext(VkWriteDescriptorSetAccelerationStructureKHR
                                         .calloc(stack)
                                         .sType$Default()
-                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
-                                        .address()))
+                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))))
                         .apply(wds -> wds
                                 .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)

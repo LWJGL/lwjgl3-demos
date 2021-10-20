@@ -433,21 +433,19 @@ public class HybridMagicaVoxel {
                 // Check if the device supports all needed features
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(NULL);
+                        .sType$Default();
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(accelerationStructureFeatures.address());
+                        .sType$Default();
                 VkPhysicalDeviceVulkan12Features vulkan12Features = VkPhysicalDeviceVulkan12Features
                         .malloc(stack)
+                        .sType$Default();
+                vkGetPhysicalDeviceFeatures2(dev, VkPhysicalDeviceFeatures2
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(rayTracingPipelineFeatures.address());
-                VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
-                        .malloc(stack)
-                        .sType$Default()
-                        .pNext(vulkan12Features.address());
-                vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
+                        .pNext(vulkan12Features)
+                        .pNext(rayTracingPipelineFeatures)
+                        .pNext(accelerationStructureFeatures));
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!vulkan12Features.bufferDeviceAddress() ||
@@ -464,16 +462,15 @@ public class HybridMagicaVoxel {
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(NULL);
+                        .sType$Default();
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = VkPhysicalDeviceRayTracingPipelinePropertiesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(accelerationStructureProperties.address());
+                        .sType$Default();
                 VkPhysicalDeviceProperties2 props = VkPhysicalDeviceProperties2
-                        .malloc(stack)
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(rayTracingProperties.address());
+                        .pNext(rayTracingProperties)
+                        .pNext(accelerationStructureProperties);
                 vkGetPhysicalDeviceProperties2(dev, props);
 
                 // Check queue families
@@ -504,24 +501,21 @@ public class HybridMagicaVoxel {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .accelerationStructure(true);
-            VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(accelerationStructureFeatures.address())
-                    .rayTracingPipeline(true);
-            VkPhysicalDeviceVulkan12Features vulkan12Features = VkPhysicalDeviceVulkan12Features
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(rayTracingFeatures.address())
-                    .bufferDeviceAddress(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .calloc(stack)
                     .sType$Default()
-                    .pNext(vulkan12Features.address())
+                    .pNext(VkPhysicalDeviceVulkan12Features
+                            .calloc(stack)
+                            .sType$Default()
+                            .bufferDeviceAddress(true))
+                    .pNext(VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .rayTracingPipeline(true))
+                    .pNext(VkPhysicalDeviceAccelerationStructureFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .accelerationStructure(true))
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .calloc(1, stack)
                             .sType$Default()
@@ -1982,8 +1976,7 @@ public class HybridMagicaVoxel {
                                 .pNext(VkWriteDescriptorSetAccelerationStructureKHR
                                         .calloc(stack)
                                         .sType$Default()
-                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
-                                        .address()))
+                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))))
                         .apply(wds -> wds
                                 .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)

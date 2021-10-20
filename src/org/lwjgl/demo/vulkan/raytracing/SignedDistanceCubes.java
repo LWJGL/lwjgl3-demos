@@ -395,25 +395,23 @@ public class SignedDistanceCubes {
                 // Check if the device supports all needed features
                 VkPhysicalDeviceScalarBlockLayoutFeaturesEXT scalarBlockLayoutFeatures = VkPhysicalDeviceScalarBlockLayoutFeaturesEXT
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(NULL);
+                        .sType$Default();
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(scalarBlockLayoutFeatures.address());
+                        .sType$Default();
                 VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(accelerationStructureFeatures.address());
+                        .sType$Default();
                 VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                         .malloc(stack)
+                        .sType$Default();
+                vkGetPhysicalDeviceFeatures2(dev, VkPhysicalDeviceFeatures2
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(rayTracingPipelineFeatures.address());
-                VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
-                        .malloc(stack)
-                        .sType$Default()
-                        .pNext(bufferDeviceAddressFeatures.address());
-                vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
+                        .pNext(bufferDeviceAddressFeatures)
+                        .pNext(rayTracingPipelineFeatures)
+                        .pNext(accelerationStructureFeatures)
+                        .pNext(scalarBlockLayoutFeatures));
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
@@ -431,17 +429,15 @@ public class SignedDistanceCubes {
                 // Retrieve physical device properties (limits, offsets, alignments, ...)
                 VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = VkPhysicalDeviceAccelerationStructurePropertiesKHR
                         .malloc(stack)
-                        .sType$Default()
-                        .pNext(NULL);
+                        .sType$Default();
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = VkPhysicalDeviceRayTracingPipelinePropertiesKHR
                         .malloc(stack)
+                        .sType$Default();
+                vkGetPhysicalDeviceProperties2(dev, VkPhysicalDeviceProperties2
+                        .calloc(stack)
                         .sType$Default()
-                        .pNext(accelerationStructureProperties.address());
-                VkPhysicalDeviceProperties2 props = VkPhysicalDeviceProperties2
-                        .malloc(stack)
-                        .sType$Default()
-                        .pNext(rayTracingProperties.address());
-                vkGetPhysicalDeviceProperties2(dev, props);
+                        .pNext(rayTracingProperties)
+                        .pNext(accelerationStructureProperties));
 
                 // Check queue families
                 QueueFamilies queuesFamilies = obtainQueueFamilies(dev);
@@ -470,34 +466,29 @@ public class SignedDistanceCubes {
             if (DEBUG) {
                 ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
             }
-            VkPhysicalDeviceScalarBlockLayoutFeaturesEXT scalarBlockLayoutFeatures = VkPhysicalDeviceScalarBlockLayoutFeaturesEXT
-                    .calloc(stack)
-                    .sType$Default()
-                    .scalarBlockLayout(true);
-            VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures = VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .bufferDeviceAddress(true)
-                    .pNext(scalarBlockLayoutFeatures.address());
-            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = VkPhysicalDeviceDescriptorIndexingFeaturesEXT
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(bufferDeviceAddressFeatures.address())
-                    .runtimeDescriptorArray(true);
-            VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(indexingFeatures.address())
-                    .accelerationStructure(true);
-            VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR
-                    .calloc(stack)
-                    .sType$Default()
-                    .pNext(accelerationStructureFeatures.address())
-                    .rayTracingPipeline(true);
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .calloc(stack)
                     .sType$Default()
-                    .pNext(rayTracingFeatures.address())
+                    .pNext(VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .rayTracingPipeline(true))
+                    .pNext(VkPhysicalDeviceAccelerationStructureFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .accelerationStructure(true))
+                    .pNext(VkPhysicalDeviceDescriptorIndexingFeaturesEXT
+                            .calloc(stack)
+                            .sType$Default()
+                            .runtimeDescriptorArray(true))
+                    .pNext(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .bufferDeviceAddress(true))
+                    .pNext(VkPhysicalDeviceScalarBlockLayoutFeaturesEXT
+                            .calloc(stack)
+                            .sType$Default()
+                            .scalarBlockLayout(true))
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .calloc(1, stack)
                             .sType$Default()
@@ -1481,8 +1472,7 @@ public class SignedDistanceCubes {
                                 .pNext(VkWriteDescriptorSetAccelerationStructureKHR
                                         .calloc(stack)
                                         .sType$Default()
-                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))
-                                        .address()))
+                                        .pAccelerationStructures(stack.longs(tlas.accelerationStructure))))
                         .apply(wds -> wds
                                 .sType$Default()
                                 .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
