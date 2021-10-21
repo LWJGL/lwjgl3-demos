@@ -345,7 +345,7 @@ public class ColoredRotatingQuadDemo {
                 swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
                 break;
             }
-            if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (pPresentModes.get(i) == VK_PRESENT_MODE_IMMEDIATE_KHR)) {
+            if (pPresentModes.get(i) == VK_PRESENT_MODE_IMMEDIATE_KHR) {
                 swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             }
         }
@@ -901,13 +901,7 @@ public class ColoredRotatingQuadDemo {
 
         // Depth and stencil state
         // Describes depth and stenctil test and compare ops
-        VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc()
-                // No depth test/write and no stencil used 
-                .sType$Default()
-                .depthCompareOp(VK_COMPARE_OP_ALWAYS);
-        depthStencilState.back()
-                .compareOp(VK_COMPARE_OP_ALWAYS);
-        depthStencilState.front(depthStencilState.back());
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc();
 
         // Multi sampling state
         // No multi sampling used in this example

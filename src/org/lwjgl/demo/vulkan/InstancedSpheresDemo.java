@@ -1054,11 +1054,6 @@ public class InstancedSpheresDemo {
                 .depthTestEnable(true)
                 .depthWriteEnable(true)
                 .depthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
-        depthStencilState.back()
-                .failOp(VK_STENCIL_OP_KEEP)
-                .passOp(VK_STENCIL_OP_KEEP)
-                .compareOp(VK_COMPARE_OP_ALWAYS);
-        depthStencilState.front(depthStencilState.back());
 
         // Multi sampling state
         // No multi sampling used in this example

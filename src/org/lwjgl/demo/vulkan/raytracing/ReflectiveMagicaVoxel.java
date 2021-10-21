@@ -633,7 +633,8 @@ public class ReflectiveMagicaVoxel {
             int imageCount = min(max(pSurfaceCapabilities.minImageCount() + 1, 3), pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
-            VkSwapchainCreateInfoKHR pCreateInfo = VkSwapchainCreateInfoKHR
+            LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
+            _CHECK_(vkCreateSwapchainKHR(device, VkSwapchainCreateInfoKHR
                 .calloc(stack)
                 .sType$Default()
                 .surface(surface)
@@ -648,9 +649,7 @@ public class ReflectiveMagicaVoxel {
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
                 .presentMode(determineBestPresentMode())
                 .clipped(true)
-                .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE);
-            LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
-            _CHECK_(vkCreateSwapchainKHR(device, pCreateInfo, null, pSwapchain),
+                .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE), null, pSwapchain),
                     "Failed to create swap chain");
             if (swapchain != null) {
                 swapchain.free();
@@ -1242,20 +1241,18 @@ public class ReflectiveMagicaVoxel {
                         .accelerationStructure(blas.accelerationStructure));
 
             // Create a single instance for our TLAS
-            VkAccelerationStructureInstanceKHR instance = VkAccelerationStructureInstanceKHR
-                    .calloc(stack)
-                    .accelerationStructureReference(blasDeviceAddress)
-                    .mask(~0) // <- we do not want to mask-away any geometry, so use 0b11111111
-                    .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
-                    .transform(VkTransformMatrixKHR
-                            .calloc(stack)
-                            .matrix(new Matrix4x3f().scale(POSITION_SCALE).getTransposed(stack.mallocFloat(12))));
-
             // This instance data also needs to reside in a GPU buffer, so copy it
             AllocationAndBuffer instanceData = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
-                    memByteBuffer(instance.address(), VkAccelerationStructureInstanceKHR.SIZEOF),
+                    memByteBuffer(VkAccelerationStructureInstanceKHR
+                            .calloc(stack)
+                            .accelerationStructureReference(blasDeviceAddress)
+                            .mask(~0) // <- we do not want to mask-away any geometry, so use 0b11111111
+                            .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
+                            .transform(VkTransformMatrixKHR
+                                    .calloc(stack)
+                                    .matrix(new Matrix4x3f().scale(POSITION_SCALE).getTransposed(stack.mallocFloat(12)))).address(), VkAccelerationStructureInstanceKHR.SIZEOF),
                     16, // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                     null);
 
@@ -1563,13 +1560,12 @@ public class ReflectiveMagicaVoxel {
                                         .descriptorCount(numSets)))
                         .maxSets(numSets), null, pDescriptorPool),
                     "Failed to create descriptor pool");
-            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VkDescriptorSetAllocateInfo
+            LongBuffer pDescriptorSets = stack.mallocLong(numSets);
+            _CHECK_(vkAllocateDescriptorSets(device, VkDescriptorSetAllocateInfo
                     .calloc(stack)
                     .sType$Default()
                     .descriptorPool(pDescriptorPool.get(0))
-                    .pSetLayouts(repeat(stack, rayTracingPipeline.descriptorSetLayout, numSets));
-            LongBuffer pDescriptorSets = stack.mallocLong(numSets);
-            _CHECK_(vkAllocateDescriptorSets(device, descriptorSetAllocateInfo, pDescriptorSets),
+                    .pSetLayouts(repeat(stack, rayTracingPipeline.descriptorSetLayout, numSets)), pDescriptorSets),
                     "Failed to allocate descriptor set");
             long[] sets = new long[pDescriptorSets.remaining()];
             pDescriptorSets.get(sets, 0, sets.length);

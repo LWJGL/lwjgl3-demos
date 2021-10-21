@@ -58,7 +58,7 @@ public class ClearScreenDemo {
     private static VkDevice device;
     private static VkQueue queue;
     private static Swapchain swapchain;
-    private static long commandPool, commandPoolTransient;
+    private static long commandPool;
     private static VkCommandBuffer[] rasterCommandBuffers;
     private static long[] imageAcquireSemaphores;
     private static long[] rasterCompleteSemaphores;
@@ -223,7 +223,7 @@ public class ClearScreenDemo {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
         GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-        long window = glfwCreateWindow(mode.width(), mode.height(), "Hello, hybrid rendered MagicaVoxel!", NULL, NULL);
+        long window = glfwCreateWindow(mode.width(), mode.height(), "", NULL, NULL);
         registerWindowCallbacks(window);
         int w, h;
         try (MemoryStack stack = stackPush()) {
@@ -463,7 +463,8 @@ public class ClearScreenDemo {
             int imageCount = min(max(pSurfaceCapabilities.minImageCount() + 1, 3), pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
-            VkSwapchainCreateInfoKHR pCreateInfo = VkSwapchainCreateInfoKHR
+            LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
+            _CHECK_(vkCreateSwapchainKHR(device, VkSwapchainCreateInfoKHR
                 .calloc(stack)
                 .sType$Default()
                 .surface(surface)
@@ -478,9 +479,7 @@ public class ClearScreenDemo {
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
                 .presentMode(determineBestPresentMode())
                 .clipped(true)
-                .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE);
-            LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
-            _CHECK_(vkCreateSwapchainKHR(device, pCreateInfo, null, pSwapchain),
+                .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE), null, pSwapchain),
                     "Failed to create swap chain");
             if (swapchain != null) {
                 swapchain.free();
@@ -736,7 +735,6 @@ public class ClearScreenDemo {
         queue = retrieveQueue();
         swapchain = createSwapchain();
         commandPool = createCommandPool(0);
-        commandPoolTransient = createCommandPool(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         renderPass = createRasterRenderPass();
         framebuffers = createFramebuffers();
         rasterCommandBuffers = createRasterCommandBuffers();
@@ -781,7 +779,6 @@ public class ClearScreenDemo {
         for (long framebuffer : framebuffers)
             vkDestroyFramebuffer(device, framebuffer, null);
         vkDestroyRenderPass(device, renderPass, null);
-        vkDestroyCommandPool(device, commandPoolTransient, null);
         vkDestroyCommandPool(device, commandPool, null);
         swapchain.free();
         vkDestroyDevice(device, null);

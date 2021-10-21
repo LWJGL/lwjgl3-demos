@@ -731,15 +731,7 @@ public class ColoredTriangleDemo {
 
         // Depth and stencil state
         // Describes depth and stenctil test and compare ops
-        VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc()
-                // No depth test/write and no stencil used 
-                .sType$Default()
-                .depthCompareOp(VK_COMPARE_OP_ALWAYS);
-        depthStencilState.back()
-                .failOp(VK_STENCIL_OP_KEEP)
-                .passOp(VK_STENCIL_OP_KEEP)
-                .compareOp(VK_COMPARE_OP_ALWAYS);
-        depthStencilState.front(depthStencilState.back());
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc();
 
         // Multi sampling state
         // No multi sampling used in this example
