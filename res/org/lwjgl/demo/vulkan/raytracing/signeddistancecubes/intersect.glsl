@@ -50,6 +50,8 @@ void main(void) {
   vec3 d = gl_WorldRayDirectionEXT;
   for (int i = 0; i < 32; i++) {
     float tn = f(o, a.min, a.max);
+    if (abs(tn) < 1E-2)
+      break;
     t += tn;
     o += d * tn;
   }

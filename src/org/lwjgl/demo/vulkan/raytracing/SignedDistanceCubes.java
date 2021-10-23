@@ -7,7 +7,6 @@ package org.lwjgl.demo.vulkan.raytracing;
 import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.IntStream.range;
 import static org.joml.Math.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -38,6 +37,7 @@ import org.joml.*;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.demo.util.*;
 import org.lwjgl.demo.util.MagicaVoxelLoader.Material;
+import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.system.*;
 import org.lwjgl.util.vma.*;
 import org.lwjgl.vulkan.*;
@@ -91,18 +91,40 @@ public class SignedDistanceCubes {
     private static AllocationAndBuffer sbt;
     private static DescriptorSets rayTracingDescriptorSets;
     private static final Matrix4f projMatrix = new Matrix4f();
-    private static final Matrix4x3f viewMatrix = new Matrix4x3f();
+    private static final Matrix4x3f viewMatrix = new Matrix4x3f().setLookAt(-40, 50, 140, 90, -10, 40, 0, 1, 0);
     private static final Matrix4f invProjMatrix = new Matrix4f();
     private static final Matrix4x3f invViewMatrix = new Matrix4x3f();
     private static final Vector3f tmpv3 = new Vector3f();
+    private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
+    private static boolean mouseDown;
+    private static int mouseX, mouseY;
+  
+    private static void onCursorPos(long window, double x, double y) {
+        if (mouseDown) {
+            float deltaX = (float) x - mouseX;
+            float deltaY = (float) y - mouseY;
+            viewMatrix.rotateLocalY(deltaX * 0.004f);
+            viewMatrix.rotateLocalX(deltaY * 0.004f);
+        }
+        mouseX = (int) x;
+        mouseY = (int) y;
+    }
 
     private static void onKey(long window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_ESCAPE)
             glfwSetWindowShouldClose(window, true);
+        if (key >= 0)
+            keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
+    }
+
+    private static void onMouseButton(long window, int button, int action, int mods) {
+        mouseDown = action == GLFW_PRESS;
     }
 
     private static void registerWindowCallbacks(long window) {
         glfwSetKeyCallback(window, SignedDistanceCubes::onKey);
+        glfwSetCursorPosCallback(window, SignedDistanceCubes::onCursorPos);
+        glfwSetMouseButtonCallback(window, SignedDistanceCubes::onMouseButton);
     }
 
     private static class WindowAndCallbacks {
@@ -235,11 +257,7 @@ public class SignedDistanceCubes {
             VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount, stack);
             _CHECK_(vkEnumerateInstanceExtensionProperties((ByteBuffer) null, pPropertyCount, pProperties),
                     "Could not enumerate instance extensions");
-            List<String> res = new ArrayList<>(propertyCount);
-            for (int i = 0; i < propertyCount; i++) {
-                res.add(pProperties.get(i).extensionNameString());
-            }
-            return res;
+            return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
         }
     }
 
@@ -287,7 +305,9 @@ public class SignedDistanceCubes {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        long window = glfwCreateWindow(2560, 1440, "Hello, ray traced signed distance functions!", NULL, NULL);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+        GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        long window = glfwCreateWindow(mode.width(), mode.height(), "Hello, reflective MagicaVoxel!", NULL, NULL);
         registerWindowCallbacks(window);
         int w, h;
         try (MemoryStack stack = stackPush()) {
@@ -512,7 +532,7 @@ public class SignedDistanceCubes {
             VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount, stack);
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, pProperties),
                     "Failed to enumerate the device extensions");
-            return range(0, propertyCount).mapToObj(i -> pProperties.get(i).extensionNameString()).collect(toList());
+            return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
         }
     }
 
@@ -571,6 +591,28 @@ public class SignedDistanceCubes {
         return ret;
     }
 
+    private static int determineBestPresentMode() {
+        try (MemoryStack stack = stackPush()) {
+            IntBuffer pPresentModeCount = stack.mallocInt(1);
+            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, null),
+                    "Failed to get presentation modes count");
+            int presentModeCount = pPresentModeCount.get(0);
+            IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
+            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
+                    "Failed to get presentation modes");
+            int presentMode = VK_PRESENT_MODE_FIFO_KHR; // <- FIFO is _always_ supported, by definition
+            for (int i = 0; i < presentModeCount; i++) {
+                int mode = pPresentModes.get(i);
+                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                    // we prefer mailbox over fifo
+                    presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                    break;
+                }
+            }
+            return presentMode;
+        }
+    }
+
     private static Swapchain createSwapchain() {
         try (MemoryStack stack = stackPush()) {
             VkSurfaceCapabilitiesKHR pSurfaceCapabilities = VkSurfaceCapabilitiesKHR
@@ -601,7 +643,7 @@ public class SignedDistanceCubes {
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .preTransform(pSurfaceCapabilities.currentTransform())
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-                .presentMode(VK_PRESENT_MODE_FIFO_KHR)
+                .presentMode(determineBestPresentMode())
                 .clipped(true)
                 .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE), null, pSwapchain),
                     "Failed to create swap chain");
@@ -1216,7 +1258,7 @@ public class SignedDistanceCubes {
                 .dstAccelerationStructure(pAccelerationStructure.get(0));
             VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-            // Insert barrier to let TLAS build wait for the instance data transfer from the staging buffer to the GPU
+            // insert barrier to let TLAS build wait for the instance data transfer from the staging buffer to the GPU
             vkCmdPipelineBarrier(cmdBuf,
                     VK_PIPELINE_STAGE_TRANSFER_BIT, // <- copying of the instance data from the staging buffer to the GPU buffer
                     VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, // <- accessing the buffer for acceleration structure build
@@ -1253,7 +1295,7 @@ public class SignedDistanceCubes {
                     null,
                     null);
 
-            // Finally submit command buffer and register callback when fence signals to 
+            // finally submit command buffer and register callback when fence signals to 
             // dispose of resources
             submitCommandBuffer(cmdBuf, true, () -> {
                 vkFreeCommandBuffers(device, commandPoolTransient, cmdBuf);
@@ -1583,11 +1625,37 @@ public class SignedDistanceCubes {
         return buffers;
     }
 
-    private static void updateRayTracingUniformBufferObject(int idx) {
-        projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 800.0f, true);
-        viewMatrix.setLookAt(10, 40, 150, 80, 0, 50, 0, 1, 0);
-        projMatrix.invert(invProjMatrix);
+    private static void handleKeyboardInput(float dt) {
+        float factor = 10.0f;
+        if (keydown[GLFW_KEY_LEFT_SHIFT])
+            factor = 40.0f;
+        if (keydown[GLFW_KEY_W])
+            viewMatrix.translateLocal(0, 0, factor * dt);
+        if (keydown[GLFW_KEY_S])
+            viewMatrix.translateLocal(0, 0, -factor * dt);
+        if (keydown[GLFW_KEY_A])
+            viewMatrix.translateLocal(factor * dt, 0, 0);
+        if (keydown[GLFW_KEY_D])
+            viewMatrix.translateLocal(-factor * dt, 0, 0);
+        if (keydown[GLFW_KEY_Q])
+            viewMatrix.rotateLocalZ(-factor * dt);
+        if (keydown[GLFW_KEY_E])
+            viewMatrix.rotateLocalZ(factor * dt);
+        if (keydown[GLFW_KEY_LEFT_CONTROL])
+            viewMatrix.translateLocal(0, factor * dt, 0);
+        if (keydown[GLFW_KEY_SPACE])
+            viewMatrix.translateLocal(0, -factor * dt, 0);
+    }
+
+    private static void update(float dt) {
+        handleKeyboardInput(dt);
+        viewMatrix.withLookAtUp(0, 1, 0);
         viewMatrix.invert(invViewMatrix);
+        projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 1000.0f, true);
+        projMatrix.invert(invProjMatrix);
+    }
+
+    private static void updateRayTracingUniformBufferObject(int idx) {
         invProjMatrix.transformProject(-1, -1, 0, 1, tmpv3).get(rayTracingUbos[idx].mapped);
         invProjMatrix.transformProject(+1, -1, 0, 1, tmpv3).get(4*Float.BYTES, rayTracingUbos[idx].mapped);
         invProjMatrix.transformProject(-1, +1, 0, 1, tmpv3).get(8*Float.BYTES, rayTracingUbos[idx].mapped);
@@ -1631,11 +1699,15 @@ public class SignedDistanceCubes {
     }
 
     private static void runOnRenderThread() {
+        long lastTime = System.nanoTime();
         try (MemoryStack stack = stackPush()) {
             IntBuffer pImageIndex = stack.mallocInt(1);
             int idx = 0;
             boolean needRecreate = false;
             while (!glfwWindowShouldClose(windowAndCallbacks.window)) {
+                long thisTime = System.nanoTime();
+                float dt = (thisTime - lastTime) / 1E9f;
+                lastTime = thisTime;
                 updateFramebufferSize();
                 if (!isWindowRenderable())
                     continue;
@@ -1648,6 +1720,7 @@ public class SignedDistanceCubes {
                 }
                 _CHECK_(vkWaitForFences(device, renderFences[idx], true, Long.MAX_VALUE), "Failed to wait for fence");
                 _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
+                update(dt);
                 updateRayTracingUniformBufferObject(idx);
                 if (!acquireSwapchainImage(pImageIndex, idx)) {
                     needRecreate = true;
