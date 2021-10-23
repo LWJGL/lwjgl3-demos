@@ -799,7 +799,7 @@ public class HybridMagicaVoxel {
             PointerBuffer pAllocation = stack.mallocPointer(1);
             AllocationAndImage[] allocations = new AllocationAndImage[swapchain.images.length];
             LongBuffer pImageView = stack.mallocLong(1);
-            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             for (int i = 0; i < swapchain.images.length; i++) {
                 _CHECK_(vmaCreateImage(vmaAllocator, VkImageCreateInfo
                         .calloc(stack)
@@ -864,7 +864,7 @@ public class HybridMagicaVoxel {
         }
     }
 
-    private static VkCommandBuffer createCommandBuffer(long pool) {
+    private static VkCommandBuffer createCommandBuffer(long pool, int beginFlags) {
         try (MemoryStack stack = stackPush()) {
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
             _CHECK_(vkAllocateCommandBuffers(device,
@@ -878,7 +878,8 @@ public class HybridMagicaVoxel {
             VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
             _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo
                         .calloc(stack)
-                        .sType$Default()),
+                        .sType$Default()
+                        .flags(beginFlags)),
                     "Failed to begin command buffer");
             return cmdBuffer;
         }
@@ -1129,7 +1130,7 @@ public class HybridMagicaVoxel {
                 vmaUnmapMemory(vmaAllocator, pAllocationStage.get(0));
 
                 // issue copy buffer command
-                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
+                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                 vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), pBuffer.get(0), VkBufferCopy
                         .calloc(1, stack)
                         .size(data.remaining()));
@@ -1494,7 +1495,7 @@ public class HybridMagicaVoxel {
             pInfos
                 .scratchData(deviceAddress(stack, scratchBuffer.buffer, deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment))
                 .dstAccelerationStructure(pAccelerationStructure.get(0));
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
             // Insert barrier to let BLAS build wait for the geometry data transfer from the staging buffer to the GPU
             vkCmdPipelineBarrier(cmdBuf,
@@ -1567,7 +1568,7 @@ public class HybridMagicaVoxel {
                     .type(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR), null, pAccelerationStructureCompacted);
 
             // issue copy command
-            VkCommandBuffer cmdBuf2 = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuf2 = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             vkCmdCopyAccelerationStructureKHR(
                     cmdBuf2,
                     VkCopyAccelerationStructureInfoKHR
@@ -1694,7 +1695,7 @@ public class HybridMagicaVoxel {
             pInfos
                 .scratchData(deviceAddress(stack, scratchBuffer.buffer, deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment))
                 .dstAccelerationStructure(pAccelerationStructure.get(0));
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
             // insert barrier to let TLAS build wait for the instance data transfer from the staging buffer to the GPU
             vkCmdPipelineBarrier(cmdBuf,
@@ -2082,7 +2083,7 @@ public class HybridMagicaVoxel {
         int count = swapchain.imageViews.length;
         VkCommandBuffer[] buffers = new VkCommandBuffer[count];
         for (int i = 0; i < count; i++) {
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool, 0);
             try (MemoryStack stack = stackPush()) {
                 // insert a barrier to transition the framebuffer image from undefined to general,
                 // and do it somewhere between the top of the pipe and the start of the ray tracing.
@@ -2171,7 +2172,7 @@ public class HybridMagicaVoxel {
             int count = swapchain.imageViews.length;
             VkCommandBuffer[] cmdBuffers = new VkCommandBuffer[count];
             for (int i = 0; i < swapchain.images.length; i++) {
-                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPool);
+                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPool, 0);
                 cmdBuffers[i] = cmdBuffer;
                 renderPassBeginInfo.framebuffer(framebuffers[i]);
                 vkCmdBeginRenderPass(cmdBuffer, renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

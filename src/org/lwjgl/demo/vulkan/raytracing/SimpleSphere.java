@@ -636,7 +636,7 @@ public class SimpleSphere {
         }
     }
 
-    private static VkCommandBuffer createCommandBuffer(long pool) {
+    private static VkCommandBuffer createCommandBuffer(long pool, int beginFlags) {
         try (MemoryStack stack = stackPush()) {
             PointerBuffer pCommandBuffer = stack.mallocPointer(1);
             _CHECK_(vkAllocateCommandBuffers(device,
@@ -650,7 +650,8 @@ public class SimpleSphere {
             VkCommandBuffer cmdBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
             _CHECK_(vkBeginCommandBuffer(cmdBuffer, VkCommandBufferBeginInfo
                         .calloc(stack)
-                        .sType$Default()),
+                        .sType$Default()
+                        .flags(beginFlags)),
                     "Failed to begin command buffer");
             return cmdBuffer;
         }
@@ -861,7 +862,7 @@ public class SimpleSphere {
                 vmaUnmapMemory(vmaAllocator, pAllocationStage.get(0));
 
                 // issue copy buffer command
-                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient);
+                VkCommandBuffer cmdBuffer = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                 vkCmdCopyBuffer(cmdBuffer, pBufferStage.get(0), pBuffer.get(0), VkBufferCopy
                         .calloc(1, stack)
                         .size(data.remaining()));
@@ -1024,7 +1025,7 @@ public class SimpleSphere {
             pInfos
                 .scratchData(deviceAddress(stack, scratchBuffer.buffer, deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment))
                 .dstAccelerationStructure(pAccelerationStructure.get(0));
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
             // Insert barrier to let BLAS build wait for the geometry data transfer from the staging buffer to the GPU
             vkCmdPipelineBarrier(cmdBuf,
@@ -1149,7 +1150,7 @@ public class SimpleSphere {
             pInfos
                 .scratchData(deviceAddress(stack, scratchBuffer.buffer, deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment))
                 .dstAccelerationStructure(pAccelerationStructure.get(0));
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPoolTransient, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
             // Insert barrier to let TLAS build wait for the instance data transfer from the staging buffer to the GPU
             vkCmdPipelineBarrier(cmdBuf,
@@ -1432,7 +1433,7 @@ public class SimpleSphere {
         int count = swapchain.imageViews.length;
         VkCommandBuffer[] buffers = new VkCommandBuffer[count];
         for (int i = 0; i < count; i++) {
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool, 0);
             try (MemoryStack stack = stackPush()) {
                 // insert a barrier to transition the framebuffer image from undefined to general,
                 // and do it somewhere between the top of the pipe and the start of the ray tracing.
