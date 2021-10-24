@@ -43,16 +43,16 @@ import org.lwjgl.util.vma.*;
 import org.lwjgl.vulkan.*;
 
 /**
- * Renders rounded cubes using signed distance functions together with ray tracing / spatial acceleration structure.
+ * Renders brick models using signed distance functions together with ray tracing / spatial acceleration structure.
  * <p>
- * The rounded cubes are procedural AABB geometries in a Vulkan ray tracing acceleration structure and the SDF of 
+ * The bricks are procedural AABB geometries in a Vulkan ray tracing acceleration structure and the SDF of 
  * a possibly repeated cube is evaluated in an intersection shader.
  * <p>
- * One AABB geometry can represent multiple rounded cubes.
+ * One AABB geometry can represent multiple bricks.
  *
  * @author Kai Burjack
  */
-public class SignedDistanceCubes {
+public class SdfBricks {
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
@@ -122,9 +122,9 @@ public class SignedDistanceCubes {
     }
 
     private static void registerWindowCallbacks(long window) {
-        glfwSetKeyCallback(window, SignedDistanceCubes::onKey);
-        glfwSetCursorPosCallback(window, SignedDistanceCubes::onCursorPos);
-        glfwSetMouseButtonCallback(window, SignedDistanceCubes::onMouseButton);
+        glfwSetKeyCallback(window, SdfBricks::onKey);
+        glfwSetCursorPosCallback(window, SdfBricks::onCursorPos);
+        glfwSetMouseButtonCallback(window, SdfBricks::onMouseButton);
     }
 
     private static class WindowAndCallbacks {
@@ -307,7 +307,7 @@ public class SignedDistanceCubes {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
         GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-        long window = glfwCreateWindow(mode.width(), mode.height(), "Hello, reflective MagicaVoxel!", NULL, NULL);
+        long window = glfwCreateWindow(mode.width(), mode.height(), "Hello, SDF bricks!", NULL, NULL);
         registerWindowCallbacks(window);
         int w, h;
         try (MemoryStack stack = stackPush()) {
@@ -1023,7 +1023,7 @@ public class SignedDistanceCubes {
         new GreedyVoxels(voxelField.ny, voxelField.py, voxelField.w, voxelField.d, new GreedyVoxels.Callback() {
             public void voxel(int x0, int y0, int z0, int w, int h, int d, int v) {
                 aabbs.putFloat(x0).putFloat(y0).putFloat(z0);
-                aabbs.putFloat(x0+w).putFloat(y0+h).putFloat(z0+d);
+                aabbs.putFloat(x0+w).putFloat(y0+h+0.1f).putFloat(z0+d);
                 num[0]++;
             }
         }).merge(voxelField.field);
@@ -1353,7 +1353,7 @@ public class SignedDistanceCubes {
                     .calloc(4, stack);
 
             // load shaders
-            String pkg = SignedDistanceCubes.class.getName().toLowerCase().replace('.', '/') + "/";
+            String pkg = SdfBricks.class.getName().toLowerCase().replace('.', '/') + "/";
             loadShader(pStages
                     .get(0)
                     .sType$Default(), 
@@ -1763,7 +1763,7 @@ public class SignedDistanceCubes {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         init();
-        Thread updateAndRenderThread = new Thread(SignedDistanceCubes::runOnRenderThread);
+        Thread updateAndRenderThread = new Thread(SdfBricks::runOnRenderThread);
         updateAndRenderThread.start();
         runWndProcLoop();
         updateAndRenderThread.join();

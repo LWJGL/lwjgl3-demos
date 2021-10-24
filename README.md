@@ -7,6 +7,10 @@ Demo suite for LWJGL 3
 
 ![vulkan/raytracing/SimpleSphere.java](md/simplesphere.jpg)
 
+[vulkan/raytracing/SdfBricks.java](./src/org/lwjgl/demo/vulkan/raytracing/SdfBricks.java)
+
+![vulkan/raytracing/SdfBricks.java](md/sdf-bricks.jpg)
+
 [opengl/raytracing/VoxelLightmapping2.java](./src/org/lwjgl/demo/opengl/raytracing/VoxelLightmapping2.java)
 
 ![opengl/raytracing/VoxelLightmapping2.java](md/voxellightmapping2.jpg)
