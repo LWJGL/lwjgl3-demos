@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import org.joml.Random;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
@@ -25,6 +26,7 @@ import org.lwjgl.system.MemoryUtil;
 /**
  * Computes 3 mip levels of a texture using only a single compute shader dispatch
  * and GL_KHR_shader_subgroup.
+ * Then uses shared memory for mips 4 and 5.
  * 
  * @author Kai Burjack
  */
@@ -97,8 +99,9 @@ public class DownsamplingDemo {
         computeProgram = program;
     }
 
+    private static final Random rnd = new Random(1L);
     private static byte v(int i) {
-        return i % 8 == 0 ? (byte) 255 : (byte) 0;
+        return (byte) (rnd.nextFloat() * 255);
     }
 
     private static void createTextures() {
@@ -108,12 +111,14 @@ public class DownsamplingDemo {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexStorage2D(GL_TEXTURE_2D, 4, GL_RGBA16F, width, height);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 6);
+        glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGBA16F, width, height);
         ByteBuffer pixels = MemoryUtil.memAlloc(width * height * 4);
         // fill the first level of the texture with some pattern
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
-                pixels.put(v(x)).put(v(y)).put((byte) 127).put((byte) 255);
+                pixels.put(v(x)).put(v(y)).put(v(x)).put((byte) 255);
         pixels.flip();
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         MemoryUtil.memFree(pixels);
@@ -125,10 +130,12 @@ public class DownsamplingDemo {
 
         // read mip level 0
         glBindTexture(GL_TEXTURE_2D, texture);
-        // write mip levels 1-3
+        // write mip levels 1-5
         glBindImageTexture(0, texture, 1, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
         glBindImageTexture(1, texture, 2, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
         glBindImageTexture(2, texture, 3, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        glBindImageTexture(3, texture, 4, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        glBindImageTexture(4, texture, 5, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
         int texelsPerWorkItem = 2;
         int numGroupsX = (int) ceil((double) width / texelsPerWorkItem / 16);
@@ -142,12 +149,14 @@ public class DownsamplingDemo {
         glBindImageTexture(0, 0, 1, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
         glBindImageTexture(1, 0, 2, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
         glBindImageTexture(2, 0, 3, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        glBindImageTexture(3, 0, 3, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        glBindImageTexture(4, 0, 3, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
         glUseProgram(0);
     }
 
     private static void present() {
         glClear(GL_COLOR_BUFFER_BIT);
-        glViewport(0, 0, width/(1<<level), height/(1<<level));
+        glViewport(0, 0, width, height);
         glUseProgram(quadProgram);
         glUniform1i(levelUniform, level);
         glBindVertexArray(nullVao);
@@ -179,7 +188,7 @@ public class DownsamplingDemo {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
                 glfwSetWindowShouldClose(window, true);
             else if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
-                level = min(3, level + 1);
+                level = min(5, level + 1);
             else if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
                 level = max(0, level - 1);
         });

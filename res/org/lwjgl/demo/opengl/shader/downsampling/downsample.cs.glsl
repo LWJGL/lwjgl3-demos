@@ -6,7 +6,7 @@
 #extension GL_KHR_shader_subgroup_shuffle : require
 
 layout(location=0) uniform sampler2D baseImage;
-layout(binding=0, rgba16f) uniform writeonly restrict image2D mips[3];
+layout(binding=0, rgba16f) uniform writeonly restrict image2D mips[5];
 
 /*
  * The assumption here is that each subgroup item maps to its corresponding local workgroup item
@@ -29,6 +29,8 @@ int unpack(int x) {
   x = (x ^ (x >> 2)) & 0x0f;
   return x;
 }
+
+shared vec4 sm[4][4];
 
 void main(void) {
   ivec2 ts = textureSize(baseImage, 0);
@@ -78,4 +80,31 @@ void main(void) {
   t = (t + h + v + d) * vec4(0.25);
   if ((gl_SubgroupInvocationID & 15) == 0)
     imageStore(mips[2], i/ivec2(4), t);
+
+  // compute mip 4 using shared memory
+  /*
+   * For mip 4 we essentially have 8x8 work items.
+   */
+  ivec2 smc = l / ivec2(4);
+  ivec2 smi = (smc + ivec2(1)) & ivec2(1);
+  if ((l.x & 3) == 0 && (l.y & 3) == 0)
+    sm[smc.x][smc.y] = t;
+  barrier();
+  if ((l.x & 7) == 0 && (l.y & 7) == 0) {
+    t = (sm[smc.x][smc.y] + sm[smi.x][smc.y] + sm[smc.x][smi.y] + sm[smi.x][smi.y]) * 0.25;
+    imageStore(mips[3], i/ivec2(8), t);
+  }
+
+  // compute mip 5 also using shared memory
+  /*
+   * For mip 5 we have 16x16 work items.
+   */
+  smc = l / ivec2(8);
+  if ((l.x & 7) == 0 && (l.y & 7) == 0)
+    sm[smc.x][smc.y] = t;
+  barrier();
+  if (l.x == 0 && l.y == 0) {
+    t = (sm[0][0] + sm[1][0] + sm[0][1] + sm[1][1]) * 0.25;
+    imageStore(mips[4], i/ivec2(16), t);
+  }
 }

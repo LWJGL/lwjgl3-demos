@@ -6,6 +6,7 @@ package org.lwjgl.demo.vulkan.raytracing;
 
 import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.joml.Math.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
@@ -277,6 +278,20 @@ public class HybridMagicaVoxel {
         }
     }
 
+    private static final List<String> enumerateSupportedInstanceLayers() {
+        try (MemoryStack stack = stackPush()) {
+            IntBuffer pPropertyCount = stack.mallocInt(1);
+            vkEnumerateInstanceLayerProperties(pPropertyCount, null);
+            int count = pPropertyCount.get(0);
+            if (count > 0) {
+                VkLayerProperties.Buffer pProperties = VkLayerProperties.malloc(count, stack);
+                vkEnumerateInstanceLayerProperties(pPropertyCount, pProperties);
+                return pProperties.stream().map(VkLayerProperties::layerNameString).collect(toList());
+            }
+        }
+        return emptyList();
+    }
+
     private static VkInstance createInstance(PointerBuffer requiredExtensions) {
         List<String> supportedInstanceExtensions = enumerateSupportedInstanceExtensions();
         try (MemoryStack stack = stackPush()) {
@@ -287,9 +302,14 @@ public class HybridMagicaVoxel {
                 }
                 ppEnabledExtensionNames = pointers(stack, requiredExtensions, stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
             }
-            PointerBuffer enabledLayers = null;
+            PointerBuffer ppEnabledLayerNames = null;
             if (DEBUG) {
-                enabledLayers = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
+                List<String> supportedLayers = enumerateSupportedInstanceLayers();
+                if (!supportedLayers.contains("VK_LAYER_KHRONOS_validation")) {
+                    System.err.println("DEBUG requested but layer VK_LAYER_KHRONOS_validation is unavailable. Install the Vulkan SDK for your platform. Vulkan debug layer will not be used.");
+                } else {
+                    ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
+                }
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo
                     .calloc(stack)
@@ -298,7 +318,7 @@ public class HybridMagicaVoxel {
                             .calloc(stack)
                             .sType$Default()
                             .apiVersion(VK_API_VERSION_1_2))
-                    .ppEnabledLayerNames(enabledLayers)
+                    .ppEnabledLayerNames(ppEnabledLayerNames)
                     .ppEnabledExtensionNames(ppEnabledExtensionNames);
             PointerBuffer pInstance = stack.mallocPointer(1);
             _CHECK_(vkCreateInstance(pCreateInfo, null, pInstance), "Failed to create VkInstance");

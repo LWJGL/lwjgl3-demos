@@ -6,6 +6,7 @@ package org.lwjgl.demo.vulkan.raytracing;
 
 import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.joml.Math.*;
 import static org.lwjgl.demo.vulkan.VKUtil.*;
@@ -271,9 +272,14 @@ public class SdfBricks {
                 }
                 ppEnabledExtensionNames = pointers(stack, requiredExtensions, stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
             }
-            PointerBuffer enabledLayers = null;
+            PointerBuffer ppEnabledLayerNames = null;
             if (DEBUG) {
-                enabledLayers = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
+                List<String> supportedLayers = enumerateSupportedInstanceLayers();
+                if (!supportedLayers.contains("VK_LAYER_KHRONOS_validation")) {
+                    System.err.println("DEBUG requested but layer VK_LAYER_KHRONOS_validation is unavailable. Install the Vulkan SDK for your platform. Vulkan debug layer will not be used.");
+                } else {
+                    ppEnabledLayerNames = stack.pointers(stack.UTF8("VK_LAYER_KHRONOS_validation"));
+                }
             }
             VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo
                     .calloc(stack)
@@ -282,7 +288,7 @@ public class SdfBricks {
                             .calloc(stack)
                             .sType$Default()
                             .apiVersion(VK_API_VERSION_1_1))
-                    .ppEnabledLayerNames(enabledLayers)
+                    .ppEnabledLayerNames(ppEnabledLayerNames)
                     .ppEnabledExtensionNames(ppEnabledExtensionNames);
             PointerBuffer pInstance = stack.mallocPointer(1);
             _CHECK_(vkCreateInstance(pCreateInfo, null, pInstance), "Failed to create VkInstance");
@@ -469,6 +475,20 @@ public class SdfBricks {
             }
             throw new AssertionError("No suitable physical device found");
         }
+    }
+
+    private static final List<String> enumerateSupportedInstanceLayers() {
+        try (MemoryStack stack = stackPush()) {
+            IntBuffer pPropertyCount = stack.mallocInt(1);
+            vkEnumerateInstanceLayerProperties(pPropertyCount, null);
+            int count = pPropertyCount.get(0);
+            if (count > 0) {
+                VkLayerProperties.Buffer pProperties = VkLayerProperties.malloc(count, stack);
+                vkEnumerateInstanceLayerProperties(pPropertyCount, pProperties);
+                return pProperties.stream().map(VkLayerProperties::layerNameString).collect(toList());
+            }
+        }
+        return emptyList();
     }
 
     private static VkDevice createDevice(List<String> requiredExtensions) {
@@ -989,7 +1009,7 @@ public class SdfBricks {
         Vector3i min = new Vector3i(Integer.MAX_VALUE);
         Vector3i max = new Vector3i(Integer.MIN_VALUE);
         byte[] field = new byte[(256 + 2) * (256 + 2) * (256 + 2)];
-        try (InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
+        try (InputStream is = getSystemResourceAsStream("voxelmodel/vox/monument/monu2.vox");
              BufferedInputStream bis = new BufferedInputStream(is)) {
             new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
                 public void voxel(int x, int y, int z, byte c) {
@@ -1022,8 +1042,8 @@ public class SdfBricks {
         int[] num = {0};
         new GreedyVoxels(voxelField.ny, voxelField.py, voxelField.w, voxelField.d, new GreedyVoxels.Callback() {
             public void voxel(int x0, int y0, int z0, int w, int h, int d, int v) {
-                aabbs.putFloat(x0).putFloat(y0).putFloat(z0);
-                aabbs.putFloat(x0+w).putFloat(y0+h+0.1f).putFloat(z0+d);
+                aabbs.putFloat(x0*8).putFloat(y0*9.6f).putFloat(z0*8);
+                aabbs.putFloat((x0+w)*8).putFloat((y0+h)*9.6f+1.8f).putFloat((z0+d)*8);
                 num[0]++;
             }
         }).merge(voxelField.field);
