@@ -32,28 +32,25 @@ int unpack(int x) {
 
 shared vec4 sm[4][4];
 
-void main(void) {
+void mip1(ivec2 i, inout vec4 t) {
+  // compute mip 1 using linear filtering
+  /*
+   * We just use a sampler with linear filter and
+   * sample exactly between four texels.
+   */
   ivec2 ts = textureSize(baseImage, 0);
-
   // the actual size of our work items is only half the baseImage size, because for the first mip level
   // each work item already uses linear filtering with a sampler to gather a 2x2 texel average
   ivec2 s  = ts / ivec2(2);
-
-  // Compute the (x, y) coordinates of the current work item within its workgroup using z-order curve
-  ivec2 l = ivec2(unpack(int(gl_LocalInvocationID.x)),
-                  unpack(int(gl_LocalInvocationID.x >> 1u)));
-
-  // Compute the global (x, y) coordinate of this work item
-  ivec2 i = ivec2(gl_WorkGroupID.xy) * ivec2(16) + l;
-
-  // compute mip 1 using linear filtering
   if (i.x >= s.x || i.y >= s.y)
     return;
   // Compute a texture coordinate right at the corner between four texels
   vec2 tc = (vec2(i * 2) + vec2(1.0)) / vec2(ts);
-  vec4 t = textureLod(baseImage, tc, 0.0);
+  t = textureLod(baseImage, tc, 0.0);
   imageStore(mips[0], i, t);
+}
 
+void mip2(ivec2 i, inout vec4 t) {
   // compute mip 2 using subgroup quad sharing
   /*
    * The trick here is to assume a 1:1 correspondence between subgroup invocation ids
@@ -68,19 +65,23 @@ void main(void) {
   t = (t + h + v + d) * vec4(0.25);
   if ((gl_SubgroupInvocationID & 3) == 0)
     imageStore(mips[1], i/ivec2(2), t);
+}
 
+void mip3(ivec2 i, inout vec4 t) {
   // compute mip 3 using subgroup xor shuffles
   /*
    * The trick here is to exchange information between subgroup items with a stride
    * of 4 items. In order to do this, we have subgroupShuffleXor().
    */
-  h = subgroupShuffleXor(t, 4);
-  v = subgroupShuffleXor(t, 8);
-  d = subgroupShuffleXor(t, 12);
+  vec4 h = subgroupShuffleXor(t, 4);
+  vec4 v = subgroupShuffleXor(t, 8);
+  vec4 d = subgroupShuffleXor(t, 12);
   t = (t + h + v + d) * vec4(0.25);
   if ((gl_SubgroupInvocationID & 15) == 0)
     imageStore(mips[2], i/ivec2(4), t);
+}
 
+void mip4(ivec2 l, ivec2 i, inout vec4 t) {
   // compute mip 4 using shared memory
   /*
    * For mip 4 we essentially have 8x8 work items.
@@ -94,12 +95,14 @@ void main(void) {
     t = (sm[smc.x][smc.y] + sm[smi.x][smc.y] + sm[smc.x][smi.y] + sm[smi.x][smi.y]) * 0.25;
     imageStore(mips[3], i/ivec2(8), t);
   }
+}
 
+void mip5(ivec2 l, ivec2 i, vec4 t) {
   // compute mip 5 also using shared memory
   /*
    * For mip 5 we have 16x16 work items.
    */
-  smc = l / ivec2(8);
+  ivec2 smc = l / ivec2(8);
   if ((l.x & 7) == 0 && (l.y & 7) == 0)
     sm[smc.x][smc.y] = t;
   barrier();
@@ -107,4 +110,20 @@ void main(void) {
     t = (sm[0][0] + sm[1][0] + sm[0][1] + sm[1][1]) * 0.25;
     imageStore(mips[4], i/ivec2(16), t);
   }
+}
+
+void main(void) {
+  // Compute the (x, y) coordinates of the current work item within its workgroup using z-order curve
+  ivec2 l = ivec2(unpack(int(gl_LocalInvocationID.x)),
+                  unpack(int(gl_LocalInvocationID.x >> 1u)));
+
+  // Compute the global (x, y) coordinate of this work item
+  ivec2 i = ivec2(gl_WorkGroupID.xy) * ivec2(16) + l;
+
+  vec4 t = vec4(0.0);
+  mip1(i, t);
+  mip2(i, t);
+  mip3(i, t);
+  mip4(l, i, t);
+  mip5(l, i, t);
 }

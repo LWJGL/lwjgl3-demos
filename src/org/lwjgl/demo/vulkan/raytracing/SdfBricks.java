@@ -1009,7 +1009,7 @@ public class SdfBricks {
         Vector3i min = new Vector3i(Integer.MAX_VALUE);
         Vector3i max = new Vector3i(Integer.MIN_VALUE);
         byte[] field = new byte[(256 + 2) * (256 + 2) * (256 + 2)];
-        try (InputStream is = getSystemResourceAsStream("voxelmodel/vox/monument/monu2.vox");
+        try (InputStream is = getSystemResourceAsStream("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox");
              BufferedInputStream bis = new BufferedInputStream(is)) {
             new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
                 public void voxel(int x, int y, int z, byte c) {
@@ -1042,8 +1042,8 @@ public class SdfBricks {
         int[] num = {0};
         new GreedyVoxels(voxelField.ny, voxelField.py, voxelField.w, voxelField.d, new GreedyVoxels.Callback() {
             public void voxel(int x0, int y0, int z0, int w, int h, int d, int v) {
-                aabbs.putFloat(x0*8).putFloat(y0*9.6f).putFloat(z0*8);
-                aabbs.putFloat((x0+w)*8).putFloat((y0+h)*9.6f+1.8f).putFloat((z0+d)*8);
+                aabbs.putFloat(x0).putFloat(y0).putFloat(z0);
+                aabbs.putFloat(x0+w).putFloat(y0+h+0.1f).putFloat(z0+d);
                 num[0]++;
             }
         }).merge(voxelField.field);
