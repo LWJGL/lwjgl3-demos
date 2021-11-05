@@ -4,7 +4,7 @@
  */
 package org.lwjgl.demo.cuda;
 
-import static org.lwjgl.cuda.CU40.*;
+import static org.lwjgl.cuda.CU.*;
 import static org.lwjgl.cuda.CUGL.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL.*;

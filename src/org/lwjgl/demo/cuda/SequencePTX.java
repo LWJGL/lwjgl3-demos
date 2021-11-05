@@ -5,7 +5,7 @@
 package org.lwjgl.demo.cuda;
 
 import static org.lwjgl.system.MemoryUtil.*;
-import static org.lwjgl.cuda.CU40.*;
+import static org.lwjgl.cuda.CU.*;
 import java.nio.*;
 import org.lwjgl.*;
 import org.lwjgl.system.*;
