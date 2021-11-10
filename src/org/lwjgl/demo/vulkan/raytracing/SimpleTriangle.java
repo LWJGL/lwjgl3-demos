@@ -445,7 +445,7 @@ public class SimpleTriangle {
         }
     }
 
-    private static final List<String> enumerateSupportedInstanceLayers() {
+    private static List<String> enumerateSupportedInstanceLayers() {
         try (MemoryStack stack = stackPush()) {
             IntBuffer pPropertyCount = stack.mallocInt(1);
             vkEnumerateInstanceLayerProperties(pPropertyCount, null);
@@ -1465,7 +1465,7 @@ public class SimpleTriangle {
         int count = swapchain.imageViews.length;
         VkCommandBuffer[] buffers = new VkCommandBuffer[count];
         for (int i = 0; i < count; i++) {
-            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+            VkCommandBuffer cmdBuf = createCommandBuffer(commandPool, 0);
             try (MemoryStack stack = stackPush()) {
                 // insert a barrier to transition the framebuffer image from undefined to general,
                 // and do it somewhere between the top of the pipe and the start of the ray tracing.
@@ -1534,7 +1534,7 @@ public class SimpleTriangle {
     }
 
     private static void updateRayTracingUniformBufferObject(int idx) {
-        projMatrix.scaling(1, -1, 1).perspective((float) toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 100.0f, true);
+        projMatrix.scaling(1, -1, 1).perspective(toRadians(45.0f), (float) windowAndCallbacks.width / windowAndCallbacks.height, 0.1f, 100.0f, true);
         viewMatrix.setLookAt(0, 0, 10, 0, 0, 0, 0, 1, 0);
         projMatrix.invert(invProjMatrix);
         viewMatrix.invert(invViewMatrix);
