@@ -268,14 +268,14 @@ public class VoxelGameGL {
 
         private int neighborsX(int x, int y, int z) {
             /* UV = YZ */
-            int n0 = at(x, y, z - 1) != 0 ? 1 : 0;
             int n1 = at(x, y - 1, z - 1) != 0 ? 2 : 0;
             int n2 = at(x, y - 1, z) != 0 ? 4 : 0;
             int n3 = at(x, y - 1, z + 1) != 0 ? 8 : 0;
+            int n0 = at(x, y, z - 1) != 0 ? 1 : 0;
             int n4 = at(x, y, z + 1) != 0 ? 16 : 0;
-            int n5 = at(x, y + 1, z + 1) != 0 ? 32 : 0;
-            int n6 = at(x, y + 1, z) != 0 ? 64 : 0;
             int n7 = at(x, y + 1, z - 1) != 0 ? 128 : 0;
+            int n6 = at(x, y + 1, z) != 0 ? 64 : 0;
+            int n5 = at(x, y + 1, z + 1) != 0 ? 32 : 0;
             return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
         }
 
@@ -291,14 +291,14 @@ public class VoxelGameGL {
 
         private int neighborsY(int x, int y, int z) {
             /* UV = ZX */
-            int n0 = at(x - 1, y, z) != 0 ? 1 : 0;
             int n1 = at(x - 1, y, z - 1) != 0 ? 2 : 0;
             int n2 = at(x, y, z - 1) != 0 ? 4 : 0;
             int n3 = at(x + 1, y, z - 1) != 0 ? 8 : 0;
-            int n4 = at(x + 1, y, z) != 0 ? 16 : 0;
-            int n5 = at(x + 1, y, z + 1) != 0 ? 32 : 0;
+            int n0 = at(x - 1, y, z) != 0 ? 1 : 0;
             int n6 = at(x, y, z + 1) != 0 ? 64 : 0;
+            int n4 = at(x + 1, y, z) != 0 ? 16 : 0;
             int n7 = at(x - 1, y, z + 1) != 0 ? 128 : 0;
+            int n5 = at(x + 1, y, z + 1) != 0 ? 32 : 0;
             return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
         }
 
@@ -314,14 +314,14 @@ public class VoxelGameGL {
 
         private int neighborsZ(int x, int y, int z) {
             /* UV = XY */
-            int n0 = at(x, y - 1, z) != 0 ? 1 : 0;
             int n1 = at(x - 1, y - 1, z) != 0 ? 2 : 0;
+            int n0 = at(x, y - 1, z) != 0 ? 1 : 0;
+            int n7 = at(x + 1, y - 1, z) != 0 ? 128 : 0;
             int n2 = at(x - 1, y, z) != 0 ? 4 : 0;
+            int n6 = at(x + 1, y, z) != 0 ? 64 : 0;
             int n3 = at(x - 1, y + 1, z) != 0 ? 8 : 0;
             int n4 = at(x, y + 1, z) != 0 ? 16 : 0;
             int n5 = at(x + 1, y + 1, z) != 0 ? 32 : 0;
-            int n6 = at(x + 1, y, z) != 0 ? 64 : 0;
-            int n7 = at(x + 1, y - 1, z) != 0 ? 128 : 0;
             return NEIGHBOR_CONFIGS[n0 | n1 | n2 | n3 | n4 | n5 | n6 | n7];
         }
 
@@ -351,7 +351,7 @@ public class VoxelGameGL {
             if (mn == 0)
                 return 1;
             int w = determineWidthX(mn, n, i);
-            int h = determineHeight(mn, n, j, w, dy, dz);
+            int h = determineHeightX(mn, n, j, w);
             faces.consume(i, j, i + w, j + h, x, mn > 0 ? 1 : 0, mn);
             count++;
             eraseMask(n, w, h, dy);
@@ -363,7 +363,7 @@ public class VoxelGameGL {
             if (mn == 0)
                 return 1;
             int w = determineWidthY(mn, n, i);
-            int h = determineHeight(mn, n, j, w, dz, dx);
+            int h = determineHeightY(mn, n, j, w);
             faces.consume(i, j, i + w, j + h, y, 2 + (mn > 0 ? 1 : 0), mn);
             count++;
             eraseMask(n, w, h, dz);
@@ -375,7 +375,7 @@ public class VoxelGameGL {
             if (mn == 0)
                 return 1;
             int w = determineWidthZ(mn, n, i);
-            int h = determineHeight(mn, n, j, w, dx, py);
+            int h = determineHeightZ(mn, n, j, w);
             faces.consume(i, j, i + w, j + h, z, 4 + (mn > 0 ? 1 : 0), mn);
             count++;
             eraseMask(n, w, h, dx);
@@ -383,9 +383,9 @@ public class VoxelGameGL {
         }
 
         private void eraseMask(int n, int w, int h, int d) {
-            for (int l = 0; l < h; l++)
+            for (int l = 0, ls = 0; l < h; l++, ls += d)
                 for (int k = 0; k < w; k++)
-                    m[n + k + l * d] = 0;
+                    m[n + k + ls] = 0;
         }
 
         private int determineWidthX(int c, int n, int i) {
@@ -397,23 +397,41 @@ public class VoxelGameGL {
 
         private int determineWidthY(int c, int n, int i) {
             int w = 1;
-            for (; w < MAX_MERGE_LENGTH && i + w < dz && c == m[n + w]; w++)
+            for (; i + w < dz && c == m[n + w]; w++)
                 ;
             return w;
         }
 
         private int determineWidthZ(int c, int n, int i) {
             int w = 1;
-            for (; w < MAX_MERGE_LENGTH && i + w < dx && c == m[n + w]; w++)
+            for (; i + w < dx && c == m[n + w]; w++)
                 ;
             return w;
         }
 
-        private int determineHeight(int c, int n, int j, int w, int du, int maxV) {
+        private int determineHeightX(int c, int n, int j, int w) {
             int h = 1;
-            for (; h < MAX_MERGE_LENGTH && j + h < maxV; h++)
+            for (int hs = dy; j + h < dz; h++, hs += dy)
                 for (int k = 0; k < w; k++)
-                    if (c != m[n + k + h * du])
+                    if (c != m[n + k + hs])
+                        return h;
+            return h;
+        }
+
+        private int determineHeightY(int c, int n, int j, int w) {
+            int h = 1;
+            for (int hs = dz; j + h < dx; h++, hs += dz)
+                for (int k = 0; k < w; k++)
+                    if (c != m[n + k + hs])
+                        return h;
+            return h;
+        }
+
+        private int determineHeightZ(int c, int n, int j, int w) {
+            int h = 1;
+            for (int hs = dx; h < MAX_MERGE_LENGTH && j + h < py; h++, hs += dx)
+                for (int k = 0; k < w; k++)
+                    if (c != m[n + k + hs])
                         return h;
             return h;
         }
