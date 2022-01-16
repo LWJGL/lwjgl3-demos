@@ -1,7 +1,3 @@
-/*
- * Copyright LWJGL. All rights reserved.
- * License terms: https://www.lwjgl.org/license
- */
 #version 460
 #extension GL_EXT_ray_tracing : enable
 
@@ -22,6 +18,7 @@ void main(void) {
   uint  rayFlags  = gl_RayFlagsOpaqueEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin      = 0.1;
   float tMax      = 100.0;
+  payload = true; // <- set payload to true as if we had hit the triangle (so, no need for a closest hit shader)
   traceRayEXT(
     acc,           // acceleration structure
     rayFlags,      // rayFlags

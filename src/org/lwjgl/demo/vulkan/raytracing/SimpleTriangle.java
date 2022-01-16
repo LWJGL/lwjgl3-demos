@@ -1276,7 +1276,7 @@ public class SimpleTriangle {
                         .pSetLayouts(pSetLayout), null, pPipelineLayout),
                     "Failed to create pipeline layout");
             VkPipelineShaderStageCreateInfo.Buffer pStages = VkPipelineShaderStageCreateInfo
-                    .calloc(3, stack);
+                    .calloc(2, stack);
 
             // load shaders
             String pkg = SimpleTriangle.class.getName().toLowerCase().replace('.', '/') + "/";
@@ -1288,13 +1288,9 @@ public class SimpleTriangle {
                     .get(1)
                     .sType$Default(),
                     null, stack, device, pkg + "raymiss.glsl", VK_SHADER_STAGE_MISS_BIT_KHR);
-            loadShader(pStages
-                    .get(2)
-                    .sType$Default(),
-                    null, stack, device, pkg + "closesthit.glsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
 
             VkRayTracingShaderGroupCreateInfoKHR.Buffer groups = VkRayTracingShaderGroupCreateInfoKHR
-                    .calloc(3, stack);
+                    .calloc(2, stack);
             groups.forEach(g -> g
                     .sType$Default()
                     .generalShader(VK_SHADER_UNUSED_KHR)
@@ -1306,10 +1302,7 @@ public class SimpleTriangle {
                          .generalShader(0))
                   .apply(1, g ->
                         g.type(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
-                         .generalShader(1))
-                  .apply(2, g ->
-                        g.type(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR)
-                         .closestHitShader(2));
+                         .generalShader(1));
             LongBuffer pPipelines = stack.mallocLong(1);
             _CHECK_(vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, VkRayTracingPipelineCreateInfoKHR
                         .calloc(1, stack)
@@ -1332,7 +1325,7 @@ public class SimpleTriangle {
         if (sbt != null)
             sbt.free();
         try (MemoryStack stack = stackPush()) {
-            int groupCount = 3;
+            int groupCount = 2;
             int groupHandleSize = 32 /* shaderGroupHandleSize is exactly 32 bytes, by definition */;
             // group handles must be properly aligned when writing them to the final GPU buffer, so compute
             // the aligned group handle size
@@ -1343,14 +1336,13 @@ public class SimpleTriangle {
 
             // retrieve the three shader group handles
             ByteBuffer handles = stack.malloc(groupCount * groupHandleSize);
-            _CHECK_(vkGetRayTracingShaderGroupHandlesKHR(device, rayTracingPipeline.pipeline, 0, 3, handles),
+            _CHECK_(vkGetRayTracingShaderGroupHandlesKHR(device, rayTracingPipeline.pipeline, 0, groupCount, handles),
                     "Failed to obtain ray tracing group handles");
 
             // prepare memory with properly aligned group handles
             ByteBuffer handlesForGpu = stack.malloc(sbtSize);
             memCopy(memAddress(handles), memAddress(handlesForGpu), groupHandleSize);
             memCopy(memAddress(handles) + groupHandleSize, memAddress(handlesForGpu) + groupSizeAligned, groupHandleSize);
-            memCopy(memAddress(handles) + 2L * groupHandleSize, memAddress(handlesForGpu) + 2L * groupSizeAligned, groupHandleSize);
 
             // and upload to a new GPU buffer
             return createBuffer(VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
