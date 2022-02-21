@@ -912,7 +912,7 @@ public class SdfBricks {
                         .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
                     VmaAllocationCreateInfo
                         .calloc(stack)
-                        .usage(VMA_MEMORY_USAGE_GPU_ONLY), pBuffer, pAllocation, null),
+                        .usage(VMA_MEMORY_USAGE_AUTO), pBuffer, pAllocation, null),
                     "Failed to allocate buffer");
 
             // validate alignment
@@ -932,7 +932,8 @@ public class SdfBricks {
                             .usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
                         VmaAllocationCreateInfo
                             .calloc(stack)
-                            .usage(VMA_MEMORY_USAGE_CPU_ONLY), pBufferStage, pAllocationStage, null),
+                            .usage(VMA_MEMORY_USAGE_AUTO)
+                            .flags(VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT), pBufferStage, pAllocationStage, null),
                         "Failed to allocate stage buffer");
 
                 // map the memory and memcpy into it
@@ -980,7 +981,8 @@ public class SdfBricks {
                             .usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
                         VmaAllocationCreateInfo
                             .calloc(stack)
-                            .usage(VMA_MEMORY_USAGE_CPU_TO_GPU), pBuffer, pAllocation, pAllocationInfo),
+                            .usage(VMA_MEMORY_USAGE_AUTO)
+                            .flags(VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT), pBuffer, pAllocation, pAllocationInfo),
                         "Failed to allocate buffer");
 
                 // check whether the allocation is host-coherent
