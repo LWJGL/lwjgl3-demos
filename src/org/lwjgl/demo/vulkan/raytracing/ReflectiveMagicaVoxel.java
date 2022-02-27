@@ -421,7 +421,7 @@ public class ReflectiveMagicaVoxel {
             for (int i = 0; i < physicalDeviceCount; i++) {
                 VkPhysicalDevice dev = new VkPhysicalDevice(pPhysicalDevices.get(i), instance);
                 // Check if the device supports all needed features
-                VkPhysicalDeviceVulkan11Features vulkan11Features = VkPhysicalDeviceVulkan11Features
+                VkPhysicalDevice16BitStorageFeatures _16BitStorageFeatures = VkPhysicalDevice16BitStorageFeatures
                         .malloc(stack)
                         .sType$Default();
                 VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR
@@ -439,13 +439,13 @@ public class ReflectiveMagicaVoxel {
                         .pNext(bufferDeviceAddressFeatures)
                         .pNext(rayTracingPipelineFeatures)
                         .pNext(accelerationStructureFeatures)
-                        .pNext(vulkan11Features));
+                        .pNext(_16BitStorageFeatures));
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
                     !rayTracingPipelineFeatures.rayTracingPipeline() ||
                     !accelerationStructureFeatures.accelerationStructure() ||
-                    !vulkan11Features.storageBuffer16BitAccess())
+                    !_16BitStorageFeatures.storageBuffer16BitAccess())
                     continue;
 
                 // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
@@ -1112,7 +1112,6 @@ public class ReflectiveMagicaVoxel {
 
             // Create a buffer that will hold the final BLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(),
                     null, 256, null);
 
@@ -1310,7 +1309,6 @@ public class ReflectiveMagicaVoxel {
 
             // Create a buffer that will hold the final TLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
                     256,
                     null);

@@ -1489,7 +1489,6 @@ public class HybridMagicaVoxel {
 
             // Create a buffer that will hold the final BLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(),
                     null, 256, null);
 
@@ -1687,7 +1686,6 @@ public class HybridMagicaVoxel {
 
             // Create a buffer that will hold the final TLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
                     256,
                     null);
