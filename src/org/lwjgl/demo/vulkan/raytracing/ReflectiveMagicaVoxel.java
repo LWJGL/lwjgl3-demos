@@ -527,7 +527,7 @@ public class ReflectiveMagicaVoxel {
                             .calloc(stack)
                             .sType$Default()
                             .bufferDeviceAddress(true))
-                    .pNext(VkPhysicalDeviceVulkan11Features
+                    .pNext(VkPhysicalDevice16BitStorageFeaturesKHR
                             .calloc(stack)
                             .sType$Default()
                             .storageBuffer16BitAccess(true))
