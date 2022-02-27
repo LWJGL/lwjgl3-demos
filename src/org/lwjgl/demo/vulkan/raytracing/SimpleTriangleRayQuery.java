@@ -22,6 +22,8 @@ import static org.lwjgl.vulkan.KHRAccelerationStructure.*;
 import static org.lwjgl.vulkan.KHRBufferDeviceAddress.*;
 import static org.lwjgl.vulkan.KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRRayQuery.*;
+import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRSpirv14.VK_KHR_SPIRV_1_4_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK11.*;
@@ -1462,7 +1464,9 @@ public class SimpleTriangleRayQuery {
                        VK_KHR_RAY_QUERY_EXTENSION_NAME,
                        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
                        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-                       VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME));
+                       VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+                       VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+                       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME));
         vmaAllocator = createVmaAllocator();
         queue = retrieveQueue();
         swapchain = createSwapchain();
