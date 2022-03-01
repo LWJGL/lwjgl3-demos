@@ -1645,7 +1645,8 @@ public class HybridMagicaVoxel {
                             .calloc(stack)
                             .accelerationStructureReference(blasDeviceAddress)
                             .mask(~0) // <- we do not want to mask-away any geometry, so use 0b11111111
-                            .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
+                            .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR |
+                                   VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR)
                             .transform(VkTransformMatrixKHR
                                     .calloc(stack)
                                     .matrix(new Matrix4x3f().scale(POSITION_SCALE).getTransposed(stack.mallocFloat(12)))).address(), VkAccelerationStructureInstanceKHR.SIZEOF),
