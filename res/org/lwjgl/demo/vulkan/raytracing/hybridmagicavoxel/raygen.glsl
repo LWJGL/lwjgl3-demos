@@ -34,15 +34,12 @@ void main(void) {
   vec3  direction = (cam.viewInverse * vec4(vc.xyz, 0.0)).xyz;
   vec3  origin    = cam.viewInverse[3].xyz + direction / vc.w;
   uint  rayFlags  = gl_RayFlagsOpaqueEXT |
-                    gl_RayFlagsCullBackFacingTrianglesEXT |
                     gl_RayFlagsSkipClosestHitShaderEXT |
                     gl_RayFlagsTerminateOnFirstHitEXT;
   float tMin      = 0.0;
   float tMax      = 1E+4;
   vec4 normalAndType = textureLod(normalAndTypeImage, tex, 0.0);
   vec3 normal = normalAndType.xyz;
-  uint type = snorm8toUint(normalAndType.w);
-  vec3 col = unpackUnorm4x8(materials.m[type]).rgb;
   origin += normal * 1E-4;
   direction = normalize(vec3(-0.7, 0.8, 0.4));
   payload = true;
@@ -59,6 +56,8 @@ void main(void) {
     tMax,      // ray max range
     0          // payload (location = 0)
   );
+  uint type = snorm8toUint(normalAndType.w);
+  vec3 col = unpackUnorm4x8(materials.m[type]).rgb;
   col *= (payload ? 0.4 : 1.0) * dot(direction, normal);
   imageStore(image, ivec2(gl_LaunchIDEXT), vec4(col, 1.0));
 }

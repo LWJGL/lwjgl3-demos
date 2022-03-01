@@ -19,7 +19,7 @@ void main(void) {
   vec3  origin    = cam.viewInverse[3].xyz;
   vec3  target    = mix(mix(cam.corners[0], cam.corners[2], p.y), mix(cam.corners[1], cam.corners[3], p.y), p.x);
   vec4  direction = cam.viewInverse * vec4(normalize(target.xyz), 0.0);
-  uint  rayFlags  = gl_RayFlagsOpaqueEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
+  uint  rayFlags  = gl_RayFlagsOpaqueEXT;
   float tMin      = 0.1;
   float tMax      = 100.0;
   traceRayEXT(
