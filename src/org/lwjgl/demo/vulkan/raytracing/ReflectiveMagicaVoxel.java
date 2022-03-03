@@ -1157,10 +1157,10 @@ public class ReflectiveMagicaVoxel {
             vkCmdBuildAccelerationStructuresKHR(
                     cmdBuf,
                     pInfos,
-                    stack.pointers(
+                    pointersOfElements(stack,
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .calloc(1, stack)
-                            .primitiveCount(geometry.numFaces * 2)));
+                                    .calloc(1, stack)
+                                    .primitiveCount(geometry.numFaces * 2)));
 
             // barrier for compressing the BLAS
             vkCmdPipelineBarrier(cmdBuf,
@@ -1357,10 +1357,10 @@ public class ReflectiveMagicaVoxel {
             vkCmdBuildAccelerationStructuresKHR(
                     cmdBuf,
                     pInfos,
-                    stack.pointers(
+                    pointersOfElements(stack,
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .calloc(1, stack)
-                            .primitiveCount(1))); // <- number of BLASes!
+                                    .calloc(1, stack)
+                                    .primitiveCount(1))); // <- number of BLASes!
 
             // insert barrier to let tracing wait for the TLAS build
             vkCmdPipelineBarrier(cmdBuf,

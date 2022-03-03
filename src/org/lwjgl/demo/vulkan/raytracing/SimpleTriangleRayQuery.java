@@ -1074,10 +1074,10 @@ public class SimpleTriangleRayQuery {
             vkCmdBuildAccelerationStructuresKHR(
                     cmdBuf,
                     pInfos,
-                    stack.pointers(
+                    pointersOfElements(stack,
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .calloc(1, stack)
-                            .primitiveCount(geometry.numPrimities)));
+                                    .calloc(1, stack)
+                                    .primitiveCount(geometry.numPrimities)));
 
             // Finally submit command buffer and register callback when fence signals to 
             // dispose of resources
@@ -1199,10 +1199,10 @@ public class SimpleTriangleRayQuery {
             vkCmdBuildAccelerationStructuresKHR(
                     cmdBuf,
                     pInfos,
-                    stack.pointers(
+                    pointersOfElements(stack,
                             VkAccelerationStructureBuildRangeInfoKHR
-                            .calloc(1, stack)
-                            .primitiveCount(1))); // <- number of BLASes!
+                                    .calloc(1, stack)
+                                    .primitiveCount(1))); // <- number of BLASes!
 
             // insert barrier to let tracing wait for the TLAS build
             vkCmdPipelineBarrier(cmdBuf,

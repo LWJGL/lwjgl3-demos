@@ -219,4 +219,16 @@ public class VKUtil {
 
         return res;
     }
+
+    // Will be in LWJGL 3.3.2
+    public static PointerBuffer pointersOfElements(MemoryStack stack, CustomBuffer<?> buffer) {
+        int remaining = buffer.remaining();
+        long addr = buffer.address();
+        long sizeof = buffer.sizeof();
+        PointerBuffer pointerBuffer = stack.mallocPointer(remaining);
+        for (int i = 0; i < remaining; i++) {
+            pointerBuffer.put(i, addr + sizeof * i);
+        }
+        return pointerBuffer;
+    }
 }
