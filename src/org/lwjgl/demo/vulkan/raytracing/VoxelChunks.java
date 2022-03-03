@@ -646,28 +646,6 @@ public class VoxelChunks {
         return ret;
     }
 
-    private static int determineBestPresentMode() {
-        try (MemoryStack stack = stackPush()) {
-            IntBuffer pPresentModeCount = stack.mallocInt(1);
-            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, null),
-                    "Failed to get presentation modes count");
-            int presentModeCount = pPresentModeCount.get(0);
-            IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
-            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
-                    "Failed to get presentation modes");
-            int presentMode = VK_PRESENT_MODE_FIFO_KHR; // <- FIFO is _always_ supported, by definition
-            for (int i = 0; i < presentModeCount; i++) {
-                int mode = pPresentModes.get(i);
-                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                    // we prefer mailbox over fifo
-                    presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                    break;
-                }
-            }
-            return presentMode;
-        }
-    }
-
     private static Swapchain createSwapchain() {
         try (MemoryStack stack = stackPush()) {
             VkSurfaceCapabilitiesKHR pSurfaceCapabilities = VkSurfaceCapabilitiesKHR
@@ -681,7 +659,7 @@ public class VoxelChunks {
             IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
             _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
                     "Failed to get presentation modes");
-            int imageCount = min(max(pSurfaceCapabilities.minImageCount() + 1, 3), pSurfaceCapabilities.maxImageCount());
+            int imageCount = min(max(pSurfaceCapabilities.minImageCount(), 2), pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
@@ -698,7 +676,7 @@ public class VoxelChunks {
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .preTransform(pSurfaceCapabilities.currentTransform())
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-                .presentMode(determineBestPresentMode())
+                .presentMode(VK_PRESENT_MODE_FIFO_KHR)
                 .clipped(true)
                 .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE), null, pSwapchain),
                     "Failed to create swap chain");
@@ -2018,12 +1996,12 @@ public class VoxelChunks {
     }
 
     private static void generateIndicesNegative(int i, IntBuffer indices) {
-        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
-               .put((short) ((i << 2) + 1)).put((short) (i << 2)).put((short) ((i << 2) + 2));
+        indices.put((i << 2) + 3).put((i << 2) + 1).put((i << 2) + 2)
+               .put((i << 2) + 1).put(i << 2).put((i << 2) + 2);
     }
     private static void generateIndicesPositive(int i, IntBuffer indices) {
-        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
-               .put((short) ((i << 2) + 2)).put((short) (i << 2)).put((short) ((i << 2) + 1));
+        indices.put((i << 2) + 3).put((i << 2) + 2).put((i << 2) + 1)
+               .put((i << 2) + 2).put(i << 2).put((i << 2) + 1);
     }
 
     private static void generatePositionsAndTypesZ(Face f, IntBuffer positions) {

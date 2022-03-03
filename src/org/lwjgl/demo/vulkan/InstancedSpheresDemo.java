@@ -405,7 +405,7 @@ public class InstancedSpheresDemo {
         memFree(pPresentModes);
 
         // Determine the number of images
-        int desiredNumberOfSwapchainImages = surfCaps.minImageCount() + 1;
+        int desiredNumberOfSwapchainImages = surfCaps.minImageCount();
         if ((surfCaps.maxImageCount() > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount())) {
             desiredNumberOfSwapchainImages = surfCaps.maxImageCount();
         }
