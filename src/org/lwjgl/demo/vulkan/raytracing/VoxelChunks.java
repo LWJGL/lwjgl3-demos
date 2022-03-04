@@ -2004,26 +2004,22 @@ public class VoxelChunks {
     }
 
     private static void generatePositionsAndTypesZ(Face f, IntBuffer positions) {
-        positions.put(r8(f.u0) | r8(f.v0) << 8 | r8(f.p) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.u1) | r8(f.v0) << 8 | r8(f.p) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.u0) | r8(f.v1) << 8 | r8(f.p) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.u1) | r8(f.v1) << 8 | r8(f.p) << 16 | (byte) (f.v & 0xFF) << 24);
+        positions.put(f.u0 | f.v0 << 8 | f.p << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.u1 | f.v0 << 8 | f.p << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.u0 | f.v1 << 8 | f.p << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.u1 | f.v1 << 8 | f.p << 16 | (f.v & 0xFF) << 24);
     }
     private static void generatePositionsAndTypesY(Face f, IntBuffer positions) {
-        positions.put(r8(f.v0) | r8(f.p) << 8 | r8(f.u0) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.v0) | r8(f.p) << 8 | r8(f.u1) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.v1) | r8(f.p) << 8 | r8(f.u0) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.v1) | r8(f.p) << 8 | r8(f.u1) << 16 | (byte) (f.v & 0xFF) << 24);
+        positions.put(f.v0 | f.p << 8 | f.u0 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.v0 | f.p << 8 | f.u1 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.v1 | f.p << 8 | f.u0 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.v1 | f.p << 8 | f.u1 << 16 | (f.v & 0xFF) << 24);
     }
     private static void generatePositionsAndTypesX(Face f, IntBuffer positions) {
-        positions.put(r8(f.p) | r8(f.u0) << 8 | r8(f.v0) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.p) | r8(f.u1) << 8 | r8(f.v0) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.p) | r8(f.u0) << 8 | r8(f.v1) << 16 | (byte) (f.v & 0xFF) << 24);
-        positions.put(r8(f.p) | r8(f.u1) << 8 | r8(f.v1) << 16 | (byte) (f.v & 0xFF) << 24);
-    }
-
-    private static byte r8(short v) {
-        return (byte) (v&0xFF);
+        positions.put(f.p | f.u0 << 8 | f.v0 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.p | f.u1 << 8 | f.v0 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.p | f.u0 << 8 | f.v1 << 16 | (f.v & 0xFF) << 24);
+        positions.put(f.p | f.u1 << 8 | f.v1 << 16 | (f.v & 0xFF) << 24);
     }
 
     private static void init() throws IOException {
