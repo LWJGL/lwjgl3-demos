@@ -1100,14 +1100,14 @@ public class SimpleSphere {
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
                     memByteBuffer(VkAccelerationStructureInstanceKHR
-                            .calloc(stack)
+                            .calloc(1, stack)
                             .accelerationStructureReference(blasDeviceAddress)
                             .mask(~0) // <- we do not want to mask-away any geometry, so use 0b11111111
                             .flags(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR |
                                    VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR)
                             .transform(VkTransformMatrixKHR
                                     .calloc(stack)
-                                    .matrix(new Matrix4x3f().getTransposed(stack.mallocFloat(12)))).address(), VkAccelerationStructureInstanceKHR.SIZEOF),
+                                    .matrix(new Matrix4x3f().getTransposed(stack.mallocFloat(12))))),
                     16, // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                     null);
 

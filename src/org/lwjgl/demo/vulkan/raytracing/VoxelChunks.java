@@ -1407,7 +1407,7 @@ public class VoxelChunks {
             AllocationAndBuffer instanceData = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
-                    memByteBuffer(instances.address(), chunks.size() * VkAccelerationStructureInstanceKHR.SIZEOF),
+                    memByteBuffer(instances),
                     16, // <- VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03715
                     null);
 
