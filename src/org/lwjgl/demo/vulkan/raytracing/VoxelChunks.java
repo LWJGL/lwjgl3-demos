@@ -1069,7 +1069,6 @@ public class VoxelChunks {
 
         public Rc(T value) {
             this.value = value;
-            this.count = 1;
         }
 
         public Rc<T> inc() {
@@ -1348,7 +1347,7 @@ public class VoxelChunks {
 
             // set BLAS on each chunk
             for (int i = 0; i < chunks.size(); i++) {
-                chunks.get(i).blas = new AccelerationStructure(pAccelerationStructuresCompacted.get(i), accelerationStructuresCompactedBufferRc);
+                chunks.get(i).blas = new AccelerationStructure(pAccelerationStructuresCompacted.get(i), accelerationStructuresCompactedBufferRc.inc());
             }
         }
     }
@@ -1522,7 +1521,7 @@ public class VoxelChunks {
                 instanceData.free();
             });
 
-            return new AccelerationStructure(pAccelerationStructure.get(0), new Rc<>(accelerationStructureBuffer));
+            return new AccelerationStructure(pAccelerationStructure.get(0), new Rc<>(accelerationStructureBuffer).inc());
         }
     }
 
