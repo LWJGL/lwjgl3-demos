@@ -484,10 +484,6 @@ public class SimpleSphere {
                             .calloc(stack)
                             .sType$Default()
                             .accelerationStructure(true))
-                    .pNext(VkPhysicalDeviceDescriptorIndexingFeaturesEXT
-                            .calloc(stack)
-                            .sType$Default()
-                            .runtimeDescriptorArray(true))
                     .pNext(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                             .calloc(stack)
                             .sType$Default()
