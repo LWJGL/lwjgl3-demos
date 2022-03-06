@@ -187,15 +187,20 @@ public class VoxelChunks {
         }
     }
 
+    private static class QueueFamily {
+        int index;
+        int count;
+        boolean graphics, compute, transfer, present;
+    }
+
     private static class QueueFamilies {
-        private final List<Integer> computeFamilies = new ArrayList<>();
-        private final List<Integer> presentFamilies = new ArrayList<>();
-        private int findSingleSuitableQueue() {
-            return computeFamilies
+        private final List<QueueFamily> families = new ArrayList<>();
+        private OptionalInt findSingleSuitableQueue() {
+            return families
                     .stream()
-                    .filter(presentFamilies::contains)
-                    .findAny()
-                    .orElseThrow(() -> new AssertionError("No suitable queue found"));
+                    .filter(f -> f.present && f.compute)
+                    .mapToInt(f -> f.index)
+                    .findAny();
         }
     }
 
@@ -420,13 +425,16 @@ public class VoxelChunks {
                     continue;
                 }
                 vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, pSupported);
+                QueueFamily family = new QueueFamily();
+                ret.families.add(family);
                 // we need compute for acceleration structure build and ray tracing commands.
                 // we will also use this for vkCmdCopyBuffer
-                if (familySupports(queueFamilyProps, VK_QUEUE_COMPUTE_BIT))
-                    ret.computeFamilies.add(queueFamilyIndex);
-                // we also need present
-                if (pSupported.get(0) != 0)
-                    ret.presentFamilies.add(queueFamilyIndex);
+                family.index = queueFamilyIndex;
+                family.count = queueFamilyProps.queueCount();
+                family.compute = familySupports(queueFamilyProps, VK_QUEUE_COMPUTE_BIT);
+                family.graphics = familySupports(queueFamilyProps, VK_QUEUE_GRAPHICS_BIT);
+                family.transfer = familySupports(queueFamilyProps, VK_QUEUE_TRANSFER_BIT);
+                family.present = pSupported.get(0) != 0;
                 queueFamilyIndex++;
             }
             return ret;
@@ -434,7 +442,7 @@ public class VoxelChunks {
     }
 
     private static boolean isDeviceSuitable(QueueFamilies queuesFamilies) {
-        return !queuesFamilies.computeFamilies.isEmpty() && !queuesFamilies.presentFamilies.isEmpty();
+        return queuesFamilies.findSingleSuitableQueue().isPresent();
     }
 
     private static DeviceAndQueueFamilies selectPhysicalDevice() {
@@ -2025,7 +2033,7 @@ public class VoxelChunks {
         surface = createSurface();
         debugCallbackHandle = setupDebugging();
         deviceAndQueueFamilies = selectPhysicalDevice();
-        queueFamily = deviceAndQueueFamilies.queuesFamilies.findSingleSuitableQueue();
+        queueFamily = deviceAndQueueFamilies.queuesFamilies.findSingleSuitableQueue().orElseThrow(AssertionError::new);
         device = createDevice(
                 asList(VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,

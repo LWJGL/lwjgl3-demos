@@ -28,4 +28,29 @@ public class Morton3D {
     v = (v | v << 2) & 0x1249;
     return v;
   }
+
+  public static int decode_y8_z5_x5_x(int c) {
+    c &= 0x1249;
+    c = (c ^ c >>> 2) & 0x10C3;
+    c = (c ^ c >>> 4) & 0x100F;
+    c = (c ^ c >>> 8) & 0x1F;
+    return c;
+  }
+
+  public static int decode_y8_z5_x5_z(int c) {
+    c = c >>> 1 & 0x1249;
+    c = (c ^ c >>> 2) & 0x10C3;
+    c = (c ^ c >>> 4) & 0x100F;
+    c = (c ^ c >>> 8) & 0x1F;
+    return c;
+  }
+
+  public static int decode_y8_z5_x5_y(int c) {
+    int h = c >>> 10 & 0xE0;
+    c = c >>> 2 & 0x1249;
+    c = (c ^ c >>> 2) & 0x10C3;
+    c = (c ^ c >>> 4) & 0x100F;
+    c = (c ^ c >>> 8) & 0x1F;
+    return h | c;
+  }
 }
