@@ -103,12 +103,6 @@ public class WavefrontObjDemo {
                 fbHeight = height;
             }
         });
-        glfwSetWindowSizeCallback(window, (window, width, height) -> {
-            if (width > 0 && height > 0 && (this.width != width || this.height != height)) {
-                this.width = width;
-                this.height = height;
-            }
-        });
         glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
             if (action != GLFW_RELEASE) {
                 return;

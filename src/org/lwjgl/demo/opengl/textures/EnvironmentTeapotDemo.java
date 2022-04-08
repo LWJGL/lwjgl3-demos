@@ -68,7 +68,6 @@ public class EnvironmentTeapotDemo {
     GLCapabilities caps;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    GLFWWindowSizeCallback wsCallback;
     GLFWCursorPosCallback cpCallback;
     GLFWScrollCallback sCallback;
     Callback debugProc;
@@ -92,15 +91,6 @@ public class EnvironmentTeapotDemo {
                 if (width > 0 && height > 0 && (EnvironmentTeapotDemo.this.fbWidth != width || EnvironmentTeapotDemo.this.fbHeight != height)) {
                     EnvironmentTeapotDemo.this.fbWidth = width;
                     EnvironmentTeapotDemo.this.fbHeight = height;
-                }
-            }
-        });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-            @Override
-            public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (EnvironmentTeapotDemo.this.width != width || EnvironmentTeapotDemo.this.height != height)) {
-                    EnvironmentTeapotDemo.this.width = width;
-                    EnvironmentTeapotDemo.this.height = height;
                 }
             }
         });
@@ -338,7 +328,6 @@ public class EnvironmentTeapotDemo {
             cpCallback.free();
             keyCallback.free();
             fbCallback.free();
-            wsCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();

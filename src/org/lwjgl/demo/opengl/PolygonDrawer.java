@@ -32,7 +32,6 @@ public class PolygonDrawer {
     GLFWFramebufferSizeCallback fbCallback;
     GLFWCursorPosCallback cpCallback;
     GLFWMouseButtonCallback mbCallback;
-    GLFWWindowSizeCallback wsCallback;
 
     long window;
     int width = 800;
@@ -61,7 +60,6 @@ public class PolygonDrawer {
             fbCallback.free();
             cpCallback.free();
             mbCallback.free();
-            wsCallback.free();
         } finally {
             glfwTerminate();
             errorCallback.free();
@@ -156,14 +154,6 @@ public class PolygonDrawer {
                 if (w > 0 && h > 0) {
                     fbWidth = w;
                     fbHeight = h;
-                }
-            }
-        });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-            public void invoke(long window, int w, int h) {
-                if (w > 0 && h > 0) {
-                    width = w;
-                    height = h;
                 }
             }
         });

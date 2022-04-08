@@ -58,7 +58,6 @@ public class EnvironmentDemo {
     GLCapabilities caps;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    GLFWWindowSizeCallback wsCallback;
     GLFWCursorPosCallback cpCallback;
     GLFWScrollCallback sCallback;
     Callback debugProc;
@@ -82,15 +81,6 @@ public class EnvironmentDemo {
                 if (width > 0 && height > 0 && (EnvironmentDemo.this.fbWidth != width || EnvironmentDemo.this.fbHeight != height)) {
                     EnvironmentDemo.this.fbWidth = width;
                     EnvironmentDemo.this.fbHeight = height;
-                }
-            }
-        });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-            @Override
-            public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (EnvironmentDemo.this.width != width || EnvironmentDemo.this.height != height)) {
-                    EnvironmentDemo.this.width = width;
-                    EnvironmentDemo.this.height = height;
                 }
             }
         });
@@ -262,7 +252,6 @@ public class EnvironmentDemo {
             cpCallback.free();
             keyCallback.free();
             fbCallback.free();
-            wsCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();

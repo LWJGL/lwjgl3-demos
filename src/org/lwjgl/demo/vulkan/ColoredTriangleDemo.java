@@ -20,8 +20,8 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
-import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.vulkan.*;
 
 /**
@@ -997,7 +997,7 @@ public class ColoredTriangleDemo {
         final SwapchainRecreator swapchainRecreator = new SwapchainRecreator();
 
         // Handle canvas resize
-        GLFWWindowSizeCallback windowSizeCallback = new GLFWWindowSizeCallback() {
+        GLFWFramebufferSizeCallback framebufferSizeCallback = new GLFWFramebufferSizeCallback() {
             public void invoke(long window, int width, int height) {
                 if (width <= 0 || height <= 0)
                     return;
@@ -1006,7 +1006,7 @@ public class ColoredTriangleDemo {
                 swapchainRecreator.mustRecreate = true;
             }
         };
-        glfwSetWindowSizeCallback(window, windowSizeCallback);
+        glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
         glfwShowWindow(window);
 
         // Pre-allocate everything needed in the render loop
@@ -1103,7 +1103,7 @@ public class ColoredTriangleDemo {
 
         vkDestroyDebugReportCallbackEXT(instance, debugCallbackHandle, null);
 
-        windowSizeCallback.free();
+        framebufferSizeCallback.free();
         keyCallback.free();
         glfwDestroyWindow(window);
         glfwTerminate();

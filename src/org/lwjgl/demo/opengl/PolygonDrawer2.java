@@ -34,7 +34,6 @@ public class PolygonDrawer2 {
     GLFWErrorCallback errorCallback;
     GLFWKeyCallback keyCallback;
     GLFWFramebufferSizeCallback fbCallback;
-    GLFWWindowSizeCallback wsCallback;
     GLFWCursorPosCallback cpCallback;
     GLFWMouseButtonCallback mbCallback;
 
@@ -66,7 +65,6 @@ public class PolygonDrawer2 {
             glfwDestroyWindow(window);
             keyCallback.free();
             fbCallback.free();
-            wsCallback.free();
             cpCallback.free();
             mbCallback.free();
         } finally {
@@ -134,15 +132,6 @@ public class PolygonDrawer2 {
                 if (w > 0 && h > 0) {
                     fbWidth = w;
                     fbHeight = h;
-                }
-            }
-        });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-            @Override
-            public void invoke(long window, int w, int h) {
-                if (w > 0 && h > 0) {
-                    width = w;
-                    height = h;
                 }
             }
         });

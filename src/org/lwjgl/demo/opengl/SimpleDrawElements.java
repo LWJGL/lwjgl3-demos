@@ -20,7 +20,7 @@ public class SimpleDrawElements {
     // We need to strongly reference callback instances.
     private GLFWErrorCallback errorCallback;
     private GLFWKeyCallback   keyCallback;
-    private GLFWWindowSizeCallback wsCallback;
+    private GLFWFramebufferSizeCallback fbCallback;
     private Callback debugProc;
  
     // The window handle
@@ -35,7 +35,7 @@ public class SimpleDrawElements {
             // Release window and window callbacks
             glfwDestroyWindow(window);
             keyCallback.free();
-            wsCallback.free();
+            fbCallback.free();
             if (debugProc != null)
                 debugProc.free();
         } finally {
@@ -77,7 +77,7 @@ public class SimpleDrawElements {
                     glfwSetWindowShouldClose(window, true); // We will detect this in our rendering loop
             }
         });
-        glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
+        glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(long window, int w, int h) {
                 if (w > 0 && h > 0) {
