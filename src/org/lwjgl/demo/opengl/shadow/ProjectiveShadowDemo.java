@@ -41,7 +41,7 @@ public class ProjectiveShadowDemo {
             keyCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

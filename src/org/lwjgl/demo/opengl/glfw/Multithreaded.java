@@ -46,7 +46,7 @@ public class Multithreaded {
             fsCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

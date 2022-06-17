@@ -66,7 +66,7 @@ public class MultisampledFbo2Demo {
             fbCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

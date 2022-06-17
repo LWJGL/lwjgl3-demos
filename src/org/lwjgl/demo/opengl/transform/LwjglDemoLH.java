@@ -44,7 +44,7 @@ public class LwjglDemoLH {
             keyCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

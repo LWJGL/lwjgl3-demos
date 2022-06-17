@@ -117,6 +117,6 @@ public class SwtAndGlfwDemo {
         keyCallback.free();
         glfwDestroyWindow(glfwWindow);
         glfwTerminate();
-        errorCallback.free();
+        glfwSetErrorCallback(null).free();
     }
 }

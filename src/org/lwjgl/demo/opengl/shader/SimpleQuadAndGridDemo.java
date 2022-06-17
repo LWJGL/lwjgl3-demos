@@ -48,7 +48,7 @@ public class SimpleQuadAndGridDemo {
             fbCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

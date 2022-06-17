@@ -42,7 +42,7 @@ public class ObliqueProjectDemo {
             fbCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 

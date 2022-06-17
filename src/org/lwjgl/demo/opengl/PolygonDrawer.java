@@ -62,7 +62,7 @@ public class PolygonDrawer {
             mbCallback.free();
         } finally {
             glfwTerminate();
-            errorCallback.free();
+            glfwSetErrorCallback(null).free();
         }
     }
 
