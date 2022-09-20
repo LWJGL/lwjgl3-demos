@@ -4,6 +4,7 @@
  */
 #version 330 core
 #extension GL_ARB_shader_storage_buffer_object : enable
+#extension GL_ARB_shader_image_load_store : enable
 
 layout(std430, binding = 0) writeonly restrict buffer VisibleChunksBuffer {
   uint visibles[];
