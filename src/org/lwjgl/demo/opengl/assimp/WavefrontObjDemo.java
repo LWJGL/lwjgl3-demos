@@ -176,8 +176,9 @@ public class WavefrontObjDemo {
 
                 return AIFile.create()
                     .ReadProc((pFile, pBuffer, size, count) -> {
-                        long max = Math.min(data.remaining(), size * count);
-                        memCopy(memAddress(data) + data.position(), pBuffer, max);
+                        long max = Math.min(data.remaining() / size, count);
+                        memCopy(memAddress(data), pBuffer, max * size);
+                        data.position(data.position() + (int) (max * size));
                         return max;
                     })
                     .SeekProc((pFile, offset, origin) -> {
