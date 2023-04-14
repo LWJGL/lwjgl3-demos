@@ -15,6 +15,5 @@ struct hitPayload
 layout(location = 0) rayPayloadInEXT hitPayload payload;
 
 void main(void) {
-  payload.mat = 0u;
-  payload.col = vec3(0.8, 0.9, 1.0);
+  payload.n = vec3(0.0);
 }

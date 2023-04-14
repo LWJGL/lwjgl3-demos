@@ -1866,7 +1866,7 @@ public class HybridMagicaVoxel {
         if (sbt != null)
             sbt.free();
         try (MemoryStack stack = stackPush()) {
-            int groupCount = 2;
+            int groupCount = 3;
             int groupHandleSize = 32 /* shaderGroupHandleSize is exactly 32 bytes, by definition */;
             // group handles must be properly aligned when writing them to the final GPU buffer, so compute
             // the aligned group handle size

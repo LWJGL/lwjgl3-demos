@@ -2844,7 +2844,7 @@ public class VoxelGameGL {
      * Wait for the fence sync before we can modify the current mapped buffer storage region.
      * <p>
      * We inserted a fence sync in {@link #runUpdateAndRenderLoop()} when {@link #useBufferStorage},
-     * because with client-mapped memory it's our own responsibility to now touch that memory until the
+     * because with client-mapped memory it's our own responsibility to not touch that memory until the
      * GPU has finished using it.
      */
     private void waitForFenceSync() {

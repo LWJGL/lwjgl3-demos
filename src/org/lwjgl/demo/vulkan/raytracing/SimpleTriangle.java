@@ -1319,7 +1319,7 @@ public class SimpleTriangle {
         if (sbt != null)
             sbt.free();
         try (MemoryStack stack = stackPush()) {
-            int groupCount = 2;
+            int groupCount = 3;
             int groupHandleSize = 32 /* shaderGroupHandleSize is exactly 32 bytes, by definition */;
             // group handles must be properly aligned when writing them to the final GPU buffer, so compute
             // the aligned group handle size
@@ -1330,7 +1330,7 @@ public class SimpleTriangle {
 
             // retrieve the three shader group handles
             ByteBuffer handles = stack.malloc(groupCount * groupHandleSize);
-            _CHECK_(vkGetRayTracingShaderGroupHandlesKHR(device, rayTracingPipeline.pipeline, 0, groupCount, handles),
+            _CHECK_(vkGetRayTracingShaderGroupHandlesKHR(device, rayTracingPipeline.pipeline, 0, 2, handles),
                     "Failed to obtain ray tracing group handles");
 
             // prepare memory with properly aligned group handles
