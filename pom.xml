@@ -11,9 +11,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-        <lwjgl.version>3.3.2-SNAPSHOT</lwjgl.version>
+        <lwjgl.version>3.3.2</lwjgl.version>
         <swt.maven.version>3.105.3</swt.maven.version> <!-- contains Eclipse SWT 4.6.2.9 software -->
-        <joml.version>1.10.5</joml.version>
+        <joml.version>1.10.6-SNAPSHOT</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
             is prepended automatically. -->
         <class>game.VoxelGameGL</class>
