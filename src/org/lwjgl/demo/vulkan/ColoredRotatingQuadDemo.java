@@ -324,33 +324,6 @@ public class ColoredRotatingQuadDemo {
             throw new AssertionError("Failed to get physical device surface capabilities: " + translateVulkanResult(err));
         }
 
-        IntBuffer pPresentModeCount = memAllocInt(1);
-        err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, null);
-        int presentModeCount = pPresentModeCount.get(0);
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get number of physical device surface presentation modes: " + translateVulkanResult(err));
-        }
-
-        IntBuffer pPresentModes = memAllocInt(presentModeCount);
-        err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
-        memFree(pPresentModeCount);
-        if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanResult(err));
-        }
-
-        // Try to use mailbox mode. Low latency and non-tearing
-        int swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-        for (int i = 0; i < presentModeCount; i++) {
-            if (pPresentModes.get(i) == VK_PRESENT_MODE_MAILBOX_KHR) {
-                swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                break;
-            }
-            if (pPresentModes.get(i) == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-            }
-        }
-        memFree(pPresentModes);
-
         // Determine the number of images
         int desiredNumberOfSwapchainImages = surfCaps.minImageCount();
         if ((surfCaps.maxImageCount() > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount())) {
@@ -386,7 +359,7 @@ public class ColoredRotatingQuadDemo {
                 .preTransform(preTransform)
                 .imageArrayLayers(1)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-                .presentMode(swapchainPresentMode)
+                .presentMode(VK_PRESENT_MODE_FIFO_KHR)
                 .oldSwapchain(oldSwapChain)
                 .clipped(true)
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);

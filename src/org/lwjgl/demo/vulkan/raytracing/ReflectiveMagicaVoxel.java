@@ -480,7 +480,7 @@ public class ReflectiveMagicaVoxel {
         }
     }
 
-    private static final List<String> enumerateSupportedInstanceLayers() {
+    private static List<String> enumerateSupportedInstanceLayers() {
         try (MemoryStack stack = stackPush()) {
             IntBuffer pPropertyCount = stack.mallocInt(1);
             vkEnumerateInstanceLayerProperties(pPropertyCount, null);
