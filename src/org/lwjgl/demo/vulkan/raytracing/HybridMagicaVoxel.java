@@ -1361,8 +1361,8 @@ public class HybridMagicaVoxel {
         VoxelField voxelField = buildVoxelField();
         ArrayList<Face> faces = buildFaces(voxelField);
         ByteBuffer positionsAndTypes = memAlloc(Short.BYTES * 4 * faces.size() * VERTICES_PER_FACE);
-        ByteBuffer indices = memAlloc(Short.BYTES * faces.size() * INDICES_PER_FACE);
-        triangulate(faces, positionsAndTypes.asShortBuffer(), indices.asShortBuffer());
+        ByteBuffer indices = memAlloc(Integer.BYTES * faces.size() * INDICES_PER_FACE);
+        triangulate(faces, positionsAndTypes.asShortBuffer(), indices.asIntBuffer());
 
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
@@ -1372,7 +1372,7 @@ public class HybridMagicaVoxel {
         AllocationAndBuffer indicesBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, indices, Short.BYTES, null);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, indices, Integer.BYTES, null);
         memFree(indices);
 
         return new Geometry(positionsBuffer, indicesBuffer, faces.size());
@@ -1450,8 +1450,8 @@ public class HybridMagicaVoxel {
                                                 .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Short.BYTES))
                                                 .vertexStride(4 * Short.BYTES)
                                                 .maxVertex(geometry.numFaces * VERTICES_PER_FACE)
-                                                .indexType(VK_INDEX_TYPE_UINT16)
-                                                .indexData(deviceAddressConst(stack, geometry.indices.buffer, Short.BYTES))))
+                                                .indexType(VK_INDEX_TYPE_UINT32)
+                                                .indexData(deviceAddressConst(stack, geometry.indices.buffer, Integer.BYTES))))
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR));
 
             // Query necessary sizes for the acceleration structure buffer and for the scratch buffer
@@ -2179,7 +2179,7 @@ public class HybridMagicaVoxel {
                         stack.longs(rasterDescriptorSets.sets[i]), null);
                 vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rasterPipeline.pipeline);
                 vkCmdBindVertexBuffers(cmdBuffer, 0, new long[] {geometry.positions.buffer}, new long[]{0});
-                vkCmdBindIndexBuffer(cmdBuffer, geometry.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+                vkCmdBindIndexBuffer(cmdBuffer, geometry.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdDrawIndexed(cmdBuffer, geometry.numFaces * 6, 1, 0, 0, 0);
                 vkCmdEndRenderPass(cmdBuffer);
                 _CHECK_(vkEndCommandBuffer(cmdBuffer), "Failed to end command buffer");
@@ -2288,7 +2288,7 @@ public class HybridMagicaVoxel {
         return faces;
     }
 
-    public static void triangulate(List<Face> faces, ShortBuffer positionsAndTypes, ShortBuffer indices) {
+    public static void triangulate(List<Face> faces, ShortBuffer positionsAndTypes, IntBuffer indices) {
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
             switch (f.s >>> 1) {
@@ -2310,20 +2310,20 @@ public class HybridMagicaVoxel {
         return (side & 1) != 0;
     }
 
-    private static void generateIndices(Face f, int i, ShortBuffer indices) {
+    private static void generateIndices(Face f, int i, IntBuffer indices) {
         if (isPositiveSide(f.s))
             generateIndicesPositive(i, indices);
         else
             generateIndicesNegative(i, indices);
     }
 
-    private static void generateIndicesNegative(int i, ShortBuffer indices) {
-        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 1)).put((short) ((i << 2) + 2))
-               .put((short) ((i << 2) + 1)).put((short) (i << 2)).put((short) ((i << 2) + 2));
+    private static void generateIndicesNegative(int i, IntBuffer indices) {
+        indices.put((i << 2) + 3).put((i << 2) + 1).put((i << 2) + 2)
+               .put((i << 2) + 1).put(i << 2).put((i << 2) + 2);
     }
-    private static void generateIndicesPositive(int i, ShortBuffer indices) {
-        indices.put((short) ((i << 2) + 3)).put((short) ((i << 2) + 2)).put((short) ((i << 2) + 1))
-               .put((short) ((i << 2) + 2)).put((short) (i << 2)).put((short) ((i << 2) + 1));
+    private static void generateIndicesPositive(int i, IntBuffer indices) {
+        indices.put((i << 2) + 3).put((i << 2) + 2).put((i << 2) + 1)
+               .put((i << 2) + 2).put(i << 2).put((i << 2) + 1);
     }
 
     private static void generatePositionsTypesAndSideZ(Face f,ShortBuffer positions) {
