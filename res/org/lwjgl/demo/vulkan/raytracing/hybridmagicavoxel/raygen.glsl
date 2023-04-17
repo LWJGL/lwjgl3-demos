@@ -36,11 +36,11 @@ void main(void) {
   uint  rayFlags  = gl_RayFlagsOpaqueEXT |
                     gl_RayFlagsSkipClosestHitShaderEXT |
                     gl_RayFlagsTerminateOnFirstHitEXT;
-  float tMin      = 0.0;
+  float tMin      = 1E-3;
   float tMax      = 1E+4;
   vec4 normalAndType = textureLod(normalAndTypeImage, tex, 0.0);
   vec3 normal = normalAndType.xyz;
-  origin += normal * 1E-4;
+  origin += normal * 1E-3;
   direction = normalize(vec3(-0.7, 0.8, 0.4));
   payload = true;
   traceRayEXT(
