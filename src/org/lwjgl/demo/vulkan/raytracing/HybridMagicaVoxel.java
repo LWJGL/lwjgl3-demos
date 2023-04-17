@@ -615,28 +615,6 @@ public class HybridMagicaVoxel {
         return ret;
     }
 
-    private static int determineBestPresentMode() {
-        try (MemoryStack stack = stackPush()) {
-            IntBuffer pPresentModeCount = stack.mallocInt(1);
-            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, null),
-                    "Failed to get presentation modes count");
-            int presentModeCount = pPresentModeCount.get(0);
-            IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
-            _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
-                    "Failed to get presentation modes");
-            int presentMode = VK_PRESENT_MODE_FIFO_KHR; // <- FIFO is _always_ supported, by definition
-            for (int i = 0; i < presentModeCount; i++) {
-                int mode = pPresentModes.get(i);
-                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                    // we prefer mailbox over fifo
-                    presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                    break;
-                }
-            }
-            return presentMode;
-        }
-    }
-
     private static Swapchain createSwapchain() {
         try (MemoryStack stack = stackPush()) {
             VkSurfaceCapabilitiesKHR pSurfaceCapabilities = VkSurfaceCapabilitiesKHR
@@ -667,7 +645,7 @@ public class HybridMagicaVoxel {
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .preTransform(pSurfaceCapabilities.currentTransform())
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-                .presentMode(determineBestPresentMode())
+                .presentMode(VK_PRESENT_MODE_FIFO_KHR)
                 .clipped(true)
                 .oldSwapchain(swapchain != null ? swapchain.swapchain : VK_NULL_HANDLE), null, pSwapchain),
                     "Failed to create swap chain");
