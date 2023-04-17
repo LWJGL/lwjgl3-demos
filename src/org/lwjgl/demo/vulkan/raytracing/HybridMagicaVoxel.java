@@ -471,9 +471,9 @@ public class HybridMagicaVoxel {
                     !accelerationStructureFeatures.accelerationStructure())
                     continue;
 
-                // Check if the physical device supports the VK_FORMAT_R8G8B8_UNORM vertexFormat for acceleration structure geometry
+                // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
                 VkFormatProperties formatProperties = VkFormatProperties.malloc(stack);
-                vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R8G8B8_UNORM, formatProperties);
+                vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R16G16B16_UNORM, formatProperties);
                 if ((formatProperties.bufferFeatures() & VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR) == 0)
                     continue;
 
@@ -1172,7 +1172,7 @@ public class HybridMagicaVoxel {
     }
 
     private static AllocationAndBuffer createUniformBufferObject(int size) {
-    	int totalSize = alignUp(size, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * swapchain.imageViews.length;
+        int totalSize = alignUp(size, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * swapchain.imageViews.length;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
@@ -1304,10 +1304,10 @@ public class HybridMagicaVoxel {
                             .sType$Default()
                             .pVertexBindingDescriptions(VkVertexInputBindingDescription
                                     .calloc(1, stack)
-                                    .apply(0, d -> d.binding(0).stride(4 * Byte.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX)))
+                                    .apply(0, d -> d.binding(0).stride(4 * Short.BYTES).inputRate(VK_VERTEX_INPUT_RATE_VERTEX)))
                             .pVertexAttributeDescriptions(VkVertexInputAttributeDescription
                                     .calloc(1, stack)
-                                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R8G8B8A8_UNORM).offset(0))))
+                                    .apply(0, d -> d.binding(0).location(0).format(VK_FORMAT_R16G16B16A16_UNORM).offset(0))))
                     .pInputAssemblyState(VkPipelineInputAssemblyStateCreateInfo
                             .calloc(stack)
                             .sType$Default()
@@ -1381,9 +1381,9 @@ public class HybridMagicaVoxel {
     private static Geometry createGeometry() throws IOException {
         VoxelField voxelField = buildVoxelField();
         ArrayList<Face> faces = buildFaces(voxelField);
-        ByteBuffer positionsAndTypes = memAlloc(Byte.BYTES * 4 * faces.size() * VERTICES_PER_FACE);
+        ByteBuffer positionsAndTypes = memAlloc(Short.BYTES * 4 * faces.size() * VERTICES_PER_FACE);
         ByteBuffer indices = memAlloc(Short.BYTES * faces.size() * INDICES_PER_FACE);
-        triangulate(faces, positionsAndTypes.slice(), indices.asShortBuffer());
+        triangulate(faces, positionsAndTypes.asShortBuffer(), indices.asShortBuffer());
 
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
@@ -1467,9 +1467,9 @@ public class HybridMagicaVoxel {
                                         .triangles(VkAccelerationStructureGeometryTrianglesDataKHR
                                                 .calloc(stack)
                                                 .sType$Default()
-                                                .vertexFormat(VK_FORMAT_R8G8B8_UNORM)
-                                                .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Byte.BYTES))
-                                                .vertexStride(4 * Byte.BYTES)
+                                                .vertexFormat(VK_FORMAT_R16G16B16_UNORM)
+                                                .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Short.BYTES))
+                                                .vertexStride(4 * Short.BYTES)
                                                 .maxVertex(geometry.numFaces * VERTICES_PER_FACE)
                                                 .indexType(VK_INDEX_TYPE_UINT16)
                                                 .indexData(deviceAddressConst(stack, geometry.indices.buffer, Short.BYTES))))
@@ -2243,7 +2243,7 @@ public class HybridMagicaVoxel {
     }
 
     private static void updateUniformBufferObject(int idx) {
-    	int off = alignUp(uboStructSize, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * idx;
+        int off = alignUp(uboStructSize, deviceAndQueueFamilies.minUniformBufferOffsetAlignment) * idx;
         mvpMatrix.get(off, ubo.mapped);
         invProjMatrix.get(off + Float.BYTES * 16, ubo.mapped);
         invViewMatrix.get4x4(off + Float.BYTES * 16 * 2, ubo.mapped);
@@ -2281,6 +2281,10 @@ public class HybridMagicaVoxel {
                     dims.z = y;
                 }
                 public void paletteMaterial(int i, Material mat) {
+                    if (i > 255) {
+                        System.out.println("Material index " + i + " is out of range, ignoring");
+                        return;
+                    }
                     materials[i] = mat;
                 }
             });
@@ -2305,7 +2309,7 @@ public class HybridMagicaVoxel {
         return faces;
     }
 
-    public static void triangulate(List<Face> faces, ByteBuffer positionsAndTypes, ShortBuffer indices) {
+    public static void triangulate(List<Face> faces, ShortBuffer positionsAndTypes, ShortBuffer indices) {
         for (int i = 0; i < faces.size(); i++) {
             Face f = faces.get(i);
             switch (f.s >>> 1) {
@@ -2343,27 +2347,27 @@ public class HybridMagicaVoxel {
                .put((short) ((i << 2) + 2)).put((short) (i << 2)).put((short) ((i << 2) + 1));
     }
 
-    private static void generatePositionsTypesAndSideZ(Face f,ByteBuffer positions) {
-        positions.put(u8(f.u0)).put(u8(f.v0)).put(u8(f.p)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.u1)).put(u8(f.v0)).put(u8(f.p)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.u0)).put(u8(f.v1)).put(u8(f.p)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.u1)).put(u8(f.v1)).put(u8(f.p)).put((byte) (f.v & 0xFF));
+    private static void generatePositionsTypesAndSideZ(Face f,ShortBuffer positions) {
+        positions.put(u16(f.u0)).put(u16(f.v0)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u1)).put(u16(f.v0)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u0)).put(u16(f.v1)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.u1)).put(u16(f.v1)).put(u16(f.p)).put((short) (f.v & 0xFF | f.s << 8));
     }
-    private static void generatePositionsTypesAndSideY(Face f, ByteBuffer positions) {
-        positions.put(u8(f.v0)).put(u8(f.p)).put(u8(f.u0)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.v0)).put(u8(f.p)).put(u8(f.u1)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.v1)).put(u8(f.p)).put(u8(f.u0)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.v1)).put(u8(f.p)).put(u8(f.u1)).put((byte) (f.v & 0xFF));
+    private static void generatePositionsTypesAndSideY(Face f, ShortBuffer positions) {
+        positions.put(u16(f.v0)).put(u16(f.p)).put(u16(f.u0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v0)).put(u16(f.p)).put(u16(f.u1)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v1)).put(u16(f.p)).put(u16(f.u0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.v1)).put(u16(f.p)).put(u16(f.u1)).put((short) (f.v & 0xFF | f.s << 8));
     }
-    private static void generatePositionsTypesAndSideX(Face f, ByteBuffer positions) {
-        positions.put(u8(f.p)).put(u8(f.u0)).put(u8(f.v0)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.p)).put(u8(f.u1)).put(u8(f.v0)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.p)).put(u8(f.u0)).put(u8(f.v1)).put((byte) (f.v & 0xFF));
-        positions.put(u8(f.p)).put(u8(f.u1)).put(u8(f.v1)).put((byte) (f.v & 0xFF));
+    private static void generatePositionsTypesAndSideX(Face f, ShortBuffer positions) {
+        positions.put(u16(f.p)).put(u16(f.u0)).put(u16(f.v0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u1)).put(u16(f.v0)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u0)).put(u16(f.v1)).put((short) (f.v & 0xFF | f.s << 8));
+        positions.put(u16(f.p)).put(u16(f.u1)).put(u16(f.v1)).put((short) (f.v & 0xFF | f.s << 8));
     }
 
-    private static byte u8(short v) {
-        return (byte) (v << Byte.SIZE - BITS_FOR_POSITIONS);
+    private static short u16(short v) {
+        return (short) (v << Short.SIZE - BITS_FOR_POSITIONS);
     }
 
     private static void init() throws IOException {

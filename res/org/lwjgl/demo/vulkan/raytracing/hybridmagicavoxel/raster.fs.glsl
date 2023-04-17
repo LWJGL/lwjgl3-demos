@@ -6,7 +6,7 @@
 
 layout(early_fragment_tests) in;
 
-layout(location = 0) in vec3 pos;
+layout(location = 0) in vec3 normal;
 layout(location = 1) flat in uint type;
 
 layout(location = 0) out vec4 color;
@@ -20,6 +20,5 @@ float uintToSnorm8(uint v) {
 }
 
 void main(void) {
-  vec3 normal = normalize(cross(dFdy(pos), dFdx(pos)));
   color = vec4(normal, uintToSnorm8(type));
 }
