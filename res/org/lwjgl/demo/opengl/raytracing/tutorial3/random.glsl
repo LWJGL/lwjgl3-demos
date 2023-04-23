@@ -8,6 +8,8 @@
 #define TWO_PI 6.28318530718
 #define ONE_OVER_PI (1.0 / PI)
 #define ONE_OVER_2PI (1.0 / TWO_PI)
+#define PI_OVER_FOUR (PI / 4.0)
+#define PI_OVER_TWO (PI / 2.0)
 
 /*
  * Define the type of a random variable/vector which is used to compute
@@ -16,6 +18,20 @@
  * GLSL.
  */
 #define spatialrand vec2
+
+/*
+ * Area-preserving concentric mapping from a square to a disk.
+ * Code adapted from:
+ * - https://www.jcgt.org/published/0005/02/01/
+ * - http://psgraphics.blogspot.com/2011/01/improved-code-for-concentric-map.html
+ */
+vec2 square2Disk(vec2 v) {
+  vec2 s = 2.0 * v - vec2(1.0);
+  if (abs(s.x) > abs(s.y))
+    return vec2(s.x, PI_OVER_FOUR * s.y / s.x);
+  else
+    return vec2(s.y, abs(s.y) > 0.0 ? PI_OVER_TWO - PI_OVER_FOUR * s.x / s.y : 0.0);
+}
 
 /**
  * Compute an arbitrary vector orthogonal to any vector 'v'.
@@ -136,8 +152,13 @@ vec4 randomHemispherePoint(vec3 n, spatialrand rand) {
  *          probability density value
  */
 vec4 randomCosineWeightedHemispherePoint(vec3 n, spatialrand rand) {
-  float c = sqrt(rand.y);
-  return vec4(around(isotropic(rand.x, c), n), c * ONE_OVER_PI);
+  //float c = sqrt(rand.y);
+  //return vec4(around(isotropic(rand.x, c), n), c * ONE_OVER_PI);
+
+  // try out Peter Shirley's method by using an area-preserving square to disk mapping
+  vec2 rAndPhi = square2Disk(rand);
+  float r = rAndPhi.x, phi = rAndPhi.y, c = sqrt(1.0 - r * r);
+  return vec4(around(vec3(cos(phi) * r, sin(phi) * r, c), n), c * ONE_OVER_PI);
 }
 
 /**
