@@ -1,3 +1,7 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: https://www.lwjgl.org/license
+ */
 package org.lwjgl.demo.util;
 
 import org.joml.Vector2f;
@@ -27,8 +31,8 @@ public class HierarchicalSampleWarping {
   private static float mix(float a, float b, float v) {
     return a*(1-v) + b*v;
   }
-  private static float step(float edge, float x) {
-    return x < edge ? 0 : 1;
+  private static float step(float edge, float v) {
+    return v < edge ? 0 : 1;
   }
 
   public static Vector2i sample(float[][] levels, Vector2f u, float[] pdf) {
@@ -36,13 +40,11 @@ public class HierarchicalSampleWarping {
     pdf[0] = 1.0f;
     for (int lod = 0; lod < levels.length; lod++) {
       // here, lod=0 is the _highest_ lod level (with the smallest image dimension)
+      // so we "ascend" the lod levels from the coarsest to the finest/biggest level.
       x <<= 1; y <<= 1;
-      float s0 = levels[lod][idx(x  ,y  ,lod)];
-      float s1 = levels[lod][idx(x+1,y  ,lod)];
-      float s2 = levels[lod][idx(x  ,y+1,lod)];
-      float s3 = levels[lod][idx(x+1,y+1,lod)];
-      float left = s0 + s2;
-      float right = s1 + s3;
+      float s0 = levels[lod][idx(x  ,y  ,lod)], s1 = levels[lod][idx(x+1,y  ,lod)];
+      float s2 = levels[lod][idx(x  ,y+1,lod)], s3 = levels[lod][idx(x+1,y+1,lod)];
+      float left = s0 + s2, right = s1 + s3;
       float pLeft = left / (left + right);
       float uxFactor = step(pLeft, u.x);
       float pLower = mix(s0 / left, s1 / right, uxFactor);
