@@ -23,6 +23,10 @@ Demo suite for LWJGL 3
 
 ![opengl/raytracing/tutorial/Tutorial8_2.java](md/tutorial8_2.jpg)
 
+[opengl/sampling/HierarchicalSampleWarping.java](./src/org/lwjgl/demo/opengl/sampling/HierarchicalSampleWarping.java)
+
+![opengl/sampling/HierarchicalSampleWarping.java](md/hsw.jpg)
+
 ## Building
 
     ./mvnw package
