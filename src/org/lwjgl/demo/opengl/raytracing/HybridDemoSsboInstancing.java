@@ -398,7 +398,7 @@ public class HybridDemoSsboInstancing {
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
         int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/hybridSsbo.glsl", GL_COMPUTE_SHADER);
-        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
+        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER, "430 core");
         int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
         glAttachShader(program, cshader);
         glAttachShader(program, random);

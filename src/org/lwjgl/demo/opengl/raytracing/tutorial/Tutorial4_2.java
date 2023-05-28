@@ -303,7 +303,7 @@ public class Tutorial4_2 {
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(0);
+        glfwSwapInterval(1);
 
         /*
          * Account for HiDPI screens where window size != framebuffer pixel size.

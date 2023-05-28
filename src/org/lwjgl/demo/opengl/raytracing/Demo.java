@@ -244,8 +244,8 @@ public class Demo {
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
         int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/raytracing.glslcs", GL_COMPUTE_SHADER);
-        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
-        int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
+        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER, "430 core");
+        int randomCommon = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "430 core");
         glAttachShader(program, cshader);
         glAttachShader(program, random);
         glAttachShader(program, randomCommon);

@@ -3,11 +3,6 @@
  * License terms: http://lwjgl.org/license.php
  */
 #version 430 core
-#if GL_NV_gpu_shader5
-#extension GL_NV_gpu_shader5 : enable
-#elif GL_AMD_gpu_shader_int16
-#extension GL_AMD_gpu_shader_int16 : enable
-#endif
 
 #define NO_AXIS uint(-1u)
 #define NO_NODE uint(-1u)
@@ -70,8 +65,8 @@ layout(std430, binding = 3) readonly restrict buffer Voxels {
 uvec3 unpack8(uint v) {
   return uvec3(v & BYTE_MASK, v >> 8u & BYTE_MASK, v >> 16u & BYTE_MASK);
 }
-const bool intersectVoxel(const in vec3 origin, const in vec3 invdir, const in vec3 bmin, const in vec3 bmax,
-                          inout float t) {
+bool intersectVoxel(in vec3 origin, in vec3 invdir, in vec3 bmin, in vec3 bmax,
+                    inout float t) {
   const bvec3 lt = lessThan(invdir, vec3(0.0));
   const vec3 m1 = (bmin - origin) * invdir, m2 = (bmax - origin) * invdir;
   const vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
@@ -85,13 +80,13 @@ const bool intersectVoxel(const in vec3 origin, const in vec3 invdir, const in v
   }
 }
 
-const bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const uint firstVoxel,
-                           const uint numVoxels, inout float t, out uint vindex) {
+bool intersectVoxels(in vec3 origin, in vec3 invdir, uint firstVoxel,
+                     uint numVoxels, inout float t, out uint vindex) {
   bool hit = false;
   for (uint i = 0; i < numVoxels; i++) {
-    const voxel v = voxels[i + firstVoxel];
-    const vec3 vp = vec3(unpack8(v.positionAndPalette_extent.x))*scale;
-    const vec3 ve = vec3(unpack8(v.positionAndPalette_extent.y))*scale;
+    voxel v = voxels[i + firstVoxel];
+    vec3 vp = vec3(unpack8(v.positionAndPalette_extent.x))*scale;
+    vec3 ve = vec3(unpack8(v.positionAndPalette_extent.y))*scale;
     if (intersectVoxel(origin, invdir, vp, vp + vec3(scale) + ve, t)) {
       hit = true;
       vindex = i + firstVoxel;
@@ -100,12 +95,12 @@ const bool intersectVoxels(const in vec3 origin, const in vec3 invdir, const uin
   return hit;
 }
 
-const float exitSide(const in vec3 origin, const in vec3 invdir,
-                     const in uvec3 boxMin, const in uvec3 boxMax,
-                     out uint exitSide) {
-  const bvec3 lt = lessThan(invdir, vec3(0.0));
-  const vec3 tmax = (mix(vec3(boxMax)+vec3(1.0), vec3(boxMin), lt)*scale - origin) * invdir;
-  const ivec3 signs = ivec3(lt);
+float exitSide(in vec3 origin, in vec3 invdir,
+               in uvec3 boxMin, in uvec3 boxMax,
+               out uint exitSide) {
+  bvec3 lt = lessThan(invdir, vec3(0.0));
+  vec3 tmax = (mix(vec3(boxMax)+vec3(1.0), vec3(boxMin), lt)*scale - origin) * invdir;
+  ivec3 signs = ivec3(lt);
   vec2 vals;
   vals = mix(vec2(tmax.y, SIDE_Y_NEG + signs.y), vec2(tmax.x, signs.x), tmax.y > tmax.x);
   vals = mix(vec2(tmax.z, SIDE_Z_NEG + signs.z), vals, tmax.z > vals.x);
@@ -113,10 +108,10 @@ const float exitSide(const in vec3 origin, const in vec3 invdir,
   return vals.x;
 }
 
-const vec2 intersectBox(const in vec3 origin, const in vec3 invdir, const in uvec3 bmin, const in uvec3 bmax) {
-  const bvec3 lt = lessThan(invdir, vec3(0.0));
-  const vec3 m1 = (vec3(bmin)*scale - origin) * invdir, m2 = ((vec3(bmax) + vec3(1.0))*scale - origin) * invdir;
-  const vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
+vec2 intersectBox(in vec3 origin, in vec3 invdir, in uvec3 bmin, in uvec3 bmax) {
+  bvec3 lt = lessThan(invdir, vec3(0.0));
+  vec3 m1 = (vec3(bmin)*scale - origin) * invdir, m2 = ((vec3(bmax) + vec3(1.0))*scale - origin) * invdir;
+  vec3 tmin = mix(m1, m2, lt), tmax = mix(m2, m1, lt);
   return vec2(max(max(tmin.x, tmin.y), tmin.z), min(min(tmax.x, tmax.y), tmax.z));
 }
 
@@ -126,8 +121,8 @@ struct scenehitinfo {
   uint descends, ropes;
 };
 #define rope(uv, r) ((uv)[((r)+2u)>>2u][((r)+2u)&3u])
-const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 dir,
-                          const in vec3 invdir, out scenehitinfo shinfo) {
+bool intersectScene(in uint nodeIdx, in vec3 origin, in vec3 dir,
+                    in vec3 invdir, out scenehitinfo shinfo) {
   node n = nodes[nodeIdx];
   vec3 o = origin;
   nodegeom ng = nodegeoms[nodeIdx];
@@ -172,12 +167,12 @@ const bool intersectScene(in uint nodeIdx, const in vec3 origin, const in vec3 d
 
 layout (local_size_x = 8, local_size_y = 8) in;
 void main(void) {
-  const ivec2 pix = ivec2(gl_GlobalInvocationID.xy) * cbwidth + off;
-  const ivec2 size = imageSize(framebufferImage);
+  ivec2 pix = ivec2(gl_GlobalInvocationID.xy) * cbwidth + off;
+  ivec2 size = imageSize(framebufferImage);
   if (any(greaterThanEqual(pix, size)))
     return;
-  const vec2 p = (vec2(pix) + vec2(0.5)) / vec2(size);
-  const vec3 dir = normalize(mix(mix(cam[1], cam[2], p.y), mix(cam[3], cam[4], p.y), p.x));
+  vec2 p = (vec2(pix) + vec2(0.5)) / vec2(size);
+  vec3 dir = normalize(mix(mix(cam[1], cam[2], p.y), mix(cam[3], cam[4], p.y), p.x));
   vec3 acc = vec3(0.0);
   vec3 att = vec3(1.0);
   scenehitinfo shinfo;

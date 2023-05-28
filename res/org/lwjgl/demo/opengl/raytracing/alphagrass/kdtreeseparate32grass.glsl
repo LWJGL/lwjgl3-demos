@@ -7,6 +7,8 @@
 #extension GL_NV_gpu_shader5 : enable
 #elif GL_AMD_gpu_shader_int16
 #extension GL_AMD_gpu_shader_int16 : enable
+#else
+#extension GL_EXT_shader_8bit_storage: enable
 #endif
 
 #define NO_AXIS uint(-1u)

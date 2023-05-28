@@ -406,8 +406,8 @@ public class HybridDemoSsboTriangles {
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
         int cshader = createShader("org/lwjgl/demo/opengl/raytracing/hybridSsboTriangle.glsl", GL_COMPUTE_SHADER);
-        int random = createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER);
-        int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
+        int random = createShader("org/lwjgl/demo/opengl/raytracing/random.glsl", GL_COMPUTE_SHADER, "430 core");
+        int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "430 core");
         glAttachShader(program, cshader);
         glAttachShader(program, random);
         glAttachShader(program, randomCommon);

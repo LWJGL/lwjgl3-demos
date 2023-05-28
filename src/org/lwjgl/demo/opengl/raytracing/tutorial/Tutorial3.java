@@ -44,7 +44,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * proportional to the cosine of that direction with the surface normal.
  * <p>
  * To present the benefit of importance sampling we are also introducing a new
- * kind of surface in this demo. Currently we were only using lambertian/diffuse
+ * kind of surface in this demo. Currently, we were only using lambertian/diffuse
  * surfaces which reflect light in all directions equally. Now we also want
  * specular surfaces that reflect most of the incoming light around the
  * direction of perfect reflection. There will be a mode to switch between

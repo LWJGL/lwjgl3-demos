@@ -329,8 +329,8 @@ public class AtomicDemo {
      */
     private void createQuadProgram() throws IOException {
         int program = glCreateProgram();
-        int vshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "330");
-        int fshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "330");
+        int vshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.vs", GL_VERTEX_SHADER, "430 core");
+        int fshader = AtomicDemo.createShader("org/lwjgl/demo/opengl/raytracing/quad.fs", GL_FRAGMENT_SHADER, "430 core");
         glAttachShader(program, vshader);
         glAttachShader(program, fshader);
         glBindFragDataLocation(program, 0, "color");
@@ -354,7 +354,7 @@ public class AtomicDemo {
     private void createComputeProgram() throws IOException {
         int program = glCreateProgram();
         int cshader = createShader("org/lwjgl/demo/opengl/raytracing/raytracingAtomic.glslcs", GL_COMPUTE_SHADER);
-        int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "330");
+        int randomCommon = createShader("org/lwjgl/demo/opengl/raytracing/randomCommon.glsl", GL_COMPUTE_SHADER, "430 core");
         int random = createShader("org/lwjgl/demo/opengl/raytracing/randomAtomic.glsl", GL_COMPUTE_SHADER);
         glAttachShader(program, cshader);
         glAttachShader(program, randomCommon);

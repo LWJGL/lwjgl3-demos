@@ -2,7 +2,6 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 330 core
 
 /**
  * http://www.jcgt.org/published/0009/03/02/

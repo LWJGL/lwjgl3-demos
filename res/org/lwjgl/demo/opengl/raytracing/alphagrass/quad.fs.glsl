@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-#version 330 core
+#version 430 core
 
 uniform sampler2D tex;
 in vec2 texcoord;

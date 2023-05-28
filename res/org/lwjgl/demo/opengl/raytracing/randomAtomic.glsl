@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 420 core
+#version 430 core
 
 layout(binding = 0) uniform atomic_uint counter;
 
