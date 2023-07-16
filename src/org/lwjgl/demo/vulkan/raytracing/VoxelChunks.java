@@ -489,7 +489,7 @@ public class VoxelChunks {
                     !physicalDeviceFeatures2.features().shaderInt64())
                     continue;
 
-                // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
+                // Check if the physical device supports the VK_FORMAT_R8G8B8_UNORM vertexFormat for acceleration structure geometry
                 VkFormatProperties formatProperties = VkFormatProperties.malloc(stack);
                 vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R8G8B8_UNORM, formatProperties);
                 if ((formatProperties.bufferFeatures() & VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR) == 0)
@@ -667,7 +667,7 @@ public class VoxelChunks {
             int imageCount = min(max(pSurfaceCapabilities.minImageCount(), 2), pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
-            LongBuffer pSwapchain = stack.mallocLong(Long.BYTES);
+            LongBuffer pSwapchain = stack.mallocLong(1);
             _CHECK_(vkCreateSwapchainKHR(device, VkSwapchainCreateInfoKHR
                 .calloc(stack)
                 .sType$Default()
