@@ -45,6 +45,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
 import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
+import static org.lwjgl.vulkan.EXTScalarBlockLayout.VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.*;
 import static org.lwjgl.vulkan.KHRBufferDeviceAddress.*;
 import static org.lwjgl.vulkan.KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
@@ -570,6 +571,10 @@ public class VoxelChunks {
                             .calloc(stack)
                             .sType$Default()
                             .bufferDeviceAddress(true))
+                    .pNext(VkPhysicalDeviceScalarBlockLayoutFeaturesEXT
+                            .calloc(stack)
+                            .sType$Default()
+                            .scalarBlockLayout(true))
                     .pQueueCreateInfos(VkDeviceQueueCreateInfo
                             .calloc(1, stack)
                             .sType$Default()
@@ -2043,7 +2048,8 @@ public class VoxelChunks {
                        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
                        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
                        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME));
+                       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+                       VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME));
         vmaAllocator = createVmaAllocator();
         queue = retrieveQueue();
         swapchain = createSwapchain();
