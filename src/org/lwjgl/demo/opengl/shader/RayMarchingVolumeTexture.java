@@ -197,7 +197,7 @@ public class RayMarchingVolumeTexture {
             BufferedInputStream bis = new BufferedInputStream(is);
             new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
                 public void voxel(int x, int y, int z, byte c) {
-                    v.field[idx(x, z, y, dims.x, dims.y)] = c;
+                    v.field[idx(x, z, dims.z - 1 - y, dims.x, dims.y)] = c;
                 }
                 public void size(int x, int y, int z) {
                     dims.x = x;
