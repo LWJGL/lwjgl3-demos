@@ -7,29 +7,37 @@
 layout (location = 0) out vec4 fragColor;
 
 uniform sampler3D tex;
+uniform mat4 mvp;
+uniform vec3 camPosition;
 
 in vec3 o;
 in vec3 d;
 
-vec3 rayMarch2(vec3 o, vec3 d, vec3 ts) {
-  o *= ts;
+vec3 rayMarch(vec3 o, vec3 d, vec3 ts) {
   vec3 p = floor(o), di = vec3(1.0) / d, s = sign(d), t = abs((p + max(s, vec3(0.0)) - o) * di);
-  int N = int(max(ts.x, max(ts.y, ts.z)))*3;
-  for (int i = 0; i < N; i++) {
+  int N = int(ts.x + ts.y + ts.z); // <- maximum can only be manhattan distance
+  vec3 c;
+  int i;
+  for (i = 0; i < N; i++) {
     if (texture(tex, (p+vec3(0.5))/ts).r > 0.0) {
-      return vec3(p/ts);
+      vec4 cp = mvp * vec4((o+d*t)/ts-vec3(0.5), 1.0);
+      gl_FragDepth = cp.z / cp.w;
+      return abs(c);
     }
-    vec3 c = step(t.xyz, t.yzx)*step(t.xyz, t.zxy);
+    c = step(t.xyz, t.yzx)*step(t.xyz, t.zxy);
     t += di * s * c;
     p += s * c;
     if (any(lessThan(p, vec3(0.0))) || any(greaterThanEqual(p, ts))) {
-      return vec3(i)/vec3(N);
+      break;
     }
   }
-  return vec3(1.0, 0.0, 1.0);
+  gl_FragDepth = 1.0-1e-6;
+  return vec3(i)/vec3(N);
 }
 
 void main(void) {
   vec3 ts = vec3(textureSize(tex, 0));
-  fragColor = vec4(rayMarch2(o, d, ts), 1.0);
+  vec3 di = 1.0/d, t = min((vec3(-0.5)-o)*di, (vec3(0.5)-o)*di);
+  vec3 p = o + d * max(max(max(t.x, t.y), t.z), 0.0);
+  fragColor = vec4(rayMarch((p+vec3(0.5))*ts, d*ts, ts), 1.0);
 }

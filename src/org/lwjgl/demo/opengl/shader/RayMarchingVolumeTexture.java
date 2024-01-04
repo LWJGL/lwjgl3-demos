@@ -4,19 +4,26 @@
  */
 package org.lwjgl.demo.opengl.shader;
 
+import static java.lang.ClassLoader.getSystemResourceAsStream;
 import static org.lwjgl.demo.opengl.util.DemoUtils.createShader;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL33C.*;
 import static org.lwjgl.system.MemoryUtil.*;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
-import org.lwjgl.glfw.GLFWKeyCallback;
-import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.demo.util.MagicaVoxelLoader;
+import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.*;
@@ -30,23 +37,64 @@ import org.lwjgl.system.*;
  * @author Kai Burjack
  */
 public class RayMarchingVolumeTexture {
+    private static class Volume {
+        int x, y, z;
+        int w, h, d;
+        int tex;
+        byte[] field;
+    }
+
     private long window;
     private int width = 1024;
     private int height = 768;
 
     private int program;
-    private int projectionUniform, viewUniform, camPositionUniform;
+    private int mvpUniform, invModelUniform, camPositionUniform;
 
     private GLFWErrorCallback errCallback;
-    private GLFWKeyCallback keyCallback;
-    private GLFWFramebufferSizeCallback fbCallback;
     private Callback debugProc;
 
-    private int vao, tex;
+    private int vao;
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private final Vector3f camPos = new Vector3f(1.5f, 1.1f, 3.0f);
-    private final Matrix4f projMatrix = new Matrix4f().setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
-    private final Matrix4f viewMatrix = new Matrix4f();
+    private final Matrix4f projMatrix = new Matrix4f();
+    private final Matrix4f viewMatrix = new Matrix4f().setLookAt(100, 20, 100, 100, 0, 0, 0, 1, 0);
+    private final Matrix4f modelMatrix = new Matrix4f();
+    private final Matrix4f mvpMatrix = new Matrix4f();
+    private final Matrix4f invModelMatrix = new Matrix4f();
+    private final List<Volume> volumes = new ArrayList<>();
+    private float mouseX, mouseY;
+    private boolean mouseDown;
+    private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
+
+    private void update(float dt) {
+        float factor = 20.0f;
+        if (keydown[GLFW_KEY_LEFT_SHIFT])
+            factor *= 3.0f;
+        if (keydown[GLFW_KEY_W]) {
+            viewMatrix.translateLocal(0, 0, factor * dt);
+        }
+        if (keydown[GLFW_KEY_S]) {
+            viewMatrix.translateLocal(0, 0, -factor * dt);
+        }
+        if (keydown[GLFW_KEY_A]) {
+            viewMatrix.translateLocal(factor * dt, 0, 0);
+        }
+        if (keydown[GLFW_KEY_D]) {
+            viewMatrix.translateLocal(-factor * dt, 0, 0);
+        }
+        if (keydown[GLFW_KEY_Q]) {
+            viewMatrix.rotateLocalZ(-dt);
+        }
+        if (keydown[GLFW_KEY_E]) {
+            viewMatrix.rotateLocalZ(dt);
+        }
+        if (keydown[GLFW_KEY_LEFT_CONTROL]) {
+            viewMatrix.translateLocal(0, factor * dt, 0);
+        }
+        if (keydown[GLFW_KEY_SPACE]) {
+            viewMatrix.translateLocal(0, -factor * dt, 0);
+        }
+    }
 
     private void init() throws IOException {
         glfwSetErrorCallback(errCallback = GLFWErrorCallback.createPrint(System.err));
@@ -63,22 +111,38 @@ public class RayMarchingVolumeTexture {
         if (window == NULL) {
             throw new AssertionError("Failed to create the GLFW window");
         }
-        glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
-            @Override
-            public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                    glfwSetWindowShouldClose(window, true);
-                }
+        glfwSetKeyCallback(window, (long window, int key, int scancode, int action, int mods) -> {
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+                glfwSetWindowShouldClose(window, true);
+            }
+            if (key >= 0)
+                if (action == GLFW_PRESS)
+                    keydown[key] = true;
+                else if (action == GLFW_RELEASE)
+                    keydown[key] = false;
+        });
+        glfwSetCursorPosCallback(window, (long window, double x, double y) -> {
+            if (mouseDown) {
+                float deltaX = (float) x - RayMarchingVolumeTexture.this.mouseX;
+                float deltaY = (float) y - RayMarchingVolumeTexture.this.mouseY;
+                RayMarchingVolumeTexture.this.viewMatrix.rotateLocalY(deltaX * 0.01f);
+                RayMarchingVolumeTexture.this.viewMatrix.rotateLocalX(deltaY * 0.01f);
+            }
+            RayMarchingVolumeTexture.this.mouseX = (float) x;
+            RayMarchingVolumeTexture.this.mouseY = (float) y;
+        });
+        glfwSetMouseButtonCallback(window, (long window, int button, int action, int mods) -> {
+            if (action == GLFW_PRESS) {
+                RayMarchingVolumeTexture.this.mouseDown = true;
+            } else if (action == GLFW_RELEASE) {
+                RayMarchingVolumeTexture.this.mouseDown = false;
             }
         });
-        glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
-            public void invoke(long window, int width, int height) {
-                if (width > 0 && height > 0 && (RayMarchingVolumeTexture.this.width != width || RayMarchingVolumeTexture.this.height != height)) {
-                    RayMarchingVolumeTexture.this.width = width;
-                    RayMarchingVolumeTexture.this.height = height;
-                    glViewport(0, 0, width, height);
-                    projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.01f, 100.0f);
-                }
+        glfwSetFramebufferSizeCallback(window, (long window, int width, int height) -> {
+            if (width > 0 && height > 0 && (RayMarchingVolumeTexture.this.width != width || RayMarchingVolumeTexture.this.height != height)) {
+                RayMarchingVolumeTexture.this.width = width;
+                RayMarchingVolumeTexture.this.height = height;
+                glViewport(0, 0, width, height);
             }
         });
         GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -97,17 +161,20 @@ public class RayMarchingVolumeTexture {
         glClearColor(0.1f, 0.15f, 0.23f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
         createProgram();
-        create3dTexture();
+        volumes.add(create3dVolume("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox", 0, 0, 0));
+        volumes.add(create3dVolume("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house6.vox", 140, 0, 0));
         createBoxVao();
     }
     private void createBoxVao() {
         int vao = glGenVertexArrays();
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers());
+        float s = 0.5f;
         glBufferData(GL_ARRAY_BUFFER, new float[] {
-            +1, +1, -1, -1, +1, -1, +1, -1, -1, -1, -1, -1,
-            +1, +1, +1, -1, +1, +1, -1, -1, +1, +1, -1, +1,
+            +s, +s, -s, -s, +s, -s, +s, -s, -s, -s, -s, -s,
+            +s, +s, +s, -s, +s, +s, -s, -s, +s, +s, -s, +s,
         }, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
@@ -118,31 +185,48 @@ public class RayMarchingVolumeTexture {
         glBindVertexArray(0);
         this.vao = vao;
     }
-    private void create3dTexture() {
+    private static int idx(int x, int y, int z, int width, int height) {
+        return x + width * (y + z * height);
+    }
+    private Volume create3dVolume(String resource, int x, int y, int z) throws IOException {
         int texture = glGenTextures();
         glBindTexture(GL_TEXTURE_3D, texture);
-        int s = 16;
-        ByteBuffer bb = BufferUtils.createByteBuffer(s * s * s);
-        for (int z = 0; z < s; z++) {
-            for (int y = 0; y < s; y++) {
-                for (int x = 0; x < s; x++) {
-                    Vector3f p = new Vector3f(x - s / 2, y - s / 2, z - s / 2);
-                    if (p.lengthSquared() < s/2.5*s/2.5) {
-                        bb.put((byte) 255);
-                    } else {
-                        bb.put((byte) 0);
-                    }
+        Vector3i dims = new Vector3i();
+        Volume v = new Volume();
+        try (InputStream is = Objects.requireNonNull(getSystemResourceAsStream(resource))) {
+            BufferedInputStream bis = new BufferedInputStream(is);
+            new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
+                public void voxel(int x, int y, int z, byte c) {
+                    v.field[idx(x, z, y, dims.x, dims.y)] = c;
                 }
-            }
+                public void size(int x, int y, int z) {
+                    dims.x = x;
+                    dims.y = z;
+                    dims.z = y;
+                    v.field = new byte[x * y * z];
+                    v.w = x;
+                    v.h = z;
+                    v.d = y;
+                }
+                public void paletteMaterial(int i, MagicaVoxelLoader.Material mat) {
+                }
+            });
         }
+        ByteBuffer bb = BufferUtils.createByteBuffer(v.field.length);
+        bb.put(v.field);
         bb.flip();
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, s, s, s, 0, GL_RED, GL_UNSIGNED_BYTE, bb);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, v.w, v.h, v.d, 0, GL_RED, GL_UNSIGNED_BYTE, bb);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        this.tex = texture;
+        v.tex = texture;
+        v.x = x;
+        v.y = y;
+        v.z = z;
+        return v;
     }
     private void createProgram() throws IOException {
         int program = glCreateProgram();
@@ -161,30 +245,38 @@ public class RayMarchingVolumeTexture {
         }
         this.program = program;
         glUseProgram(program);
-        projectionUniform = glGetUniformLocation(program, "projection");
-        viewUniform = glGetUniformLocation(program, "view");
+        mvpUniform = glGetUniformLocation(program, "mvp");
+        invModelUniform = glGetUniformLocation(program, "invModel");
         camPositionUniform = glGetUniformLocation(program, "camPosition");
         int texUniform = glGetUniformLocation(program, "tex");
         glUniform1i(texUniform, 0);
         glUseProgram(0);
+    }
+    private void renderVolume(Volume v) {
+        glBindTexture(GL_TEXTURE_3D, v.tex);
+        modelMatrix.translation(v.x, v.y, v.z).scale(v.w, v.h, v.d);
+        projMatrix.mul(viewMatrix, mvpMatrix).mul(modelMatrix);
+        glUniformMatrix4fv(mvpUniform, false, mvpMatrix.get(matrixBuffer));
+        modelMatrix.invert(invModelMatrix);
+        glUniformMatrix4fv(invModelUniform, false, invModelMatrix.get(matrixBuffer));
+        glDrawElements(GL_TRIANGLE_STRIP, 14, GL_UNSIGNED_SHORT, 0L);
     }
     private void loop() {
         long lastTime = System.nanoTime();
         while (!glfwWindowShouldClose(window)) {
             long thisTime = System.nanoTime();
             float dt = (thisTime - lastTime) / 1E9f;
+            update(dt);
             lastTime = thisTime;
             glfwPollEvents();
-            camPos.rotateY(dt*0.3f);
-            viewMatrix.setLookAt(camPos.x, camPos.y, camPos.z, 0, -0.3f, 0, 0, 1, 0);
+            projMatrix.setPerspective((float) Math.toRadians(60.0f), (float) width / height, 0.1f, 1000.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glUseProgram(this.program);
-            glUniformMatrix4fv(projectionUniform, false, projMatrix.get(matrixBuffer));
-            glUniformMatrix4fv(viewUniform, false, viewMatrix.get(matrixBuffer));
+            Vector3f camPos = viewMatrix.originAffine(new Vector3f());
             glUniform3f(camPositionUniform, camPos.x, camPos.y, camPos.z);
             glBindVertexArray(vao);
-            glBindTexture(GL_TEXTURE_3D, tex);
-            glDrawElements(GL_TRIANGLE_STRIP, 14, GL_UNSIGNED_SHORT, 0L);
+            for (Volume volume : volumes)
+                renderVolume(volume);
             glUseProgram(0);
             glfwSwapBuffers(window);
         }
@@ -197,8 +289,6 @@ public class RayMarchingVolumeTexture {
                 debugProc.free();
             }
             errCallback.free();
-            fbCallback.free();
-            keyCallback.free();
             glfwDestroyWindow(window);
         } catch (Throwable t) {
             t.printStackTrace();
