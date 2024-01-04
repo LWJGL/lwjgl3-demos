@@ -5,10 +5,13 @@
 #version 330 core
 
 layout (location = 0) out vec4 fragColor;
+#ifdef GL_ARB_conservative_depth
+#extension GL_ARB_conservative_depth : enable
+layout (depth_less) out float gl_FragDepth;
+#endif
 
 uniform sampler3D tex;
 uniform mat4 mvp;
-uniform vec3 camPosition;
 
 in vec3 o;
 in vec3 d;
@@ -31,8 +34,7 @@ vec3 rayMarch(vec3 o, vec3 d, vec3 ts) {
       break;
     }
   }
-  gl_FragDepth = 1.0-1e-6;
-  return vec3(i)/vec3(N);
+  discard;
 }
 
 void main(void) {
