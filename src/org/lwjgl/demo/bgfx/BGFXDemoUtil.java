@@ -170,10 +170,6 @@ final class BGFXDemoUtil {
                 resourcePath += "dx11/";
                 break;
 
-            case BGFX_RENDERER_TYPE_DIRECT3D9:
-                resourcePath += "dx9/";
-                break;
-
             case BGFX_RENDERER_TYPE_OPENGL:
                 resourcePath += "glsl/";
                 break;
@@ -199,10 +195,6 @@ final class BGFXDemoUtil {
             case BGFX_RENDERER_TYPE_DIRECT3D11:
             case BGFX_RENDERER_TYPE_DIRECT3D12:
                 sc = shaderCodeD3D11;
-                break;
-
-            case BGFX_RENDERER_TYPE_DIRECT3D9:
-                sc = shaderCodeD3D9;
                 break;
 
             case BGFX_RENDERER_TYPE_OPENGL:

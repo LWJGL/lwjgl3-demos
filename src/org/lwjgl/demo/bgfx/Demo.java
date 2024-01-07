@@ -214,9 +214,7 @@ abstract class Demo {
         } else if (hasArg(args, "noop")) {
             renderer = BGFX_RENDERER_TYPE_NOOP;
         } else if (Platform.get() == Platform.WINDOWS) {
-            if (hasArg(args, "d3d9")) {
-                renderer = BGFX_RENDERER_TYPE_DIRECT3D9;
-            } else if (hasArg(args, "d3d11")) {
+            if (hasArg(args, "d3d11")) {
                 renderer = BGFX_RENDERER_TYPE_DIRECT3D11;
             } else if (hasArg(args, "d3d12")) {
                 renderer = BGFX_RENDERER_TYPE_DIRECT3D12;
