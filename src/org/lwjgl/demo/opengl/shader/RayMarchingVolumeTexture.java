@@ -20,7 +20,6 @@ import java.util.Objects;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector3i;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.util.MagicaVoxelLoader;
 import org.lwjgl.glfw.*;
@@ -40,6 +39,7 @@ public class RayMarchingVolumeTexture {
     private static class Volume {
         int x, y, z;
         int w, h, d;
+        int tw, th, td;
         int tex;
         byte[] field;
     }
@@ -49,7 +49,7 @@ public class RayMarchingVolumeTexture {
     private int height = 768;
 
     private int program;
-    private int mvpUniform, invModelUniform, camPositionUniform;
+    private int mvpUniform, invModelUniform, camPositionUniform, sizeUniform;
 
     private GLFWErrorCallback errCallback;
     private Callback debugProc;
@@ -155,7 +155,6 @@ public class RayMarchingVolumeTexture {
         }
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
-        glfwShowWindow(window);
         GL.createCapabilities();
         debugProc = GLUtil.setupDebugMessageCallback();
         glClearColor(0.1f, 0.15f, 0.23f, 1.0f);
@@ -166,6 +165,7 @@ public class RayMarchingVolumeTexture {
         volumes.add(create3dVolume("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house5.vox", 0, 0, 0));
         volumes.add(create3dVolume("org/lwjgl/demo/models/mikelovesrobots_mmmm/scene_house6.vox", 140, 0, 0));
         createBoxVao();
+        glfwShowWindow(window);
     }
     private void createBoxVao() {
         int vao = glGenVertexArrays();
@@ -188,22 +188,32 @@ public class RayMarchingVolumeTexture {
     private static int idx(int x, int y, int z, int width, int height) {
         return x + width * (y + z * height);
     }
+    private static int nextPowerOfTwo(int v) {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        return (v | v >> 16) + 1;
+    }
     private Volume create3dVolume(String resource, int x, int y, int z) throws IOException {
         int texture = glGenTextures();
         glBindTexture(GL_TEXTURE_3D, texture);
-        Vector3i dims = new Vector3i();
         Volume v = new Volume();
+        v.x = x;
+        v.y = y;
+        v.z = z;
         try (InputStream is = Objects.requireNonNull(getSystemResourceAsStream(resource))) {
             BufferedInputStream bis = new BufferedInputStream(is);
             new MagicaVoxelLoader().read(bis, new MagicaVoxelLoader.Callback() {
                 public void voxel(int x, int y, int z, byte c) {
-                    v.field[idx(x, z, dims.z - 1 - y, dims.x, dims.y)] = c;
+                    v.field[idx(x, z, v.td - 1 - y, v.tw, v.th)] = c;
                 }
                 public void size(int x, int y, int z) {
-                    dims.x = x;
-                    dims.y = z;
-                    dims.z = y;
-                    v.field = new byte[x * y * z];
+                    v.tw = nextPowerOfTwo(x);
+                    v.th = nextPowerOfTwo(z);
+                    v.td = nextPowerOfTwo(y);
+                    v.field = new byte[v.tw * v.th * v.td];
                     v.w = x;
                     v.h = z;
                     v.d = y;
@@ -216,16 +226,14 @@ public class RayMarchingVolumeTexture {
         bb.put(v.field);
         bb.flip();
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, v.w, v.h, v.d, 0, GL_RED, GL_UNSIGNED_BYTE, bb);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, v.tw, v.th, v.td, 0, GL_RED, GL_UNSIGNED_BYTE, bb);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glGenerateMipmap(GL_TEXTURE_3D);
         v.tex = texture;
-        v.x = x;
-        v.y = y;
-        v.z = z;
         return v;
     }
     private void createProgram() throws IOException {
@@ -248,6 +256,7 @@ public class RayMarchingVolumeTexture {
         mvpUniform = glGetUniformLocation(program, "mvp");
         invModelUniform = glGetUniformLocation(program, "invModel");
         camPositionUniform = glGetUniformLocation(program, "camPosition");
+        sizeUniform = glGetUniformLocation(program, "size");
         int texUniform = glGetUniformLocation(program, "tex");
         glUniform1i(texUniform, 0);
         glUseProgram(0);
@@ -259,6 +268,7 @@ public class RayMarchingVolumeTexture {
         glUniformMatrix4fv(mvpUniform, false, mvpMatrix.get(matrixBuffer));
         modelMatrix.invert(invModelMatrix);
         glUniformMatrix4fv(invModelUniform, false, invModelMatrix.get(matrixBuffer));
+        glUniform3f(sizeUniform, v.w, v.h, v.d);
         glDrawElements(GL_TRIANGLE_STRIP, 14, GL_UNSIGNED_SHORT, 0L);
     }
     private void loop() {
