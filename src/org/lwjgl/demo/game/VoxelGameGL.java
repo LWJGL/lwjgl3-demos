@@ -1046,19 +1046,6 @@ public class VoxelGameGL {
     }
 
     /**
-     * Determine the side (as a normal vector) at which the ray
-     * <code>(ox, oy, oz) + t * (dx, dy, dz)</code> enters the unit box with min coordinates
-     * <code>(x, y, z)</code>, and store the normal of that face into <code>off</code>.
-     */
-    private static void enterSide(float ox, float oy, float oz, float dx, float dy, float dz, int x, int y, int z, Vector3i off) {
-        float tMinx = (x - ox) / dx, tMiny = (y - oy) / dy, tMinz = (z - oz) / dz;
-        float tMaxx = (x + 1 - ox) / dx, tMaxy = (y + 1 - oy) / dy, tMaxz = (z + 1 - oz) / dz;
-        float t1x = min(tMinx, tMaxx), t1y = min(tMiny, tMaxy), t1z = min(tMinz, tMaxz);
-        float tNear = max(max(t1x, t1y), t1z);
-        off.set(tNear == t1x ? dx > 0 ? -1 : 1 : 0, tNear == t1y ? dy > 0 ? -1 : 1 : 0, tNear == t1z ? dz > 0 ? -1 : 1 : 0);
-    }
-
-    /**
      * Determine the voxel pointed to by a ray <code>(ox, oy, oz) + t * (dx, dy, dz)</code> and store
      * the position and side offset of that voxel (if any) into {@link #selectedVoxelPosition} and
      * {@link #sideOffset}, respectively.
@@ -1075,23 +1062,24 @@ public class VoxelGameGL {
         float big = 1E30f;
         int px = (int) floor(ox), py = (int) floor(oy), pz = (int) floor(oz);
         float dxi = 1f / dx, dyi = 1f / dy, dzi = 1f / dz;
-        float sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+        int sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
         float dtx = min(dxi * sx, big), dty = min(dyi * sy, big), dtz = min(dzi * sz, big);
         float tx = abs((px + max(sx, 0) - ox) * dxi), ty = abs((py + max(sy, 0) - oy) * dyi), tz = abs((pz + max(sz, 0) - oz) * dzi);
         int maxSteps = 16;
+        int cmpx=0, cmpy=0, cmpz=0;
         for (int i = 0; i < maxSteps && py >= 0; i++) {
             if (i > 0 && py < CHUNK_HEIGHT) {
                 if (load(px, py, pz) != 0) {
                     selectedVoxelPosition.set(px, py, pz);
-                    enterSide(ox, oy, oz, dx, dy, dz, px, py, pz, sideOffset);
+                    sideOffset.set(-cmpx*sx, -cmpy*sy, -cmpz*sz);
                     hasSelection = true;
                     return;
                 }
             }
             /* Advance to next voxel */
-            int cmpx = step(tx, tz) * step(tx, ty);
-            int cmpy = step(ty, tx) * step(ty, tz);
-            int cmpz = step(tz, ty) * step(tz, tx);
+            cmpx = step(tx, tz) * step(tx, ty);
+            cmpy = step(ty, tx) * step(ty, tz);
+            cmpz = step(tz, ty) * step(tz, tx);
             tx += dtx * cmpx;
             ty += dty * cmpy;
             tz += dtz * cmpz;
