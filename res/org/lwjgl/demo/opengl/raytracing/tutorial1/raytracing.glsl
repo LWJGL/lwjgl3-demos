@@ -23,7 +23,7 @@ uniform vec3 eye, ray00, ray01, ray10, ray11;
 
 /**
  * Describes an axis-aligned box by its minimum and maximum corner 
- * oordinates.
+ * coordinates.
  */
 struct box {
   vec3 min, max;
