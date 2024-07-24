@@ -1192,7 +1192,7 @@ public class VoxelChunks {
             // Create a scratch buffer for the BLAS build
             AllocationAndBuffer scratchBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
-                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, totalScratchBufferSize, null,
+                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, totalScratchBufferSize, null,
                     deviceAndQueueFamilies.minAccelerationStructureScratchOffsetAlignment, null);
 
             // Create the BLAS and fill in device addresses for the above two buffers with their offsets
