@@ -9,11 +9,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
-        <maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
-        <lwjgl.version>3.3.4-SNAPSHOT</lwjgl.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <lwjgl.version>3.3.4</lwjgl.version>
         <swt.maven.version>3.123.0</swt.maven.version> <!-- contains Eclipse SWT 4.958 software -->
-        <joml.version>1.10.6-SNAPSHOT</joml.version>
+        <joml.version>1.10.7</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
             is prepended automatically. -->
         <class>game.VoxelGameGL</class>
