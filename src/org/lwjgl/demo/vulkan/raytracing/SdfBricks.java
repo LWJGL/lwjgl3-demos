@@ -878,6 +878,7 @@ public class SdfBricks {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
+            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.calloc(stack);
             _CHECK_(vmaCreateBuffer(vmaAllocator,
                     VkBufferCreateInfo
                         .calloc(stack)
@@ -886,13 +887,10 @@ public class SdfBricks {
                         .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
                     VmaAllocationCreateInfo
                         .calloc(stack)
-                        .usage(VMA_MEMORY_USAGE_AUTO), pBuffer, pAllocation, null),
+                        .usage(VMA_MEMORY_USAGE_AUTO), pBuffer, pAllocation, pAllocationInfo),
                     "Failed to allocate buffer");
 
-            // validate alignment
-            VmaAllocationInfo ai = VmaAllocationInfo.create(pAllocation.get(0));
-            if ((ai.offset() % alignment) != 0)
-                throw new AssertionError("Illegal offset alignment");
+            validateAlignment(pAllocationInfo, alignment);
 
             // if we have data to upload, use a staging buffer
             if (data != null) {
