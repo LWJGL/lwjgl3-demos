@@ -883,7 +883,7 @@ public class ReflectiveMagicaVoxel {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
-            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.calloc(stack);
+            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
             _CHECK_(vmaCreateBuffer(vmaAllocator,
                     VkBufferCreateInfo
                         .calloc(stack)
