@@ -22,6 +22,7 @@ import java.util.*;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.*;
 import org.lwjgl.util.shaderc.*;
+import org.lwjgl.util.vma.VmaAllocationInfo;
 import org.lwjgl.vulkan.*;
 
 /**
@@ -230,5 +231,10 @@ public class VKUtil {
             pointerBuffer.put(i, addr + sizeof * i);
         }
         return pointerBuffer;
+    }
+
+    public static void validateAlignment(VmaAllocationInfo pAllocationInfo, long alignment) {
+        if ((pAllocationInfo.offset() % alignment) != 0)
+            throw new AssertionError("Illegal offset alignment");
     }
 }
