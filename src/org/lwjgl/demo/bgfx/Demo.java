@@ -84,45 +84,36 @@ abstract class Demo {
                 }
             });
 
-            BGFXPlatformData platformData = BGFXPlatformData.calloc(stack);
-
-            switch (Platform.get()) {
-                case LINUX:
-                    platformData.ndt(GLFWNativeX11.glfwGetX11Display());
-                    platformData.nwh(GLFWNativeX11.glfwGetX11Window(window));
-                    break;
-                case MACOSX:
-                    platformData.ndt(NULL);
-                    platformData.nwh(GLFWNativeCocoa.glfwGetCocoaWindow(window));
-                    break;
-                case WINDOWS:
-                    platformData.ndt(NULL);
-                    platformData.nwh(GLFWNativeWin32.glfwGetWin32Window(window));
-                    break;
-            }
-
-            platformData.context(NULL);
-            platformData.backBuffer(NULL);
-            platformData.backBufferDS(NULL);
-
-            bgfx_set_platform_data(platformData);
-
-            BGFXDemoUtil.reportSupportedRenderers();
-
             /* Initialize bgfx */
 
             BGFXInit init = BGFXInit.malloc(stack);
             bgfx_init_ctor(init);
             init
-                .type(renderer)
-                .vendorId(pciId)
-                .deviceId((short)0)
-                .callback(useCallbacks ? createCallbacks(stack) : null)
-                .allocator(useCustomAllocator ? createAllocator(stack) : null)
-                .resolution(it -> it
-                    .width(width)
-                    .height(height)
-                    .reset(reset));
+                    .type(renderer)
+                    .vendorId(pciId)
+                    .deviceId((short)0)
+                    .callback(useCallbacks ? createCallbacks(stack) : null)
+                    .allocator(useCustomAllocator ? createAllocator(stack) : null)
+                    .resolution(it -> it
+                            .width(width)
+                            .height(height));
+
+            switch (Platform.get()) {
+                case LINUX:
+                    init.platformData().ndt(GLFWNativeX11.glfwGetX11Display());
+                    init.platformData().nwh(GLFWNativeX11.glfwGetX11Window(window));
+                    break;
+                case MACOSX:
+                    init.platformData().ndt(NULL);
+                    init.platformData().nwh(GLFWNativeCocoa.glfwGetCocoaWindow(window));
+                    break;
+                case WINDOWS:
+                    init.platformData().ndt(NULL);
+                    init.platformData().nwh(GLFWNativeWin32.glfwGetWin32Window(window));
+                    break;
+            }
+
+            BGFXDemoUtil.reportSupportedRenderers();
 
             if (!bgfx_init(init)) {
                 throw new RuntimeException("Error initializing bgfx renderer");
