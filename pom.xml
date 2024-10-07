@@ -172,6 +172,30 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
             </plugin>
+            <!-- extract the LWJGL manifest file -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.lwjgl</groupId>
+                                    <artifactId>lwjgl</artifactId>
+                                    <version>${lwjgl.version}</version>
+                                    <outputDirectory>${project.build.directory}/tmp</outputDirectory>
+                                    <includes>META-INF/MANIFEST.MF</includes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>${maven-shade-plugin.version}</version>
@@ -194,15 +218,48 @@
                                 </filter>
                             </filters>
                             <transformers>
+                                <!-- exclude any other manifest files -->
                                 <transformer
-                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.lwjgl.demo.${class}</mainClass>
+                                    implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
+                                    <resource>MANIFEST.MF</resource>
+                                </transformer>
+                                <!-- include the LWJGL manifest file in the resultant uber jar -->
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>META-INF/MANIFEST.MF</resource>
+                                    <file>${project.build.directory}/tmp/META-INF/MANIFEST.MF</file>
                                 </transformer>
                             </transformers>
                             <finalName>lwjgl3-demos</finalName>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <target>
+                        <!-- add extra attributes to the shaded uber jar's manifest -->
+                        <jar destfile="${project.build.directory}/lwjgl3-demos.jar"
+                             update="true">
+                            <manifest>
+                                <attribute name="Ant-Version" value="${ant.version}"/>
+                                <attribute name="Created-By" value="Apache Maven ${maven.version}"/>
+                                <attribute name="Build-Jdk" value="${java.version}"/>
+                                <attribute name="Main-Class" value="org.lwjgl.demo.${class}"/>
+                            </manifest>
+                        </jar>
+                    </target>
+                </configuration>
             </plugin>
         </plugins>
     </build>
