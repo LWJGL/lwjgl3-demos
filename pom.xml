@@ -9,10 +9,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
-        <lwjgl.version>3.3.5-SNAPSHOT</lwjgl.version>
-        <swt.maven.version>3.127.0</swt.maven.version> <!-- contains Eclipse SWT 4.958 software -->
+        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <maven-shade-plugin.version>3.6.1</maven-shade-plugin.version>
+        <lwjgl.version>3.4.0-SNAPSHOT</lwjgl.version>
+        <swt.maven.version>3.131.0</swt.maven.version> <!-- contains Eclipse SWT 4.958 software -->
         <joml.version>1.10.8</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
             is prepended automatically. -->
@@ -86,28 +86,6 @@
             </properties>
         </profile>
         <profile>
-            <id>linux-x86</id>
-            <activation>
-                <os>
-                    <family>Linux</family>
-                    <arch>x86</arch>
-                </os>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.platform</groupId>
-                    <artifactId>org.eclipse.swt.gtk.linux.x86</artifactId>
-                    <version>${swt.maven.version}</version>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>org.eclipse.platform</groupId>
-                            <artifactId>org.eclipse.swt</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>linux-amd64</id>
             <activation>
                 <os>
@@ -130,10 +108,11 @@
             </dependencies>
         </profile>
         <profile>
-            <id>mac</id>
+            <id>mac-x86_64</id>
             <activation>
                 <os>
                     <family>Mac</family>
+                    <arch>x86_64</arch>
                 </os>
             </activation>
             <properties>
@@ -155,7 +134,38 @@
                     <groupId>org.lwjgl</groupId>
                     <artifactId>lwjgl-vulkan</artifactId>
                     <version>${lwjgl.version}</version>
-                    <classifier>natives-macos</classifier>
+                    <classifier>natives-${platform}</classifier>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>mac-arm64</id>
+            <activation>
+                <os>
+                    <family>Mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <platform>macos-arm64</platform>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.eclipse.platform</groupId>
+                    <artifactId>org.eclipse.swt.cocoa.macosx.aarch64</artifactId>
+                    <version>${swt.maven.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.eclipse.platform</groupId>
+                            <artifactId>org.eclipse.swt</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.lwjgl</groupId>
+                    <artifactId>lwjgl-vulkan</artifactId>
+                    <version>${lwjgl.version}</version>
+                    <classifier>natives-${platform}</classifier>
                 </dependency>
             </dependencies>
         </profile>
@@ -208,11 +218,10 @@
     </build>
     <repositories>
         <repository>
-            <id>oss.sonatype.org</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
+            <id>central-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <releases><enabled>false</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
         </repository>
     </repositories>
     <dependencies>
