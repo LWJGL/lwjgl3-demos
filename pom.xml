@@ -9,9 +9,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.6.1</maven-shade-plugin.version>
-        <lwjgl.version>3.4.0-SNAPSHOT</lwjgl.version>
+        <lwjgl.version>3.4.2-SNAPSHOT</lwjgl.version>
         <swt.maven.version>3.131.0</swt.maven.version> <!-- contains Eclipse SWT 4.958 software -->
         <joml.version>1.10.8</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
