@@ -128,7 +128,7 @@ abstract class Demo {
                 throw new RuntimeException("Error initializing bgfx renderer");
             }
 
-            format = init.resolution().format();
+            format = init.resolution().formatColor();
 
             if (renderer == BGFX_RENDERER_TYPE_COUNT) {
                 renderer = bgfx_get_renderer_type();
@@ -183,7 +183,7 @@ abstract class Demo {
 
                 frame((float) time, (float) (frameTime * toMs));
 
-                bgfx_frame(false);
+                bgfx_frame(BGFX_FRAME_NONE);
             }
 
             /* Shutdown */
@@ -302,7 +302,7 @@ abstract class Demo {
                 .cache_write((_this, _id, _data, _size) -> {
 
                 })
-                .screen_shot((_this, _filePath, _width, _height, _pitch, _data, _size, _yflip) -> {
+                .screen_shot((_this, _filePath, _width, _height, _pitch, _format, _data, _size, _yflip) -> {
 
                 })
                 .capture_begin((_this, _width, _height, _pitch, _format, _yflip) -> {
