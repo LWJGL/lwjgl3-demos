@@ -14,7 +14,7 @@ struct hitPayload
 };
 layout(location = 0) rayPayloadEXT hitPayload payload;
 layout(binding = 0, set = 0) uniform accelerationStructureEXT acc;
-layout(binding = 1, set = 0, rgba8) uniform image2D image;
+layout(binding = 1, set = 0) uniform writeonly image2D image;
 layout(binding = 2, set = 0) uniform Camera {
   vec3 corners[4];
   mat4 viewInverse;

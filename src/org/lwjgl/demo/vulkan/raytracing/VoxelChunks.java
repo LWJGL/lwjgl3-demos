@@ -70,6 +70,7 @@ public class VoxelChunks {
     private static final int CHUNK_HEIGHT = 256;
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
+        Configuration.STACK_SIZE.set(256);
         if (DEBUG) {
             // When we are in debug mode, enable all LWJGL debug flags
             Configuration.DEBUG.set(true);
@@ -487,7 +488,8 @@ public class VoxelChunks {
                 if (!bufferDeviceAddressFeatures.bufferDeviceAddress() ||
                     !rayTracingPipelineFeatures.rayTracingPipeline() ||
                     !accelerationStructureFeatures.accelerationStructure() ||
-                    !physicalDeviceFeatures2.features().shaderInt64())
+                    !physicalDeviceFeatures2.features().shaderInt64() ||
+                    !physicalDeviceFeatures2.features().shaderStorageImageWriteWithoutFormat())
                     continue;
 
                 // Check if the physical device supports the VK_FORMAT_R8G8B8_UNORM vertexFormat for acceleration structure geometry
@@ -558,7 +560,9 @@ public class VoxelChunks {
                     .pNext(VkPhysicalDeviceFeatures2KHR
                             .calloc(stack)
                             .sType$Default()
-                            .features(f -> f.shaderInt64(true)))
+                            .features(f -> f
+                                    .shaderInt64(true)
+                                    .shaderStorageImageWriteWithoutFormat(true)))
                     .pNext(VkPhysicalDeviceRayTracingPipelineFeaturesKHR
                             .calloc(stack)
                             .sType$Default()
@@ -669,7 +673,9 @@ public class VoxelChunks {
             IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
             _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
                     "Failed to get presentation modes");
-            int imageCount = min(max(pSurfaceCapabilities.minImageCount(), 2), pSurfaceCapabilities.maxImageCount());
+            int imageCount = max(pSurfaceCapabilities.minImageCount(), 2);
+            if (pSurfaceCapabilities.maxImageCount() > 0)
+                imageCount = min(imageCount, pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             LongBuffer pSwapchain = stack.mallocLong(1);
@@ -1534,7 +1540,7 @@ public class VoxelChunks {
     }
 
     private static RayTracingPipeline createRayTracingPipeline() throws IOException {
-        int numDescriptors = 6;
+        int numDescriptors = 5;
         try (MemoryStack stack = stackPush()) {
             LongBuffer pSetLayout = stack.mallocLong(1);
             // create the descriptor set layout
@@ -1566,11 +1572,6 @@ public class VoxelChunks {
                                         .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))
                                 .apply(dslb -> dslb
                                         .binding(4)
-                                        .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                                        .descriptorCount(1)
-                                        .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))
-                                .apply(dslb -> dslb
-                                        .binding(5)
                                         .descriptorType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                         .descriptorCount(1)
                                         .stageFlags(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR))

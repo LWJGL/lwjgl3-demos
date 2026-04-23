@@ -38,6 +38,7 @@ public class ClearScreenDemo {
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
+        Configuration.STACK_SIZE.set(256);
         if (DEBUG) {
             // When we are in debug mode, enable all LWJGL debug flags
             Configuration.DEBUG.set(true);
@@ -64,6 +65,7 @@ public class ClearScreenDemo {
     private static VkCommandBuffer[] rasterCommandBuffers;
     private static long[] imageAcquireSemaphores;
     private static long[] rasterCompleteSemaphores;
+    private static long[] imagesInFlight;
     private static long[] renderFences;
     private static long renderPass;
     private static long[] framebuffers;
@@ -457,7 +459,9 @@ public class ClearScreenDemo {
             IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
             _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
                     "Failed to get presentation modes");
-            int imageCount = min(max(pSurfaceCapabilities.minImageCount(), 2), pSurfaceCapabilities.maxImageCount());
+            int imageCount = max(pSurfaceCapabilities.minImageCount(), 2);
+            if (pSurfaceCapabilities.maxImageCount() > 0)
+                imageCount = min(imageCount, pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             LongBuffer pSwapchain = stack.mallocLong(1);
@@ -546,10 +550,26 @@ public class ClearScreenDemo {
         }
     }
 
+    private static void destroySyncObjects() {
+        if (imageAcquireSemaphores != null) {
+            for (long sem : imageAcquireSemaphores)
+                vkDestroySemaphore(device, sem, null);
+        }
+        if (rasterCompleteSemaphores != null) {
+            for (long sem : rasterCompleteSemaphores)
+                vkDestroySemaphore(device, sem, null);
+        }
+        if (renderFences != null) {
+            for (long fence : renderFences)
+                vkDestroyFence(device, fence, null);
+        }
+    }
+
     private static void createSyncObjects() {
         imageAcquireSemaphores = new long[swapchain.imageViews.length];
         rasterCompleteSemaphores = new long[swapchain.imageViews.length];
         renderFences = new long[swapchain.imageViews.length];
+        imagesInFlight = new long[swapchain.imageViews.length];
         for (int i = 0; i < swapchain.imageViews.length; i++) {
             try (MemoryStack stack = stackPush()) {
                 LongBuffer pSemaphore = stack.mallocLong(1);
@@ -594,6 +614,8 @@ public class ClearScreenDemo {
         swapchain = createSwapchain();
         framebuffers = createFramebuffers();
         rasterCommandBuffers = createRasterCommandBuffers();
+        destroySyncObjects();
+        createSyncObjects();
     }
 
     private static boolean submitAndPresent(int imageIndex, int idx) {
@@ -604,15 +626,15 @@ public class ClearScreenDemo {
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     // must wait before COLOR_ATTACHMENT_OUTPUT to output color values
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT))
-                    .pCommandBuffers(stack.pointers(rasterCommandBuffers[idx]))
+                    .pCommandBuffers(stack.pointers(rasterCommandBuffers[imageIndex]))
                     .waitSemaphoreCount(1)
-                    .pSignalSemaphores(stack.longs(rasterCompleteSemaphores[idx])),
+                    .pSignalSemaphores(stack.longs(rasterCompleteSemaphores[imageIndex])),
                     renderFences[idx]),
                     "Failed to submit raster command buffer");
             int result = vkQueuePresentKHR(queue, VkPresentInfoKHR
                     .calloc(stack)
                     .sType$Default()
-                    .pWaitSemaphores(stack.longs(rasterCompleteSemaphores[idx]))
+                    .pWaitSemaphores(stack.longs(rasterCompleteSemaphores[imageIndex]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
                     .pImageIndices(stack.ints(imageIndex)));
@@ -755,12 +777,18 @@ public class ClearScreenDemo {
                     idx = 0;
                 }
                 _CHECK_(vkWaitForFences(device, renderFences[idx], true, Long.MAX_VALUE), "Failed to wait for fence");
-                _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
                 if (!acquireSwapchainImage(pImageIndex, idx)) {
                     needRecreate = true;
                     continue;
                 }
-                needRecreate = !submitAndPresent(pImageIndex.get(0), idx);
+                int imageIndex = pImageIndex.get(0);
+                if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+                    _CHECK_(vkWaitForFences(device, imagesInFlight[imageIndex], true, Long.MAX_VALUE),
+                            "Failed to wait for image fence");
+                }
+                imagesInFlight[imageIndex] = renderFences[idx];
+                _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
+                needRecreate = !submitAndPresent(imageIndex, idx);
                 idx = (idx + 1) % swapchain.imageViews.length;
             }
         }
@@ -768,11 +796,7 @@ public class ClearScreenDemo {
 
     private static void destroy() {
         _CHECK_(vkDeviceWaitIdle(device), "Failed to wait for device idle");
-        for (int i = 0; i < swapchain.imageViews.length; i++) {
-            vkDestroySemaphore(device, imageAcquireSemaphores[i], null);
-            vkDestroySemaphore(device, rasterCompleteSemaphores[i], null);
-            vkDestroyFence(device, renderFences[i], null);
-        }
+        destroySyncObjects();
         for (long framebuffer : framebuffers)
             vkDestroyFramebuffer(device, framebuffer, null);
         vkDestroyRenderPass(device, renderPass, null);

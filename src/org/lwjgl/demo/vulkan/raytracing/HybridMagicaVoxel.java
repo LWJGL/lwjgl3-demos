@@ -52,6 +52,7 @@ public class HybridMagicaVoxel {
     private static final int POSITION_SCALE = 1 << BITS_FOR_POSITIONS;
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("debug", "true"));
     static {
+        Configuration.STACK_SIZE.set(256);
         if (DEBUG) {
             // When we are in debug mode, enable all LWJGL debug flags
             Configuration.DEBUG.set(true);
@@ -86,6 +87,7 @@ public class HybridMagicaVoxel {
     private static long[] rayTraceCompleteSemaphores;
     private static long[] rasterCompleteSemaphores;
     private static long[] renderFences;
+    private static long[] imagesInFlight;
     private static long queryPool;
     private static long renderPass;
     private static long[] framebuffers;
@@ -459,17 +461,19 @@ public class HybridMagicaVoxel {
                 VkPhysicalDeviceVulkan12Features vulkan12Features = VkPhysicalDeviceVulkan12Features
                         .malloc(stack)
                         .sType$Default();
-                vkGetPhysicalDeviceFeatures2(dev, VkPhysicalDeviceFeatures2
+                VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = VkPhysicalDeviceFeatures2
                         .calloc(stack)
                         .sType$Default()
                         .pNext(vulkan12Features)
                         .pNext(rayTracingPipelineFeatures)
-                        .pNext(accelerationStructureFeatures));
+                        .pNext(accelerationStructureFeatures);
+                vkGetPhysicalDeviceFeatures2(dev, physicalDeviceFeatures2);
 
                 // If any of the above is not supported, we continue with the next physical device
                 if (!vulkan12Features.bufferDeviceAddress() ||
                     !rayTracingPipelineFeatures.rayTracingPipeline() ||
-                    !accelerationStructureFeatures.accelerationStructure())
+                    !accelerationStructureFeatures.accelerationStructure() ||
+                    !physicalDeviceFeatures2.features().shaderStorageImageWriteWithoutFormat())
                     continue;
 
                 // Check if the physical device supports the VK_FORMAT_R16G16B16_UNORM vertexFormat for acceleration structure geometry
@@ -523,6 +527,10 @@ public class HybridMagicaVoxel {
             VkDeviceCreateInfo pCreateInfo = VkDeviceCreateInfo
                     .calloc(stack)
                     .sType$Default()
+                    .pNext(VkPhysicalDeviceFeatures2
+                            .calloc(stack)
+                            .sType$Default()
+                            .features(f -> f.shaderStorageImageWriteWithoutFormat(true)))
                     .pNext(VkPhysicalDeviceVulkan12Features
                             .calloc(stack)
                             .sType$Default()
@@ -629,7 +637,9 @@ public class HybridMagicaVoxel {
             IntBuffer pPresentModes = stack.mallocInt(presentModeCount);
             _CHECK_(vkGetPhysicalDeviceSurfacePresentModesKHR(deviceAndQueueFamilies.physicalDevice, surface, pPresentModeCount, pPresentModes),
                     "Failed to get presentation modes");
-            int imageCount = min(max(pSurfaceCapabilities.minImageCount(), 2), pSurfaceCapabilities.maxImageCount());
+            int imageCount = max(pSurfaceCapabilities.minImageCount(), 2);
+            if (pSurfaceCapabilities.maxImageCount() > 0)
+                imageCount = min(imageCount, pSurfaceCapabilities.maxImageCount());
             ColorFormatAndSpace surfaceFormat = determineSurfaceFormat(deviceAndQueueFamilies.physicalDevice, surface);
             Vector2i swapchainExtents = determineSwapchainExtents(pSurfaceCapabilities);
             LongBuffer pSwapchain = stack.mallocLong(1);
@@ -881,11 +891,31 @@ public class HybridMagicaVoxel {
         }
     }
 
+    private static void destroySyncObjects() {
+        if (imageAcquireSemaphores != null) {
+            for (long sem : imageAcquireSemaphores)
+                vkDestroySemaphore(device, sem, null);
+        }
+        if (rasterCompleteSemaphores != null) {
+            for (long sem : rasterCompleteSemaphores)
+                vkDestroySemaphore(device, sem, null);
+        }
+        if (rayTraceCompleteSemaphores != null) {
+            for (long sem : rayTraceCompleteSemaphores)
+                vkDestroySemaphore(device, sem, null);
+        }
+        if (renderFences != null) {
+            for (long fence : renderFences)
+                vkDestroyFence(device, fence, null);
+        }
+    }
+
     private static void createSyncObjects() {
         imageAcquireSemaphores = new long[swapchain.imageViews.length];
         rasterCompleteSemaphores = new long[swapchain.imageViews.length];
         rayTraceCompleteSemaphores = new long[swapchain.imageViews.length];
         renderFences = new long[swapchain.imageViews.length];
+        imagesInFlight = new long[swapchain.imageViews.length];
         for (int i = 0; i < swapchain.imageViews.length; i++) {
             try (MemoryStack stack = stackPush()) {
                 LongBuffer pSemaphore = stack.mallocLong(1);
@@ -938,6 +968,8 @@ public class HybridMagicaVoxel {
         framebuffers = createFramebuffers();
         rayTracingCommandBuffers = createRayTracingCommandBuffers();
         rasterCommandBuffers = createRasterCommandBuffers();
+        destroySyncObjects();
+        createSyncObjects();
     }
 
     private static void processFinishedFences() {
@@ -960,25 +992,25 @@ public class HybridMagicaVoxel {
                     .pWaitSemaphores(stack.longs(imageAcquireSemaphores[idx]))
                     // must wait before COLOR_ATTACHMENT_OUTPUT to output color values
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT))
-                    .pCommandBuffers(stack.pointers(rasterCommandBuffers[idx]))
+                    .pCommandBuffers(stack.pointers(rasterCommandBuffers[imageIndex]))
                     .waitSemaphoreCount(1)
-                    .pSignalSemaphores(stack.longs(rasterCompleteSemaphores[idx])),
+                    .pSignalSemaphores(stack.longs(rasterCompleteSemaphores[imageIndex])),
                     VK_NULL_HANDLE),
                     "Failed to submit raster command buffer");
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
                     .calloc(stack)
                     .sType$Default()
-                    .pWaitSemaphores(stack.longs(rasterCompleteSemaphores[idx]))
+                    .pWaitSemaphores(stack.longs(rasterCompleteSemaphores[imageIndex]))
                     .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR))
-                    .pCommandBuffers(stack.pointers(rayTracingCommandBuffers[idx]))
+                    .pCommandBuffers(stack.pointers(rayTracingCommandBuffers[imageIndex]))
                     .waitSemaphoreCount(1)
-                    .pSignalSemaphores(stack.longs(rayTraceCompleteSemaphores[idx])),
+                    .pSignalSemaphores(stack.longs(rayTraceCompleteSemaphores[imageIndex])),
                     renderFences[idx]),
                     "Failed to submit ray tracing command buffer");
             int result = vkQueuePresentKHR(queue, VkPresentInfoKHR
                     .calloc(stack)
                     .sType$Default()
-                    .pWaitSemaphores(stack.longs(rayTraceCompleteSemaphores[idx]))
+                    .pWaitSemaphores(stack.longs(rayTraceCompleteSemaphores[imageIndex]))
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(swapchain.swapchain))
                     .pImageIndices(stack.ints(imageIndex)));
@@ -2409,14 +2441,20 @@ public class HybridMagicaVoxel {
                     idx = 0;
                 }
                 _CHECK_(vkWaitForFences(device, renderFences[idx], true, Long.MAX_VALUE), "Failed to wait for fence");
-                _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
                 update(dt);
-                updateUniformBufferObject(idx);
                 if (!acquireSwapchainImage(pImageIndex, idx)) {
                     needRecreate = true;
                     continue;
                 }
-                needRecreate = !submitAndPresent(pImageIndex.get(0), idx);
+                int imageIndex = pImageIndex.get(0);
+                if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+                    _CHECK_(vkWaitForFences(device, imagesInFlight[imageIndex], true, Long.MAX_VALUE),
+                            "Failed to wait for image fence");
+                }
+                imagesInFlight[imageIndex] = renderFences[idx];
+                _CHECK_(vkResetFences(device, renderFences[idx]), "Failed to reset fence");
+                updateUniformBufferObject(imageIndex);
+                needRecreate = !submitAndPresent(imageIndex, idx);
                 processFinishedFences();
                 idx = (idx + 1) % swapchain.imageViews.length;
             }
@@ -2435,12 +2473,7 @@ public class HybridMagicaVoxel {
         blas.free();
         materialsBuffer.free();
         geometry.free();
-        for (int i = 0; i < swapchain.imageViews.length; i++) {
-            vkDestroySemaphore(device, imageAcquireSemaphores[i], null);
-            vkDestroySemaphore(device, rasterCompleteSemaphores[i], null);
-            vkDestroySemaphore(device, rayTraceCompleteSemaphores[i], null);
-            vkDestroyFence(device, renderFences[i], null);
-        }
+        destroySyncObjects();
         for (long framebuffer : framebuffers)
             vkDestroyFramebuffer(device, framebuffer, null);
         vkDestroyRenderPass(device, renderPass, null);
