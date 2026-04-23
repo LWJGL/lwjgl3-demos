@@ -28,7 +28,7 @@ public class FreeCameraDemo {
     private long window;
     private int width = 1200;
     private int height = 800;
-    private int mouseX, mouseY;
+    private double mouseX, mouseY;
     private boolean viewing;
 
     private final Matrix4f mat = new Matrix4f();
@@ -63,12 +63,12 @@ public class FreeCameraDemo {
         });
         glfwSetCursorPosCallback(window, (long window2, double xpos, double ypos) -> {
             if (viewing) {
-                float deltaX = (float) xpos - mouseX;
-                float deltaY = (float) ypos - mouseY;
+                float deltaX = (float) (xpos - mouseX);
+                float deltaY = (float) (ypos - mouseY);
                 orientation.rotateLocalX(deltaY * 0.01f).rotateLocalY(deltaX * 0.01f);
             }
-            mouseX = (int) xpos;
-            mouseY = (int) ypos;
+            mouseX = xpos;
+            mouseY = ypos;
         });
         glfwSetMouseButtonCallback(window, (long window4, int button, int action, int mods) -> {
             if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {

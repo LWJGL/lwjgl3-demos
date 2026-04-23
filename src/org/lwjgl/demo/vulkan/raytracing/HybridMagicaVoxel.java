@@ -114,17 +114,17 @@ public class HybridMagicaVoxel {
     private static final Material[] materials = new Material[256];
     private static final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private static boolean mouseDown;
-    private static int mouseX, mouseY;
+    private static double mouseX, mouseY;
 
     private static void onCursorPos(long window, double x, double y) {
         if (mouseDown) {
-            float deltaX = (float) x - mouseX;
-            float deltaY = (float) y - mouseY;
+            float deltaX = (float) (x - mouseX);
+            float deltaY = (float) (y - mouseY);
             cameraRotationY += deltaX * 0.001f;
             cameraRotationX += deltaY * 0.001f;
         }
-        mouseX = (int) x;
-        mouseY = (int) y;
+        mouseX = x;
+        mouseY = y;
     }
 
     private static void onKey(long window, int key, int scancode, int action, int mods) {

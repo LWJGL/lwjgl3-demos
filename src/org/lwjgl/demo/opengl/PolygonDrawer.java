@@ -38,7 +38,7 @@ public class PolygonDrawer {
     int height = 600;
     int fbWidth = 800;
     int fbHeight = 600;
-    int x, y;
+    double x, y;
     boolean down;
     float[] verticesXY = new float[1024 * 1024];
     int[] polygons = new int[0];
@@ -160,17 +160,17 @@ public class PolygonDrawer {
         glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
             @Override
             public void invoke(long window, double xpos, double ypos) {
-                x = (int) xpos;
-                y = (int) ypos;
+                x = xpos;
+                y = ypos;
                 if (down) {
-                    verticesXY[2 * num + 0] = x;
-                    verticesXY[2 * num + 1] = y;
+                    verticesXY[2 * num + 0] = (float) x;
+                    verticesXY[2 * num + 1] = (float) y;
                     num++;
                     updateStats();
                 } else {
                     if (pointIntersection != null) {
                         long time1 = System.nanoTime();
-                        inside = pointIntersection.testPoint(x, y, hitPolygons);
+                        inside = pointIntersection.testPoint((float) x, (float) y, hitPolygons);
                         if (inside) {
                             hitPolygonIndex = hitPolygons.nextSetBit(0);
                         }

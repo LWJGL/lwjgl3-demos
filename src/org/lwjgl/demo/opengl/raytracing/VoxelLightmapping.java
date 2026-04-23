@@ -79,17 +79,17 @@ public class VoxelLightmapping {
     private float lod;
     private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
     private boolean mouseDown;
-    private int mouseX, mouseY;
+    private double mouseX, mouseY;
 
     private void onCursorPos(long window, double x, double y) {
         if (mouseDown) {
-            float deltaX = (float) x - mouseX;
-            float deltaY = (float) y - mouseY;
+            float deltaX = (float) (x - mouseX);
+            float deltaY = (float) (y - mouseY);
             vMat.rotateLocalY(deltaX * 0.01f);
             vMat.rotateLocalX(deltaY * 0.01f);
         }
-        mouseX = (int) x;
-        mouseY = (int) y;
+        mouseX = x;
+        mouseY = y;
     }
 
     private void onKey(long window, int key, int scancode, int action, int mods) {

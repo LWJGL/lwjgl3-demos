@@ -32,7 +32,7 @@ public class ArcballCameraDemo {
     private long window;
     private int width = 1200;
     private int height = 800;
-    private int mouseX, mouseY;
+    private double mouseX, mouseY;
     private boolean dragging, viewing;
 
     private Vector3f dragStartWorldPos = new Vector3f();
@@ -242,14 +242,14 @@ public class ArcballCameraDemo {
             drag(xpos, ypos);
         else if (viewing)
             rotate(xpos, ypos);
-        mouseX = (int) xpos;
-        mouseY = (int) ypos;
+        mouseX = xpos;
+        mouseY = ypos;
     }
 
     private void dragBegin() {
         dragging = true;
         // find "picked" point on the grid
-        vpMat.unprojectRay(mouseX, height - mouseY, new int[] {0, 0, width, height}, dragRayOrigin, dragRayDir);
+        vpMat.unprojectRay((float) mouseX, (float) (height - mouseY), new int[] {0, 0, width, height}, dragRayOrigin, dragRayDir);
         float t = intersectRayPlane(dragRayOrigin, dragRayDir, new Vector3f(), new Vector3f(0, dragRayOrigin.y > 0 ? 1 : -1, 0), 1E-5f);
         dragStartWorldPos.set(dragRayDir).mul(t).add(dragRayOrigin);
         vMat.positiveZ(dragCamNormal);
@@ -266,8 +266,8 @@ public class ArcballCameraDemo {
     }
 
     private void rotate(double xpos, double ypos) {
-        float deltaX = (float) xpos - mouseX;
-        float deltaY = (float) ypos - mouseY;
+        float deltaX = (float) (xpos - mouseX);
+        float deltaY = (float) (ypos - mouseY);
         xAngle += deltaY * 0.005f;
         yAngle += deltaX * 0.005f;
     }

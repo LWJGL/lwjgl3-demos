@@ -42,7 +42,7 @@ public class PolygonDrawer2 {
     int height = 600;
     int fbWidth = 800;
     int fbHeight = 600;
-    int x, y;
+    double x, y;
     boolean down;
     float[] verticesXY = new float[1024 * 1024];
     int[] polygons = new int[0];
@@ -80,7 +80,7 @@ public class PolygonDrawer2 {
     void intersect() {
         if (pointIntersection != null) {
             long time1 = System.nanoTime();
-            transformationInv.transformPosition(p.set(x, y, 0));
+            transformationInv.transformPosition(p.set((float) x, (float) y, 0));
             inside = pointIntersection.testPoint(p.x, p.y, hitPolygons);
             if (inside) {
                 hitPolygonIndex = hitPolygons.nextSetBit(0);
@@ -138,9 +138,9 @@ public class PolygonDrawer2 {
         glfwSetCursorPosCallback(window, cpCallback = new GLFWCursorPosCallback() {
             @Override
             public void invoke(long window, double xpos, double ypos) {
-                x = (int) xpos;
-                y = (int) ypos;
-                transformationInv.transformPosition(p.set(x, y, 0));
+                x = xpos;
+                y = ypos;
+                transformationInv.transformPosition(p.set((float) x, (float) y, 0));
                 if (down) {
                     verticesXY[2 * num + 0] = p.x;
                     verticesXY[2 * num + 1] = p.y;

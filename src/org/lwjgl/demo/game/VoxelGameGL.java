@@ -803,7 +803,7 @@ public class VoxelGameGL {
     private int fbo, colorRbo, depthRbo;
 
     private final boolean[] keydown = new boolean[GLFW_KEY_LAST + 1];
-    private int mouseX, mouseY;
+    private double mouseX, mouseY;
     private final Vector3f tmpv3f = new Vector3f();
     private final Vector4f tmpv4f = new Vector4f();
     private boolean jumping;
@@ -912,14 +912,14 @@ public class VoxelGameGL {
      */
     private void onCursorPos(long window, double x, double y) {
         if (!firstCursorPos) {
-            float deltaX = (float) x - mouseX;
-            float deltaY = (float) y - mouseY;
+            float deltaX = (float) (x - mouseX);
+            float deltaY = (float) (y - mouseY);
             dangx += deltaY;
             dangy += deltaX;
         }
         firstCursorPos = false;
-        mouseX = (int) x;
-        mouseY = (int) y;
+        mouseX = x;
+        mouseY = y;
     }
 
     /**
