@@ -4,7 +4,8 @@
 /nbproject/
 /target/
 /bin/
-/.idea/
+/.idea/*
+!/.idea/runConfigurations/
 /out/
 /.classpath
 /.project

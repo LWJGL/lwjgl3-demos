@@ -11,6 +11,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
         <lwjgl.version>3.4.2-SNAPSHOT</lwjgl.version>
         <swt.maven.version>3.131.0</swt.maven.version> <!-- contains Eclipse SWT 4.958 software -->
         <joml.version>1.10.8</joml.version>
@@ -181,6 +182,21 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>--sun-misc-unsafe-memory-access=allow</argument>
+                        <argument>--enable-native-access=ALL-UNNAMED</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>org.lwjgl.demo.${class}</argument>
+                    </arguments>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
