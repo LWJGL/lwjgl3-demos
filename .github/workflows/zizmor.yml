@@ -1,0 +1,36 @@
+name: GitHub Actions Security Analysis
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+    - name: Set up uv
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+    - name: Run zizmor
+      run: uvx zizmor --format=sarif . > results.sarif
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload SARIF file
+      if: ${{ !cancelled() }}
+      uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
+      with:
+        sarif_file: results.sarif
+        category: zizmor
