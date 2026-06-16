@@ -14,7 +14,7 @@
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
         <lwjgl.version>3.4.2-SNAPSHOT</lwjgl.version>
         <swt.maven.version>3.131.0</swt.maven.version> <!-- 3.132.0+ requires Java 21 -->
-        <joml.version>1.10.9-SNAPSHOT</joml.version>
+        <joml.version>1.10.9</joml.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
             is prepended automatically. -->
         <class>game.VoxelGameGL</class>
