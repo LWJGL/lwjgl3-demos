@@ -16,8 +16,9 @@ import static org.lwjgl.util.par.ParShapes.*;
 import java.io.IOException;
 import java.nio.*;
 
+import org.joml2.*;
+import org.joml2.Math;
 import org.joml.*;
-import org.joml.Math;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -149,10 +150,10 @@ public class Planet {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, texW, texH, 0, GL_RED, GL_FLOAT, fb);
 
-        Matrix4f viewProj = new Matrix4f();
-        Matrix4x3f planetTransform = new Matrix4x3f();
-        Matrix4x3f cloudTransform = new Matrix4x3f();
-        Matrix4x3f cloudDirTransform = new Matrix4x3f();
+        Float4x4 viewProj;
+        Float3x4 planetTransform;
+        Float3x4 cloudTransform;
+        Float3x4 cloudDirTransform;
         float angle = 0.0f;
         long lastTime = System.nanoTime();
 
@@ -167,27 +168,25 @@ public class Planet {
             glViewport(0, 0, width, height);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            viewProj
-              .setPerspective(
-                    (float) Math.toRadians(43.0f),
+            viewProj = Float4x4.makePerspective(
+                            Math.toRadians(43.0f),
                     (float) width / height, 0.1f, 100.0f)
               .lookAt(0, 0.5f, 3,
                       0, 0, 0,
                       0, 1, 0);
-            planetTransform.rotationY(angle * (float) Math.toRadians(10));
-            cloudTransform
-              .rotationY(angle * 2.0f * (float) Math.toRadians(10));
-            planetTransform.invert(cloudDirTransform).mul(cloudTransform, cloudDirTransform);
+            planetTransform = Float3x4.makeRotationY(angle * Math.toRadians(10));
+            cloudTransform = Float3x4.makeRotationY(angle * 2.0f * Math.toRadians(10));
+            cloudDirTransform = planetTransform.invert().mul(cloudTransform);
 
             try (MemoryStack stack = stackPush()) {
-                glUniformMatrix4fv(viewProjUniform, false, viewProj.get(stack.mallocFloat(16)));
+                glUniformMatrix4fv(viewProjUniform, false, viewProj.storeCM(stack.mallocFloat(16)));
             }
 
             // Render planet
             glEnable(GL_CULL_FACE);
             glUniform1i(cloudsUniform, 0);
             try (MemoryStack stack = stackPush()) {
-                glUniformMatrix4fv(transformUniform, false, planetTransform.get4x4(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformUniform, false, planetTransform.storeCM4x4(stack.mallocFloat(16)));
             }
             glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0L);
 
@@ -195,8 +194,8 @@ public class Planet {
             glDisable(GL_CULL_FACE);
             glUniform1i(cloudsUniform, 1);
             try (MemoryStack stack = stackPush()) {
-                glUniformMatrix4fv(transformUniform, false, cloudTransform.get4x4(stack.mallocFloat(16)));
-                glUniformMatrix4fv(transformDirUniform, false, cloudDirTransform.get4x4(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformUniform, false, cloudTransform.storeCM4x4(stack.mallocFloat(16)));
+                glUniformMatrix4fv(transformDirUniform, false, cloudDirTransform.storeCM4x4(stack.mallocFloat(16)));
             }
             glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0L);
             glfwSwapBuffers(window);

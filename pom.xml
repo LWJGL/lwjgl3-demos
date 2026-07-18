@@ -7,14 +7,15 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
         <lwjgl.version>3.4.3-SNAPSHOT</lwjgl.version>
         <swt.maven.version>3.131.0</swt.maven.version> <!-- 3.132.0+ requires Java 21 -->
-        <joml.version>1.10.9</joml.version>
+        <joml.version>1.10.10-SNAPSHOT</joml.version>
+        <joml2.version>1.0.0-SNAPSHOT</joml2.version>
         <!-- Can be overwritten via -D property during mvn invoke to specify a different demo. The package "org.lwjgl.demo." 
             is prepended automatically. -->
         <class>game.VoxelGameGL</class>
@@ -245,6 +246,11 @@
             <groupId>org.joml</groupId>
             <artifactId>joml</artifactId>
             <version>${joml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.joml</groupId>
+            <artifactId>joml2-records-jdk17</artifactId>
+            <version>${joml2.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
