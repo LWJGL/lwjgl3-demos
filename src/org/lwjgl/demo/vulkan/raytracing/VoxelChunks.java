@@ -920,20 +920,36 @@ public class VoxelChunks {
         try (MemoryStack stack = stackPush()) {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
-            PointerBuffer pAllocation = stack.mallocPointer(1);
-            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
-            _CHECK_(vmaCreateBuffer(vmaAllocator,
-                    VkBufferCreateInfo
+            _CHECK_(vkCreateBuffer(device, VkBufferCreateInfo
                         .calloc(stack)
                         .sType$Default()
                         .size(size)
-                        .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
-                    VmaAllocationCreateInfo
-                        .calloc(stack)
-                        .usage(VMA_MEMORY_USAGE_AUTO), pBuffer, pAllocation, pAllocationInfo),
-                    "Failed to allocate buffer");
+                        .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)), null, pBuffer),
+                    "Failed to create buffer");
 
-            validateAlignment(pAllocationInfo, alignment);
+            // The Vulkan spec states its alignment requirements (for shader binding tables, acceleration
+            // structure build inputs and scratch buffers) on the buffer's _device address_, whereas
+            // vkGetBufferMemoryRequirements() only reports the alignment the implementation itself needs in
+            // order to bind the buffer. Those two need not agree, so raise the reported alignment to what the
+            // spec demands of us and let the allocator place the allocation accordingly. Merely _checking_
+            // the alignment afterwards would not work, because a suballocating allocator is free to use any
+            // offset that satisfies the reported memory requirements.
+            VkMemoryRequirements memoryRequirements = VkMemoryRequirements.malloc(stack);
+            vkGetBufferMemoryRequirements(device, pBuffer.get(0), memoryRequirements);
+            if (memoryRequirements.alignment() < alignment)
+                memoryRequirements.alignment(alignment);
+
+            // Allocate the memory and bind the buffer to it. VMA_MEMORY_USAGE_AUTO cannot be used here,
+            // because vmaAllocateMemory() does not get to see the buffer's usage flags, so ask for
+            // device-local memory explicitly - which is what AUTO would have picked for these GPU-only
+            // buffers as well.
+            PointerBuffer pAllocation = stack.mallocPointer(1);
+            _CHECK_(vmaAllocateMemory(vmaAllocator, memoryRequirements, VmaAllocationCreateInfo
+                        .calloc(stack)
+                        .requiredFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), pAllocation, null),
+                    "Failed to allocate buffer memory");
+            _CHECK_(vmaBindBufferMemory(vmaAllocator, pAllocation.get(0), pBuffer.get(0)),
+                    "Failed to bind buffer memory");
 
             // if we have data to upload, use a staging buffer
             if (data != null) {
@@ -1022,12 +1038,14 @@ public class VoxelChunks {
         AllocationAndBuffer positionsBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, positionsAndTypes, Integer.BYTES, null);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, positionsAndTypes,
+                16, null); // <- default buffer_reference_align of GL_EXT_buffer_reference
         memFree(positionsAndTypes);
         AllocationAndBuffer indicesBuffer = createBuffer(
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, indices, Integer.BYTES, null);
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, indices,
+                16, null); // <- default buffer_reference_align of GL_EXT_buffer_reference
         memFree(indices);
 
         Chunk chunk = new Chunk();
@@ -1152,7 +1170,8 @@ public class VoxelChunks {
                                                 .vertexFormat(VK_FORMAT_R8G8B8_UNORM)
                                                 .vertexData(deviceAddressConst(stack, chunk.positions.buffer, 0L, Integer.BYTES))
                                                 .vertexStride(Integer.BYTES)
-                                                .maxVertex(chunk.numFaces * VERTICES_PER_FACE)
+                                                // maxVertex is the number of vertices minus one
+                                                .maxVertex(chunk.numFaces * VERTICES_PER_FACE - 1)
                                                 .indexType(VK_INDEX_TYPE_UINT32)
                                                 .indexData(deviceAddressConst(stack, chunk.indices.buffer, 0L, Integer.BYTES))))
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR));
@@ -1191,7 +1210,9 @@ public class VoxelChunks {
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, totalAccelerationStructureSize,
                     null,
-                    256, // <- VUID-VkAccelerationStructureCreateInfoKHR-offset-03734
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure offsets _within_ this buffer (rounded up to 256 above), not its own memory
+                    1,
                     null);
             // Create a scratch buffer for the BLAS build
             AllocationAndBuffer scratchBuffer = createBuffer(
@@ -1299,7 +1320,9 @@ public class VoxelChunks {
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
                     totalCompactedSizes,
                     null,
-                    256, // <- VUID-VkAccelerationStructureCreateInfoKHR-offset-03734
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure offsets _within_ this buffer (rounded up to 256 above), not its own memory
+                    1,
                     null);
             Rc<AllocationAndBuffer> accelerationStructuresCompactedBufferRc = new Rc<>(accelerationStructuresCompactedBuffer);
 
@@ -1461,7 +1484,9 @@ public class VoxelChunks {
             // Create a buffer that will hold the final TLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
-                    256, // <- VUID-VkAccelerationStructureCreateInfoKHR-offset-03734
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure's offset _within_ this buffer (0 here), not the buffer's own memory
+                    1,
                     null);
 
             // Create a TLAS object (not currently built)
@@ -2073,8 +2098,10 @@ public class VoxelChunks {
         try (MemoryStack stack = stackPush()) {
             ByteBuffer instancesDescs = stack.malloc(2 * Long.BYTES * chunks.size());
             for (Chunk c : chunks) {
-                instancesDescs.putLong(bufferAddress(c.positions.buffer, Long.BYTES));
-                instancesDescs.putLong(bufferAddress(c.indices.buffer, Long.BYTES));
+                // the shader dereferences these addresses via GL_EXT_buffer_reference, whose default
+                // buffer_reference_align is 16
+                instancesDescs.putLong(bufferAddress(c.positions.buffer, 16));
+                instancesDescs.putLong(bufferAddress(c.indices.buffer, 16));
             }
             instancesDescs.rewind();
             instancesDescsBuffer = createBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, instancesDescs, Long.BYTES, null);

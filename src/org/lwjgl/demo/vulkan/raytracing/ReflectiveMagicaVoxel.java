@@ -919,20 +919,36 @@ public class ReflectiveMagicaVoxel {
         try (MemoryStack stack = stackPush()) {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
-            PointerBuffer pAllocation = stack.mallocPointer(1);
-            VmaAllocationInfo pAllocationInfo = VmaAllocationInfo.malloc(stack);
-            _CHECK_(vmaCreateBuffer(vmaAllocator,
-                    VkBufferCreateInfo
+            _CHECK_(vkCreateBuffer(device, VkBufferCreateInfo
                         .calloc(stack)
                         .sType$Default()
                         .size(size)
-                        .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)),
-                    VmaAllocationCreateInfo
-                        .calloc(stack)
-                        .usage(VMA_MEMORY_USAGE_AUTO), pBuffer, pAllocation, pAllocationInfo),
-                    "Failed to allocate buffer");
+                        .usage(usageFlags | (data != null ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)), null, pBuffer),
+                    "Failed to create buffer");
 
-            validateAlignment(pAllocationInfo, alignment);
+            // The Vulkan spec states its alignment requirements (for shader binding tables, acceleration
+            // structure build inputs and scratch buffers) on the buffer's _device address_, whereas
+            // vkGetBufferMemoryRequirements() only reports the alignment the implementation itself needs in
+            // order to bind the buffer. Those two need not agree, so raise the reported alignment to what the
+            // spec demands of us and let the allocator place the allocation accordingly. Merely _checking_
+            // the alignment afterwards would not work, because a suballocating allocator is free to use any
+            // offset that satisfies the reported memory requirements.
+            VkMemoryRequirements memoryRequirements = VkMemoryRequirements.malloc(stack);
+            vkGetBufferMemoryRequirements(device, pBuffer.get(0), memoryRequirements);
+            if (memoryRequirements.alignment() < alignment)
+                memoryRequirements.alignment(alignment);
+
+            // Allocate the memory and bind the buffer to it. VMA_MEMORY_USAGE_AUTO cannot be used here,
+            // because vmaAllocateMemory() does not get to see the buffer's usage flags, so ask for
+            // device-local memory explicitly - which is what AUTO would have picked for these GPU-only
+            // buffers as well.
+            PointerBuffer pAllocation = stack.mallocPointer(1);
+            _CHECK_(vmaAllocateMemory(vmaAllocator, memoryRequirements, VmaAllocationCreateInfo
+                        .calloc(stack)
+                        .requiredFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), pAllocation, null),
+                    "Failed to allocate buffer memory");
+            _CHECK_(vmaBindBufferMemory(vmaAllocator, pAllocation.get(0), pBuffer.get(0)),
+                    "Failed to bind buffer memory");
 
             // if we have data to upload, use a staging buffer
             if (data != null) {
@@ -1103,7 +1119,8 @@ public class ReflectiveMagicaVoxel {
                                                 .vertexFormat(VK_FORMAT_R16G16B16_UNORM)
                                                 .vertexData(deviceAddressConst(stack, geometry.positions.buffer, Short.BYTES))
                                                 .vertexStride(4 * Short.BYTES)
-                                                .maxVertex(geometry.numFaces * VERTICES_PER_FACE)
+                                                // maxVertex is the number of vertices minus one
+                                                .maxVertex(geometry.numFaces * VERTICES_PER_FACE - 1)
                                                 .indexType(VK_INDEX_TYPE_UINT16)
                                                 .indexData(deviceAddressConst(stack, geometry.indices.buffer, Short.BYTES))))
                                 .flags(VK_GEOMETRY_OPAQUE_BIT_KHR));
@@ -1123,7 +1140,9 @@ public class ReflectiveMagicaVoxel {
             // Create a buffer that will hold the final BLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(),
-                    null, 256, null);
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure's offset _within_ this buffer (0 here), not the buffer's own memory
+                    null, 1, null);
 
             // Create a BLAS object (not currently built)
             LongBuffer pAccelerationStructure = stack.mallocLong(1);
@@ -1207,7 +1226,9 @@ public class ReflectiveMagicaVoxel {
             AllocationAndBuffer accelerationStructureCompactedBuffer = createBuffer(
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR |
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
-                    compactedSize.get(0), null, 256, null);
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure's offset _within_ this buffer (0 here), not the buffer's own memory
+                    compactedSize.get(0), null, 1, null);
 
             // create compacted acceleration structure
             LongBuffer pAccelerationStructureCompacted = stack.mallocLong(1);
@@ -1321,7 +1342,9 @@ public class ReflectiveMagicaVoxel {
             // Create a buffer that will hold the final TLAS
             AllocationAndBuffer accelerationStructureBuffer = createBuffer(
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, buildSizesInfo.accelerationStructureSize(), null,
-                    256,
+                    // VUID-VkAccelerationStructureCreateInfoKHR-offset-03734 constrains the acceleration
+                    // structure's offset _within_ this buffer (0 here), not the buffer's own memory
+                    1,
                     null);
 
             // Create a TLAS object (not currently built)
