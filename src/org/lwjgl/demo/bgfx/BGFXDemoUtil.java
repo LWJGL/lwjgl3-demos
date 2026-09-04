@@ -187,7 +187,7 @@ final class BGFXDemoUtil {
         return bgfx_create_shader(bgfx_make_ref_release(shaderCode, releaseMemoryCb, NULL));
     }
 
-    static short loadShader(char[] shaderCodeGLSL, char[] shaderCodeD3D9, char[] shaderCodeD3D11, char[] shaderCodeMtl) throws IOException {
+    static short loadShader(char[] shaderCodeGLSL, char[] shaderCodeD3D11, char[] shaderCodeMtl) throws IOException {
         char[] sc;
 
         switch (renderer) {
