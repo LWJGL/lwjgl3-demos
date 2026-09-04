@@ -563,10 +563,11 @@ public class HybridMagicaVoxel {
             _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, null),
                     "Failed to get number of device extensions");
             int propertyCount = pPropertyCount.get(0);
-            VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount, stack);
-            _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer) null, pPropertyCount, pProperties),
+            try(VkExtensionProperties.Buffer pProperties = VkExtensionProperties.malloc(propertyCount)) {
+                _CHECK_(vkEnumerateDeviceExtensionProperties(deviceAndQueueFamilies.physicalDevice, (ByteBuffer)null, pPropertyCount, pProperties),
                     "Failed to enumerate the device extensions");
-            return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
+                return pProperties.stream().map(VkExtensionProperties::extensionNameString).collect(toList());
+            }
         }
     }
 
