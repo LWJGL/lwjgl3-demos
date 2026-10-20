@@ -4,6 +4,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '17 3 * * *'
 permissions:
   contents: read
 
@@ -26,4 +28,4 @@ jobs:
         java-version: '17'
         cache: 'maven'
     - name: Build with Maven Wrapper
-      run: ./mvnw -B package
+      run: ./mvnw -B -U package
