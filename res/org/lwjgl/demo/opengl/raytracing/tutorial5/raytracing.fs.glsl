@@ -2,19 +2,31 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 430 core
+#version 330 core
 
 /**
- * The framebuffer image we write to.
+ * The texture coordinate in [(0, 0), (1, 1)] of this fragment within the
+ * framebuffer, coming from the full-screen triangle vertex shader.
  */
-layout(binding = 0, rgba32f) uniform image2D framebufferImage;
-layout(binding = 1, rgba8_snorm) uniform image2D normalbufferImage;
-layout(binding = 2, rgba16f) uniform image2D positionbufferImage;
+in vec2 texcoord;
+
+/**
+ * The three render targets we write to (see Tutorial5#createTraceFBO()).
+ * Since this is now a fragment shader and not a compute shader anymore,
+ * we do not write to images but to the color attachments of a
+ * framebuffer object.
+ * The first one receives the path-traced color and the other two the
+ * world-space normal and position of the primary ray hit, which the
+ * edge-avoiding A-Trous filter needs for its edge-stopping functions.
+ */
+out vec4 color_out;
+out vec4 normal_out;
+out vec4 position_out;
 
 /**
  * Describes the view frustum of the camera via its world-space corner
  * edge vectors which we perform bilinear interpolation on to get the
- * world-space direction vector of a work item's framebuffer pixel.
+ * world-space direction vector of a fragment's framebuffer pixel.
  * See function main().
  */
 uniform vec3 eye, ray00, ray01, ray10, ray11;
@@ -25,16 +37,6 @@ uniform vec3 eye, ray00, ray01, ray10, ray11;
  */
 uniform float time;
 
-/**
- * The factor to mix between the previous framebuffer image and the 
- * image generated during this compute shader invocation.
- *
- * The formula for that is:
- *   finalColor = blendFactor * oldColor + (1 - blendFactor) * newColor
- *
- * See the Java source code for more explanation.
- */
-uniform float blendFactor;
 /**
  * Whether we want to multiple importance sample the light source
  * instead of using only uniform hemisphere samples.
@@ -66,6 +68,8 @@ vec4 randomHemispherePoint(vec3 n, vec2 rand);
 float hemisphereProbability(vec3 n, vec3 v);
 vec4 randomDiskPoint(vec3 n, float d, float r, vec2 rand);
 float diskProbability(vec3 n, float d, float r, vec3 v);
+vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, vec2 rand);
+float phongProbability(vec3 r, float a, vec3 v);
 
 /**
  * Describes an axis-aligned box by its minimum and maximum corner 
@@ -84,23 +88,23 @@ struct sphere {
  * Our scene description is very simple. We just use a static array
  * of boxes, each defined by its minimum and maximum corner coordinates.
  */
-const box boxes[NUM_BOXES] = {
-  {vec3(-5.0, -0.1, -5.0), vec3( 5.0, 0.0,  5.0), vec3(0.50, 0.45, 0.33)},// <- floor
-  {vec3(-5.1,  0.0, -5.0), vec3(-5.0, 5.0,  5.0), vec3(0.4, 0.4, 0.4)},   // <- left wall
-  {vec3( 5.0,  0.0, -5.0), vec3( 5.1, 5.0,  5.0), vec3(0.4, 0.4, 0.4)},   // <- right wall
-  {vec3(-5.0,  0.0, -5.1), vec3( 5.0, 5.0, -5.0), vec3(0.43, 0.52, 0.27)},// <- back wall
-  {vec3(-5.0,  0.0,  5.0), vec3( 5.0, 5.0,  5.1), vec3(0.5, 0.2, 0.09)},  // <- front wall
-  {vec3(-1.0,  1.0, -1.0), vec3( 1.0, 1.1,  1.0), vec3(0.3, 0.23, 0.15)}, // <- table top
-  {vec3(-1.0,  0.0, -1.0), vec3(-0.8, 1.0, -0.8), vec3(0.4, 0.3, 0.15)},  // <- table foot
-  {vec3(-1.0,  0.0,  0.8), vec3(-0.8, 1.0,  1.0), vec3(0.4, 0.3, 0.15)},  // <- table foot
-  {vec3( 0.8,  0.0, -1.0), vec3( 1.0, 1.0, -0.8), vec3(0.4, 0.3, 0.15)},  // <- table foot
-  {vec3( 0.8,  0.0,  0.8), vec3( 1.0, 1.0,  1.0), vec3(0.4, 0.3, 0.15)},  // <- table foot
-  {vec3( 3.0,  0.0, -4.9), vec3( 3.3, 2.0, -4.6), vec3(0.6, 0.6, 0.6)}    // <- some "pillar"
-};
+const box boxes[NUM_BOXES] = box[NUM_BOXES](
+  box(vec3(-5.0, -0.1, -5.0), vec3( 5.0, 0.0,  5.0), vec3(0.50, 0.45, 0.33)),// <- floor
+  box(vec3(-5.1,  0.0, -5.0), vec3(-5.0, 5.0,  5.0), vec3(0.4, 0.4, 0.4)),   // <- left wall
+  box(vec3( 5.0,  0.0, -5.0), vec3( 5.1, 5.0,  5.0), vec3(0.4, 0.4, 0.4)),   // <- right wall
+  box(vec3(-5.0,  0.0, -5.1), vec3( 5.0, 5.0, -5.0), vec3(0.43, 0.52, 0.27)),// <- back wall
+  box(vec3(-5.0,  0.0,  5.0), vec3( 5.0, 5.0,  5.1), vec3(0.5, 0.2, 0.09)),  // <- front wall
+  box(vec3(-1.0,  1.0, -1.0), vec3( 1.0, 1.1,  1.0), vec3(0.3, 0.23, 0.15)), // <- table top
+  box(vec3(-1.0,  0.0, -1.0), vec3(-0.8, 1.0, -0.8), vec3(0.4, 0.3, 0.15)),  // <- table foot
+  box(vec3(-1.0,  0.0,  0.8), vec3(-0.8, 1.0,  1.0), vec3(0.4, 0.3, 0.15)),  // <- table foot
+  box(vec3( 0.8,  0.0, -1.0), vec3( 1.0, 1.0, -0.8), vec3(0.4, 0.3, 0.15)),  // <- table foot
+  box(vec3( 0.8,  0.0,  0.8), vec3( 1.0, 1.0,  1.0), vec3(0.4, 0.3, 0.15)),  // <- table foot
+  box(vec3( 3.0,  0.0, -4.9), vec3( 3.3, 2.0, -4.6), vec3(0.6, 0.6, 0.6))    // <- some "pillar"
+);
 
-const sphere spheres[NUM_SPHERES] = {
-  {vec3(0.0, 10.0, 0.0), 1.8}
-};
+const sphere spheres[NUM_SPHERES] = sphere[NUM_SPHERES](
+  sphere(vec3(0.0, 10.0, 0.0), 1.8)
+);
 
 /**
  * Describes the first intersection of a ray with a box.
@@ -127,7 +131,7 @@ struct hitinfo {
 };
 
 /**
- * We hold the framebuffer pixel coordinate of the current work item to
+ * We hold the framebuffer pixel coordinate of the current fragment to
  * not drag it as parameter all over the place. In addition to "time"
  * this parameter provide spatial variance for generated pseudo-random
  * numbers.
@@ -244,13 +248,22 @@ vec3 normalForSphere(vec3 hit, const sphere s) {
  * strategies to be used in the trace() function below for sampling the
  * BRDF components.
  * 
+ * It is important that no two pixels get the same random numbers, also
+ * not for different bounces. Otherwise, the noise of those two pixels
+ * will be correlated, and the filter cannot remove correlated noise by
+ * averaging neighboring pixels as well as it can remove independent
+ * noise. That is why we do not add the bounce index to the pixel
+ * coordinate (the second bounce of a pixel would then use the random
+ * numbers of the first bounce of its diagonal neighbor) but to the
+ * time.
+ * 
  * @param s this is the "bounce index" to get different pseudo-random
  *          numbers each bounce
  * @returns a vector containing three floating-point pseudo-random
  *          numbers, each in the range [0, 1)
  */
 vec3 randvec3(int s) {
-  return random3(vec3(px + ivec2(s), time));
+  return random3(vec3(px, time + float(s) * 1.6180339));
 }
 
 /**
@@ -299,15 +312,15 @@ vec3 brdf(vec3 albedo, vec3 i, vec3 o, vec3 n) {
 }
 
 /**
- * Write the given position 'p' and normal 'n' to the output buffers
- * for the current work item's pixel.
+ * Write the given position 'p' and normal 'n' to the render targets
+ * for the current fragment.
  *
  * @param p the position
  * @param n the normal
  */
 void write(vec3 p, vec3 n) {
-  imageStore(normalbufferImage, px, vec4(n, 0.0));
-  imageStore(positionbufferImage, px, vec4(p, 1.0));
+  normal_out = vec4(n, 0.0);
+  position_out = vec4(p, 1.0);
 }
 
 /**
@@ -375,12 +388,12 @@ vec3 trace(vec3 origin, vec3 dir) {
        * We hit a light source! So just return its cosine-weighted
        * attenuated radiance.
        */
-      const sphere s = spheres[hinfo.i];
+      sphere s = spheres[hinfo.i];
       vec3 sn = normalForSphere(point, s);
       if (bounce == 0) {
         /*
          * For the filter we are outputting the position and normal
-         * in the corresponding output images.
+         * in the corresponding render targets.
          */
         write(point, sn);
       }
@@ -389,13 +402,22 @@ vec3 trace(vec3 origin, vec3 dir) {
       /*
        * We hit a box. Proceed as in the last tutorial part.
        */
-      const box b = boxes[hinfo.i];
-      normal = hinfo.normal;
+      box b = boxes[hinfo.i];
+      /*
+       * When the ray hits a box exactly at an edge or a corner, the
+       * normal computed by intersectBox() is the sum of the normals of
+       * the adjacent faces and therefore not of unit length. This is
+       * very rare, but it will happen, and then the BRDF evaluation
+       * below overflows and gives us a NaN sample. Such a NaN would
+       * never go away again when accumulating frames, and the filter
+       * would spread it to all pixels in its neighborhood.
+       */
+      normal = normalize(hinfo.normal);
       albedo = b.col;
       if (bounce == 0) {
         /*
          * For the filter we are outputting the position and normal
-         * in the corresponding output images.
+         * in the corresponding render targets.
          */
         write(point, normal);
       }
@@ -437,9 +459,15 @@ vec3 trace(vec3 origin, vec3 dir) {
       sphere li = spheres[0];
       vec3 d = li.c - origin, n = normalize(d);
       /*
+       * Also compute the direction of perfect reflection, around which
+       * the specular part of our BRDF has its lobe.
+       */
+      vec3 r = reflect(dir, normal);
+      /*
        * We are going to use the "One-sample model" proposed by Veach.
-       * This means, we use one of two sampling strategies. Either
-       * sampling the light source or sampling the hemisphere.
+       * This means, we use one of three sampling strategies. Either
+       * sampling the light source, sampling the specular lobe of the
+       * BRDF or sampling the hemisphere.
        * The first one is good when we can expect to hit the light
        * and get fast convergence/low variance quickly. This approach
        * however is not ideal when we do not directly hit the light and
@@ -447,11 +475,29 @@ vec3 trace(vec3 origin, vec3 dir) {
        * On the other hand, sampling the BRDF can not be optimal either,
        * for example when having a strong specular lobe which does not
        * point towards any light.
-       * That's why we will use randomly either the one or the other 
-       * strategy by letting a random variable decide which one it is
-       * going to be.
+       * That's why we will use randomly one of the strategies by
+       * letting a random variable decide which one it is going to be.
+       *
+       * Half of the time we sample the light. The other half is split
+       * like in Tutorial 3: We sample the specular lobe with a
+       * probability equal to the specular factor of the BRDF and the
+       * hemisphere otherwise.
+       *
+       * Sampling the specular lobe is essential for the filter to work
+       * with specular surfaces. With a high Phong exponent, the BRDF is
+       * very big in a very small cone of directions and close to zero
+       * everywhere else. Hemisphere sampling only very rarely generates
+       * a direction inside of that cone. But when it does, that sample
+       * has to make up for all the others which missed the cone and is
+       * extremely bright. A few extremely bright pixels between many
+       * pixels without any reflection is not something a filter, which
+       * only averages a pixel with a few hundred pixels around it, can
+       * turn into a smooth reflection.
        */
-      if (rand.z < PROBABILITY_OF_LIGHT_SAMPLE) {
+      float pl = PROBABILITY_OF_LIGHT_SAMPLE;
+      float ps = (1.0 - pl) * specularFactor;
+      float ph = (1.0 - pl) * (1.0 - specularFactor);
+      if (rand.z < pl) {
         /*
          * We want to sample the light source. From our point of view
          * the spherical light source is a projected circle/disk and we
@@ -459,33 +505,31 @@ vec3 trace(vec3 origin, vec3 dir) {
          * which does exactly that.
          */
         s = randomDiskPoint(n, length(d), li.r, rand.xy);
+      } else if (rand.z < pl + ps) {
         /*
-         * We will be using the "balancec heuristic" weighting strategy
-         * of multiple importance sampling, which requires us to
-         * evaluate the probability distribution function of the
-         * hemisphere sampling function with our disk sample direction.
+         * We want to sample the specular lobe of the BRDF. So, generate
+         * a Phong-weighted vector around the direction of perfect
+         * reflection.
          */
-        float p = hemisphereProbability(normal, s.xyz);
-        /*
-         * Now we need to compute the balanced weight of both
-         * probability density values together with the probability of
-         * this sample being chosen.
-         */
-        s.w = (s.w + p) * PROBABILITY_OF_LIGHT_SAMPLE;
+        s = randomPhongWeightedHemispherePoint(r, phongExponent, rand.xy);
       } else {
         /*
          * We want to sample uniformly over the hemisphere instead.
          */
         s = randomHemispherePoint(normal, rand.xy);
-        /*
-         * Same as above. Also obtain pdf(x) for the other distribution.
-         */
-        float p = diskProbability(n, length(d), li.r, s.xyz);
-        /*
-         * And weight it.
-         */
-        s.w = (s.w + p) * (1.0 - PROBABILITY_OF_LIGHT_SAMPLE);
       }
+      /*
+       * We will be using the "balance heuristic" weighting strategy
+       * of multiple importance sampling. For that, it does not matter
+       * which of the strategies actually generated our sample
+       * direction. Any of them could have. So, the probability density
+       * of the direction is the sum of the probability density values
+       * of all strategies for that direction, each one weighted with
+       * the probability of that strategy being chosen.
+       */
+      s.w = pl * diskProbability(n, length(d), li.r, s.xyz)
+          + ps * phongProbability(r, phongExponent, s.xyz)
+          + ph * hemisphereProbability(normal, s.xyz);
     } else {
       /*
        * Not using multiple importance sampling but instead our good old
@@ -523,75 +567,46 @@ vec3 trace(vec3 origin, vec3 dir) {
   return vec3(0.0);
 }
 
-layout (local_size_x = 16, local_size_y = 16) in;
-
 /**
- * Entry point of this GLSL compute shader.
+ * Entry point of this GLSL fragment shader.
  */
 void main(void) {
   /*
-   * Obtain the 2D index of the current compute shader work item via the
-   * built-in gl_GlobalInvocationID variable and store it in a 'px'
-   * variable because we need it later.
+   * Obtain the 2D index of the pixel of the current fragment via the
+   * built-in gl_FragCoord variable and store it in a 'px' variable
+   * because we need it later.
    */
-  px = ivec2(gl_GlobalInvocationID.xy);
-  /*
-   * Also obtain the size of the framebuffer image. We could have used 
-   * a custom uniform for that as well. But GLSL already provides it as
-   * a built-in function.
-   */
-  ivec2 size = imageSize(framebufferImage);
-  /*
-   * Because we have to execute our compute shader with a global work
-   * size that is a power of two, we need to check whether the current
-   * work item is still within our actual framebuffer dimension so that
-   * we do not accidentally write to or read from unallocated memory
-   * later.
-   */
-  if (any(greaterThanEqual(px, size)))
-    return; // <- no work to do, return.
+  px = ivec2(gl_FragCoord.xy);
   /*
    * Now we take our rayNN uniforms declared above to determine the
    * world-space direction from the eye position through the current
-   * work item's pixel's center in the framebuffer image. We use the
-   * 'px' variable, cast it to a floating-point vector, offset it by
-   * half a pixel's width (in whole pixel units) and then transform that
-   * position relative to our framebuffer size to get values in the
-   * interval [(0, 0), (1, 1)] for all work items covering our
-   * framebuffer.
-   */
-  vec2 p = (vec2(px) + vec2(0.5)) / vec2(size);
-  /*
+   * fragment's pixel center in the framebuffer. In the compute shader
+   * of the previous parts we had to compute the position of that pixel
+   * center in the interval [(0, 0), (1, 1)] ourselves. Now, the
+   * rasterizer does it for us by interpolating the 'texcoord' output
+   * of the vertex shader over the full-screen triangle.
+   *
    * Use bilinear interpolation based on the X and Y fraction
    * (within 0..1) with our rayNN vectors defining the world-space
    * vectors along the corner edges of the camera's view frustum. The
    * result is the world-space direction of the ray originating from the
-   * camera/eye center through the work item's framebuffer pixel center.
+   * camera/eye center through the fragment's framebuffer pixel center.
    */
+  vec2 p = texcoord;
   vec3 dir = mix(mix(ray00, ray01, p.y), mix(ray10, ray11, p.y), p.x);
   /*
    * Trace the list of boxes with the initial ray `eye + t * dir` and
    * follow it along in the scene. The result is a computed color which
-   * we will combine with the current/previous framebuffer content
-   * below.
+   * will be combined with the current/previous framebuffer content.
+   *
+   * A compute shader can read from and write to the same image, and so
+   * could mix the new color with the old color itself. A fragment
+   * shader cannot read from the render target it is currently rendering
+   * to. But we do not have to, because mixing an incoming color with
+   * the color already stored in the framebuffer is exactly what OpenGL
+   * blending does. So, we simply output the new color and let the
+   * blending stage, which gets configured in Tutorial5#trace(), compute:
+   *   finalColor = blendFactor * oldColor + (1 - blendFactor) * newColor
    */
-  vec3 color = trace(eye, normalize(dir));
-  vec3 oldColor = vec3(0.0);
-  /*
-   * For any iteration but the very first, we load the current value of
-   * the pixel from the framebuffer.
-   */
-  if (blendFactor > 0.0)
-    oldColor = imageLoad(framebufferImage, px).rgb;
-  /*
-   * The final/new color to write to the framebuffer pixel is a linear
-   * interpolation of the newly computed value in trace() and the
-   * old/current value based on the blendFactor.
-   */
-  vec3 finalColor = mix(color, oldColor, blendFactor);
-  /*
-   * Store the final color in the framebuffer's pixel of the current
-   * work item.
-   */
-  imageStore(framebufferImage, px, vec4(finalColor, 1.0));
+  color_out = vec4(trace(eye, normalize(dir)), 1.0);
 }

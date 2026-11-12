@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 430 core
+#version 330 core
 
 /* The texture we are going to sample */
 uniform sampler2D tex;
@@ -13,6 +13,9 @@ in vec2 texcoord;
 out vec4 color;
 
 void main(void) {
-  /* Well, simply sample the texture */
-  color = texture(tex, texcoord);
+  /*
+   * Well, simply sample the texture. We only want its color, because
+   * the filter stores something else in the alpha component.
+   */
+  color = vec4(texture(tex, texcoord).rgb, 1.0);
 }

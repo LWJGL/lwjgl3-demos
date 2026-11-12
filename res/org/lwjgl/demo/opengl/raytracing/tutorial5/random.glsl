@@ -2,7 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: https://www.lwjgl.org/license
  */
-#version 430 core
+#version 330 core
 
 #define PI 3.14159265359
 #define TWO_PI 6.28318530718
@@ -18,15 +18,21 @@
 #define spatialrand vec2
 
 /**
- * Compute an arbitrary vector orthogonal to any vector 'v'.
+ * Compute an arbitrary unit vector orthogonal to any unit vector 'v'.
+ *
+ * The normalization can only be omitted when 'v' is one of the base
+ * axes. This is the case for the normals of our boxes, but not for the
+ * direction towards the light or the direction of perfect reflection,
+ * which we generate sample directions around. Without it, around()
+ * would squeeze those sample directions together.
  *
  * http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
  *
- * @param v the vector to compute an orthogonal vector from
- * @returns the vector orthogonal to 'v'
+ * @param v the vector to compute an orthogonal unit vector from
+ * @returns the unit vector orthogonal to 'v'
  */
 vec3 ortho(vec3 v) {
-  return mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z)));
+  return normalize(mix(vec3(-v.y, v.x, 0.0), vec3(0.0, -v.z, v.y), step(abs(v.x), abs(v.z))));
 }
 
 /**
@@ -78,7 +84,7 @@ vec3 random3(vec3 f) {
  */
 vec3 around(vec3 v, vec3 z) {
   vec3 t = ortho(z), b = cross(z, t);
-  return fma(t, vec3(v.x), fma(b, vec3(v.y), z * v.z));
+  return t * v.x + b * v.y + z * v.z;
 }
 
 /**
@@ -165,4 +171,37 @@ vec4 randomDiskPoint(vec3 n, float d, float r, spatialrand rand) {
 float diskProbability(vec3 n, float d, float r, vec3 v) {
   float D = r/d, c = inversesqrt(1.0 + D * D);
   return step(c, dot(n, v)) * ONE_OVER_2PI / (1.0 - c);
+}
+
+/**
+ * Generate a Phong-weighted random vector around the given reflection
+ * vector 'r'.
+ * Since the Phong BRDF has higher values when the outgoing vector is
+ * close to the perfect reflection vector of the incoming vector across
+ * the normal, we generate directions primarily around that reflection
+ * vector.
+ *
+ * http://blog.tobias-franke.eu/2014/03/30/notes_on_importance_sampling.html
+ *
+ * @param r the direction of perfect reflection
+ * @param a the power to raise the cosine term to in the Phong model
+ * @param rand a vector of two pseudo-random numbers
+ * @returns the Phong-weighted random vector plus its probability
+ *          density value
+ */
+vec4 randomPhongWeightedHemispherePoint(vec3 r, float a, spatialrand rand) {
+  float ai = 1.0 / (a + 1.0), pr = (a + 1.0) * pow(rand.y, a * ai) * ONE_OVER_2PI;
+  return vec4(around(isotropic(rand.x, pow(rand.y, ai)), r), pr);
+}
+/**
+ * Compute the probability density value of
+ * randomPhongWeightedHemispherePoint() generating the vector 'v'.
+ *
+ * @param r the direction of perfect reflection
+ * @param a the power to raise the cosine term to in the Phong model
+ * @param v the vector to compute the pdf of
+ * @returns pdf(v) for the Phong-weighted distribution
+ */
+float phongProbability(vec3 r, float a, vec3 v) {
+  return (a + 1.0) * pow(max(0.0, dot(r, v)), a) * ONE_OVER_2PI;
 }

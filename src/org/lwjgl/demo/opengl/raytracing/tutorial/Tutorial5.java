@@ -4,7 +4,6 @@
  */
 package org.lwjgl.demo.opengl.raytracing.tutorial;
 
-import org.lwjgl.BufferUtils;
 import org.lwjgl.demo.opengl.util.DemoUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
@@ -18,7 +17,7 @@ import java.io.IOException;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL43C.*;
+import static org.lwjgl.opengl.GL33C.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 /**
@@ -31,7 +30,7 @@ import static org.lwjgl.system.MemoryUtil.*;
  * position of each sample and these edge-stop functions can be tweaked by how
  * much they should care for a change in color, normal and position. See the
  * {@link #filter(int)} method.
- * 
+ *
  * @author Kai Burjack
  */
 public class Tutorial5 {
@@ -62,9 +61,9 @@ public class Tutorial5 {
      */
     private int vao;
     /**
-     * The shader program handle of the compute shader.
+     * The shader program handle of the path tracing shader.
      */
-    private int computeProgram;
+    private int traceProgram;
     /**
      * The shader program handle of a fullscreen quad shader.
      */
@@ -74,9 +73,14 @@ public class Tutorial5 {
      */
     private int filterProgram;
     private int colorMapUniform, normalMapUniform, posMapUniform;
-    private int c_phiUniform, n_phiUniform, p_phiUniform, stepwidthUniform;
+    private int c_phiUniform, v_phiUniform, n_phiUniform, p_phiUniform, d_phiUniform, stepwidthUniform;
     private int kernelUniform, offsetUniform;
 
+    /**
+     * The FBO for the path tracer with the three render targets {@link #pttex},
+     * {@link #normalTex} and {@link #positionTex}.
+     */
+    private int traceFBO;
     /**
      * The FBO for the À-Trous wavelet filter. We need to ping-pong between two
      * textures.
@@ -90,8 +94,8 @@ public class Tutorial5 {
     private int sampler;
 
     /**
-     * The location of the 'eye' uniform declared in the compute shader holding the
-     * world-space eye position.
+     * The location of the 'eye' uniform declared in the path tracing shader holding
+     * the world-space eye position.
      */
     private int eyeUniform;
     /*
@@ -99,25 +103,9 @@ public class Tutorial5 {
      */
     private int ray00Uniform, ray10Uniform, ray01Uniform, ray11Uniform;
     private int timeUniform;
-    private int blendFactorUniform;
     private int multipleImportanceSampledUniform;
     private int phongExponentUniform;
     private int specularFactorUniform;
-    /**
-     * The binding point in the compute shader of the framebuffer image (level 0 of
-     * the {@link #pttex} texture).
-     */
-    private int framebufferImageBinding;
-    private int normalbufferImageBinding;
-    private int positionbufferImageBinding;
-    /**
-     * Value of the work group size in X dimension declared in the compute shader.
-     */
-    private int workGroupSizeX;
-    /**
-     * Value of the work group size in Y dimension declared in the compute shader.
-     */
-    private int workGroupSizeY;
 
     private float mouseX, mouseY;
     private boolean mouseDown;
@@ -128,7 +116,7 @@ public class Tutorial5 {
     private boolean filtered = true;
     private boolean singleSample = true;
     private boolean stopTime;
-    private int filterIterations = 4;
+    private int filterIterations = 5;
 
     private boolean[] keydown = new boolean[GLFW.GLFW_KEY_LAST + 1];
     private Matrix4f projMatrix = new Matrix4f();
@@ -145,6 +133,7 @@ public class Tutorial5 {
      */
     private GLFWErrorCallback errCallback;
     private GLFWKeyCallback keyCallback;
+    private GLFWCharCallback charCallback;
     private GLFWFramebufferSizeCallback fbCallback;
     private GLFWCursorPosCallback cpCallback;
     private GLFWMouseButtonCallback mbCallback;
@@ -171,12 +160,13 @@ public class Tutorial5 {
             throw new IllegalStateException("Unable to initialize GLFW");
 
         /*
-         * And set some OpenGL context attributes, such as that we are using OpenGL 4.3.
-         * This is the minimum core version such so that can use compute shaders.
+         * And set some OpenGL context attributes, such as that we are using OpenGL 3.3.
+         * Since the path tracer is implemented in a fragment shader now, we do not
+         * need compute shaders (and therefore OpenGL 4.3) anymore.
          */
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // <- make the window visible explicitly later
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -213,18 +203,6 @@ public class Tutorial5 {
                         System.out.println("Using multiple importance sampling");
                     else
                         System.out.println("Using uniform sampling");
-                } else if (key == GLFW_KEY_KP_ADD && action == GLFW_RELEASE) {
-                    specularFactor += 0.1f;
-                    if (specularFactor > 1.0f)
-                        specularFactor = 1.0f;
-                    System.out.println("Specular factor = " + specularFactor);
-                    frameNumber = 0;
-                } else if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_RELEASE) {
-                    specularFactor -= 0.1f;
-                    if (specularFactor < 0.0f)
-                        specularFactor = 0.0f;
-                    System.out.println("Specular factor = " + specularFactor);
-                    frameNumber = 0;
                 } else if (key == GLFW_KEY_PAGE_UP && action == GLFW_RELEASE) {
                     phongExponent *= 1.2f;
                     System.out.println("Phong exponent = " + phongExponent);
@@ -266,6 +244,22 @@ public class Tutorial5 {
                     frameNumber = 0;
                 }
                 keydown[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
+            }
+        });
+
+        /*
+         * For changing the specular factor we do not use the key callback above. Its
+         * key codes name the physical keys by what they are on a US keyboard, but
+         * where the '+' and '-' keys are depends on the keyboard layout, and not
+         * every keyboard has a numpad. So, we let GLFW tell us which characters got
+         * typed instead. ('=' is the '+' key without Shift on a US keyboard.)
+         */
+        glfwSetCharCallback(window, charCallback = new GLFWCharCallback() {
+            public void invoke(long window, int codepoint) {
+                if (codepoint == '+' || codepoint == '=')
+                    changeSpecularFactor(0.1f);
+                else if (codepoint == '-')
+                    changeSpecularFactor(-0.1f);
             }
         });
 
@@ -345,15 +339,30 @@ public class Tutorial5 {
         createFramebufferTexture();
         createSampler();
         this.vao = glGenVertexArrays();
-        createComputeProgram();
-        initComputeProgram();
+        createTraceProgram();
+        initTraceProgram();
         createQuadProgram();
         initQuadProgram();
         createFilterProgram();
         initFilterProgram();
+        createTraceFBO();
         createFilterFBO();
 
         glfwShowWindow(window);
+    }
+
+    /**
+     * Change the specular factor by the given amount and keep it within [0, 1].
+     *
+     * @param amount
+     *            the amount to add to the specular factor
+     */
+    private void changeSpecularFactor(float amount) {
+        /* Round to two decimal places in order not to accumulate rounding errors. */
+        specularFactor = Math.round((specularFactor + amount) * 100.0f) / 100.0f;
+        specularFactor = Math.max(0.0f, Math.min(1.0f, specularFactor));
+        System.out.println("Specular factor = " + specularFactor);
+        frameNumber = 0;
     }
 
     /**
@@ -382,19 +391,28 @@ public class Tutorial5 {
     }
 
     /**
-     * Create the tracing compute shader program.
+     * Create the path tracing shader program.
      */
-    private void createComputeProgram() throws IOException {
+    private void createTraceProgram() throws IOException {
         /*
-         * Create our GLSL compute shader. It does not look any different to creating a
-         * program with vertex/fragment shaders. The only thing that changes is the
-         * shader type, now being GL_COMPUTE_SHADER.
+         * Create our GLSL path tracing program. It consists of the vertex shader
+         * generating a full-screen triangle, which we also use for presenting the
+         * final image, and the fragment shader, which traces one path for every
+         * fragment/pixel generated by rasterizing that triangle.
          */
         int program = glCreateProgram();
-        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl", GL_COMPUTE_SHADER);
-        int cshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.glsl", GL_COMPUTE_SHADER);
+        int vshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/quad.vs.glsl", GL_VERTEX_SHADER);
+        int random = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/random.glsl", GL_FRAGMENT_SHADER);
+        int fshader = DemoUtils.createShader("org/lwjgl/demo/opengl/raytracing/tutorial5/raytracing.fs.glsl", GL_FRAGMENT_SHADER);
+        glAttachShader(program, vshader);
         glAttachShader(program, random);
-        glAttachShader(program, cshader);
+        glAttachShader(program, fshader);
+        /*
+         * The fragment shader writes to three render targets. See createTraceFBO().
+         */
+        glBindFragDataLocation(program, 0, "color_out");
+        glBindFragDataLocation(program, 1, "normal_out");
+        glBindFragDataLocation(program, 2, "position_out");
         glLinkProgram(program);
         int linked = glGetProgrami(program, GL_LINK_STATUS);
         String programLog = glGetProgramInfoLog(program);
@@ -404,7 +422,7 @@ public class Tutorial5 {
         if (linked == 0) {
             throw new AssertionError("Could not link program");
         }
-        this.computeProgram = program;
+        this.traceProgram = program;
     }
 
     /**
@@ -441,8 +459,10 @@ public class Tutorial5 {
         posMapUniform = glGetUniformLocation(filterProgram, "posMap");
         glUniform1i(posMapUniform, 2);
         c_phiUniform = glGetUniformLocation(filterProgram, "c_phi");
+        v_phiUniform = glGetUniformLocation(filterProgram, "v_phi");
         n_phiUniform = glGetUniformLocation(filterProgram, "n_phi");
         p_phiUniform = glGetUniformLocation(filterProgram, "p_phi");
+        d_phiUniform = glGetUniformLocation(filterProgram, "d_phi");
         stepwidthUniform = glGetUniformLocation(filterProgram, "stepwidth");
         kernelUniform = glGetUniformLocation(filterProgram, "kernel");
         offsetUniform = glGetUniformLocation(filterProgram, "offset");
@@ -487,70 +507,79 @@ public class Tutorial5 {
     }
 
     /**
-     * Initialize the compute shader. This just binds the program briefly to obtain
-     * the uniform locations, the declared work group size values and the image
-     * binding point of the framebuffer image.
+     * Initialize the path tracing shader program. This just binds the program
+     * briefly to obtain the uniform locations.
      */
-    private void initComputeProgram() {
-        glUseProgram(computeProgram);
-        IntBuffer workGroupSize = BufferUtils.createIntBuffer(3);
-        glGetProgramiv(computeProgram, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
-        workGroupSizeX = workGroupSize.get(0);
-        workGroupSizeY = workGroupSize.get(1);
-        eyeUniform = glGetUniformLocation(computeProgram, "eye");
-        ray00Uniform = glGetUniformLocation(computeProgram, "ray00");
-        ray10Uniform = glGetUniformLocation(computeProgram, "ray10");
-        ray01Uniform = glGetUniformLocation(computeProgram, "ray01");
-        ray11Uniform = glGetUniformLocation(computeProgram, "ray11");
-        timeUniform = glGetUniformLocation(computeProgram, "time");
-        blendFactorUniform = glGetUniformLocation(computeProgram, "blendFactor");
-        multipleImportanceSampledUniform = glGetUniformLocation(computeProgram, "multipleImportanceSampled");
-        phongExponentUniform = glGetUniformLocation(computeProgram, "phongExponent");
-        specularFactorUniform = glGetUniformLocation(computeProgram, "specularFactor");
-
-        /* Query the "image binding point" of the image uniforms */
-        IntBuffer params = BufferUtils.createIntBuffer(1);
-        int loc = glGetUniformLocation(computeProgram, "framebufferImage");
-        glGetUniformiv(computeProgram, loc, params);
-        framebufferImageBinding = params.get(0);
-        /*
-         * Now we are also outputting the normal and the position of the primary ray hit
-         * for the edge-avoiding À-Trous filter pass. For the sake of performance we
-         * should really be using hybrid path tracing now, with using the rasterizer for
-         * a position/normal pre-pass to avoid tracing the primary rays and using them
-         * to output normal/position. But that'll come later.
-         */
-        loc = glGetUniformLocation(computeProgram, "normalbufferImage");
-        glGetUniformiv(computeProgram, loc, params);
-        normalbufferImageBinding = params.get(0);
-        loc = glGetUniformLocation(computeProgram, "positionbufferImage");
-        glGetUniformiv(computeProgram, loc, params);
-        positionbufferImageBinding = params.get(0);
-
+    private void initTraceProgram() {
+        glUseProgram(traceProgram);
+        eyeUniform = glGetUniformLocation(traceProgram, "eye");
+        ray00Uniform = glGetUniformLocation(traceProgram, "ray00");
+        ray10Uniform = glGetUniformLocation(traceProgram, "ray10");
+        ray01Uniform = glGetUniformLocation(traceProgram, "ray01");
+        ray11Uniform = glGetUniformLocation(traceProgram, "ray11");
+        timeUniform = glGetUniformLocation(traceProgram, "time");
+        multipleImportanceSampledUniform = glGetUniformLocation(traceProgram, "multipleImportanceSampled");
+        phongExponentUniform = glGetUniformLocation(traceProgram, "phongExponent");
+        specularFactorUniform = glGetUniformLocation(traceProgram, "specularFactor");
         glUseProgram(0);
     }
 
     /**
-     * Create the texture that will serve as our framebuffer that the compute shader
-     * will write/render to.
+     * Create the textures that will serve as the render targets that the path
+     * tracing shader and the filter shader will write/render to.
      */
     private void createFramebufferTexture() {
         pttex = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, pttex);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
         ftex0 = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, ftex0);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
         ftex1 = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, ftex1);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        /*
+         * A signed normalized format would be enough for the normal, but those are
+         * not color-renderable in OpenGL 3.3. So we use a floating-point format.
+         */
         normalTex = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, normalTex);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8_SNORM, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        /*
+         * The filter computes distances of just a few centimeters from the positions.
+         * That needs more precision than a 16-bit floating-point format can give us.
+         */
         positionTex = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, positionTex);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    /**
+     * Create the FBO which the path tracing shader renders into.
+     */
+    private void createTraceFBO() {
+        traceFBO = glGenFramebuffers();
+        glBindFramebuffer(GL_FRAMEBUFFER, traceFBO);
+        /*
+         * In addition to the color we are also outputting the normal and the position
+         * of the primary ray hit for the edge-avoiding À-Trous filter pass. For the
+         * sake of performance we should really be using hybrid path tracing now, with
+         * using the rasterizer for a position/normal pre-pass to avoid tracing the
+         * primary rays and using them to output normal/position. But that'll come
+         * later.
+         */
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pttex, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normalTex, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, positionTex, 0);
+        /*
+         * The i-th fragment shader output will be written to the i-th draw buffer.
+         */
+        glDrawBuffers(new int[] { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 });
+        int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+            throw new AssertionError("Framebuffer is not complete: " + status);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     /**
@@ -568,6 +597,7 @@ public class Tutorial5 {
      * Recreate the framebuffer when the window size changes.
      */
     private void resizeFramebufferTexture() {
+        glDeleteFramebuffers(traceFBO);
         glDeleteFramebuffers(filterFBO);
         glDeleteTextures(pttex);
         glDeleteTextures(ftex0);
@@ -575,6 +605,7 @@ public class Tutorial5 {
         glDeleteTextures(normalTex);
         glDeleteTextures(positionTex);
         createFramebufferTexture();
+        createTraceFBO();
         createFilterFBO();
     }
 
@@ -623,14 +654,14 @@ public class Tutorial5 {
     }
 
     /**
-     * Compute a new frame by tracing the scene using our compute shader. The
+     * Compute a new frame by tracing the scene using our path tracing shader. The
      * resulting pixels will be written to the framebuffer texture {@link #pttex}.
      * <p>
      * See the JavaDocs of this method in {@link Tutorial2} for a better
      * explanation.
      */
     private void trace(float time) {
-        glUseProgram(computeProgram);
+        glUseProgram(traceProgram);
 
         /*
          * If the framebuffer size has changed, because the GLFW window was resized, we
@@ -644,8 +675,8 @@ public class Tutorial5 {
         }
 
         /*
-         * Submit the current time to the compute shader for temporal variance in the
-         * generated random numbers.
+         * Submit the current time to the shader for temporal variance in the generated
+         * random numbers.
          */
         glUniform1f(timeUniform, time);
 
@@ -655,7 +686,6 @@ public class Tutorial5 {
          * class JavaDocs above for more information about that.
          */
         float blendFactor = frameNumber / (frameNumber + 1.0f);
-        glUniform1f(blendFactorUniform, blendFactor);
         /*
          * Set whether we want to use multiple importance sampling.
          */
@@ -678,7 +708,7 @@ public class Tutorial5 {
         /*
          * Compute and set the view frustum corner rays in the shader for the shader to
          * compute the direction from the eye through a framebuffer's pixel center for a
-         * given shader work item.
+         * given fragment.
          */
         viewMatrix.origin(cameraPosition);
         glUniform3f(eyeUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
@@ -692,33 +722,38 @@ public class Tutorial5 {
         glUniform3f(ray11Uniform, tmpVector.x, tmpVector.y, tmpVector.z);
 
         /*
-         * Bind level 0 of framebuffer texture as writable and readable image in the
-         * shader. This tells OpenGL that any writes to and reads from the image defined
-         * in our shader is going to go to the first level of the texture 'tex'.
+         * Render to the three render targets (color, normal and position) of the path
+         * tracer.
          */
-        glBindImageTexture(framebufferImageBinding, pttex, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-        glBindImageTexture(normalbufferImageBinding, normalTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8_SNORM);
-        glBindImageTexture(positionbufferImageBinding, positionTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
+        glBindFramebuffer(GL_FRAMEBUFFER, traceFBO);
         /*
-         * Compute appropriate global work size dimensions.
+         * A fragment shader cannot read from the texture it is currently rendering
+         * to, like the compute shader of the previous parts did with its image. So, in
+         * order to average the new frame with the previous frames, we let OpenGL blend
+         * the color output of the fragment shader with the current content of the
+         * color render target via:
+         *   finalColor = blendFactor * oldColor + (1 - blendFactor) * newColor
+         * We only enable blending for the first draw buffer (the color), because the
+         * normal and the position should simply be overwritten. And we do not blend
+         * at all when there is no previous frame to blend with. In that case the
+         * content of the color render target can be anything.
          */
-        int numGroupsX = (int) Math.ceil((double)width / workGroupSizeX);
-        int numGroupsY = (int) Math.ceil((double)height / workGroupSizeY);
-
-        /* Invoke the compute shader. */
-        glDispatchCompute(numGroupsX, numGroupsY, 1);
+        if (blendFactor > 0.0f) {
+            glEnablei(GL_BLEND, 0);
+            glBlendColor(0.0f, 0.0f, 0.0f, blendFactor);
+            glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
+        }
         /*
-         * Synchronize all writes to the framebuffer image before we let OpenGL source
-         * texels from it afterwards when rendering the final image with the full-screen
-         * quad.
+         * Draw the full-screen triangle to execute the path tracing fragment shader
+         * for every pixel.
          */
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        /* Reset bindings. */
-        glBindImageTexture(framebufferImageBinding, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-        glBindImageTexture(normalbufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8_SNORM);
-        glBindImageTexture(positionbufferImageBinding, 0, 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        /* Reset state. */
+        glBindVertexArray(0);
+        glDisablei(GL_BLEND, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glUseProgram(0);
 
         /*
@@ -758,24 +793,75 @@ public class Tutorial5 {
         glActiveTexture(GL_TEXTURE0);
         glBindSampler(0, this.sampler);
         /*
-         * Use some good edge function weights.
+         * Use some good edge-stopping function weights. Each one is the squared
+         * "standard deviation" of the bell curve
+         *   weight = exp(-difference² / phi)
+         * which the filter uses to compute the weight of a sample from its difference
+         * in color, normal and position to the pixel being filtered. So, the smaller
+         * a value, the more such a difference reduces the weight of a sample.
          *
          * Play with these to get somewhat an understanding what they cause.
+         *
+         * The normal and the position are free of noise, so we can be strict with
+         * those. For the position we use two values (see the shader): A sample should
+         * not be farther away than about a meter, and it should not be more than about
+         * three centimeters off the plane of the surface.
          */
-        float c_phi0 = 3.3f;
-        float n_phi0 = 1E-2f; // <- normals are VERY important
-        float p_phi0 = 5.5f;
+        float n_phi = 1E-2f; // <- normals are VERY important
+        float p_phi = 1.0f;
+        float d_phi = 1E-3f;
+        /*
+         * The color is different, because the color is what contains the noise we
+         * want to get rid of. In the path-traced image the color difference between
+         * two neighboring pixels is mostly noise and tells us next to nothing about
+         * actual edges in the illumination, such as the boundary of a shadow. So we
+         * have to start with a big value. With it, the first iteration mostly only
+         * cares for normals and positions.
+         *
+         * The more frames got averaged in the path-traced image, the less noise it
+         * contains. Averaging N frames divides the variance of the noise by N, and so
+         * we do the same with our (squared) value. This way, the filter blurs less
+         * and less while the path-traced image converges, and the filtered image
+         * converges with it instead of staying blurry forever.
+         */
+        float c_phi0 = 10.0f / Math.max(1, frameNumber);
+        /*
+         * That value is the same for all pixels. But the noise is not. Bright surfaces
+         * are noisier than dark ones, and with specular surfaces there are single
+         * very bright pixels (fireflies) from light paths, which the path tracer only
+         * finds very rarely. So the shader also estimates the variance of the
+         * path-traced image around every pixel and adds it, multiplied with the
+         * following factor, to the value above. This way, the filter tolerates
+         * bigger color differences where the image is noisier.
+         */
+        float v_phi0 = 2.0f;
+        glUniform1f(n_phiUniform, n_phi);
+        glUniform1f(p_phiUniform, p_phi);
+        glUniform1f(d_phiUniform, d_phi);
         /*
          * Now, perform 'n' iterations of the filter algorithm.
          */
         for (int i = 0; i < n; i++) {
             /*
-             * Each iteration potentially needs different edge function weights.
+             * Every iteration averages over an area with twice the diameter as the
+             * previous iteration and thereby about halves the noise remaining in the
+             * image. So we can (and have to) also halve the standard deviation of the
+             * color edge-stopping function with every iteration, like the paper does.
+             * This means dividing our squared value by four. Without this, the later
+             * iterations with their big stepwidth would blur all the edges in the
+             * illumination again, which the earlier iterations preserved.
+             * The same holds for the influence of the variance.
              */
-            glUniform1f(c_phiUniform, 1.0f / i * c_phi0);
-            glUniform1f(n_phiUniform, 1.0f / (1 << i) * n_phi0);
-            glUniform1f(p_phiUniform, 1.0f / (1 << i) * p_phi0);
-            glUniform1i(stepwidthUniform, (1 << (i + 1)) - 1);
+            glUniform1f(c_phiUniform, c_phi0 / (1 << (2 * i)));
+            glUniform1f(v_phiUniform, v_phi0 / (1 << (2 * i)));
+            /*
+             * This is the "à-trous" (with holes) part of the algorithm: We always use
+             * the same 5x5 kernel, but the distance between two of its samples doubles
+             * with every iteration. So iteration 'i' leaves 2^i - 1 pixels wide holes
+             * between its samples. These holes do no harm, because the previous
+             * iterations already averaged the pixels in the holes into the samples.
+             */
+            glUniform1i(stepwidthUniform, 1 << i);
             /*
              * Read from the current 'read' texture.
              */
@@ -839,9 +925,17 @@ public class Tutorial5 {
         /*
          * Our render loop is really simple...
          */
-        float lastTime = System.nanoTime();
+        /*
+         * Mind that System.nanoTime() can return very big values, which a float cannot
+         * hold precisely enough. So we only convert time differences to float.
+         * Otherwise, when rendering faster than that precision, consecutive frames
+         * would get the same time and with it the same random numbers and therefore
+         * the same noise, and averaging those frames would not reduce any noise.
+         */
+        long startTime = System.nanoTime();
+        long lastTime = startTime;
         while (!glfwWindowShouldClose(window)) {
-            float thisTime = System.nanoTime();
+            long thisTime = System.nanoTime();
             float dt = (thisTime - lastTime) / 1E9f;
             lastTime = thisTime;
             /*
@@ -857,10 +951,10 @@ public class Tutorial5 {
              */
             update(dt);
             /*
-             * Call the compute shader to trace the scene and produce an image in our
-             * framebuffer texture.
+             * Call the path tracing shader to trace the scene and produce an image in
+             * our framebuffer texture.
              */
-            trace(!stopTime ? thisTime / 1E9f : 1.0f);
+            trace(!stopTime ? (thisTime - startTime) / 1E9f : 1.0f);
             int read = pttex;
             if (filtered) {
                 /*
@@ -892,6 +986,7 @@ public class Tutorial5 {
                 debugProc.free();
             errCallback.free();
             keyCallback.free();
+            charCallback.free();
             fbCallback.free();
             cpCallback.free();
             mbCallback.free();
